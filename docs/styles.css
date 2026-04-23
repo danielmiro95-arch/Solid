@@ -1,22 +1,30 @@
-/* SOLID 2.0 — editorial premium tokens */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* SOLID 2.0 — BeonIt brand */
 :root {
-  --paper: #f5f1e8;
-  --paper-2: #ece6d8;
-  --ink: #1a1a1a;
-  --ink-2: #2d2a24;
-  --ink-3: #4a463d;
-  --ink-4: #7a756a;
-  --line: rgba(26, 26, 26, 0.12);
-  --line-2: rgba(26, 26, 26, 0.06);
-  --accent: #1a1a1a; /* primary */
-  --accent-glow: #c8ff3d; /* used sparingly */
-  --highlight: #d7cdb8;
-  --dark: #0e0d0b;
-  --dark-2: #181714;
-  --dark-3: #26231e;
-  --cream: #f5f1e8;
-  --serif: "Fraunces", "Source Serif Pro", Georgia, serif;
-  --sans: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --paper: #f7f5f0;
+  --paper-2: #edeae2;
+  --ink: #0a0a0a;
+  --ink-2: #1f1f1f;
+  --ink-3: #404040;
+  --ink-4: #7a7a7a;
+  --line: rgba(10, 10, 10, 0.12);
+  --line-2: rgba(10, 10, 10, 0.06);
+  --accent: #0a0a0a;
+  --accent-glow: #F3A524;
+  --beonit-orange: #F3A524;
+  --beonit-yellow: #FCCB00;
+  --beonit-lime: #BCD630;
+  --beonit-blue: #0071BE;
+  --beonit-purple: #8A3892;
+  --beonit-red: #FC220D;
+  --highlight: #e8e4da;
+  --dark: #000000;
+  --dark-2: #0f0f0f;
+  --dark-3: #1a1a1a;
+  --cream: #f7f5f0;
+  --serif: "Sora", "Outfit", sans-serif;
+  --sans: "Avenir Next", "Avenir", "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
@@ -95,11 +103,11 @@ body {
   letter-spacing: 0.1em;
   padding: 10px;
 }
-.ph.warm { --ph-a: #3a2e20; --ph-b: #5a4428; }
-.ph.olive { --ph-a: #2a2e1f; --ph-b: #424830; }
-.ph.plum  { --ph-a: #2b1f2e; --ph-b: #3f2c43; }
-.ph.teal  { --ph-a: #1a2c2e; --ph-b: #2a4044; }
-.ph.clay  { --ph-a: #3c2621; --ph-b: #5a3a32; }
-.ph.sand  { --ph-a: #d7cdb8; --ph-b: #e8e0cd; color: rgba(26,26,26,0.6); }
-.ph.lime  { --ph-a: #a3d82f; --ph-b: #c8ff3d; color: rgba(26,26,26,0.7); }
-.ph.noir  { --ph-a: #0e0d0b; --ph-b: #1a1a1a; }
+.ph.warm  { --ph-a: #7a3c00; --ph-b: #a35200; }
+.ph.olive { --ph-a: #354000; --ph-b: #4d5e00; }
+.ph.plum  { --ph-a: #3a0a3e; --ph-b: #5a1560; }
+.ph.teal  { --ph-a: #003660; --ph-b: #004e8a; }
+.ph.clay  { --ph-a: #5a0800; --ph-b: #7a1000; }
+.ph.sand  { --ph-a: #e8e4da; --ph-b: #f0ece0; color: rgba(10,10,10,0.5); }
+.ph.lime  { --ph-a: #485e00; --ph-b: #6a8800; }
+.ph.noir  { --ph-a: #000000; --ph-b: #111111; }

@@ -49,7 +49,8 @@ function Sidebar({ view, setView }) {
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <span className="mark">Solid<span className="dot"/></span>
+        <img src="beonit-logo.png" style={{height:30, width:'auto'}} alt="BeonIt"/>
+        <span className="mark" style={{fontSize:20}}>Solid</span>
       </div>
       <button className="sb-search">
         <Icon name="search" size={14}/>
