@@ -337,18 +337,38 @@ function Coach() {
 // ---------- Onboarding ----------
 function Onboarding({ done = () => {} }) {
   const [step, setStep] = useS2(0);
-  const [selected, setSelected] = useS2(new Set(['Liderazgo', 'Comunicación']));
-  const [cadence, setCadence] = useS2(5);
-  const topics = ['Liderazgo', 'Comunicación', 'Toma de decisiones', 'Contratación', 'Trabajo profundo', 'Estrategia', 'Feedback', 'Escritura', 'Reuniones', 'Producto', 'Fluidez en IA', 'Negociación'];
-  const toggle = (t) => { const n = new Set(selected); n.has(t) ? n.delete(t) : n.add(t); setSelected(n); };
+  const [selectedAreas, setSelectedAreas] = useS2(new Set(['Publicación', 'Aprobaciones']));
+  const [role, setRole] = useS2('publish');
+  const [notifs, setNotifs] = useS2([true, true, false, false]);
+
+  const areas = ['Publicación', 'Aprobaciones', 'Calendario editorial', 'Analytics', 'Activos DAM', 'Compliance', 'Gestión de crisis', 'Integraciones', 'Gobernanza', 'Reporting'];
+  const toggleArea = (t) => { const n = new Set(selectedAreas); n.has(t) ? n.delete(t) : n.add(t); setSelectedAreas(n); };
+  const toggleNotif = (i) => setNotifs(ns => ns.map((v, idx) => idx === i ? !v : v));
+
+  const roles = [
+    { id: 'publish',   label: 'Publish Agent',   desc: 'Publico y apruebo contenido en Sprinklr' },
+    { id: 'content',   label: 'Content Lead',     desc: 'Lidero la estrategia de contenidos' },
+    { id: 'analytics', label: 'Analytics Lead',   desc: 'Analizo rendimiento de campañas' },
+    { id: 'it',        label: 'IT / Integraciones', desc: 'Gestiono la integración con sistemas Repsol' },
+    { id: 'direccion', label: 'Dirección',         desc: 'Necesito visión global de la plataforma' },
+  ];
+
+  const notifOptions = [
+    { t: 'Recordatorio diario en WhatsApp, 9:00', d: 'Un módulo cada mañana. Sin ruido extra.' },
+    { t: 'Acceso libre desde la app', d: 'Entro cuando tengo tiempo, sin notificaciones.' },
+    { t: 'Resumen semanal por email (viernes)', d: 'Qué aprendiste, qué viene la próxima semana.' },
+    { t: 'Alertas antes de reuniones Sprinklr', d: 'El agente te manda un módulo relevante 30 min antes.' },
+  ];
+
   const steps = [
     {
-      eyebrow: '01 · De 04', title: <>¿Qué quieres <em>afilar</em> primero?</>,
-      lead: 'Elige tres o más. Tu coach los usa para traerte las primeras píldoras — puedes cambiarlos cuando quieras.',
+      eyebrow: '01 · De 04',
+      title: <>¿En qué área de Sprinklr<br/>quieres <em>certificarte</em>?</>,
+      lead: 'Selecciona las áreas prioritarias. Tu ruta de formación se construirá en torno a ellas — puedes cambiarlas después.',
       body: (
         <div className="onb-chips">
-          {topics.map(t => (
-            <button key={t} className={`onb-chip ${selected.has(t) ? 'sel' : ''}`} onClick={() => toggle(t)}>
+          {areas.map(t => (
+            <button key={t} className={`onb-chip ${selectedAreas.has(t) ? 'sel' : ''}`} onClick={() => toggleArea(t)}>
               <span className="mark"/>{t}
             </button>
           ))}
@@ -356,32 +376,32 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '02 · De 04', title: <>¿Cuántos <em>minutos</em> al día?</>,
-      lead: 'Una píldora son tres minutos. Responder con honestidad te da una ruta realista, no una culpa.',
+      eyebrow: '02 · De 04',
+      title: <>¿Cuál es tu <em>rol</em><br/>en Repsol?</>,
+      lead: 'Personalizamos el orden de los módulos y los casos prácticos según tu función en el equipo de comunicación.',
       body: (
-        <div className="cadence-grid">
-          {[{n:3, t:'Una píldora', d:'Lun–Vie · 3 min / día'}, {n:5, t:'Una + cortos', d:'Lun–Vie · 5 min / día'}, {n:15, t:'Modo maratón', d:'Cualquier día · 15 min'}].map(c => (
-            <div key={c.n} className={`cadence-card ${cadence === c.n ? 'sel' : ''}`} onClick={() => setCadence(c.n)}>
-              <span className="n">{c.n}<span style={{fontSize:14, marginLeft:4}}>min</span></span>
-              <span className="t">{c.t}</span>
-              <span className="d">{c.d}</span>
+        <div style={{display:'flex', flexDirection:'column', gap:10, maxWidth:520}}>
+          {roles.map(r => (
+            <div key={r.id} onClick={() => setRole(r.id)}
+              style={{padding:'14px 18px', border:`1px solid ${role === r.id ? 'var(--ink)' : 'var(--line)'}`, borderRadius:12, cursor:'pointer', background: role === r.id ? 'var(--ink)' : 'var(--paper)', transition:'all .12s', display:'flex', alignItems:'center', gap:14}}>
+              <div style={{width:18, height:18, borderRadius:'50%', border:`2px solid ${role === r.id ? 'var(--accent-glow)' : 'var(--line)'}`, background: role === r.id ? 'var(--accent-glow)' : 'transparent', flexShrink:0}}/>
+              <div>
+                <div style={{fontWeight:600, fontSize:14, color: role === r.id ? 'var(--paper)' : 'var(--ink)'}}>{r.label}</div>
+                <div style={{fontSize:12, color: role === r.id ? 'rgba(255,255,255,0.6)' : 'var(--ink-3)', marginTop:2}}>{r.desc}</div>
+              </div>
             </div>
           ))}
         </div>
       )
     },
     {
-      eyebrow: '03 · De 04', title: <>¿Dónde te <em>buscamos</em>?</>,
-      lead: 'La app es la biblioteca. WhatsApp es el empujón. Apaga cualquiera cuando quieras.',
+      eyebrow: '03 · De 04',
+      title: <>¿Cómo quieres <em>aprender</em>?</>,
+      lead: 'Elige cómo quieres recibir tu formación. Puedes activar o desactivar cada canal en cualquier momento desde tu perfil.',
       body: (
         <div style={{display:'flex', flexDirection:'column', gap:12, maxWidth:520}}>
-          {[
-            {t:'Píldora diaria en WhatsApp, 9:00', d:'Un solo mensaje. Tres minutos. Sin ruido.', on:true},
-            {t:'Abrir la app cuando tenga tiempo', d:'Sin push, sin email, sin culpa.', on:true},
-            {t:'Resumen semanal por email, domingo', d:'Qué aprendiste, qué viene ahora.', on:false},
-            {t:'Recordatorios del coach antes de reuniones', d:'Desde tu calendario, nunca automático.', on:false},
-          ].map((x,i) => (
-            <div key={i} className={`wa-toggle ${x.on ? 'on' : ''}`}>
+          {notifOptions.map((x, i) => (
+            <div key={i} className={`wa-toggle ${notifs[i] ? 'on' : ''}`} onClick={() => toggleNotif(i)} style={{cursor:'pointer'}}>
               <div>
                 <div className="t">{x.t}</div>
                 <div className="d">{x.d}</div>
@@ -393,31 +413,46 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '04 · De 04', title: <>Conoce a tu <em>coach</em>.</>,
-      lead: 'Lee lo que terminas, escucha cuando preguntas y no sermonea. Dile hola.',
+      eyebrow: '04 · De 04',
+      title: <>Tu agente IA <em>te espera</em>.</>,
+      lead: 'Conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa — en cualquier momento.',
       body: (
         <div style={{border:'1px solid var(--line)', borderRadius:16, padding:24, maxWidth:560, background:'var(--paper-2)'}}>
-          <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:22, lineHeight:1.3, marginBottom:14}}>
-            "Hola Amaia. A partir de <em>Liderazgo</em> y <em>Comunicación</em>, te abro una ruta de 4 semanas: <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>Cómo ser manager, de verdad</span>. ¿Te encaja?"
+          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
+            <div style={{width:40, height:40, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.4)', flexShrink:0}}/>
+            <div>
+              <div style={{fontWeight:600, fontSize:14}}>Agente IA · Sprinklr</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Powered by Claude · Anthropic</div>
+            </div>
+          </div>
+          <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1.4, marginBottom:16, color:'var(--ink)'}}>
+            "Hola. Basándome en tu rol de <em>Publish Agent</em> y las áreas que has elegido, te preparo una ruta de <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>4 semanas y 10 módulos</span>. ¿Empezamos?"
           </div>
           <div style={{display:'flex', gap:10}}>
-            <button className="btn glow">Sí — empieza</button>
+            <button className="btn glow" onClick={done}>Sí — entrar en Solid →</button>
             <button className="btn ghost">Cuéntame más</button>
           </div>
         </div>
       )
     },
   ];
+
   const s = steps[step];
   return (
     <div className="onb-root">
       <div className="onb-visual">
-        <span className="tag">SOLID · 01 / 2026</span>
-        <div>
-          <div className="big-mark">"</div>
-          <h2>Una idea,<br/>dominada<br/>en tres<br/>minutos.</h2>
+        <div style={{display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:28, height:28, borderRadius:6, background:'var(--repsol-red)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:14}}>R</div>
+          <span className="tag" style={{color:'rgba(245,241,232,0.7)'}}>Repsol · Formación Sprinklr</span>
         </div>
-        <span className="tag">bienvenida, Amaia</span>
+        <div>
+          <div className="big-mark" style={{color:'var(--accent-glow)'}}>S</div>
+          <h2>Domina<br/>Sprinklr<br/>como<br/><em>Publish<br/>Agent</em>.</h2>
+        </div>
+        <div>
+          <div className="tag" style={{color:'rgba(245,241,232,0.5)', marginBottom:6}}>Certificación oficial</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(245,241,232,0.35)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Repsol × BeonIt · 2026</div>
+        </div>
       </div>
       <div className="onb-right">
         <div className="step-meta">{s.eyebrow}</div>
@@ -425,9 +460,9 @@ function Onboarding({ done = () => {} }) {
         <p className="lead">{s.lead}</p>
         {s.body}
         <div className="onb-nav">
-          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>Atrás</button>}
-          <button className="btn" onClick={() => step < 3 ? setStep(step+1) : done()}>
-            {step < 3 ? 'Continuar' : 'Entrar en Solid'} →
+          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>← Atrás</button>}
+          <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : done()}>
+            {step < 3 ? 'Continuar →' : 'Entrar en Solid →'}
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">
             {[0,1,2,3].map(i => <span key={i} className={i <= step ? 'on' : ''}/>)}
@@ -573,22 +608,25 @@ function Profile() {
 
 // ---------- WhatsApp handoff ----------
 function WhatsApp() {
+  const [toggles, setToggles] = useS2([true, true, false, true]);
+  const toggle = (i) => setToggles(ts => ts.map((v, idx) => idx === i ? !v : v));
+  const options = [
+    { t: 'Módulo diario en WhatsApp, 9:00', d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
+    { t: 'Briefs antes de reuniones Sprinklr', d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
+    { t: 'Respuestas del agente IA por WhatsApp', d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
+    { t: 'Resumen semanal (viernes, 17:00)', d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
+  ];
   return (
     <div className="wa-root">
       <div>
         <div className="wa-head">
-          <span className="eyebrow">Multi-canal</span>
-          <h1>Tu <em>empujón</em>, no tu biblioteca.</h1>
-          <p>Solid empezó en WhatsApp — y seguimos ahí. La app es donde descubres, maratoneas y buscas. WhatsApp se queda con lo que mejor hace: una píldora de tres minutos en el momento justo.</p>
+          <div className="lms-hero-eyebrow" style={{marginBottom:12}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
+          <h1>Tu formación,<br/>donde <em>estés</em>.</h1>
+          <p>Solid funciona en la web y en WhatsApp. La plataforma es donde completas módulos y consultas el catálogo. WhatsApp es el recordatorio inteligente que te mantiene en el camino hacia la certificación.</p>
         </div>
         <div className="wa-toggles">
-          {[
-            {t:'Píldora diaria, 9:00', d:'Un mensaje. Tres minutos. Basado en tu ruta.', on:true},
-            {t:'Briefs antes de reuniones', d:'30 min antes de una coincidencia del calendario, una píldora relacionada.', on:true},
-            {t:'Pings del coach', d:'Solo cuando preguntas. Nunca automáticos.', on:false},
-            {t:'Resumen semanal', d:'Domingo por la tarde. Qué aprendiste, qué viene.', on:true},
-          ].map((x,i) => (
-            <div key={i} className={`wa-toggle ${x.on ? 'on' : ''}`}>
+          {options.map((x, i) => (
+            <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
               <div>
                 <div className="t">{x.t}</div>
                 <div className="d">{x.d}</div>
@@ -601,41 +639,39 @@ function WhatsApp() {
       <div className="wa-phone">
         <div className="wa-screen">
           <div className="wa-bar">
-            <div className="av">S</div>
+            <div className="av" style={{background:'var(--accent-glow)', color:'var(--ink)'}}>S</div>
             <div>
-              <div className="t">Solid Coach</div>
+              <div className="t">Solid · Agente Sprinklr</div>
               <div className="s">en línea · 9:00</div>
             </div>
           </div>
           <div className="wa-chat">
-            <div className="wa-msg">Buenos días, Amaia ☀️ ¿Tres minutos antes del stand-up?
+            <div className="wa-msg">
+              Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
               <div className="time">9:00</div>
             </div>
             <div className="wa-msg" style={{padding:6}}>
               <div className="pill-card">
-                <div className="thumb"><div className="ph plum">píldora</div></div>
+                <div className="thumb"><div className="ph plum">módulo</div></div>
                 <div className="meta">
-                  <div className="t">Decir no sin decir "no"</div>
-                  <div className="s">Píldora · 3 min · M. Alcázar</div>
+                  <div className="t">Programar posts y gestión de calendario</div>
+                  <div className="s">Módulo · 5 min · Carlos Vega</div>
                 </div>
               </div>
               <span className="wa-cta">▶ Ver en Solid</span>
               <div className="time">9:00</div>
             </div>
-            <div className="wa-msg me">Mándame mejor el TL;DR
-              <div className="time">9:02</div>
-            </div>
-            <div className="wa-msg">Tres plantillas para decir no sin quemar la relación:
-              <br/>· <b>Redirige</b> — "Yo no, pero Pablo es el indicado."
-              <br/>· <b>Replantea</b> — "Sí, si recortamos X."
-              <br/>· <b>Reprograma</b> — "Este sprint no. El siguiente."
-              <div className="time">9:02</div>
-            </div>
-            <div className="wa-msg me">Guárdalo en mi canon
+            <div className="wa-msg me">¿Cómo programo un post recurrente?
               <div className="time">9:03</div>
             </div>
-            <div className="wa-msg">Guardado ✓ Lo verás en <b>Perfil → Tu canon</b>.
+            <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia al crear el post. Puedes definir frecuencia diaria, semanal o personalizada.
               <div className="time">9:03</div>
+            </div>
+            <div className="wa-msg me">Perfecto, gracias
+              <div className="time">9:04</div>
+            </div>
+            <div className="wa-msg">¡De nada! Cuando termines el módulo te desbloquea el de <b>Monitorización</b>. 💪
+              <div className="time">9:04</div>
             </div>
           </div>
         </div>

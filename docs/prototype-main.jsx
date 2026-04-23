@@ -50,7 +50,14 @@ function App() {
         {view === 'path' && <PathView/>}
         {view === 'profile' && <Profile/>}
         {view === 'wa' && <WhatsApp/>}
-        {view === 'saved' && <div className="main-inner"><div className="hero-eye"><span className="chip">Saved · 12 items</span></div><h1 style={{fontFamily:'var(--serif)', fontSize:56, letterSpacing:'-0.025em', margin:'16px 0 32px'}}>Your <em style={{fontStyle:'italic'}}>canon</em>.</h1><div className="grid-pills" style={{gridTemplateColumns:'repeat(4, 1fr)'}}>{[...PILLS, ...SERIES.slice(0,3)].map(p => <Card key={p.id} {...p}/>)}</div></div>}
+        {view === 'saved' && (
+          <div className="main-inner">
+            <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>Módulos guardados</div>
+            <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(36px, 4vw, 52px)', letterSpacing:'-0.025em', margin:'0 0 8px'}}>Tu <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>biblioteca</em>.</h1>
+            <p style={{fontSize:14, color:'var(--ink-3)', marginBottom:32}}>{[...PILLS, ...SERIES].length} módulos guardados · Repsol × BeonIt</p>
+            <div className="catalog-grid">{[...PILLS, ...SERIES.slice(0,3)].map(p => <Card key={p.id} {...p} onClick={() => { setDetailItem(p); setView('detail'); }}/>)}</div>
+          </div>
+        )}
         {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/></div>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
