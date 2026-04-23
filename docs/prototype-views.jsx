@@ -5,32 +5,48 @@ const { useState: useS2, useEffect: useE2 } = React;
 // ---------- Detail ----------
 function Detail({ item, openPlayer, back }) {
   const it = item || PILLS[0];
-  const chapters = [
-    { n: 1, t: 'Por qué decir "no" duele en el trabajo', d: 'El modelo mental tras la evitación.', done: true },
-    { n: 2, t: 'Tres plantillas de no-suave', d: 'Redirige, replantea, reprograma.', done: true },
-    { n: 3, t: 'Cuando la petición sí es buena', d: 'Distinguir encaje de volumen.', current: true },
-    { n: 4, t: 'Escríbelo una sola vez', d: 'Tu canon personal del no.' },
-    { n: 5, t: 'El seguimiento que se queda', d: '24 horas después, ¿qué dices?' },
-  ];
+  const chapsByFormat = {
+    módulo: [
+      { n: 1, t: 'Introducción y contexto en Repsol', d: 'Por qué este módulo importa.', done: true },
+      { n: 2, t: 'Interfaz y accesos en Sprinklr', d: 'Dónde está cada cosa.', done: true },
+      { n: 3, t: 'Flujo de trabajo paso a paso', d: 'El proceso completo.', current: true },
+      { n: 4, t: 'Casos reales del equipo Repsol', d: 'Ejemplos del día a día.' },
+      { n: 5, t: 'Errores comunes y cómo evitarlos', d: 'Lo que falla al principio.' },
+    ],
+    serie: [
+      { n: 1, t: 'Fundamentos', d: 'Base conceptual.', done: true },
+      { n: 2, t: 'Configuración inicial', d: 'Setup en entorno Repsol.', done: true },
+      { n: 3, t: 'Flujo principal', d: 'El proceso completo.', current: true },
+      { n: 4, t: 'Casos avanzados', d: 'Escenarios complejos.' },
+      { n: 5, t: 'Integración con otros sistemas', d: 'Herramientas Repsol.' },
+      { n: 6, t: 'Evaluación final', d: 'Verifica lo aprendido.' },
+    ],
+  };
+  const chapters = chapsByFormat[it.format] || chapsByFormat['módulo'];
   return (
     <>
       <section className="detail-hero">
+        <div style={{position:'relative', padding:'14px 56px 8px', borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+          <button onClick={back} style={{display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'rgba(245,241,232,0.6)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer', padding:'4px 0'}}>
+            <Icon name="back" size={11}/> Volver al catálogo
+          </button>
+        </div>
         <div className="detail-hero-inner">
-          <div className="detail-poster"><div className="ph plum">portada</div></div>
+          <div className="detail-poster"><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0}}/></div>
           <div className="detail-head">
-            <span className="eyebrow eye">Serie · Comunicación</span>
-            <h1>Decir no sin<br/>decir "no".</h1>
-            <p className="lead">Una serie de cinco píldoras sobre el arte silencioso de declinar — sin la disculpa, sin el email de 200 palabras, sin quemar la relación.</p>
+            <span className="eyebrow eye">{it.format} · {it.category}</span>
+            <h1>{it.title}</h1>
+            <p className="lead">Módulo diseñado para el equipo Publish Agent de Repsol. Aprende con flujos y ejemplos reales de las operaciones de comunicación de Repsol en Sprinklr.</p>
             <div className="detail-meta-row">
-              <span>5 PÍLDORAS</span><span className="sep">·</span>
-              <span>14 MIN EN TOTAL</span><span className="sep">·</span>
-              <span>MARTA ALCÁZAR</span><span className="sep">·</span>
-              <span>★ 4.8 · 2.1K TERMINADAS</span>
+              <span>{chapters.length} LECCIONES</span><span className="sep">·</span>
+              <span>{it.duration}</span><span className="sep">·</span>
+              <span style={{textTransform:'uppercase'}}>{it.teacher}</span><span className="sep">·</span>
+              <span>★ {it.rating || '4.8'} · {it.enrolled || '220'} COMPLETADAS</span>
             </div>
             <div className="detail-cta-row">
-              <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Empezar · 3 min</button>
+              <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Empezar · {it.duration}</button>
               <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
-              <button className="btn ghost"><Icon name="sparkle" size={14}/> Pregunta al coach</button>
+              <button className="btn ghost"><Icon name="sparkle" size={14}/> Pregunta al agente</button>
             </div>
           </div>
         </div>
@@ -50,23 +66,23 @@ function Detail({ item, openPlayer, back }) {
           <div>
             <h3>Impartido por</h3>
             <div className="teacher">
-              <div className="av"><div className="ph sand" style={{position:'absolute',inset:0,borderRadius:'50%'}}/></div>
+              <div className="av" style={{position:'relative', overflow:'hidden'}}><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0,borderRadius:'50%'}}/></div>
               <div>
-                <div className="name">Marta Alcázar</div>
-                <div className="bio">Ex-COO. Imparte más de 40 píldoras sobre comunicación y decisiones.</div>
+                <div className="name">{it.teacher}</div>
+                <div className="bio">Equipo de formación Repsol × BeonIt. Especialista en Sprinklr y gestión de contenidos digitales.</div>
               </div>
             </div>
           </div>
           <div>
-            <h3>El coach dice</h3>
+            <h3>El agente IA dice</h3>
             <div style={{padding:'14px 16px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)', fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.5}}>
-              "Con tu 1:1 del jueves con Pablo en mente, el capítulo 3 — 'Cuando la petición sí es buena' — es probablemente el más útil para terminar primero."
+              "Amaia, completar este módulo te acerca al test final de certificación. El nivel de dificultad encaja con tu progreso actual."
             </div>
           </div>
           <div>
-            <h3>Si te gustó esto</h3>
+            <h3>Otros módulos</h3>
             <div className="related-list">
-              {SERIES.slice(0,3).map(s => (
+              {PILLS.filter(p => p.id !== it.id).slice(0,3).map(s => (
                 <div className="related" key={s.id}>
                   <div className="thumb"><div className={`ph ${s.tone}`}/></div>
                   <div className="meta">
@@ -87,18 +103,18 @@ function Detail({ item, openPlayer, back }) {
 function Player({ back }) {
   const [playing, setPlaying] = useS2(true);
   const chapters = [
-    { n: 1, t: 'Por qué duele decir "no"', d: '0:00 · 3:02', tone: 'plum' },
-    { n: 2, t: 'Tres plantillas', d: '3:02 · 2:48', tone: 'clay' },
-    { n: 3, t: 'Peticiones buenas', d: '5:50 · 3:11', tone: 'warm', active: true },
-    { n: 4, t: 'Escribirlo', d: '9:01 · 2:30', tone: 'olive' },
-    { n: 5, t: 'El seguimiento', d: '11:31 · 2:29', tone: 'teal' },
+    { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal' },
+    { n: 2, t: 'Interfaz y accesos en Sprinklr', d: '0:52 · 1:10', tone: 'plum' },
+    { n: 3, t: 'Flujo de trabajo paso a paso', d: '2:02 · 1:18', tone: 'clay', active: true },
+    { n: 4, t: 'Casos reales del equipo Repsol', d: '3:20 · 0:45', tone: 'olive' },
+    { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm' },
   ];
   return (
     <div className="player-root">
       <div className="player-stage">
-        <div className="ph plum">vídeo</div>
+        <div className="ph teal">vídeo</div>
         <div className="player-overlay-top">
-          <button className="back" onClick={back}><Icon name="back" size={12}/> Volver a la serie</button>
+          <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
           <div style={{display:'flex', gap:8}}>
             <button className="back"><Icon name="caption" size={12}/> SUB</button>
             <button className="back">Notas IA activas</button>
@@ -107,29 +123,29 @@ function Player({ back }) {
         <div className="player-overlay-bottom">
           <div className="title-row">
             <div>
-              <div className="t-eyebrow">Capítulo 3 de 5 · Decir no sin decir "no"</div>
-              <div className="title">Cuando la petición sí es buena.</div>
-              <div className="sub">MARTA ALCÁZAR · 03:11 · QUEDAN 00:52 EN EL CAPÍTULO</div>
+              <div className="t-eyebrow">Lección 3 de 5 · Programar posts en Sprinklr</div>
+              <div className="title">Flujo de trabajo paso a paso.</div>
+              <div className="sub">CARLOS VEGA · 01:18 · QUEDAN 00:34 EN LA LECCIÓN</div>
             </div>
           </div>
-          <div className="scrubber"><i style={{width:'38%'}}/><b/></div>
+          <div className="scrubber"><i style={{width:'56%'}}/><b/></div>
           <div className="player-controls">
-            <button><Icon name="skip" size={18} /></button>
+            <button><Icon name="skip" size={18}/></button>
             <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
             <button><Icon name="next" size={18}/></button>
             <button className="pill-btn">1.0×</button>
             <button className="pill-btn active">Pregunta IA</button>
             <button><Icon name="vol" size={18}/></button>
-            <span className="time">06:42 / 14:00</span>
+            <span className="time">02:18 / 05:00</span>
           </div>
         </div>
       </div>
       <div className="player-chapter-bar">
         {chapters.map(c => (
-          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`}>
+          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`} onClick={() => setPlaying(true)}>
             <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
-              <div className="n">CAPÍTULO {String(c.n).padStart(2,'0')}</div>
+              <div className="n">LECCIÓN {String(c.n).padStart(2,'0')}</div>
               <div className="t">{c.t}</div>
               <div className="d">{c.d}</div>
             </div>
@@ -141,19 +157,27 @@ function Player({ back }) {
 }
 
 // ---------- AI Sidekick ----------
-function AISidekick({ setAIMode, aiMode, view, currentPill }) {
+function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useS2('');
+  const contextLabel = {
+    home: 'Vista general · tu progreso',
+    player: 'Viendo módulo · Programar posts',
+    detail: 'Detalle de módulo',
+    path: 'Tu ruta de certificación',
+    dashboard: 'Analytics · visión admin',
+    coach: 'Agente IA · modo completo',
+  }[view] || 'Plataforma Sprinklr';
   return (
     <aside className="ai">
       <div className="ai-head">
         <div className="ai-head-left">
           <span className="orb"/>
           <div>
-            <div className="title">Coach</div>
-            <div className="sub">Leyendo capítulo 3</div>
+            <div className="title">Agente IA</div>
+            <div className="sub">{contextLabel}</div>
           </div>
         </div>
-        <button className="collapse" onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')} title="Ampliar / reducir">
+        <button className="collapse" onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')}>
           {aiMode === 'hero' ? '— Reducir' : '↔ Ampliar'}
         </button>
         <button className="collapse" onClick={() => setAIMode('collapsed')}>× Ocultar</button>
@@ -161,62 +185,61 @@ function AISidekick({ setAIMode, aiMode, view, currentPill }) {
       <div className="ai-body">
         {view === 'player' && (
           <div className="ai-context-card">
-            <div className="thumb"><div className="ph plum"/></div>
+            <div className="thumb"><div className="ph teal"/></div>
             <div className="meta">
-              <span className="eyebrow">Viendo</span>
-              <div className="t">Cuando la petición sí es buena.</div>
+              <span className="eyebrow">Viendo ahora</span>
+              <div className="t">Programar posts · Lección 3 de 5</div>
             </div>
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">Coach · 10:42</span>
+          <span className="who">Agente · 10:42</span>
           <div className="bubble">
-            Buenos días, Amaia. Terminaste <em>Feedback: actúa, no etiquetes</em> el viernes.
-            Te preparé <span className="hl">tres píldoras</span> que encajan con tu 1:1 del jueves con Pablo.
+            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
           </div>
         </div>
         <div className="ai-suggest">
-          <div className="thumb"><div className="ph clay"/></div>
+          <div className="thumb"><div className="ph plum"/></div>
           <div className="meta">
-            <div className="t">Decir no sin decir "no"</div>
-            <div className="s">3 min · Marta Alcázar · Comunicación</div>
+            <div className="t">Programar posts y gestión de calendario</div>
+            <div className="s">5 min · Carlos Vega · Calendario</div>
           </div>
         </div>
         <div className="ai-suggest">
           <div className="thumb"><div className="ph olive"/></div>
           <div className="meta">
-            <div className="t">La hora que multiplica</div>
-            <div className="s">3 min · L. Tavares · Foco</div>
+            <div className="t">Monitorización y alertas en tiempo real</div>
+            <div className="s">4 min · Ana García · Analytics</div>
           </div>
         </div>
         <div className="ai-chip-row">
-          <button className="ai-chip">Resume lo que acabo de ver</button>
-          <button className="ai-chip">Dame el TL;DR</button>
-          <button className="ai-chip">Hazme un quiz de 3 preguntas</button>
-          <button className="ai-chip">Convierte esto en un playbook</button>
+          <button className="ai-chip">¿Qué módulo sigue?</button>
+          <button className="ai-chip">Hazme un quiz</button>
+          <button className="ai-chip">Resumen del módulo</button>
+          <button className="ai-chip">Ayuda con aprobaciones</button>
         </div>
         <div className="ai-msg from-me">
           <span className="who">Tú · 10:44</span>
-          <div className="bubble">¿Qué debería preparar para el 1:1 del jueves con Pablo?</div>
+          <div className="bubble">¿Cómo apruebo un post urgente fuera del horario?</div>
         </div>
         <div className="ai-msg from-ai">
-          <span className="who">Coach · 10:44</span>
+          <span className="who">Agente · 10:44</span>
           <div className="bubble">
-            Tres minutos ahora, tres el miércoles. Empieza con <em>Feedback: actúa, no etiquetes</em> — la guardaste la semana pasada. Luego el capítulo 3 que tienes abierto. El miércoles te mando un recordatorio de una línea por WhatsApp.
+            Para aprobaciones urgentes: abre el post en estado <em>"Pendiente"</em>, usa <em>"Aprobación de emergencia"</em> y notifica al manager de turno por Slack. El módulo 2 lo explica paso a paso.
             <div className="ai-chip-row" style={{marginTop:10}}>
-              <button className="ai-chip">Añadir a la ruta</button>
-              <button className="ai-chip">Programar recordatorio</button>
+              <button className="ai-chip">Ver módulo 2</button>
+              <button className="ai-chip">Más detalles</button>
             </div>
           </div>
         </div>
       </div>
       <div className="ai-input-wrap">
         <div className="ai-input">
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregúntale al coach lo que sea…"/>
+          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregunta sobre Sprinklr o tu formación…"/>
           <button className="send"><Icon name="send" size={14}/></button>
         </div>
         <div className="ai-footer-row">
-          <span className="hint">Contexto: píldora actual · tu ruta · últimos 7 días</span>
+          <span className="hint">Contexto: módulo actual · ruta · progreso</span>
           <span className="hint">⌘ ↵</span>
         </div>
       </div>
@@ -224,76 +247,86 @@ function AISidekick({ setAIMode, aiMode, view, currentPill }) {
   );
 }
 
-// ---------- Coach fullscreen ----------
+// ---------- Coach / AI Agent fullscreen ----------
 function Coach() {
+  const [input, setInput] = useS2('');
+  const [msgs, setMsgs] = useS2([
+    { role: 'ai', text: '¡Hola Amaia! Soy tu agente de formación Sprinklr, impulsado por Claude. Llevas un 58% de la certificación. ¿Seguimos con el módulo de Calendario hoy?' },
+    { role: 'user', text: '¿Cuánto me falta para terminar?' },
+    { role: 'ai', text: 'Te quedan 5 módulos: Calendario, Monitorización, Activos, Compliance y el test final. Son ~90 minutos en total. Al terminarlos obtienes la certificación oficial Repsol × BeonIt.' },
+  ]);
+  const send = () => {
+    if (!input.trim()) return;
+    const q = input.trim();
+    setMsgs(m => [...m, { role: 'user', text: q }]);
+    setInput('');
+    setTimeout(() => {
+      setMsgs(m => [...m, { role: 'ai', text: 'Entendido. En el contexto de Sprinklr para Repsol, te recomiendo revisar el módulo correspondiente en tu ruta de certificación. ¿Quieres que te guíe paso a paso?' }]);
+    }, 800);
+  };
   return (
     <div className="coach-root">
       <aside className="coach-side">
         <div>
-          <h3>Hoy</h3>
-          <div className="coach-hist-item active">
-            <div className="t">Preparar el 1:1 del jueves</div>
-            <div className="d">HACE 2 MIN</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Resumen de la píldora "Feedback"</div>
-            <div className="d">09:12</div>
-          </div>
+          <h3>Conversaciones de hoy</h3>
+          <div className="coach-hist-item active"><div className="t">Progreso en la certificación</div><div className="d">Hace 2 min</div></div>
+          <div className="coach-hist-item"><div className="t">¿Cómo programar posts recurrentes?</div><div className="d">09:15</div></div>
         </div>
         <div>
           <h3>Esta semana</h3>
-          <div className="coach-hist-item">
-            <div className="t">¿Qué es un buen OKR de Q2?</div>
-            <div className="d">LUN</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Quiz sobre Trabajo Profundo</div>
-            <div className="d">DOM</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Convierte esto en plantilla</div>
-            <div className="d">SÁB</div>
-          </div>
+          <div className="coach-hist-item"><div className="t">Diferencia entre DAM y biblioteca</div><div className="d">Lun</div></div>
+          <div className="coach-hist-item"><div className="t">Flujo de aprobación urgente</div><div className="d">Dom</div></div>
+          <div className="coach-hist-item"><div className="t">Quiz sobre Publish Agent</div><div className="d">Sáb</div></div>
+        </div>
+        <div style={{marginTop:'auto', padding:'16px 12px', borderTop:'1px solid var(--line)', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', lineHeight:1.6}}>
+          Powered by Claude · Anthropic<br/>
+          Contexto: formación Sprinklr · Repsol
         </div>
       </aside>
       <div className="coach-main">
-        <div className="eyebrow">Coach · 10:44</div>
-        <div className="coach-greeting">
-          Buenos días, <em>Amaia</em>.<br/>
-          Tienes <span className="glow">tres minutos</span> antes del stand-up.
-        </div>
-        <div style={{fontFamily:'var(--serif)', fontSize:17, lineHeight:1.55, color:'var(--ink-3)', maxWidth:'60ch'}}>
-          Seleccioné una píldora que encaja con tu 1:1 del jueves, y una serie corta para la próxima semana. Elige una — o dime en qué quieres trabajar.
+        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:8}}>
+          <div style={{width:36, height:36, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.35)', flexShrink:0}}/>
+          <div>
+            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:20, lineHeight:1}}>Agente IA · Sprinklr</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>Powered by Claude · Anthropic</div>
+          </div>
         </div>
         <div className="coach-actions">
           <div className="coach-action">
-            <span className="eyebrow">Píldora · 3 min</span>
-            <div className="t">Decir no sin decir "no"</div>
-            <div className="d">Porque señalaste "feedback difícil" en el onboarding.</div>
+            <span className="eyebrow">Módulo siguiente · 5 min</span>
+            <div className="t">Programar posts y calendario</div>
+            <div className="d">Siguiente en tu ruta de certificación Repsol.</div>
           </div>
           <div className="coach-action">
-            <span className="eyebrow">Serie · 14 min</span>
-            <div className="t">El operador silencioso</div>
-            <div className="d">Cuatro de cinco ya vistos por tus compañeros de BeonIt.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Resumen</span>
-            <div className="t">Qué aprendí la semana pasada</div>
-            <div className="d">Un resumen de una página con las siete píldoras que terminaste.</div>
+            <span className="eyebrow">Serie · 22 min</span>
+            <div className="t">Sprinklr Analytics para Repsol</div>
+            <div className="d">5 lecciones para interpretar tus campañas.</div>
           </div>
           <div className="coach-action">
             <span className="eyebrow">Quiz · 90 seg</span>
-            <div className="t">Tres preguntas sobre Feedback</div>
-            <div className="d">Chequeo de retención — tu racha es de 11 días.</div>
+            <div className="t">Test de Publish Agent</div>
+            <div className="d">Verifica lo aprendido en los módulos 1 y 2.</div>
+          </div>
+          <div className="coach-action">
+            <span className="eyebrow">Resumen</span>
+            <div className="t">Lo que aprendí esta semana</div>
+            <div className="d">Flujo de aprobación completado · 2 módulos terminados.</div>
           </div>
         </div>
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+          {msgs.map((m, i) => (
+            <div key={i} className={`ai-msg ${m.role === 'ai' ? 'from-ai' : 'from-me'}`}>
+              <span className="who">{m.role === 'ai' ? 'Agente · ' : 'Tú · '}10:4{i}</span>
+              <div className="bubble">{m.text}</div>
+            </div>
+          ))}
+        </div>
         <div className="coach-input-shell">
-          <textarea placeholder="¿Qué tienes en mente hoy?"/>
+          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())} placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación…"/>
           <div className="coach-input-tools">
-            <button className="tool">＋ Adjuntar píldora</button>
-            <button className="tool">＋ Mi calendario</button>
-            <button className="tool">＋ Voz</button>
-            <button className="btn sm send">Preguntar al coach →</button>
+            <button className="tool">＋ Adjuntar módulo</button>
+            <button className="tool">＋ Mi progreso</button>
+            <button className="btn sm send" onClick={send}>Preguntar →</button>
           </div>
         </div>
       </div>
@@ -408,32 +441,34 @@ function Onboarding({ done = () => {} }) {
 // ---------- Path ----------
 function PathView() {
   const nodes = [
-    { n: 1, t: 'Nombra las expectativas', d: 'Por qué los managers que nombran el trabajo ganan — dos píldoras para abrir.', dur: '2 PÍLDORAS · 6 MIN', s: 'done' },
-    { n: 2, t: 'El 1:1 semanal', d: 'Una agenda que sí funciona. Plantillas incluidas.', dur: '3 PÍLDORAS · 9 MIN', s: 'done' },
-    { n: 3, t: 'Feedback: actúa, no etiquetes', d: 'De la serie "El operador silencioso". Ya lo tenías guardado.', dur: '4 PÍLDORAS · 12 MIN', s: 'current' },
-    { n: 4, t: 'Conversaciones difíciles', d: 'Decir lo incómodo, a propósito, a tiempo.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 5, t: 'Delegar sin desviarse', d: 'Cómo soltar algo y no volver a agarrarlo el viernes.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 6, t: 'Dirigir una decisión', d: 'Memo, reunión, voto — y cuándo usar cuál.', dur: '4 PÍLDORAS · 12 MIN' },
-    { n: 7, t: 'Contratar sin sesgos', d: 'Una ruta lateral corta — promocionable a su propio itinerario.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 8, t: 'El manager silencioso', d: 'Píldora de graduación. Escrita por tu coach a partir de tu ruta.', dur: '1 PÍLDORA · 3 MIN' },
+    { n: 1, t: 'Crear y gestionar campañas en Sprinklr', d: 'Fundamentos de Sprinklr Publish. Crea tu primera campaña en el entorno Repsol.', dur: '1 MÓDULO · 4 MIN', s: 'done' },
+    { n: 2, t: 'Flujo de aprobación de contenido', d: 'El proceso de revisión y aprobación en Repsol — roles y responsabilidades.', dur: '1 MÓDULO · 3 MIN', s: 'done' },
+    { n: 3, t: 'Programar posts y gestión de calendario', d: 'Domina el calendario editorial de Repsol: programación, edición y gestión de conflictos.', dur: '1 MÓDULO · 5 MIN', s: 'current' },
+    { n: 4, t: 'Monitorización y alertas en tiempo real', d: 'Configura alertas para menciones y keywords clave de Repsol en Sprinklr Listening.', dur: '1 MÓDULO · 4 MIN' },
+    { n: 5, t: 'Gestión de activos digitales en DAM', d: 'Organiza, etiqueta y comparte assets del equipo de comunicación de Repsol.', dur: '1 MÓDULO · 3 MIN' },
+    { n: 6, t: 'Compliance y gobernanza de contenido', d: 'Normativa legal y de marca en la publicación de contenido corporativo de Repsol.', dur: '1 MÓDULO · 5 MIN' },
+    { n: 7, t: 'Sprinklr Analytics para Repsol', d: 'Lee e interpreta los informes de rendimiento de campañas y engagement.', dur: '5 LECCIONES · 22 MIN' },
+    { n: 8, t: 'Gestión de crisis en redes sociales', d: 'Protocolos de respuesta y escalado en situaciones de crisis para Repsol.', dur: '3 LECCIONES · 14 MIN' },
+    { n: 9, t: 'Integración Sprinklr + herramientas Repsol', d: 'Conecta Sprinklr con los sistemas internos de comunicación del equipo IT.', dur: '4 LECCIONES · 18 MIN' },
+    { n: 10, t: 'Test final de certificación', d: 'Prueba de conocimientos. Necesitas un 80% para obtener el certificado oficial Repsol × BeonIt.', dur: 'TEST · 30 MIN' },
   ];
   return (
     <div className="path-root">
       <section className="path-hero">
         <div>
-          <span className="eyebrow">Ruta · Semana 4 / 8</span>
-          <h1>Cómo ser<br/><em>manager, de verdad</em>.</h1>
-          <p>Un viaje de 24 píldoras sobre management que no dora la píldora. Construido con la biblioteca de SOLID y las elecciones de tu coach — editable, pausable y tuyo.</p>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Ruta certificada · 4 semanas</div>
+          <h1>Publish Agent<br/><em>Certificación Repsol</em>.</h1>
+          <p>10 módulos sobre Sprinklr diseñados para el equipo de comunicación de Repsol. Completa la ruta y obtén la certificación oficial avalada por Repsol y BeonIt.</p>
           <div className="path-stats">
-            <div className="path-stat"><div className="n">24</div><div className="l">Píldoras</div></div>
-            <div className="path-stat"><div className="n">2h 12m</div><div className="l">Tiempo total</div></div>
-            <div className="path-stat"><div className="n">8</div><div className="l">Semanas</div></div>
-            <div className="path-stat"><div className="n">42%</div><div className="l">Completado</div></div>
+            <div className="path-stat"><div className="n">10</div><div className="l">Módulos</div></div>
+            <div className="path-stat"><div className="n">3h 20m</div><div className="l">Tiempo total</div></div>
+            <div className="path-stat"><div className="n">4</div><div className="l">Semanas</div></div>
+            <div className="path-stat"><div className="n">58%</div><div className="l">Tu progreso</div></div>
           </div>
         </div>
         <div className="path-visual">
-          <div className="ph warm">portada de ruta</div>
-          <div className="path-visual-badge">En curso</div>
+          <div className="ph teal" style={{position:'absolute',inset:0}}/>
+          <div className="path-visual-badge">En curso · Módulo 3/10</div>
         </div>
       </section>
       <div className="path-map">
@@ -442,9 +477,13 @@ function PathView() {
             <div>
               <h3>{node.t}</h3>
               <p className="d">{node.d}</p>
-              <div className="meta-row"><span>{node.dur}</span>{node.s === 'current' && <span style={{color:'var(--ink)'}}>· ▶ LO SIGUIENTE</span>}</div>
+              <div className="meta-row">
+                <span>{node.dur}</span>
+                {node.s === 'current' && <span style={{color:'var(--ink)', fontWeight:600}}>· ▶ LO SIGUIENTE</span>}
+                {node.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
+              </div>
             </div>
-            <button className="goto">{node.s === 'done' ? 'Revisar' : node.s === 'current' ? 'Continuar' : 'Ver avance'}</button>
+            <button className="goto">{node.s === 'done' ? 'Revisar' : node.s === 'current' ? 'Continuar →' : 'Ver módulo'}</button>
           </div>
         ))}
       </div>
@@ -456,40 +495,39 @@ function PathView() {
 function Profile() {
   const cells = Array.from({length: 98}, (_, i) => {
     const r = Math.sin(i * 2.3) + Math.cos(i * 0.7);
-    const l = r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
-    return l;
+    return r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
   });
   return (
     <div className="profile-root">
       <header className="profile-head">
-        <div className="big-av">A</div>
+        <div className="big-av" style={{background:'var(--repsol-red)'}}>A</div>
         <div>
-          <span className="role">Design Lead · BeonIt</span>
+          <span className="role">Publish Agent · Repsol</span>
           <h1>Amaia <em>Ruiz</em></h1>
         </div>
         <div className="profile-stats">
-          <div className="profile-stat"><div className="n">11</div><div className="l">Días de racha</div></div>
-          <div className="profile-stat"><div className="n">142</div><div className="l">Píldoras terminadas</div></div>
-          <div className="profile-stat"><div className="n">3</div><div className="l">Rutas activas</div></div>
+          <div className="profile-stat"><div className="n">7</div><div className="l">Módulos completados</div></div>
+          <div className="profile-stat"><div className="n">58%</div><div className="l">Certificación</div></div>
+          <div className="profile-stat"><div className="n">3h</div><div className="l">Tiempo de formación</div></div>
         </div>
       </header>
       <div className="profile-grid">
         <section className="profile-section">
-          <h2>Últimas 14 semanas</h2>
+          <h2>Actividad últimas 14 semanas</h2>
           <div className="streak-viz">
             {cells.map((l,i) => <div key={i} className={`streak-cell ${l}`}/>)}
           </div>
           <div style={{display:'flex', justifyContent:'space-between', marginTop:10, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>
             <span>12 ene</span><span>20 abr</span>
           </div>
-          <h2 style={{marginTop:36}}>Lo que terminaste</h2>
+          <h2 style={{marginTop:36}}>Módulos completados</h2>
           <div style={{display:'flex', flexDirection:'column', gap:2}}>
             {[
-              {t:'Feedback: actúa, no etiquetes', d:'Vie · 3 min'},
-              {t:'La regla de las 2 pizzas, revisitada', d:'Jue · 3 min'},
-              {t:'Stand-up de una línea', d:'Mié · :52'},
-              {t:'Cuartos propios (podcast)', d:'Mar · 38 min'},
-              {t:'Entrega menos, aprende más · Ep. 3', d:'Lun · 5 min'},
+              {t:'Crear y gestionar campañas en Sprinklr', d:'Hoy · 4 min'},
+              {t:'Flujo de aprobación de contenido', d:'Ayer · 3 min'},
+              {t:'Aproba un post en 30 segundos (tip)', d:'Lun · :30'},
+              {t:'Crear una cola de publicación (tip)', d:'Lun · :45'},
+              {t:'Estrategia digital Repsol 2025 (charla)', d:'Dom · 22 min'},
             ].map((x,i) => (
               <div key={i} className="outline-item done" style={{gridTemplateColumns:'32px 1fr auto'}}>
                 <span className="n">✓</span>
@@ -503,14 +541,14 @@ function Profile() {
           <h2>Insignias</h2>
           <div className="badge-row">
             {[
-              {t:'Primera píldora', d:'12 ene', e:true, em:'①'},
-              {t:'Racha de 10 días', d:'01 abr', e:true, em:'⚡'},
-              {t:'Primera ruta', d:'20 feb', e:true, em:'◇'},
-              {t:'Maratón nocturno', d:'14 mar', e:true, em:'◐'},
-              {t:'Ave nocturna', d:'Bloqueada', em:'☾'},
-              {t:'Charla con coach', d:'Bloqueada', em:'✦'},
-              {t:'Racha de 30 días', d:'19 / 30', em:'⚡⚡'},
-              {t:'Fin de serie', d:'Bloqueada', em:'▦'},
+              {t:'Primer módulo', d:'12 ene', e:true, em:'①'},
+              {t:'7 módulos completados', d:'20 abr', e:true, em:'⚡'},
+              {t:'Certificación iniciada', d:'15 feb', e:true, em:'◇'},
+              {t:'Test superado', d:'01 mar', e:true, em:'✓'},
+              {t:'Certificación Repsol', d:'Bloqueada', em:'🏆'},
+              {t:'Racha 30 días', d:'Bloqueada', em:'⚡⚡'},
+              {t:'Analytics experto', d:'Bloqueada', em:'📊'},
+              {t:'Compliance ok', d:'Bloqueada', em:'✦'},
             ].map((b,i) => (
               <div key={i} className={`badge ${b.e ? 'earned' : ''}`}>
                 <div className="em">{b.em}</div>
@@ -519,10 +557,13 @@ function Profile() {
               </div>
             ))}
           </div>
-          <h2 style={{marginTop:32}}>Tu canon</h2>
-          <div style={{padding:18, border:'1px solid var(--line)', borderRadius:14, fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.55, color:'var(--ink-2)'}}>
-            "Las reuniones terminan cuando se toma la decisión, no cuando acaba la hora."<br/>
-            <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Guardado de · El operador silencioso, Ep. 2</span>
+          <h2 style={{marginTop:32}}>Certificación en curso</h2>
+          <div style={{padding:18, border:'1px solid var(--line)', borderRadius:14, background:'var(--paper-2)'}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Publish Agent · Repsol × BeonIt</div>
+            <div style={{height:6, background:'var(--line)', borderRadius:3, overflow:'hidden', marginBottom:8}}>
+              <div style={{width:'58%', height:'100%', background:'var(--accent-glow)', borderRadius:3}}/>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>7 de 10 módulos · 58% completado</div>
           </div>
         </aside>
       </div>
@@ -605,6 +646,8 @@ function WhatsApp() {
 
 // ---------- Analytics Dashboard ----------
 function Dashboard() {
+  const [checks, setChecks] = useS2([true, true, false, false, false, false]);
+  const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
   const kpis = [
     { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
     { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
@@ -622,13 +665,13 @@ function Dashboard() {
     { name: 'Ana García',    role: 'Analytics Lead', prog: 17,  mods: '2/12',  last: 'Hace 4 días' },
   ];
 
-  const checklist = [
-    { t: 'Crear y gestionar campañas en Sprinklr', done: true },
-    { t: 'Flujo de aprobación de contenido', done: true },
-    { t: 'Programar posts y gestión de calendario', done: false },
-    { t: 'Monitorización y alertas en tiempo real', done: false },
-    { t: 'Gestión de activos digitales en DAM', done: false },
-    { t: 'Compliance y gobernanza de contenido', done: false },
+  const checklistItems = [
+    'Crear y gestionar campañas en Sprinklr',
+    'Flujo de aprobación de contenido',
+    'Programar posts y gestión de calendario',
+    'Monitorización y alertas en tiempo real',
+    'Gestión de activos digitales en DAM',
+    'Compliance y gobernanza de contenido',
   ];
 
   const modules = [
@@ -710,10 +753,10 @@ function Dashboard() {
           </div>
           <div className="dash-panel-body">
             <div className="check-list">
-              {checklist.map((c, i) => (
-                <div key={i} className={`check-item${c.done ? ' done' : ''}`}>
-                  <div className="check-box">{c.done ? '✓' : ''}</div>
-                  {c.t}
+              {checklistItems.map((t, i) => (
+                <div key={i} className={`check-item${checks[i] ? ' done' : ''}`} onClick={() => toggleCheck(i)}>
+                  <div className="check-box">{checks[i] ? '✓' : ''}</div>
+                  {t}
                 </div>
               ))}
             </div>
