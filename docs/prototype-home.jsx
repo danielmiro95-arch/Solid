@@ -2,40 +2,96 @@
 
 const { useState } = React;
 
-// ── Repsol / Sprinklr training data ──────────────────────────────────────
+// ── Repsol · Sprinklr · 41 Think Pills (currículum real) ──────────────────
 const PILLS = [
-  { id: 'p1', title: 'Crear y gestionar campañas en Sprinklr', teacher: 'Carlos Vega', duration: '4 min', tone: 'teal', format: 'módulo', progress: 100, level: 'principiante', rating: 4.9, enrolled: 247, category: 'Publicación' },
-  { id: 'p2', title: 'Flujo de aprobación de contenido', teacher: 'Sara Molina', duration: '3 min', tone: 'clay', format: 'módulo', progress: 75, level: 'principiante', rating: 4.8, enrolled: 247, category: 'Publicación' },
-  { id: 'p3', title: 'Programar posts y gestión de calendario', teacher: 'Carlos Vega', duration: '5 min', tone: 'plum', format: 'módulo', progress: 40, level: 'intermedio', rating: 4.7, enrolled: 210, category: 'Calendario' },
-  { id: 'p4', title: 'Monitorización y alertas en tiempo real', teacher: 'Ana García', duration: '4 min', tone: 'olive', format: 'módulo', progress: 0, level: 'intermedio', rating: 4.6, enrolled: 190, category: 'Analytics' },
-  { id: 'p5', title: 'Gestión de activos digitales en DAM', teacher: 'Luis Romero', duration: '3 min', tone: 'warm', format: 'módulo', progress: 0, level: 'principiante', rating: 4.5, enrolled: 175, category: 'Activos' },
-  { id: 'p6', title: 'Compliance y gobernanza de contenido', teacher: 'Equipo Legal', duration: '5 min', tone: 'noir', format: 'módulo', progress: 0, level: 'avanzado', rating: 4.8, enrolled: 220, category: 'Compliance' },
-];
-const SERIES = [
-  { id: 's1', title: 'Publish Agent: flujo completo de publicación', teacher: '6 lecciones · Carlos Vega', duration: '28 min', tone: 'teal', format: 'serie', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Publicación' },
-  { id: 's2', title: 'Sprinklr Analytics para Repsol', teacher: '5 lecciones · Ana García', duration: '22 min', tone: 'plum', format: 'serie', level: 'avanzado', rating: 4.8, enrolled: 160, category: 'Analytics' },
-  { id: 's3', title: 'Gestión de crisis en redes sociales', teacher: '3 lecciones · Sara Molina', duration: '14 min', tone: 'clay', format: 'serie', level: 'avanzado', rating: 4.9, enrolled: 200, category: 'Crisis' },
-  { id: 's4', title: 'Integración Sprinklr + herramientas Repsol', teacher: '4 lecciones · IT Team', duration: '18 min', tone: 'olive', format: 'serie', level: 'avanzado', rating: 4.7, enrolled: 130, category: 'Integración' },
-];
-const REELS = [
-  { id: 'r1', title: 'Aprobar un post en 30 segundos', teacher: '@solid', duration: ':30', tone: 'teal', format: 'tip' },
-  { id: 'r2', title: 'Crear una cola de publicación', teacher: '@solid', duration: ':45', tone: 'plum', format: 'tip' },
-  { id: 'r3', title: 'Filtrar activos en el DAM', teacher: '@solid', duration: ':38', tone: 'olive', format: 'tip' },
-  { id: 'r4', title: 'Configurar una alerta de mención', teacher: '@solid', duration: ':52', tone: 'clay', format: 'tip' },
-  { id: 'r5', title: 'Ver métricas de una campaña', teacher: '@solid', duration: ':41', tone: 'warm', format: 'tip' },
-  { id: 'r6', title: 'Etiquetar contenido correctamente', teacher: '@solid', duration: ':29', tone: 'noir', format: 'tip' },
-];
-const PODCASTS = [
-  { id: 'c1', title: 'Estrategia digital de Repsol 2025', teacher: 'Dirección Comms · 22 min', duration: '22 min', tone: 'noir', format: 'charla', level: 'avanzado', rating: 4.8, enrolled: 247, category: 'Estrategia' },
-  { id: 'c2', title: 'Cómo Sprinklr transforma el equipo', teacher: 'Carlos Vega · 18 min', duration: '18 min', tone: 'teal', format: 'charla', level: 'principiante', rating: 4.7, enrolled: 220, category: 'Publicación' },
-];
-const PATHS = [
-  { id: 'pa1', title: 'Publish Agent · Certificación completa', teacher: '4 semanas · 12 módulos', duration: '3h 20m', tone: 'teal', format: 'ruta', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Certificación' },
-  { id: 'pa2', title: 'Sprinklr Avanzado para Repsol', teacher: '3 semanas · 9 módulos', duration: '2h 15m', tone: 'plum', format: 'ruta', level: 'avanzado', rating: 4.8, enrolled: 120, category: 'Avanzado' },
-  { id: 'pa3', title: 'Crisis y compliance en RRSS', teacher: '2 semanas · 6 módulos', duration: '1h 30m', tone: 'clay', format: 'ruta', level: 'avanzado', rating: 4.7, enrolled: 98, category: 'Crisis' },
+  // Bloque 1 · Introducción
+  { id: 'p0',  pill: 0,  title: 'Importancia de este programa',                                                              one: 'Transforma cada interacción en valor de negocio.',                                   teacher: 'Equipo BeonIt',  duration: '3 min', tone: 'teal',  format: 'módulo', progress: 100, level: 'principiante', rating: 4.9, enrolled: 247, category: 'Fundamentos' },
+  // Bloque 2 · Sprinklr en Repsol
+  { id: 'p1',  pill: 1,  title: 'Cómo realizar el registro en el entorno REPSOL',                                            one: 'Asegura un registro efectivo antes de ingresar en nuestro entorno.',                teacher: 'IT Repsol',      duration: '4 min', tone: 'teal',  format: 'módulo', progress: 100, level: 'principiante', rating: 4.8, enrolled: 247, category: 'Fundamentos' },
+  { id: 'p2',  pill: 2,  title: 'El impacto de Sprinklr como plataforma unificada',                                          one: 'Proyecta una voz única y coherente de nuestra marca.',                             teacher: 'Carlos Vega',   duration: '3 min', tone: 'plum',  format: 'módulo', progress: 100, level: 'principiante', rating: 4.9, enrolled: 247, category: 'Fundamentos' },
+  { id: 'p3',  pill: 3,  title: 'Qué canales hay dentro de Sprinklr',                                                        one: 'Identifica qué canales componen tu negocio.',                                      teacher: 'Sara Molina',   duration: '4 min', tone: 'teal',  format: 'módulo', progress: 75,  level: 'principiante', rating: 4.7, enrolled: 230, category: 'Fundamentos' },
+  { id: 'p4',  pill: 4,  title: 'Qué posibilidades operativas presentan los distintos canales',                              one: 'Maximiza el impacto de cada interacción.',                                         teacher: 'Sara Molina',   duration: '5 min', tone: 'plum',  format: 'módulo', progress: 40,  level: 'principiante', rating: 4.8, enrolled: 215, category: 'Fundamentos' },
+  { id: 'p5',  pill: 5,  title: 'Qué activos se gestionan a través de Sprinklr',                                             one: 'Conoce cada activo para proyectar una marca sólida.',                              teacher: 'Carlos Vega',   duration: '4 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 200, category: 'Fundamentos' },
+  // Bloque 2 · Estructura de módulos y gobernanza
+  { id: 'p6',  pill: 6,  title: 'Cuáles son los módulos y submódulos de Sprinklr',                                           one: 'Utiliza el módulo exacto que requiere tu tarea.',                                  teacher: 'Carlos Vega',   duration: '4 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 195, category: 'Estructura' },
+  { id: 'p7',  pill: 7,  title: 'Cómo impacta cada módulo en cada negocio',                                                  one: 'Vincula las capacidades de tu módulo con los objetivos del negocio.',               teacher: 'Ana García',    duration: '3 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 180, category: 'Estructura' },
+  { id: 'p8',  pill: 8,  title: 'Cómo es la comunicación entre los módulos',                                                 one: 'Conecta los flujos entre módulos para optimizar la gestión.',                     teacher: 'Carlos Vega',   duration: '4 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.6, enrolled: 175, category: 'Estructura' },
+  { id: 'p9',  pill: 9,  title: 'Cómo es el funcionamiento de los roles y los permisos',                                     one: 'Identifica el rol que te corresponde.',                                            teacher: 'Equipo Legal',  duration: '3 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 220, category: 'Gobernanza' },
+  { id: 'p10', pill: 10, title: 'Cómo se estructuran los equipos dentro de cada módulo',                                     one: 'Organízate para ganar agilidad.',                                                  teacher: 'Equipo Legal',  duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 215, category: 'Gobernanza' },
+  // Bloque 3 · Gestión estructural y operativa de campañas en Social Publish
+  { id: 'p11', pill: 11, title: 'Qué es el calendario editorial dentro de Social Publish',                                   one: 'Visualiza de manera personalizada el contenido para RRSS.',                       teacher: 'Sara Molina',   duration: '3 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 190, category: 'Social Publish' },
+  { id: 'p12', pill: 12, title: 'Para qué sirve el DAM en la gestión y reutilización de recursos digitales',                 one: 'Ahorra tiempo reutilizando recursos digitales.',                                   teacher: 'Luis Romero',   duration: '4 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 185, category: 'Activos' },
+  { id: 'p13', pill: 13, title: 'Cómo se estructuran las campañas para organizar la planificación de contenidos',            one: 'Organiza eficientemente el contenido de tus publicaciones.',                       teacher: 'Sara Molina',   duration: '5 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 182, category: 'Social Publish' },
+  { id: 'p14', pill: 14, title: 'Cómo las subcampañas organizan y segmentan la actividad de publicación',                   one: 'Súmale un nivel a la estructura del contenido.',                                   teacher: 'Sara Molina',   duration: '3 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 175, category: 'Social Publish' },
+  { id: 'p15', pill: 15, title: 'Identifica quién crea, gestiona y aprueba las campañas dentro de Social Publish',          one: 'Saber quién hace qué evita errores en la gestión de campañas.',                    teacher: 'Carlos Vega',   duration: '4 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 190, category: 'Gobernanza' },
+  { id: 'p16', pill: 16, title: 'Comprende para qué sirve el etiquetado de campañas dentro de la operativa de publicación', one: 'Etiquetar bien convierte campañas en información trazable.',                       teacher: 'Carlos Vega',   duration: '3 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 170, category: 'Social Publish' },
+  // Bloque 4 · Operativa Editorial
+  { id: 'p17', pill: 17, title: 'Cómo gestiona la publicación de contenidos en múltiples canales desde Social Publish',     one: 'Publicar el contenido correcto en el canal adecuado.',                             teacher: 'Carlos Vega',   duration: '5 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 200, category: 'Social Publish' },
+  { id: 'p18', pill: 18, title: 'Cómo adaptar los contenidos al formato y dinámica de cada red social',                     one: 'Cada red tiene su lenguaje: adaptar el contenido marca la diferencia.',             teacher: 'Sara Molina',   duration: '4 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 195, category: 'Social Publish' },
+  { id: 'p19', pill: 19, title: 'Cómo utilizar la plataforma para optimizar la gestión multicanal de contenidos',           one: 'Centralizar canales optimiza los objetivos de la publicación.',                    teacher: 'Carlos Vega',   duration: '4 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 185, category: 'Social Publish' },
+  { id: 'p20', pill: 20, title: 'Cómo son los flujos de aprobación dentro de la operativa de publicación',                  one: 'Identificar el tipo de aprobación agiliza el flujo editorial.',                    teacher: 'Sara Molina',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 220, category: 'Aprobaciones' },
+  { id: 'p21', pill: 21, title: 'Cómo aplicar los procesos de revisión y validación establecidos en Sprinklr',              one: 'Seguir el proceso de revisión asegura calidad antes de publicar.',                  teacher: 'Carlos Vega',   duration: '4 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 210, category: 'Aprobaciones' },
+  { id: 'p22', pill: 22, title: 'Cuáles son los mecanismos de control para reducir riesgos operativos en la publicación',   one: 'Reduce riesgos operativos mediante una gestión estructurada del contenido.',        teacher: 'Equipo Legal',  duration: '5 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'avanzado',    rating: 4.8, enrolled: 200, category: 'Compliance' },
+  // Bloque 5 · Calendario editorial
+  { id: 'p23', pill: 23, title: 'Cómo visualizar y planificar el contenido a través del calendario editorial',              one: 'Utiliza el calendario para tener una visión clara de la planificación.',           teacher: 'Sara Molina',   duration: '4 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 180, category: 'Calendario' },
+  { id: 'p24', pill: 24, title: 'Cómo filtrar y organizar campañas en el calendario',                                        one: 'Organiza el contenido para facilitar la coordinación entre equipos.',               teacher: 'Sara Molina',   duration: '3 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 190, category: 'Calendario' },
+  // Bloque 6 · Reporting
+  { id: 'p25', pill: 25, title: 'Cómo visualizar el rendimiento de campañas y publicaciones en los reportes',               one: 'Analiza el rendimiento de las campañas para entender su impacto.',                  teacher: 'Ana García',    duration: '5 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 175, category: 'Analytics' },
+  { id: 'p26', pill: 26, title: 'Cuáles son las métricas clave para evaluar la performance del contenido publicado',        one: 'Utiliza las métricas para mejorar la estrategia de publicación.',                   teacher: 'Ana García',    duration: '4 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 170, category: 'Analytics' },
+  // Bloque 7 · Operativa Community Manager · Care
+  { id: 'p27', pill: 27, title: 'Cuál es la diferencia entre mensaje y caso dentro de la gestión de conversaciones en Care', one: 'Distinguir mensaje y caso significa entender la conversación.',                   teacher: 'Luis Romero',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 160, category: 'Care' },
+  { id: 'p28', pill: 28, title: 'Cómo los mensajes se agrupan en casos para gestionar la interacción completa con el usuario', one: 'Gestionar una conversación es seguir todo el caso, no solo responder.',          teacher: 'Luis Romero',   duration: '4 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 155, category: 'Care' },
+  { id: 'p29', pill: 29, title: 'Cómo gestionar las conversaciones entrantes dentro de la operativa diaria de Care',        one: 'Cada interacción bien gestionada mejora la experiencia del cliente.',               teacher: 'Luis Romero',   duration: '5 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 165, category: 'Care' },
+  { id: 'p30', pill: 30, title: 'Cómo utilizar Care Console para centralizar la gestión de conversaciones',                 one: 'Mantén una visión 360 de la conversación.',                                        teacher: 'Luis Romero',   duration: '4 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 160, category: 'Care' },
+  { id: 'p31', pill: 31, title: 'Cómo se utiliza Engagement Dashboard para visualizar y priorizar las interacciones',       one: 'El estatus del caso te posibilita priorizar la gestión.',                          teacher: 'Ana García',    duration: '4 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 150, category: 'Care' },
+  { id: 'p32', pill: 32, title: 'Cuál es la importancia del etiquetado en la clasificación de conversaciones',              one: 'Etiquetar interacciones convierte conversaciones en conocimiento.',                 teacher: 'Luis Romero',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 155, category: 'Care' },
+  { id: 'p33', pill: 33, title: 'Cuáles son los tipos de mensajes para clasificar correctamente las interacciones',         one: 'Clasificar bien los mensajes mejora la gestión del servicio.',                     teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.7, enrolled: 150, category: 'Care' },
+  { id: 'p34', pill: 34, title: 'Cuáles son las líneas de negocio y negocios asociados a las conversaciones',               one: 'Conectar cada interacción con el negocio mejora el análisis del servicio.',        teacher: 'Carlos Vega',   duration: '4 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 145, category: 'Care' },
+  { id: 'p35', pill: 35, title: 'Cuándo y cómo transferir conversaciones desde Sprinklr a Salesforce',                     one: 'Escalar a Salesforce asegura que el caso siga su camino hasta resolverse.',        teacher: 'IT Repsol',     duration: '5 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'avanzado',    rating: 4.9, enrolled: 140, category: 'Integraciones' },
+  { id: 'p36', pill: 36, title: 'Cómo se realiza el flujo de transferencia de casos entre Sprinklr y Salesforce',          one: 'El seguimiento oportuno asegura la correcta gestión del caso.',                    teacher: 'IT Repsol',     duration: '4 min', tone: 'clay',  format: 'módulo', progress: 0,   level: 'avanzado',    rating: 4.8, enrolled: 138, category: 'Integraciones' },
+  // Bloque 8 · SLA y paneles de Care
+  { id: 'p37', pill: 37, title: 'Qué son los SLA y su impacto en la gestión de conversaciones',                             one: 'Responder a tiempo es parte esencial de la experiencia del cliente.',              teacher: 'Luis Romero',   duration: '3 min', tone: 'olive', format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 142, category: 'Care' },
+  { id: 'p38', pill: 38, title: 'Cómo utilizar los indicadores de SLA para priorizar la gestión de mensajes',               one: 'Priorizar correctamente mantiene el nivel de servicio.',                           teacher: 'Luis Romero',   duration: '4 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.7, enrolled: 140, category: 'Care' },
+  { id: 'p39', pill: 39, title: 'Cómo visualizar las conversaciones a través de los paneles de Care',                       one: 'Los paneles ofrecen una versión clara y ampliada de la conversación.',             teacher: 'Ana García',    duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 138, category: 'Care' },
+  { id: 'p40', pill: 40, title: 'Cómo interpretar la información de los paneles para priorizar la operativa',               one: 'Analizar los widgets te permite decidir qué atender primero.',                     teacher: 'Ana García',    duration: '5 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 135, category: 'Analytics' },
 ];
 
-const CATEGORIES = ['Todo', 'Publicación', 'Analytics', 'Calendario', 'Compliance', 'Activos', 'Crisis', 'Certificación'];
+// ── Bloques formativos (series) ───────────────────────────────────────────
+const SERIES = [
+  { id: 's1', title: 'Bloque 1+2 · Sprinklr en Repsol',                         teacher: '6 think pills · Carlos Vega',  duration: '22 min', tone: 'teal',  format: 'serie', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Fundamentos'   },
+  { id: 's2', title: 'Bloque 2 · Estructura, roles y gobernanza',                teacher: '5 think pills · Equipo Legal', duration: '18 min', tone: 'noir',  format: 'serie', level: 'principiante', rating: 4.8, enrolled: 220, category: 'Gobernanza'    },
+  { id: 's3', title: 'Bloque 3 · Gestión estructural de campañas en Social Publish', teacher: '6 think pills · Sara Molina',  duration: '22 min', tone: 'clay',  format: 'serie', level: 'intermedio',  rating: 4.8, enrolled: 190, category: 'Social Publish'},
+  { id: 's4', title: 'Bloque 4 · Operativa editorial y control de contenidos',   teacher: '6 think pills · Carlos Vega',  duration: '25 min', tone: 'warm',  format: 'serie', level: 'intermedio',  rating: 4.8, enrolled: 200, category: 'Social Publish'},
+  { id: 's5', title: 'Bloque 5 · Calendario editorial',                          teacher: '2 think pills · Sara Molina',  duration: '7 min',  tone: 'plum',  format: 'serie', level: 'principiante', rating: 4.7, enrolled: 185, category: 'Calendario'    },
+  { id: 's6', title: 'Bloque 6 · Reporting de campañas y performance',           teacher: '2 think pills · Ana García',   duration: '9 min',  tone: 'olive', format: 'serie', level: 'intermedio',  rating: 4.8, enrolled: 170, category: 'Analytics'     },
+  { id: 's7', title: 'Bloque 7 · Operativa Community Manager en Care',           teacher: '10 think pills · Luis Romero', duration: '40 min', tone: 'teal',  format: 'serie', level: 'intermedio',  rating: 4.9, enrolled: 155, category: 'Care'          },
+  { id: 's8', title: 'Bloque 8 · SLA y paneles de atención al cliente',          teacher: '4 think pills · Ana García',   duration: '16 min', tone: 'plum',  format: 'serie', level: 'intermedio',  rating: 4.8, enrolled: 140, category: 'Care'          },
+];
+
+// ── Quick tips ─────────────────────────────────────────────────────────────
+const REELS = [
+  { id: 'r1', title: 'Regístrate en Sprinklr con SSO en 30 segundos', teacher: '@solid', duration: ':30', tone: 'teal',  format: 'tip' },
+  { id: 'r2', title: 'Crea una campaña rápida en Social Publish',      teacher: '@solid', duration: ':45', tone: 'clay',  format: 'tip' },
+  { id: 'r3', title: 'Filtra activos en el DAM',                       teacher: '@solid', duration: ':38', tone: 'olive', format: 'tip' },
+  { id: 'r4', title: 'Aprueba un post en 30 segundos',                 teacher: '@solid', duration: ':30', tone: 'warm',  format: 'tip' },
+  { id: 'r5', title: 'Ve las métricas de rendimiento de una campaña',  teacher: '@solid', duration: ':41', tone: 'plum',  format: 'tip' },
+  { id: 'r6', title: 'Transfiere un caso a Salesforce',                teacher: '@solid', duration: ':52', tone: 'noir',  format: 'tip' },
+];
+
+// ── Charlas ────────────────────────────────────────────────────────────────
+const PODCASTS = [
+  { id: 'c1', title: 'Estrategia digital de Repsol en Sprinklr 2026',           teacher: 'Dirección Comms · 22 min', duration: '22 min', tone: 'noir', format: 'charla', level: 'avanzado',    rating: 4.8, enrolled: 247, category: 'Fundamentos'   },
+  { id: 'c2', title: 'Por qué Sprinklr transforma el equipo de comunicación', teacher: 'Carlos Vega · 18 min',     duration: '18 min', tone: 'teal', format: 'charla', level: 'principiante', rating: 4.7, enrolled: 220, category: 'Fundamentos'   },
+];
+
+// ── Rutas de certificación ─────────────────────────────────────────────────
+const PATHS = [
+  { id: 'pa1', title: 'Sprinklr Fundamentals · Certificación base',    teacher: '2 semanas · 11 think pills', duration: '45 min',  tone: 'teal',  format: 'ruta', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Certificación' },
+  { id: 'pa2', title: 'Rol Publish Agent · Certificación completa',    teacher: '4 semanas · 27 think pills', duration: '1h 50m',  tone: 'clay',  format: 'ruta', level: 'intermedio',  rating: 4.8, enrolled: 200, category: 'Certificación' },
+  { id: 'pa3', title: 'Rol Care Agent · Certificación completa',       teacher: '3 semanas · 25 think pills', duration: '1h 40m',  tone: 'olive', format: 'ruta', level: 'intermedio',  rating: 4.8, enrolled: 155, category: 'Certificación' },
+];
+
+const CATEGORIES = ['Todo', 'Fundamentos', 'Estructura', 'Gobernanza', 'Social Publish', 'Aprobaciones', 'Calendario', 'Analytics', 'Care', 'Activos', 'Integraciones', 'Compliance', 'Certificación'];
 
 // ── Components ────────────────────────────────────────────────────────────
 function CategoryBar({ active, setActive }) {
@@ -93,9 +149,9 @@ function Sidebar({ view, setView }) {
         <div className="sb-section-title">Mi progreso</div>
         <div className="sb-paths">
           <div className="sb-path" onClick={() => setView('path')}>
-            <div className="sb-path-title">Publish Agent · Certificación</div>
-            <div className="sb-progress"><i style={{width:'58%'}}/></div>
-            <div className="sb-path-meta"><span>Módulo 7 / 12</span><span>·</span><span>58%</span></div>
+            <div className="sb-path-title">Rol Publish Agent · Certificación</div>
+            <div className="sb-progress"><i style={{width:'15%'}}/></div>
+            <div className="sb-path-meta"><span>Think Pill 4 / 27</span><span>·</span><span>15%</span></div>
           </div>
         </div>
       </div>
@@ -152,10 +208,10 @@ function Home({ openDetail, openPlayer, setView }) {
       {/* Stats */}
       <div className="lms-stats">
         {[
-          { n: '7/12', l: 'Módulos completados', icon: 'check', color: 'var(--beonit-lime)' },
-          { n: '58%',  l: 'Progreso en ruta',    icon: 'trend', color: 'var(--accent-glow)' },
-          { n: '3h',   l: 'Tiempo de formación', icon: 'clock', color: 'var(--beonit-blue)' },
-          { n: '94%',  l: 'Tasa de éxito tests', icon: 'bolt',  color: 'var(--repsol-red)' },
+          { n: '3/41',  l: 'Think Pills completadas', icon: 'check', color: 'var(--beonit-lime)' },
+          { n: '15%',   l: 'Progreso en tu ruta',     icon: 'trend', color: 'var(--accent-glow)' },
+          { n: '22 min',l: 'Tiempo de formación',     icon: 'clock', color: 'var(--beonit-blue)' },
+          { n: '41',    l: 'Think Pills en total',    icon: 'bolt',  color: 'var(--repsol-red)' },
         ].map((s, i) => (
           <div key={i} className="stat-card">
             <div className="stat-icon" style={{background: s.color + '18', color: s.color}}>
@@ -178,8 +234,8 @@ function Home({ openDetail, openPlayer, setView }) {
       <div className="featured-banner" onClick={() => setView('path')}>
         <div className="fb-content">
           <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Ruta certificada · 4 semanas</span>
-          <h2>Publish Agent<br/><em>Certificación Repsol</em>.</h2>
-          <p>12 MÓDULOS · 3H 20MIN · AVALADA POR REPSOL & BEONIT</p>
+          <h2>Rol Publish Agent<br/><em>Certificación Repsol</em>.</h2>
+          <p>27 THINK PILLS · 8 BLOQUES · 1H 50MIN · AVALADA POR REPSOL & BEONIT</p>
           <div style={{display:'flex', gap:12}}>
             <button className="btn glow" onClick={e => { e.stopPropagation(); setView('path'); }}>
               <Icon name="book" size={14}/> Ver programa completo
@@ -191,7 +247,7 @@ function Home({ openDetail, openPlayer, setView }) {
         </div>
         <div className="fb-visual">
           <div className="ph teal" style={{position:'absolute', inset:0}}/>
-          <div className="fb-badge">58% completado</div>
+          <div className="fb-badge">15% completado</div>
         </div>
       </div>
 

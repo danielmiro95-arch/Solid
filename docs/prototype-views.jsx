@@ -341,7 +341,7 @@ function Onboarding({ done = () => {} }) {
   const [role, setRole] = useS2('publish');
   const [notifs, setNotifs] = useS2([true, true, false, false]);
 
-  const areas = ['Publicación', 'Aprobaciones', 'Calendario editorial', 'Analytics', 'Activos DAM', 'Compliance', 'Gestión de crisis', 'Integraciones', 'Gobernanza', 'Reporting'];
+  const areas = ['Social Publish', 'Aprobaciones', 'Calendario editorial', 'Analytics y Reporting', 'Activos DAM', 'Compliance', 'Care y Atención al cliente', 'Integraciones Salesforce', 'Gobernanza y roles', 'Sprinklr Fundamentals'];
   const toggleArea = (t) => { const n = new Set(selectedAreas); n.has(t) ? n.delete(t) : n.add(t); setSelectedAreas(n); };
   const toggleNotif = (i) => setNotifs(ns => ns.map((v, idx) => idx === i ? !v : v));
 
@@ -475,50 +475,105 @@ function Onboarding({ done = () => {} }) {
 
 // ---------- Path ----------
 function PathView() {
-  const nodes = [
-    { n: 1, t: 'Crear y gestionar campañas en Sprinklr', d: 'Fundamentos de Sprinklr Publish. Crea tu primera campaña en el entorno Repsol.', dur: '1 MÓDULO · 4 MIN', s: 'done' },
-    { n: 2, t: 'Flujo de aprobación de contenido', d: 'El proceso de revisión y aprobación en Repsol — roles y responsabilidades.', dur: '1 MÓDULO · 3 MIN', s: 'done' },
-    { n: 3, t: 'Programar posts y gestión de calendario', d: 'Domina el calendario editorial de Repsol: programación, edición y gestión de conflictos.', dur: '1 MÓDULO · 5 MIN', s: 'current' },
-    { n: 4, t: 'Monitorización y alertas en tiempo real', d: 'Configura alertas para menciones y keywords clave de Repsol en Sprinklr Listening.', dur: '1 MÓDULO · 4 MIN' },
-    { n: 5, t: 'Gestión de activos digitales en DAM', d: 'Organiza, etiqueta y comparte assets del equipo de comunicación de Repsol.', dur: '1 MÓDULO · 3 MIN' },
-    { n: 6, t: 'Compliance y gobernanza de contenido', d: 'Normativa legal y de marca en la publicación de contenido corporativo de Repsol.', dur: '1 MÓDULO · 5 MIN' },
-    { n: 7, t: 'Sprinklr Analytics para Repsol', d: 'Lee e interpreta los informes de rendimiento de campañas y engagement.', dur: '5 LECCIONES · 22 MIN' },
-    { n: 8, t: 'Gestión de crisis en redes sociales', d: 'Protocolos de respuesta y escalado en situaciones de crisis para Repsol.', dur: '3 LECCIONES · 14 MIN' },
-    { n: 9, t: 'Integración Sprinklr + herramientas Repsol', d: 'Conecta Sprinklr con los sistemas internos de comunicación del equipo IT.', dur: '4 LECCIONES · 18 MIN' },
-    { n: 10, t: 'Test final de certificación', d: 'Prueba de conocimientos. Necesitas un 80% para obtener el certificado oficial Repsol × BeonIt.', dur: 'TEST · 30 MIN' },
+  const bloques = [
+    {
+      n: 1, s: 'done',
+      t: 'Bloque 1+2 · Sprinklr en Repsol · Fundamentos',
+      d: 'Importancia del programa, registro SSO, Sprinklr como plataforma unificada, canales, posibilidades operativas y activos gestionados.',
+      pills: 'Think Pills 0–5 · 6 módulos',
+      dur: '22 min',
+    },
+    {
+      n: 2, s: 'current',
+      t: 'Bloque 2 · Estructura, roles y modelo de gobernanza',
+      d: 'Módulos y submódulos de Sprinklr, impacto por negocio, comunicación entre módulos, roles (Manager / Agent / Reporting) y estructura de equipos.',
+      pills: 'Think Pills 6–10 · 5 módulos',
+      dur: '18 min',
+    },
+    {
+      n: 3,
+      t: 'Bloque 3 · Gestión estructural y operativa de campañas en Social Publish',
+      d: 'Calendario editorial, DAM y reutilización de recursos, campañas y subcampañas, gobernanza operativa y etiquetado de campañas.',
+      pills: 'Think Pills 11–16 · 6 módulos',
+      dur: '22 min',
+    },
+    {
+      n: 4,
+      t: 'Bloque 4 · Operativa editorial y control de contenidos',
+      d: 'Publicación multicanal, adaptación por red social, gestión multicanal optimizada, flujos de aprobación, revisión y validación, mecanismos de control y reducción de riesgos.',
+      pills: 'Think Pills 17–22 · 6 módulos',
+      dur: '25 min',
+    },
+    {
+      n: 5,
+      t: 'Bloque 5 · Calendario editorial',
+      d: 'Visualización y planificación del contenido a través del calendario. Filtrado y organización de campañas por equipo y territorio.',
+      pills: 'Think Pills 23–24 · 2 módulos',
+      dur: '7 min',
+    },
+    {
+      n: 6,
+      t: 'Bloque 6 · Reporting de campañas y performance',
+      d: 'Visualización del rendimiento de campañas y publicaciones. Métricas clave para evaluar la performance del contenido publicado.',
+      pills: 'Think Pills 25–26 · 2 módulos',
+      dur: '9 min',
+    },
+    {
+      n: 7,
+      t: 'Bloque 7 · Operativa Community Manager · Care',
+      d: 'Diferencia entre mensaje y caso, agrupación en casos, gestión de conversaciones entrantes, Care Console, Engagement Dashboard, etiquetado, tipos de mensajes, líneas de negocio, escalado a Salesforce.',
+      pills: 'Think Pills 27–36 · 10 módulos',
+      dur: '40 min',
+    },
+    {
+      n: 8,
+      t: 'Bloque 8 · SLA y paneles de atención al cliente',
+      d: 'Qué son los SLA y su impacto. Indicadores de SLA para priorizar mensajes. Visualización e interpretación de paneles de Care para priorizar la operativa.',
+      pills: 'Think Pills 37–40 · 4 módulos',
+      dur: '16 min',
+    },
+    {
+      n: 9,
+      t: 'Test final · Certificación Publish Agent',
+      d: 'Evaluación de conocimientos sobre todos los bloques. Necesitas un 80% para obtener la certificación oficial Repsol × BeonIt.',
+      pills: 'Test · ~30 min',
+      dur: '30 min',
+    },
   ];
   return (
     <div className="path-root">
       <section className="path-hero">
         <div>
           <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Ruta certificada · 4 semanas</div>
-          <h1>Publish Agent<br/><em>Certificación Repsol</em>.</h1>
-          <p>10 módulos sobre Sprinklr diseñados para el equipo de comunicación de Repsol. Completa la ruta y obtén la certificación oficial avalada por Repsol y BeonIt.</p>
+          <h1>Rol Publish Agent<br/><em>Certificación Repsol</em>.</h1>
+          <p>41 Think Pills organizadas en 8 bloques formativos. Diseñadas para el equipo de comunicación de Repsol. Obtén la certificación oficial avalada por Repsol × BeonIt al completarla.</p>
           <div className="path-stats">
-            <div className="path-stat"><div className="n">10</div><div className="l">Módulos</div></div>
-            <div className="path-stat"><div className="n">3h 20m</div><div className="l">Tiempo total</div></div>
-            <div className="path-stat"><div className="n">4</div><div className="l">Semanas</div></div>
-            <div className="path-stat"><div className="n">58%</div><div className="l">Tu progreso</div></div>
+            <div className="path-stat"><div className="n">41</div><div className="l">Think Pills</div></div>
+            <div className="path-stat"><div className="n">8</div><div className="l">Bloques</div></div>
+            <div className="path-stat"><div className="n">~2h 30m</div><div className="l">Tiempo total</div></div>
+            <div className="path-stat"><div className="n">15%</div><div className="l">Tu progreso</div></div>
           </div>
         </div>
         <div className="path-visual">
           <div className="ph teal" style={{position:'absolute',inset:0}}/>
-          <div className="path-visual-badge">En curso · Módulo 3/10</div>
+          <div className="path-visual-badge">En curso · Bloque 2/8</div>
         </div>
       </section>
       <div className="path-map">
-        {nodes.map(node => (
-          <div key={node.n} className={`path-node ${node.s || ''}`} data-n={node.n}>
+        {bloques.map(b => (
+          <div key={b.n} className={`path-node ${b.s || ''}`} data-n={b.n}>
             <div>
-              <h3>{node.t}</h3>
-              <p className="d">{node.d}</p>
+              <h3>{b.t}</h3>
+              <p className="d">{b.d}</p>
               <div className="meta-row">
-                <span>{node.dur}</span>
-                {node.s === 'current' && <span style={{color:'var(--ink)', fontWeight:600}}>· ▶ LO SIGUIENTE</span>}
-                {node.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
+                <span>{b.pills}</span>
+                <span>·</span>
+                <span>{b.dur}</span>
+                {b.s === 'current' && <span style={{color:'var(--ink)', fontWeight:600}}>· ▶ CONTINUAR</span>}
+                {b.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
               </div>
             </div>
-            <button className="goto">{node.s === 'done' ? 'Revisar' : node.s === 'current' ? 'Continuar →' : 'Ver módulo'}</button>
+            <button className="goto">{b.s === 'done' ? 'Revisar' : b.s === 'current' ? 'Continuar →' : 'Ver bloque'}</button>
           </div>
         ))}
       </div>
