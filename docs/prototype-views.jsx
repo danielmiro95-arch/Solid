@@ -302,7 +302,7 @@ function Coach() {
 }
 
 // ---------- Onboarding ----------
-function Onboarding() {
+function Onboarding({ done = () => {} }) {
   const [step, setStep] = useS2(0);
   const [selected, setSelected] = useS2(new Set(['Liderazgo', 'Comunicación']));
   const [cadence, setCadence] = useS2(5);
@@ -393,7 +393,7 @@ function Onboarding() {
         {s.body}
         <div className="onb-nav">
           {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>Atrás</button>}
-          <button className="btn" onClick={() => setStep(Math.min(3, step+1))}>
+          <button className="btn" onClick={() => step < 3 ? setStep(step+1) : done()}>
             {step < 3 ? 'Continuar' : 'Entrar en Solid'} →
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">

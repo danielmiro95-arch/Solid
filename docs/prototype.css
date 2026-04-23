@@ -270,6 +270,9 @@
 .row-reels .row-scroll { grid-auto-columns: minmax(160px, 200px); }
 .row-reels .card-thumb { aspect-ratio: 9/16; }
 
+/* Legacy grid */
+.grid-pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+
 /* Catalog grid */
 .catalog-section { margin-bottom: 48px; }
 .catalog-grid {
