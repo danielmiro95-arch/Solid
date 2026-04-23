@@ -1,43 +1,43 @@
-// prototype-home.jsx — SOLID 2.0 · BeonIt Academy
+// prototype-home.jsx — SOLID · Repsol × BeonIt
 
-const { useState, useEffect, useRef } = React;
+const { useState } = React;
 
-// ---------- Data ----------
+// ── Repsol / Sprinklr training data ──────────────────────────────────────
 const PILLS = [
-  { id: 'p1', title: 'Decir no sin decir "no"', teacher: 'Marta Alcázar', duration: '3 min', tone: 'clay', format: 'píldora', progress: 65, level: 'intermedio', rating: 4.8, enrolled: 2100, category: 'Comunicación' },
-  { id: 'p2', title: 'La regla de las 2 pizzas, revisitada', teacher: 'Dan Okafor', duration: '3 min', tone: 'olive', format: 'píldora', progress: 0, level: 'principiante', rating: 4.6, enrolled: 1450, category: 'Liderazgo' },
-  { id: 'p3', title: 'Feedback: actúa, no etiquetes', teacher: 'Priya Venkat', duration: '3 min', tone: 'plum', format: 'píldora', progress: 0, level: 'intermedio', rating: 4.9, enrolled: 3200, category: 'Comunicación' },
-  { id: 'p4', title: 'La hora que multiplica', teacher: 'L. Tavares', duration: '3 min', tone: 'teal', format: 'píldora', progress: 38, level: 'principiante', rating: 4.7, enrolled: 1800, category: 'Trabajo profundo' },
-  { id: 'p5', title: 'Reuniones que no te necesitan', teacher: 'Inés Rahman', duration: '3 min', tone: 'warm', format: 'píldora', progress: 0, level: 'avanzado', rating: 4.5, enrolled: 980, category: 'Liderazgo' },
+  { id: 'p1', title: 'Crear y gestionar campañas en Sprinklr', teacher: 'Carlos Vega', duration: '4 min', tone: 'teal', format: 'módulo', progress: 100, level: 'principiante', rating: 4.9, enrolled: 247, category: 'Publicación' },
+  { id: 'p2', title: 'Flujo de aprobación de contenido', teacher: 'Sara Molina', duration: '3 min', tone: 'clay', format: 'módulo', progress: 75, level: 'principiante', rating: 4.8, enrolled: 247, category: 'Publicación' },
+  { id: 'p3', title: 'Programar posts y gestión de calendario', teacher: 'Carlos Vega', duration: '5 min', tone: 'plum', format: 'módulo', progress: 40, level: 'intermedio', rating: 4.7, enrolled: 210, category: 'Calendario' },
+  { id: 'p4', title: 'Monitorización y alertas en tiempo real', teacher: 'Ana García', duration: '4 min', tone: 'olive', format: 'módulo', progress: 0, level: 'intermedio', rating: 4.6, enrolled: 190, category: 'Analytics' },
+  { id: 'p5', title: 'Gestión de activos digitales en DAM', teacher: 'Luis Romero', duration: '3 min', tone: 'warm', format: 'módulo', progress: 0, level: 'principiante', rating: 4.5, enrolled: 175, category: 'Activos' },
+  { id: 'p6', title: 'Compliance y gobernanza de contenido', teacher: 'Equipo Legal', duration: '5 min', tone: 'noir', format: 'módulo', progress: 0, level: 'avanzado', rating: 4.8, enrolled: 220, category: 'Compliance' },
 ];
 const SERIES = [
-  { id: 's1', title: 'El operador silencioso', teacher: '5 episodios · Varios', duration: '24 min', tone: 'noir', format: 'serie', level: 'avanzado', rating: 4.9, enrolled: 1200, category: 'Liderazgo' },
-  { id: 's2', title: 'Decisiones en borrador', teacher: '4 episodios · Varios', duration: '18 min', tone: 'clay', format: 'serie', level: 'intermedio', rating: 4.7, enrolled: 890, category: 'Decisiones' },
-  { id: 's3', title: 'Escribir para pensar', teacher: '7 episodios · Varios', duration: '32 min', tone: 'sand', format: 'serie', level: 'principiante', rating: 4.8, enrolled: 2400, category: 'Comunicación' },
-  { id: 's4', title: 'Entrega menos, aprende más', teacher: '6 episodios · Varios', duration: '27 min', tone: 'teal', format: 'serie', level: 'intermedio', rating: 4.6, enrolled: 1100, category: 'Trabajo profundo' },
+  { id: 's1', title: 'Publish Agent: flujo completo de publicación', teacher: '6 lecciones · Carlos Vega', duration: '28 min', tone: 'teal', format: 'serie', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Publicación' },
+  { id: 's2', title: 'Sprinklr Analytics para Repsol', teacher: '5 lecciones · Ana García', duration: '22 min', tone: 'plum', format: 'serie', level: 'avanzado', rating: 4.8, enrolled: 160, category: 'Analytics' },
+  { id: 's3', title: 'Gestión de crisis en redes sociales', teacher: '3 lecciones · Sara Molina', duration: '14 min', tone: 'clay', format: 'serie', level: 'avanzado', rating: 4.9, enrolled: 200, category: 'Crisis' },
+  { id: 's4', title: 'Integración Sprinklr + herramientas Repsol', teacher: '4 lecciones · IT Team', duration: '18 min', tone: 'olive', format: 'serie', level: 'avanzado', rating: 4.7, enrolled: 130, category: 'Integración' },
 ];
 const REELS = [
-  { id: 'r1', title: 'Stand-up de una línea', teacher: '@solid', duration: ':52', tone: 'lime', format: 'reel' },
-  { id: 'r2', title: 'Mata la reunión recurrente', teacher: '@solid', duration: ':38', tone: 'warm', format: 'reel' },
-  { id: 'r3', title: 'El update en 3 frases', teacher: '@solid', duration: ':45', tone: 'plum', format: 'reel' },
-  { id: 'r4', title: 'Bueno → Genial → Fuera', teacher: '@solid', duration: ':29', tone: 'olive', format: 'reel' },
-  { id: 'r5', title: 'Nombra al elefante', teacher: '@solid', duration: ':41', tone: 'teal', format: 'reel' },
-  { id: 'r6', title: 'Qué cortar primero', teacher: '@solid', duration: ':33', tone: 'clay', format: 'reel' },
+  { id: 'r1', title: 'Aprobar un post en 30 segundos', teacher: '@solid', duration: ':30', tone: 'teal', format: 'tip' },
+  { id: 'r2', title: 'Crear una cola de publicación', teacher: '@solid', duration: ':45', tone: 'plum', format: 'tip' },
+  { id: 'r3', title: 'Filtrar activos en el DAM', teacher: '@solid', duration: ':38', tone: 'olive', format: 'tip' },
+  { id: 'r4', title: 'Configurar una alerta de mención', teacher: '@solid', duration: ':52', tone: 'clay', format: 'tip' },
+  { id: 'r5', title: 'Ver métricas de una campaña', teacher: '@solid', duration: ':41', tone: 'warm', format: 'tip' },
+  { id: 'r6', title: 'Etiquetar contenido correctamente', teacher: '@solid', duration: ':29', tone: 'noir', format: 'tip' },
 ];
 const PODCASTS = [
-  { id: 'c1', title: 'El contexto largo', teacher: 'Ep. 14 · Estela Moreno', duration: '42 min', tone: 'noir', format: 'podcast', level: 'avanzado', rating: 4.8, enrolled: 650, category: 'Estrategia' },
-  { id: 'c2', title: 'Cuartos propios', teacher: 'Ep. 8 · R. Bellini', duration: '38 min', tone: 'plum', format: 'podcast', level: 'intermedio', rating: 4.7, enrolled: 480, category: 'Comunicación' },
-  { id: 'c3', title: 'Software lento', teacher: 'Ep. 21 · M. Delacroix', duration: '51 min', tone: 'olive', format: 'podcast', level: 'avanzado', rating: 4.9, enrolled: 720, category: 'Trabajo profundo' },
+  { id: 'c1', title: 'Estrategia digital de Repsol 2025', teacher: 'Dirección Comms · 22 min', duration: '22 min', tone: 'noir', format: 'charla', level: 'avanzado', rating: 4.8, enrolled: 247, category: 'Estrategia' },
+  { id: 'c2', title: 'Cómo Sprinklr transforma el equipo', teacher: 'Carlos Vega · 18 min', duration: '18 min', tone: 'teal', format: 'charla', level: 'principiante', rating: 4.7, enrolled: 220, category: 'Publicación' },
 ];
 const PATHS = [
-  { id: 'pa1', title: 'Cómo ser manager, de verdad', teacher: '8 semanas · 24 píldoras', duration: '2h 12m', tone: 'warm', format: 'ruta', level: 'intermedio', rating: 4.9, enrolled: 3800, category: 'Liderazgo' },
-  { id: 'pa2', title: 'Trabajo profundo en equipo', teacher: '4 semanas · 12 píldoras', duration: '1h 06m', tone: 'teal', format: 'ruta', level: 'principiante', rating: 4.7, enrolled: 2100, category: 'Trabajo profundo' },
-  { id: 'pa3', title: 'Contratar sin sesgos', teacher: '6 semanas · 18 píldoras', duration: '1h 48m', tone: 'plum', format: 'ruta', level: 'avanzado', rating: 4.8, enrolled: 1500, category: 'Contratación' },
+  { id: 'pa1', title: 'Publish Agent · Certificación completa', teacher: '4 semanas · 12 módulos', duration: '3h 20m', tone: 'teal', format: 'ruta', level: 'principiante', rating: 4.9, enrolled: 247, category: 'Certificación' },
+  { id: 'pa2', title: 'Sprinklr Avanzado para Repsol', teacher: '3 semanas · 9 módulos', duration: '2h 15m', tone: 'plum', format: 'ruta', level: 'avanzado', rating: 4.8, enrolled: 120, category: 'Avanzado' },
+  { id: 'pa3', title: 'Crisis y compliance en RRSS', teacher: '2 semanas · 6 módulos', duration: '1h 30m', tone: 'clay', format: 'ruta', level: 'avanzado', rating: 4.7, enrolled: 98, category: 'Crisis' },
 ];
 
-const CATEGORIES = ['Todo', 'Liderazgo', 'Comunicación', 'Trabajo profundo', 'Decisiones', 'Contratación', 'Estrategia'];
+const CATEGORIES = ['Todo', 'Publicación', 'Analytics', 'Calendario', 'Compliance', 'Activos', 'Crisis', 'Certificación'];
 
-// ---------- Category bar ----------
+// ── Components ────────────────────────────────────────────────────────────
 function CategoryBar({ active, setActive }) {
   return (
     <div className="cat-bar">
@@ -48,89 +48,98 @@ function CategoryBar({ active, setActive }) {
   );
 }
 
-// ---------- Sidebar ----------
 function Sidebar({ view, setView }) {
   const items = [
-    { id: 'home', label: 'Inicio', icon: 'home' },
-    { id: 'browse', label: 'Descubrir', icon: 'compass' },
-    { id: 'coach', label: 'Coach IA', icon: 'sparkle' },
-    { id: 'path', label: 'Mi ruta', icon: 'book' },
-    { id: 'saved', label: 'Guardado', icon: 'bookmark', badge: '12' },
-    { id: 'wa', label: 'WhatsApp', icon: 'chat' },
-    { id: 'profile', label: 'Perfil', icon: 'user' },
+    { id: 'home',      label: 'Inicio',      icon: 'home' },
+    { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
+    { id: 'path',      label: 'Mi ruta',     icon: 'book' },
+    { id: 'dashboard', label: 'Dashboard',   icon: 'trend', badge: 'NEW' },
+    { id: 'coach',     label: 'Agente IA',   icon: 'sparkle' },
+    { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
+    { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <img src="beonit-logo.png" style={{height:30, width:'auto'}} alt="BeonIt"/>
-        <span className="mark" style={{fontSize:20}}>Solid</span>
+        <img src="beonit-logo.png" style={{height:28, width:'auto'}} alt="BeonIt"/>
+        <span className="mark">Solid</span>
       </div>
+
+      <div className="sb-org">
+        <div className="sb-org-logo">R</div>
+        <div>
+          <div className="sb-org-name">Repsol</div>
+          <div className="sb-org-sub">Formación Sprinklr</div>
+        </div>
+      </div>
+
       <button className="sb-search">
         <Icon name="search" size={14}/>
-        <span>Buscar cursos, temas…</span>
+        <span>Buscar módulos…</span>
         <span className="kbd">⌘K</span>
       </button>
-      <div>
-        <div className="sb-nav">
-          {items.map(it => (
-            <button key={it.id} className={`sb-item ${view === it.id ? 'active' : ''}`} onClick={() => setView(it.id)}>
-              <span className="sb-icon"><Icon name={it.icon} size={15}/></span>
-              {it.label}
-              {it.badge && <span className="sb-badge">{it.badge}</span>}
-            </button>
-          ))}
-        </div>
+
+      <div className="sb-nav">
+        {items.map(it => (
+          <button key={it.id} className={`sb-item ${view === it.id ? 'active' : ''}`} onClick={() => setView(it.id)}>
+            <span className="sb-icon"><Icon name={it.icon} size={15}/></span>
+            {it.label}
+            {it.badge && <span className="sb-badge sb-badge-new">{it.badge}</span>}
+          </button>
+        ))}
       </div>
+
       <div>
-        <div className="sb-section-title">Rutas activas</div>
+        <div className="sb-section-title">Mi progreso</div>
         <div className="sb-paths">
           <div className="sb-path" onClick={() => setView('path')}>
-            <div className="sb-path-title">Cómo ser manager, de verdad</div>
-            <div className="sb-progress"><i style={{width: '42%'}}/></div>
-            <div className="sb-path-meta"><span>Semana 4 / 8</span><span>·</span><span>42%</span></div>
-          </div>
-          <div className="sb-path">
-            <div className="sb-path-title">Trabajo profundo en equipo</div>
-            <div className="sb-progress"><i style={{width: '18%'}}/></div>
-            <div className="sb-path-meta"><span>Semana 1 / 4</span><span>·</span><span>18%</span></div>
+            <div className="sb-path-title">Publish Agent · Certificación</div>
+            <div className="sb-progress"><i style={{width:'58%'}}/></div>
+            <div className="sb-path-meta"><span>Módulo 7 / 12</span><span>·</span><span>58%</span></div>
           </div>
         </div>
       </div>
+
       <div className="sb-user">
-        <div className="sb-avatar">A</div>
+        <div className="sb-avatar" style={{background:'var(--repsol-red)'}}>A</div>
         <div>
           <div className="sb-user-name">Amaia Ruiz</div>
-          <div className="sb-user-role">BeonIt · Design Lead</div>
+          <div className="sb-user-role">Publish Agent · Repsol</div>
         </div>
       </div>
     </aside>
   );
 }
 
-// ---------- Home ----------
-function Home({ openDetail, openPlayer }) {
+// ── Home ──────────────────────────────────────────────────────────────────
+function Home({ openDetail, openPlayer, setView }) {
   const [activeCat, setActiveCat] = useState('Todo');
-  const inProgress = PILLS.filter(p => p.progress > 0);
+  const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 100);
   const allContent = [...PILLS, ...SERIES, ...PODCASTS, ...PATHS];
   const filtered = activeCat === 'Todo' ? allContent : allContent.filter(c => c.category === activeCat);
 
   return (
     <div className="main-inner">
 
-      {/* LMS Hero */}
+      {/* Hero */}
       <section className="lms-hero">
         <div className="lms-hero-text">
-          <span className="eyebrow" style={{color:'rgba(255,255,255,0.5)', letterSpacing:'0.12em'}}>Martes, 10:42 · BeonIt Academy</span>
-          <h1>Continúa donde<br/>lo dejaste.</h1>
-          <p>Tu próxima píldora te espera. Tres minutos ahora, o quédate el rato que quieras.</p>
-          <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Continuar aprendiendo</button>
+          <div className="lms-hero-eyebrow">
+            <span className="repsol-dot"/>Repsol · Formación Sprinklr
+          </div>
+          <h1>Domina Sprinklr<br/>como <em>Publish Agent</em>.</h1>
+          <p>Aprende a gestionar campañas, aprobar contenido y publicar en todos los canales de Repsol — a tu ritmo, con soporte de IA.</p>
+          <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
+            <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Continuar formación</button>
+            <button className="btn ghost hero-ghost" onClick={() => setView('path')}>Ver mi ruta →</button>
+          </div>
         </div>
         <div className="lms-hero-cards">
           {inProgress.map(p => (
             <div key={p.id} className="hip-card" onClick={openPlayer}>
               <div className="hip-thumb"><div className={`ph ${p.tone}`}/></div>
               <div className="hip-body">
-                <span className="eyebrow" style={{color:'rgba(255,255,255,0.45)'}}>{p.format} · {p.category}</span>
+                <span className="hip-cat">{p.category}</span>
                 <div className="hip-title">{p.title}</div>
                 <div className="hip-bar"><i style={{width: p.progress+'%'}}/></div>
                 <div className="hip-meta">{p.progress}% completado · {p.duration}</div>
@@ -143,72 +152,87 @@ function Home({ openDetail, openPlayer }) {
       {/* Stats */}
       <div className="lms-stats">
         {[
-          { n: '3',   l: 'Cursos activos' },
-          { n: '142', l: 'Píldoras terminadas' },
-          { n: '11',  l: 'Días de racha' },
-          { n: '42%', l: 'Ruta completada' },
+          { n: '7/12', l: 'Módulos completados', icon: 'check', color: 'var(--beonit-lime)' },
+          { n: '58%',  l: 'Progreso en ruta',    icon: 'trend', color: 'var(--accent-glow)' },
+          { n: '3h',   l: 'Tiempo de formación', icon: 'clock', color: 'var(--beonit-blue)' },
+          { n: '94%',  l: 'Tasa de éxito tests', icon: 'bolt',  color: 'var(--repsol-red)' },
         ].map((s, i) => (
           <div key={i} className="stat-card">
+            <div className="stat-icon" style={{background: s.color + '18', color: s.color}}>
+              <Icon name={s.icon} size={16}/>
+            </div>
             <div className="stat-n">{s.n}</div>
             <div className="stat-l">{s.l}</div>
           </div>
         ))}
       </div>
 
-      {/* Continue learning */}
-      <Row title="Continúa" emTitle="donde lo dejaste" extraClass="row-continue">
-        {PILLS.filter(p => p.progress > 0).map(p => (
-          <Card key={p.id} {...p} onClick={openPlayer}/>
-        ))}
-      </Row>
+      {/* Continue */}
+      {inProgress.length > 0 && (
+        <Row title="Continúa" emTitle="donde lo dejaste" extraClass="row-continue">
+          {inProgress.map(p => <Card key={p.id} {...p} onClick={openPlayer}/>)}
+        </Row>
+      )}
 
-      {/* Featured path banner */}
-      <div className="featured-banner" onClick={() => openDetail(PATHS[0])}>
+      {/* Featured path */}
+      <div className="featured-banner" onClick={() => setView('path')}>
         <div className="fb-content">
-          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Ruta destacada · 8 semanas</span>
-          <h2>Cómo ser <em>manager</em>,<br/>de verdad.</h2>
-          <p>24 PÍLDORAS · 2H 12MIN · DISEÑADO PARA BEONIT</p>
+          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Ruta certificada · 4 semanas</span>
+          <h2>Publish Agent<br/><em>Certificación Repsol</em>.</h2>
+          <p>12 MÓDULOS · 3H 20MIN · AVALADA POR REPSOL & BEONIT</p>
           <div style={{display:'flex', gap:12}}>
-            <button className="btn glow" onClick={e => { e.stopPropagation(); openPlayer(); }}>
-              <Icon name="play" size={14}/> Empezar la ruta
+            <button className="btn glow" onClick={e => { e.stopPropagation(); setView('path'); }}>
+              <Icon name="book" size={14}/> Ver programa completo
             </button>
-            <button className="btn ghost" style={{color:'var(--paper)', borderColor:'rgba(255,255,255,0.25)'}}>
-              Ver programa
+            <button className="btn ghost" style={{color:'var(--paper)', borderColor:'rgba(255,255,255,0.2)'}}>
+              Certificado al terminar
             </button>
           </div>
         </div>
-        <div className="fb-visual"><div className="ph warm" style={{position:'absolute', inset:0}}/></div>
+        <div className="fb-visual">
+          <div className="ph teal" style={{position:'absolute', inset:0}}/>
+          <div className="fb-badge">58% completado</div>
+        </div>
       </div>
 
-      {/* Catalog with category filter */}
+      {/* Catalog */}
       <div className="catalog-section">
         <div className="row-head">
-          <h2>Catálogo <em>completo</em></h2>
-          <span className="link">Ver todo →</span>
+          <h2>Todos los <em>módulos</em></h2>
+          <button className="link-btn" onClick={() => setView('browse')}>Ver catálogo completo →</button>
         </div>
         <CategoryBar active={activeCat} setActive={setActiveCat}/>
         <div className="catalog-grid">
-          {filtered.map(item => (
-            <Card key={item.id} {...item} onClick={() => openDetail(item)}/>
-          ))}
+          {filtered.map(item => <Card key={item.id} {...item} onClick={() => openDetail(item)}/>)}
         </div>
       </div>
 
-      {/* Reels */}
-      <Row title="Cortos" emTitle="menos de un minuto" extraClass="row-reels">
+      {/* Quick tips */}
+      <Row title="Tips rápidos" emTitle="menos de 1 minuto" extraClass="row-reels">
         {REELS.map(r => <Card key={r.id} {...r} onClick={openPlayer}/>)}
       </Row>
 
-      {/* Coach CTA */}
-      <div className="feature-strip">
-        <div>
-          <span className="eyebrow">Coach IA</span>
-          <h2>"¿Qué debería aprender antes del 1:1 del jueves?"</h2>
-          <p>Tu coach conoce tu calendario, tus rutas y lo que terminaste la semana pasada. Te responde en una píldora — o una serie corta cuando lo necesitas.</p>
-          <button className="btn glow">Abrir coach →</button>
+      {/* AI CTA */}
+      <div className="ai-cta-banner">
+        <div className="ai-cta-orb"/>
+        <div className="ai-cta-content">
+          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Agente IA · Powered by Claude</span>
+          <h2>"¿Cómo apruebo un post urgente fuera del horario habitual?"</h2>
+          <p>Tu agente conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa.</p>
+          <button className="btn glow" onClick={() => setView('coach')}>
+            <Icon name="sparkle" size={14}/> Abrir agente IA
+          </button>
         </div>
-        <div className="visual">
-          <div className="ph noir" style={{position:'absolute', inset:0}}/>
+        <div className="ai-cta-visual">
+          <div className="ai-cta-chat">
+            {[
+              { role: 'ai', text: '¡Hola Amaia! Llevas un 58% de tu certificación. ¿Seguimos con el módulo de calendario hoy?' },
+              { role: 'user', text: '¿Cuánto me falta para terminar?' },
+              { role: 'ai', text: 'Te quedan 5 módulos: Calendario, Analytics, Activos, Compliance y el test final. Unos 90 min en total.' },
+            ].map((m, i) => (
+              <div key={i} className={`ai-cta-msg ${m.role}`}>{m.text}</div>
+            ))}
+          </div>
         </div>
       </div>
 

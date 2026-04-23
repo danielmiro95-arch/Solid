@@ -42,15 +42,16 @@ function App() {
     <div className={rootClass} data-screen-label={`Prototype · ${view}`}>
       {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
-        {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer}/>}
+        {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')}/>}
         {view === 'player' && <Player back={() => setView('detail')}/>}
         {view === 'coach' && <Coach/>}
+        {view === 'dashboard' && <Dashboard/>}
         {view === 'path' && <PathView/>}
         {view === 'profile' && <Profile/>}
         {view === 'wa' && <WhatsApp/>}
         {view === 'saved' && <div className="main-inner"><div className="hero-eye"><span className="chip">Saved · 12 items</span></div><h1 style={{fontFamily:'var(--serif)', fontSize:56, letterSpacing:'-0.025em', margin:'16px 0 32px'}}>Your <em style={{fontStyle:'italic'}}>canon</em>.</h1><div className="grid-pills" style={{gridTemplateColumns:'repeat(4, 1fr)'}}>{[...PILLS, ...SERIES.slice(0,3)].map(p => <Card key={p.id} {...p}/>)}</div></div>}
-        {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer}/></div>}
+        {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/></div>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && (

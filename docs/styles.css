@@ -1,28 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* SOLID 2.0 — BeonIt brand */
+/* SOLID — Repsol × BeonIt */
 :root {
-  --paper: #f7f5f0;
-  --paper-2: #edeae2;
-  --ink: #0a0a0a;
-  --ink-2: #1f1f1f;
-  --ink-3: #404040;
-  --ink-4: #7a7a7a;
-  --line: rgba(10, 10, 10, 0.12);
-  --line-2: rgba(10, 10, 10, 0.06);
-  --accent: #0a0a0a;
+  --paper: #FFFFFF;
+  --paper-2: #F4F6F8;
+  --paper-3: #EEF1F5;
+  --ink: #0F172A;
+  --ink-2: #1E293B;
+  --ink-3: #475569;
+  --ink-4: #94A3B8;
+  --line: rgba(15, 23, 42, 0.08);
+  --line-2: rgba(15, 23, 42, 0.04);
+  --accent: #0F172A;
   --accent-glow: #F3A524;
+  --repsol-red: #EB0029;
+  --repsol-red-dark: #B8001F;
   --beonit-orange: #F3A524;
   --beonit-yellow: #FCCB00;
   --beonit-lime: #BCD630;
   --beonit-blue: #0071BE;
   --beonit-purple: #8A3892;
-  --beonit-red: #FC220D;
-  --highlight: #e8e4da;
-  --dark: #000000;
-  --dark-2: #0f0f0f;
-  --dark-3: #1a1a1a;
-  --cream: #f7f5f0;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,0.09), 0 8px 20px rgba(0,0,0,0.05);
+  --highlight: #FFF3CD;
+  --dark: #0F172A;
+  --dark-2: #1E293B;
+  --dark-3: #334155;
+  --cream: #F8FAFC;
   --serif: "Sora", "Outfit", sans-serif;
   --sans: "Avenir Next", "Avenir", "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -42,9 +47,11 @@ body {
 .shell-tabs {
   position: sticky; top: 0; z-index: 500;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 28px;
+  padding: 0 28px;
+  height: 60px;
   background: var(--paper);
   border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
 }
 .shell-wordmark {
   font-family: var(--serif);
@@ -81,6 +88,21 @@ body {
 .shell-tab:hover { color: var(--ink); }
 .shell-tab.active { background: var(--ink); color: var(--paper); }
 .shell-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Repsol badge in shell */
+.repsol-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px;
+  border: 1px solid rgba(235,0,41,0.2);
+  background: rgba(235,0,41,0.05);
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--repsol-red);
+}
+.repsol-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--repsol-red); flex-shrink: 0;
+}
 
 .shell-panel { display: none; }
 .shell-panel.active { display: block; }

@@ -603,4 +603,173 @@ function WhatsApp() {
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp });
+// ---------- Analytics Dashboard ----------
+function Dashboard() {
+  const kpis = [
+    { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
+    { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
+    { label: 'Tiempo / semana', value: '3h 2m', delta: '-8m', up: false, color: 'var(--accent-glow)' },
+    { label: 'Tasa éxito tests', value: '94%', delta: '+2%', up: true, color: 'var(--repsol-red)' },
+  ];
+
+  const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
+
+  const users = [
+    { name: 'Amaia Ruiz',    role: 'Publish Agent',  prog: 58,  mods: '7/12',  last: 'Hoy, 10:42' },
+    { name: 'Carlos Vega',   role: 'Publish Agent',  prog: 100, mods: '12/12', last: 'Ayer' },
+    { name: 'Sara Molina',   role: 'Content Lead',   prog: 33,  mods: '4/12',  last: 'Hace 2 días' },
+    { name: 'Luis Romero',   role: 'Analyst',        prog: 75,  mods: '9/12',  last: 'Hoy, 09:10' },
+    { name: 'Ana García',    role: 'Analytics Lead', prog: 17,  mods: '2/12',  last: 'Hace 4 días' },
+  ];
+
+  const checklist = [
+    { t: 'Crear y gestionar campañas en Sprinklr', done: true },
+    { t: 'Flujo de aprobación de contenido', done: true },
+    { t: 'Programar posts y gestión de calendario', done: false },
+    { t: 'Monitorización y alertas en tiempo real', done: false },
+    { t: 'Gestión de activos digitales en DAM', done: false },
+    { t: 'Compliance y gobernanza de contenido', done: false },
+  ];
+
+  const modules = [
+    { name: 'Crear y gestionar campañas', pct: 89 },
+    { name: 'Flujo de aprobación', pct: 76 },
+    { name: 'Programar posts · Calendario', pct: 54 },
+    { name: 'Monitorización y alertas', pct: 38 },
+    { name: 'Gestión de activos DAM', pct: 22 },
+    { name: 'Compliance · Gobernanza', pct: 11 },
+  ];
+
+  const activity = [
+    { color: 'green',  text: 'Carlos Vega completó la ruta de certificación',           time: 'Hace 8 min' },
+    { color: 'orange', text: 'Amaia Ruiz superó el test de Publicación con 94%',        time: 'Hace 22 min' },
+    { color: '',       text: 'Sara Molina vio 2 módulos de Calendario',                 time: 'Hace 1h' },
+    { color: 'red',    text: 'Ana García se quedó atascada en el módulo de Analytics',  time: 'Hace 3h' },
+    { color: '',       text: 'Luis Romero descargó el certificado de DAM',              time: 'Ayer, 18:30' },
+  ];
+
+  return (
+    <div className="dash-root">
+      <div className="dash-header">
+        <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
+        <h1>Analytics <em>Sprinklr</em></h1>
+        <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+      </div>
+
+      <div className="dash-kpis">
+        {kpis.map((k, i) => (
+          <div key={i} className="kpi-card" style={{'--kpi-color': k.color}}>
+            <div className="kpi-label">{k.label}</div>
+            <div className="kpi-value">{k.value}</div>
+            <div className={`kpi-delta ${k.up ? 'up' : 'down'}`}>{k.up ? '↑' : '↓'} {k.delta} vs mes anterior</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="dash-grid">
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>Drop-off por minuto · Módulo activo</h3>
+            <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
+          </div>
+          <div className="dash-panel-body">
+            <div className="dropoff-chart">
+              {dropoff.map((v, i) => (
+                <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}% retenidos`}/>
+              ))}
+            </div>
+            <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
+            <div className="dropoff-legend">
+              <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
+              <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
+            </div>
+          </div>
+        </div>
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>Completación por módulo</h3>
+            <span className="panel-sub">% usuarios que terminaron</span>
+          </div>
+          <div className="dash-panel-body">
+            {modules.map((m, i) => (
+              <div key={i} className="module-bar-row">
+                <div className="mod-name">{m.name}</div>
+                <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
+                <div className="mod-pct">{m.pct}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="dash-grid-3">
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>Checklist de aprendizaje</h3>
+            <span className="panel-sub">Amaia Ruiz</span>
+          </div>
+          <div className="dash-panel-body">
+            <div className="check-list">
+              {checklist.map((c, i) => (
+                <div key={i} className={`check-item${c.done ? ' done' : ''}`}>
+                  <div className="check-box">{c.done ? '✓' : ''}</div>
+                  {c.t}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="dash-panel" style={{gridColumn:'span 2'}}>
+          <div className="dash-panel-head">
+            <h3>Usuarios activos</h3>
+            <span className="panel-sub">Progreso individual</span>
+          </div>
+          <div className="dash-panel-body" style={{padding:'0 20px'}}>
+            <table className="user-table">
+              <thead>
+                <tr><th>Usuario</th><th>Progreso</th><th>Módulos</th><th>Última actividad</th></tr>
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <tr key={i}>
+                    <td><div className="u-name">{u.name}</div><div className="u-role">{u.role}</div></td>
+                    <td>
+                      <div className="prog-pill">
+                        <div className="prog-bar-sm"><i style={{width: u.prog + '%'}}/></div>
+                        <span style={{fontFamily:'var(--mono)', fontSize:11}}>{u.prog}%</span>
+                      </div>
+                    </td>
+                    <td style={{fontFamily:'var(--mono)', fontSize:12}}>{u.mods}</td>
+                    <td style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{u.last}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="dash-panel">
+        <div className="dash-panel-head">
+          <h3>Actividad reciente</h3>
+          <span className="panel-sub">Últimas 24 horas</span>
+        </div>
+        <div className="dash-panel-body">
+          <div className="activity-feed">
+            {activity.map((a, i) => (
+              <div key={i} className="activity-item">
+                <div className={`activity-dot${a.color ? ' ' + a.color : ''}`}/>
+                <div className="activity-main">
+                  <div className="a-text">{a.text}</div>
+                  <div className="a-time">{a.time}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard });
