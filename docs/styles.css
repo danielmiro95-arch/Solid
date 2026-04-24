@@ -32,7 +32,7 @@
   --bn-turquoise: #66C7C2;
 
   /* ── Alias semánticos ────────────────────────── */
-  --accent-glow:  var(--bn-orange);   /* energy / MENTOR-IA */
+  --accent-glow:  #6C5FFC;            /* indigo · Revolut-style */
   --accent-primary: var(--bn-blue);   /* acciones principales */
   --accent-success: var(--bn-lime);   /* progreso / completado */
 

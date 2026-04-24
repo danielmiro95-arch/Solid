@@ -2,10 +2,13 @@
 
 const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
-const Card = ({ tone = 'noir', title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category }) => (
+const Card = ({ tone = 'noir', title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => (
   <div className="card" onClick={onClick}>
     <div className="card-thumb">
-      <div className={`ph ${tone}`}/>
+      {yt
+        ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title}/>
+        : <div className={`ph ${tone}`}/>
+      }
       <div className="card-hover-overlay">
         <div className="card-play-btn"><Icon name="play" size={16}/></div>
       </div>
