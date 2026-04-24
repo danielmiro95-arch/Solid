@@ -1271,3 +1271,282 @@
   color: var(--ink-3);
   line-height: 1.35;
 }
+
+/* ============================================================
+   BEONIT BRAND SYSTEM
+   Decisiones de diseño aplicadas sistemáticamente.
+   No modifica estructura — sólo sobreescribe valores visuales.
+   ============================================================ */
+
+/* ── 1. TIPOGRAFÍA ─────────────────────────────────────────── */
+/* Avenir Next Heavy para headings: peso, no serif decorativo */
+
+h1, h2, h3 {
+  font-family: var(--sans);
+  font-style: normal;
+}
+
+/* H1: 800 weight — protagonista, limpio, directo */
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* H2: 700 */
+h2 { font-weight: 700; letter-spacing: -0.025em; }
+
+/* H3: 600 */
+h3 { font-weight: 600; letter-spacing: -0.01em; }
+
+/* Italic accent: oblique light — contraste con el heavy */
+h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
+.onb-right h1 em, .path-hero h1 em, .wa-head h1 em, .profile-head h1 em {
+  font-style: oblique;
+  font-weight: 300;
+  color: var(--bn-blue);
+}
+
+/* Sidebar brand mark */
+.sb-brand .mark {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: -0.03em;
+}
+
+/* Path / detail / misc headings que usan var(--serif) vía inline */
+.sb-path-title { font-family: var(--sans); font-weight: 600; font-style: normal; }
+.lms-hero h1 { font-weight: 800; }
+.fb-content h2 { font-family: var(--sans); font-weight: 800; font-size: 30px; }
+.stat-n { font-family: var(--sans); font-weight: 800; }
+.path-hero h1 { font-weight: 800; }
+.ai-suggest .t { font-family: var(--sans); font-weight: 600; font-style: normal; }
+.profile-head h1 { font-weight: 800; }
+.wa-head h1 { font-weight: 800; }
+
+
+/* ── 2. BOTONES ────────────────────────────────────────────── */
+/* Primary: Beonit Blue — acción principal, confianza */
+/* CTA / Energy: Orange — llamada a la acción urgente */
+/* Secundario: borde Blue, fondo transparente */
+
+.btn {
+  border-radius: 8px;      /* menos pill, más corporativo */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 0.15s cubic-bezier(.2,.7,.3,1);
+}
+
+/* Primary button → Blue */
+.btn:not(.ghost):not(.glow) {
+  background: var(--bn-blue);
+  border-color: var(--bn-blue);
+  color: #fff;
+}
+.btn:not(.ghost):not(.glow):hover {
+  background: var(--bn-blue-dark);
+  border-color: var(--bn-blue-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-blue);
+}
+
+/* Ghost → Blue outline */
+.btn.ghost {
+  color: var(--bn-blue);
+  border-color: rgba(0,114,190,0.4);
+  background: transparent;
+}
+.btn.ghost:hover {
+  background: var(--bn-blue);
+  border-color: var(--bn-blue);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Glow / CTA → Orange (energy, MENTOR-IA) */
+.btn.glow {
+  background: var(--bn-orange);
+  border-color: var(--bn-orange);
+  color: #fff;
+}
+.btn.glow:hover {
+  background: #d98a18;
+  border-color: #d98a18;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(243,165,37,0.35);
+}
+
+
+/* ── 3. SIDEBAR ────────────────────────────────────────────── */
+/* Active: Blue pill, no negro sólido */
+
+.sb-item.active {
+  background: var(--bn-blue);
+  color: #fff;
+}
+.sb-item.active .sb-icon { color: #fff; }
+.sb-item.active .sb-badge { color: rgba(255,255,255,0.55); }
+
+.sb-item:hover:not(.active) {
+  background: rgba(0,114,190,0.07);
+  color: var(--bn-blue);
+}
+
+.sb-progress > i { background: var(--bn-blue); }
+.sb-path:hover { background: rgba(0,114,190,0.05); }
+
+
+/* ── 4. CARDS ──────────────────────────────────────────────── */
+/* Hover shadow con tinte azul — sutil pero diferenciado */
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-blue);
+  border-color: rgba(0,114,190,0.15);
+}
+.card-category { color: var(--bn-blue); font-weight: 700; }
+
+/* Levels: colores de marca reales */
+.card-level.level-principiante { background: rgba(188,214,48,0.15); color: #2d4a00; }
+.card-level.level-intermedio   { background: rgba(0,114,190,0.1);   color: #004a82; }
+.card-level.level-avanzado     { background: rgba(138,57,146,0.12); color: #5a1e60; }
+
+.stat-card:hover { border-color: var(--bn-blue); }
+
+
+/* ── 5. CATEGORÍAS FILTRO ──────────────────────────────────── */
+
+.cat-pill.active {
+  background: var(--bn-blue);
+  color: #fff;
+  border-color: var(--bn-blue);
+}
+.cat-pill:hover:not(.active) {
+  border-color: var(--bn-blue);
+  color: var(--bn-blue);
+  background: rgba(0,114,190,0.05);
+}
+
+
+/* ── 6. FEATURED BANNER ────────────────────────────────────── */
+/* Blue Beonit en lugar de negro neutro */
+
+.featured-banner {
+  background: linear-gradient(135deg, #003d6b 0%, var(--bn-blue) 50%, #0089e0 100%);
+}
+.fb-content h2 em { color: var(--bn-orange); }
+.fb-badge { background: var(--bn-orange); color: #fff; border-radius: 6px; }
+
+
+/* ── 7. BARRAS DE PROGRESO ─────────────────────────────────── */
+
+.hip-bar > i       { background: var(--bn-blue); }
+.prog-bar-sm > i   { background: var(--bn-blue); }
+.module-bar-wide > i { background: var(--bn-blue); }
+.card-progress-bar > i { background: var(--bn-orange); }
+
+
+/* ── 8. DETAIL HERO ────────────────────────────────────────── */
+
+.detail-hero { background: linear-gradient(160deg, #001f3d 0%, #003366 50%, #0a1a30 100%); }
+.detail-hero::before {
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(0,114,190,0.25), transparent 55%),
+    radial-gradient(ellipse at 20% 100%, rgba(243,165,37,0.08), transparent 45%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 20px);
+}
+.detail-head .eyebrow.eye { color: var(--bn-orange); font-weight: 700; }
+
+
+/* ── 9. PATH / LEARNING MAP ────────────────────────────────── */
+
+.path-hero { background: linear-gradient(160deg, #001f3d 0%, #003d78 100%); }
+.path-stat .n { color: var(--bn-blue); }
+.path-node { border-left: 3px solid var(--line); }
+.path-node.done { border-left-color: var(--bn-lime); }
+.path-node.current { border-left-color: var(--bn-blue); background: rgba(0,114,190,0.03); }
+.path-node.path-node-taller { border-left-color: var(--bn-purple); }
+.path-node.path-node-autodiag { border-left-color: var(--bn-orange); }
+.path-node .goto {
+  background: var(--bn-blue);
+  color: #fff;
+  border-color: var(--bn-blue);
+  border-radius: 8px;
+}
+.path-node .goto:hover { background: var(--bn-blue-dark); }
+.path-node.done .goto { background: transparent; color: var(--bn-blue); border-color: rgba(0,114,190,0.4); }
+
+
+/* ── 10. SOLID GROWTH STRIP ────────────────────────────────── */
+
+.sg-phase.active { background: rgba(255,255,255,0.9); box-shadow: var(--shadow-sm); }
+
+
+/* ── 11. MENTOR-IA (AI Sidebar) ────────────────────────────── */
+
+.ai-head { border-bottom: 2px solid var(--bn-orange); }
+.ai-input .send { background: var(--bn-blue); }
+.ai-input .send:hover { background: var(--bn-orange); color: #fff; }
+.ai-chip:hover { background: var(--bn-blue); color: #fff; border-color: var(--bn-blue); }
+.ai-rail-btn { background: var(--bn-blue); border-color: var(--bn-orange); }
+
+
+/* ── 12. COACH / MENTOR-IA FULLSCREEN ──────────────────────── */
+
+.coach-side { background: var(--paper-2); }
+.coach-hist-item.active { border-left-color: var(--bn-blue); }
+.coach-input-shell .send { background: var(--bn-blue); border-color: var(--bn-blue); }
+
+
+/* ── 13. ONBOARDING ────────────────────────────────────────── */
+
+.onb-visual { background: linear-gradient(160deg, #001f3d 0%, var(--bn-blue) 60%, #0089e0 100%); }
+.onb-chip.sel {
+  background: var(--bn-blue);
+  color: #fff;
+  border-color: var(--bn-blue);
+}
+.onb-chip:hover:not(.sel) { border-color: var(--bn-blue); color: var(--bn-blue); }
+.onb-progress span.on { background: var(--bn-blue); }
+
+
+/* ── 14. DASHBOARD ─────────────────────────────────────────── */
+
+.kpi-delta.up { color: var(--bn-lime-dark); }
+.kpi-delta.down { color: var(--bn-red); }
+.check-item.done .check-box { background: var(--bn-lime); border-color: var(--bn-lime); color: #1a3000; }
+.activity-dot.green { background: var(--bn-lime); }
+.activity-dot.orange { background: var(--bn-orange); }
+.activity-dot.red { background: var(--bn-red); }
+
+
+/* ── 15. WHATSAPP VIEW ─────────────────────────────────────── */
+
+.wa-toggle.on { border-color: var(--bn-blue); background: rgba(0,114,190,0.04); }
+.wa-toggle.on .sw { background: var(--bn-blue); }
+.wa-cta { color: var(--bn-blue); font-weight: 700; }
+
+
+/* ── 16. PROFILE ───────────────────────────────────────────── */
+
+.streak-cell.l1 { background: rgba(0,114,190,0.2); }
+.streak-cell.l2 { background: rgba(0,114,190,0.5); }
+.streak-cell.l3 { background: var(--bn-blue); }
+.badge.earned .em { color: var(--bn-orange); }
+
+
+/* ── 17. LINKS Y MISCELÁNEOS ───────────────────────────────── */
+
+.link-btn { color: var(--bn-blue); font-weight: 600; }
+.link-btn:hover { color: var(--bn-blue-dark); }
+.row-head .link:hover { color: var(--bn-blue); }
+.outline-item.current { border-left-color: var(--bn-blue); }
+.outline-item.done .n { color: var(--bn-lime); }
+
+
+/* ── 18. CRONOGRAMA ────────────────────────────────────────── */
+
+.cron-week.milestone-start { background: rgba(188,214,48,0.15); color: var(--bn-lime-dark); }
+.cron-week.milestone-end   { background: rgba(252,34,13,0.08); color: var(--bn-red); }
+
