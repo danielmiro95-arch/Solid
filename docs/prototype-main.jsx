@@ -34,7 +34,7 @@ function App() {
   }, []);
 
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
-  const openPlayer = () => setView('player');
+  const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
   const rootClass = `proto-root ai-${aiMode}`;
 
@@ -44,7 +44,7 @@ function App() {
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')}/>}
-        {view === 'player' && <Player back={() => setView('detail')}/>}
+        {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}
         {view === 'coach' && <Coach/>}
         {view === 'dashboard' && <Dashboard/>}
         {view === 'path' && <PathView/>}

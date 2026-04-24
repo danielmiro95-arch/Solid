@@ -44,9 +44,12 @@ function Detail({ item, openPlayer, back }) {
               <span>★ {it.rating || '4.8'} · {it.enrolled || '220'} COMPLETADAS</span>
             </div>
             <div className="detail-cta-row">
-              <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Empezar · {it.duration}</button>
+              <button className="btn glow" onClick={() => openPlayer(it)}>
+                <Icon name="play" size={14}/>
+                {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
+              </button>
               <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
-              <button className="btn ghost"><Icon name="sparkle" size={14}/> Pregunta al agente</button>
+              <button className="btn ghost"><Icon name="sparkle" size={14}/> MENTOR-IA</button>
             </div>
           </div>
         </div>
@@ -55,7 +58,7 @@ function Detail({ item, openPlayer, back }) {
         <div className="detail-outline">
           <h3>Qué hay dentro</h3>
           {chapters.map(c => (
-            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={openPlayer}>
+            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={() => openPlayer(it)}>
               <span className="n">{String(c.n).padStart(2,'0')}</span>
               <div className="t">{c.t}<em>{c.d}</em></div>
               <span className="d">3 MIN</span>
@@ -100,8 +103,11 @@ function Detail({ item, openPlayer, back }) {
 }
 
 // ---------- Player ----------
-function Player({ back }) {
+function Player({ back, item }) {
   const [playing, setPlaying] = useS2(true);
+  const it = item || PILLS.find(p => p.yt) || PILLS[0];
+  const hasVideo = !!it.yt;
+
   const chapters = [
     { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal' },
     { n: 2, t: 'Interfaz y accesos en Sprinklr', d: '0:52 · 1:10', tone: 'plum' },
@@ -109,39 +115,84 @@ function Player({ back }) {
     { n: 4, t: 'Casos reales del equipo Repsol', d: '3:20 · 0:45', tone: 'olive' },
     { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm' },
   ];
+
   return (
     <div className="player-root">
       <div className="player-stage">
-        <div className="ph teal">vídeo</div>
-        <div className="player-overlay-top">
-          <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
-          <div style={{display:'flex', gap:8}}>
-            <button className="back"><Icon name="caption" size={12}/> SUB</button>
-            <button className="back">Notas IA activas</button>
+        {hasVideo ? (
+          <>
+            <iframe
+              key={it.yt}
+              src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white`}
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              allowFullScreen
+              style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
+            />
+            <div className="player-overlay-top" style={{zIndex:2, pointerEvents:'none'}}>
+              <button onClick={back} style={{pointerEvents:'all'}} className="back">
+                <Icon name="back" size={12}/> Volver al módulo
+              </button>
+              <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
+                <button className="back" style={{background:'rgba(243,165,36,0.15)', border:'1px solid rgba(243,165,36,0.4)', color:'var(--accent-glow)'}}>
+                  ✦ MENTOR-IA activo
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="ph teal" style={{position:'absolute',inset:0}}/>
+            <div className="player-overlay-top">
+              <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
+              <div style={{display:'flex', gap:8}}>
+                <button className="back"><Icon name="caption" size={12}/> SUB</button>
+                <button className="back">MENTOR-IA activo</button>
+              </div>
+            </div>
+            <div className="player-overlay-bottom">
+              <div className="title-row">
+                <div>
+                  <div className="t-eyebrow">{it.category} · {it.duration}</div>
+                  <div className="title">{it.title}</div>
+                  <div className="sub">{(it.teacher || 'BeonIt').toUpperCase()} · {it.duration}</div>
+                </div>
+              </div>
+              <div className="scrubber"><i style={{width:'56%'}}/><b/></div>
+              <div className="player-controls">
+                <button><Icon name="skip" size={18}/></button>
+                <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
+                <button><Icon name="next" size={18}/></button>
+                <button className="pill-btn">1.0×</button>
+                <button className="pill-btn active">Pregunta IA</button>
+                <button><Icon name="vol" size={18}/></button>
+                <span className="time">02:18 / {it.duration || '05:00'}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Below video: pill info + related */}
+      <div className="player-chapter-bar">
+        <div className="pchap active" style={{flex:'0 0 280px'}}>
+          <div className="thumb"><div className={`ph ${it.tone || 'teal'}`}/></div>
+          <div>
+            <div className="n">REPRODUCIENDO AHORA</div>
+            <div className="t">{it.title}</div>
+            <div className="d">{it.teacher} · {it.duration} · {it.category}</div>
           </div>
         </div>
-        <div className="player-overlay-bottom">
-          <div className="title-row">
+        {PILLS.filter(p => p.yt && p.id !== it.id).slice(0, 4).map(c => (
+          <div key={c.id} className="pchap" onClick={() => { window.__playerItem = c; back(); setTimeout(() => window.dispatchEvent(new CustomEvent('__openPlayer', {detail: c})), 50); }}>
+            <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
-              <div className="t-eyebrow">Lección 3 de 5 · Programar posts en Sprinklr</div>
-              <div className="title">Flujo de trabajo paso a paso.</div>
-              <div className="sub">CARLOS VEGA · 01:18 · QUEDAN 00:34 EN LA LECCIÓN</div>
+              <div className="n">CON VÍDEO</div>
+              <div className="t">{c.title}</div>
+              <div className="d">{c.teacher} · {c.duration}</div>
             </div>
           </div>
-          <div className="scrubber"><i style={{width:'56%'}}/><b/></div>
-          <div className="player-controls">
-            <button><Icon name="skip" size={18}/></button>
-            <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
-            <button><Icon name="next" size={18}/></button>
-            <button className="pill-btn">1.0×</button>
-            <button className="pill-btn active">Pregunta IA</button>
-            <button><Icon name="vol" size={18}/></button>
-            <span className="time">02:18 / 05:00</span>
-          </div>
-        </div>
-      </div>
-      <div className="player-chapter-bar">
-        {chapters.map(c => (
+        ))}
+        {!hasVideo && chapters.map(c => (
           <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`} onClick={() => setPlaying(true)}>
             <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
