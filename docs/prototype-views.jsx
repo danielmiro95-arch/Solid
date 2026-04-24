@@ -299,15 +299,85 @@ function AISidekick({ setAIMode, aiMode, view }) {
 }
 
 // ---------- Coach / AI Agent fullscreen ----------
+
+// URL de la API — configurar tras desplegar en Vercel
+// Producción: 'https://TU-PROYECTO.vercel.app/api/chat'
+// Local dev:  'http://localhost:3000/api/chat'
+const MENTOR_API = window.MENTOR_IA_API_URL || null;
+
+const USER_PROFILE = {
+  name: 'Amaia Ruiz',
+  role: 'Publish Agent',
+  progress: 15,
+  currentPill: 4,
+};
+
 function Coach() {
   const [input, setInput] = useS2('');
+  const [loading, setLoading] = useS2(false);
+  const [apiStatus, setApiStatus] = useS2(MENTOR_API ? 'live' : 'demo');
   const [msgs, setMsgs] = useS2([
-    { role: 'ai', text: '¡Hola Amaia! Soy tu agente de formación Sprinklr, impulsado por Claude. Llevas un 58% de la certificación. ¿Seguimos con el módulo de Calendario hoy?' },
-    { role: 'user', text: '¿Cuánto me falta para terminar?' },
-    { role: 'ai', text: 'Te quedan 5 módulos: Calendario, Monitorización, Activos, Compliance y el test final. Son ~90 minutos en total. Al terminarlos obtienes la certificación oficial Repsol × BeonIt.' },
+    { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
-  const send = () => {
-    if (!input.trim()) return;
+
+  const messagesEndRef = useS2(null);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const q = input.trim();
+    const newMsgs = [...msgs, { role: 'user', text: q }];
+    setMsgs(newMsgs);
+    setInput('');
+    setLoading(true);
+
+    if (MENTOR_API) {
+      // ── Llamada real a Claude ────────────────────────────
+      try {
+        const res = await fetch(MENTOR_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: newMsgs.map(m => ({
+              role: m.role === 'ai' ? 'assistant' : m.role,
+              content: m.text,
+            })),
+            userProfile: USER_PROFILE,
+          }),
+        });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        setMsgs(m => [...m, { role: 'assistant', text: data.content }]);
+        setApiStatus('live');
+      } catch (err) {
+        console.warn('[MENTOR-IA] API error:', err.message);
+        setMsgs(m => [...m, { role: 'assistant', text: 'Lo siento, ha habido un problema al conectar con el servidor. Inténtalo de nuevo en un momento.' }]);
+        setApiStatus('error');
+      }
+    } else {
+      // ── Modo demo: respuestas simuladas contextuales ─────
+      await new Promise(r => setTimeout(r, 900));
+      const demos = {
+        'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
+        'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
+        'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
+        'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
+        'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
+        'default': `Entendido. En el contexto de Sprinklr para Repsol, lo que describes está relacionado con los módulos de tu ruta de certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), te recomiendo revisar las Think Pills correspondientes en la plataforma. ¿Puedes darme más detalles sobre la situación concreta?`,
+      };
+      const key = Object.keys(demos).find(k => q.toLowerCase().includes(k)) || 'default';
+      setMsgs(m => [...m, { role: 'assistant', text: demos[key] }]);
+    }
+    setLoading(false);
+  };
+
+  const quickActions = [
+    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
+    { label: 'Explícame las macros', q: '¿Qué es una macro en Sprinklr y cómo se usa en Repsol?' },
+    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación en Social Publish?' },
+    { label: 'SLA en Care', q: '¿Qué SLA maneja Repsol en Sprinklr Care?' },
+    { label: 'Escalar a Salesforce', q: '¿Cuándo y cómo transfiero un caso de Sprinklr a Salesforce?' },
+    { label: 'Quiz rápido', q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.' },
+  ];
     const q = input.trim();
     setMsgs(m => [...m, { role: 'user', text: q }]);
     setInput('');
@@ -380,20 +450,50 @@ function Coach() {
             <div className="d">Flujo de aprobación completado · 2 módulos terminados.</div>
           </div>
         </div>
-        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
-          {msgs.map((m, i) => (
-            <div key={i} className={`ai-msg ${m.role === 'ai' ? 'from-ai' : 'from-me'}`}>
-              <span className="who">{m.role === 'ai' ? 'Agente · ' : 'Tú · '}10:4{i}</span>
-              <div className="bubble">{m.text}</div>
-            </div>
+        {/* Quick action chips */}
+        <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
+          {quickActions.map((a, i) => (
+            <button key={i} className="ai-chip" onClick={() => { setInput(a.q); }} style={{fontSize:11}}>
+              {a.label}
+            </button>
           ))}
         </div>
+
+        {/* Conversation */}
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+          {msgs.map((m, i) => (
+            <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
+              <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+              <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+            </div>
+          ))}
+          {loading && (
+            <div className="ai-msg from-ai">
+              <span className="who">MENTOR-IA</span>
+              <div className="bubble mentor-typing">
+                <span/><span/><span/>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
         <div className="coach-input-shell">
-          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())} placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación…"/>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+            placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación… (↵ enviar)"
+            disabled={loading}
+          />
           <div className="coach-input-tools">
-            <button className="tool">＋ Adjuntar módulo</button>
-            <button className="tool">＋ Mi progreso</button>
-            <button className="btn sm send" onClick={send}>Preguntar →</button>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:4}}>
+              <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', display:'inline-block'}}/>
+              {apiStatus === 'live' ? 'Claude conectado' : apiStatus === 'error' ? 'Error de conexión' : 'Modo demo'}
+            </div>
+            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
+              {loading ? 'Pensando…' : 'Preguntar →'}
+            </button>
           </div>
         </div>
       </div>

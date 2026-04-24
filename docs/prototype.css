@@ -1550,3 +1550,25 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 .cron-week.milestone-start { background: rgba(188,214,48,0.15); color: var(--bn-lime-dark); }
 .cron-week.milestone-end   { background: rgba(252,34,13,0.08); color: var(--bn-red); }
 
+
+/* ===== MENTOR-IA typing indicator ===== */
+.mentor-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px !important;
+  min-height: 40px;
+}
+.mentor-typing span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--bn-blue);
+  opacity: 0.4;
+  animation: mentorPulse 1.2s ease-in-out infinite;
+}
+.mentor-typing span:nth-child(2) { animation-delay: 0.2s; }
+.mentor-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes mentorPulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
+  40%           { opacity: 1;   transform: scale(1.1); }
+}
