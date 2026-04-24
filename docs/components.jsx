@@ -2,7 +2,7 @@
 
 const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
-const Card = ({ tone = 'noir', title, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category }) => (
+const Card = ({ tone = 'noir', title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category }) => (
   <div className="card" onClick={onClick}>
     <div className="card-thumb">
       <div className={`ph ${tone}`}/>
@@ -15,6 +15,12 @@ const Card = ({ tone = 'noir', title, teacher, duration, progress = 0, onClick, 
     <div className="card-body">
       {category && <span className="card-category">{category}</span>}
       <div className="card-title">{title}</div>
+      {one && (
+        <div className="card-th1ng">
+          <span className="th1ng-label">TH1NG</span>
+          <span className="th1ng-text">{one}</span>
+        </div>
+      )}
       <div className="card-instructor">{teacher}</div>
       {rating && (
         <div className="card-rating">

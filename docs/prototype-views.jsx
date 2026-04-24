@@ -74,7 +74,7 @@ function Detail({ item, openPlayer, back }) {
             </div>
           </div>
           <div>
-            <h3>El agente IA dice</h3>
+            <h3>MENTOR-IA dice <span className="beta-badge">BETA</span></h3>
             <div style={{padding:'14px 16px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)', fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.5}}>
               "Amaia, completar este módulo te acerca al test final de certificación. El nivel de dificultad encaja con tu progreso actual."
             </div>
@@ -165,7 +165,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     detail: 'Detalle de módulo',
     path: 'Tu ruta de certificación',
     dashboard: 'Analytics · visión admin',
-    coach: 'Agente IA · modo completo',
+    coach: 'MENTOR-IA · modo completo',
   }[view] || 'Plataforma Sprinklr';
   return (
     <aside className="ai">
@@ -173,7 +173,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         <div className="ai-head-left">
           <span className="orb"/>
           <div>
-            <div className="title">Agente IA</div>
+            <div className="title">MENTOR-IA <span className="beta-badge">BETA</span></div>
             <div className="sub">{contextLabel}</div>
           </div>
         </div>
@@ -195,7 +195,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         <div className="ai-msg from-ai">
           <span className="who">Agente · 10:42</span>
           <div className="bubble">
-            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
+            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos? <span style={{fontSize:10,opacity:.6}}>· MENTOR-IA</span>
           </div>
         </div>
         <div className="ai-suggest">
@@ -278,6 +278,22 @@ function Coach() {
           <div className="coach-hist-item"><div className="t">Flujo de aprobación urgente</div><div className="d">Dom</div></div>
           <div className="coach-hist-item"><div className="t">Quiz sobre Publish Agent</div><div className="d">Sáb</div></div>
         </div>
+        <div>
+          <h3 style={{fontSize:11, marginBottom:8}}>Motores IA</h3>
+          {[
+            { icon:'👥', label:'Cultura Repsol', sub:'Knowledge Points · Expectativas · Objetivos' },
+            { icon:'📊', label:'Perfil competencial', sub:'Test competenciales · Evolución' },
+            { icon:'📄', label:'Base conocimiento Repsol', sub:'Módulos Sprinklr · Procedimientos' },
+          ].map((m,i) => (
+            <div key={i} style={{display:'flex', gap:8, padding:'8px 12px', borderRadius:8, background:'var(--paper-2)', marginBottom:4}}>
+              <span style={{fontSize:14}}>{m.icon}</span>
+              <div>
+                <div style={{fontSize:11, fontWeight:600, color:'var(--beonit-lime)'}}>{m.label}</div>
+                <div style={{fontSize:10, color:'var(--ink-4)', fontFamily:'var(--mono)'}}>{m.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
         <div style={{marginTop:'auto', padding:'16px 12px', borderTop:'1px solid var(--line)', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', lineHeight:1.6}}>
           Powered by Claude · Anthropic<br/>
           Contexto: formación Sprinklr · Repsol
@@ -287,8 +303,8 @@ function Coach() {
         <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:8}}>
           <div style={{width:36, height:36, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.35)', flexShrink:0}}/>
           <div>
-            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:20, lineHeight:1}}>Agente IA · Sprinklr</div>
-            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>Powered by Claude · Anthropic</div>
+            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:20, lineHeight:1}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Maximiza el aprendizaje</div>
           </div>
         </div>
         <div className="coach-actions">
@@ -421,8 +437,8 @@ function Onboarding({ done = () => {} }) {
           <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
             <div style={{width:40, height:40, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.4)', flexShrink:0}}/>
             <div>
-              <div style={{fontWeight:600, fontSize:14}}>Agente IA · Sprinklr</div>
-              <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Powered by Claude · Anthropic</div>
+              <div style={{fontWeight:600, fontSize:14}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>IA contextualizada · Maximiza el aprendizaje</div>
             </div>
           </div>
           <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1.4, marginBottom:16, color:'var(--ink)'}}>
@@ -475,82 +491,123 @@ function Onboarding({ done = () => {} }) {
 
 // ---------- Path ----------
 function PathView() {
-  const bloques = [
+  const nodes = [
     {
-      n: 1, s: 'done',
+      type: 'autodiag', s: 'done',
+      t: 'Autodiagnóstico Inicial',
+      d: 'Evaluación de partida: conocimientos previos en Sprinklr, perfil competencial y expectativas de la formación.',
+      pills: 'Test competencial · ~20 min',
+      dur: '20 min',
+      tag: 'Know it',
+    },
+    {
+      type: 'bloque', n: '1+2', s: 'done',
       t: 'Bloque 1+2 · Sprinklr en Repsol · Fundamentos',
       d: 'Importancia del programa, registro SSO, Sprinklr como plataforma unificada, canales, posibilidades operativas y activos gestionados.',
       pills: 'Think Pills 0–5 · 6 módulos',
       dur: '22 min',
+      tag: 'Think it',
     },
     {
-      n: 2, s: 'current',
+      type: 'bloque', n: '2', s: 'current',
       t: 'Bloque 2 · Estructura, roles y modelo de gobernanza',
       d: 'Módulos y submódulos de Sprinklr, impacto por negocio, comunicación entre módulos, roles (Manager / Agent / Reporting) y estructura de equipos.',
       pills: 'Think Pills 6–10 · 5 módulos',
       dur: '18 min',
+      tag: 'Think it',
     },
     {
-      n: 3,
-      t: 'Bloque 3 · Gestión estructural y operativa de campañas en Social Publish',
+      type: 'taller',
+      t: 'Taller 1 · Sprinklr Fundamentals',
+      d: 'Sesión experiencial de 2 horas. Puesta en común, resolución de dudas y consolidación del aprendizaje de los fundamentos de Sprinklr en el contexto Repsol.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'bloque', n: '3',
+      t: 'Bloque 3 · Gestión estructural de campañas en Social Publish',
       d: 'Calendario editorial, DAM y reutilización de recursos, campañas y subcampañas, gobernanza operativa y etiquetado de campañas.',
       pills: 'Think Pills 11–16 · 6 módulos',
       dur: '22 min',
+      tag: 'Think it',
     },
     {
-      n: 4,
+      type: 'bloque', n: '4',
       t: 'Bloque 4 · Operativa editorial y control de contenidos',
       d: 'Publicación multicanal, adaptación por red social, gestión multicanal optimizada, flujos de aprobación, revisión y validación, mecanismos de control y reducción de riesgos.',
       pills: 'Think Pills 17–22 · 6 módulos',
       dur: '25 min',
+      tag: 'Think it',
     },
     {
-      n: 5,
+      type: 'bloque', n: '5',
       t: 'Bloque 5 · Calendario editorial',
       d: 'Visualización y planificación del contenido a través del calendario. Filtrado y organización de campañas por equipo y territorio.',
       pills: 'Think Pills 23–24 · 2 módulos',
       dur: '7 min',
+      tag: 'Think it',
     },
     {
-      n: 6,
+      type: 'bloque', n: '6',
       t: 'Bloque 6 · Reporting de campañas y performance',
       d: 'Visualización del rendimiento de campañas y publicaciones. Métricas clave para evaluar la performance del contenido publicado.',
       pills: 'Think Pills 25–26 · 2 módulos',
       dur: '9 min',
+      tag: 'Think it',
     },
     {
-      n: 7,
+      type: 'taller',
+      t: 'Taller 2 · Rol Publish Agent y Transversal',
+      d: 'Sesión práctica con flujos reales de publicación en Sprinklr. Resolución de casos del día a día, aprobaciones y gestión multicanal en el entorno Repsol.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'bloque', n: '7',
       t: 'Bloque 7 · Operativa Community Manager · Care',
       d: 'Diferencia entre mensaje y caso, agrupación en casos, gestión de conversaciones entrantes, Care Console, Engagement Dashboard, etiquetado, tipos de mensajes, líneas de negocio, escalado a Salesforce.',
       pills: 'Think Pills 27–36 · 10 módulos',
       dur: '40 min',
+      tag: 'Think it',
     },
     {
-      n: 8,
+      type: 'bloque', n: '8',
       t: 'Bloque 8 · SLA y paneles de atención al cliente',
       d: 'Qué son los SLA y su impacto. Indicadores de SLA para priorizar mensajes. Visualización e interpretación de paneles de Care para priorizar la operativa.',
       pills: 'Think Pills 37–40 · 4 módulos',
       dur: '16 min',
+      tag: 'Think it',
     },
     {
-      n: 9,
-      t: 'Test final · Certificación Publish Agent',
-      d: 'Evaluación de conocimientos sobre todos los bloques. Necesitas un 80% para obtener la certificación oficial Repsol × BeonIt.',
-      pills: 'Test · ~30 min',
+      type: 'taller',
+      t: 'Taller 3 · Rol Care Agent y Transversal',
+      d: 'Sesión práctica con gestión de conversaciones en Care. Casos reales de atención al cliente, SLA, escalado a Salesforce y operativa de Community Manager.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'autodiag',
+      t: 'Autodiagnóstico Final · Certificación',
+      d: 'Evaluación de cierre: evolución del conocimiento, impacto de la formación y transferencia al puesto. Necesitas un 80% para obtener la certificación oficial Repsol × BeonIt.',
+      pills: 'Test final competencial · ~30 min',
       dur: '30 min',
+      tag: 'Own it',
     },
   ];
   return (
     <div className="path-root">
       <section className="path-hero">
         <div>
-          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Ruta certificada · 4 semanas</div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>SOLID GROWTH · Ruta certificada</div>
           <h1>Rol Publish Agent<br/><em>Certificación Repsol</em>.</h1>
-          <p>41 Think Pills organizadas en 8 bloques formativos. Diseñadas para el equipo de comunicación de Repsol. Obtén la certificación oficial avalada por Repsol × BeonIt al completarla.</p>
+          <p>41 Think Pills organizadas en 8 bloques formativos + 3 Talleres experienciales. Diseñada para el equipo de comunicación de Repsol. Certificación oficial avalada por Repsol × BeonIt.</p>
           <div className="path-stats">
             <div className="path-stat"><div className="n">41</div><div className="l">Think Pills</div></div>
             <div className="path-stat"><div className="n">8</div><div className="l">Bloques</div></div>
-            <div className="path-stat"><div className="n">~2h 30m</div><div className="l">Tiempo total</div></div>
+            <div className="path-stat"><div className="n">3</div><div className="l">Talleres</div></div>
             <div className="path-stat"><div className="n">15%</div><div className="l">Tu progreso</div></div>
           </div>
         </div>
@@ -559,10 +616,32 @@ function PathView() {
           <div className="path-visual-badge">En curso · Bloque 2/8</div>
         </div>
       </section>
+
+      {/* SOLID GROWTH 5-phase strip */}
+      <div className="sg-strip">
+        {[
+          { phase:'Autodiagnóstico', sub:'Know it',    icon:'◎', color:'var(--beonit-orange)', active:true, done:true },
+          { phase:'Think Pills',      sub:'Think it',   icon:'💊', color:'var(--beonit-blue)', active:true },
+          { phase:'Taller',           sub:'Explore it', icon:'👥', color:'var(--beonit-purple)' },
+          { phase:'MENTOR-IA',        sub:'Do it',      icon:'✦', color:'var(--beonit-lime)' },
+          { phase:'Certificación',    sub:'Own it',     icon:'🏆', color:'var(--repsol-red)' },
+        ].map((p, i, arr) => (
+          <React.Fragment key={i}>
+            <div className={`sg-phase ${p.active ? 'active' : ''} ${p.done ? 'done' : ''}`} style={{'--sg-color': p.color}}>
+              <div className="sg-icon">{p.icon}</div>
+              <div className="sg-phase-name">{p.phase}</div>
+              <div className="sg-phase-sub">{p.sub}</div>
+            </div>
+            {i < arr.length - 1 && <div className="sg-arrow">→</div>}
+          </React.Fragment>
+        ))}
+      </div>
+
       <div className="path-map">
-        {bloques.map(b => (
-          <div key={b.n} className={`path-node ${b.s || ''}`} data-n={b.n}>
+        {nodes.map((b, i) => (
+          <div key={i} className={`path-node ${b.s || ''} path-node-${b.type}`} data-n={b.n}>
             <div>
+              {b.tag && <span className="path-tag">{b.tag}</span>}
               <h3>{b.t}</h3>
               <p className="d">{b.d}</p>
               <div className="meta-row">
@@ -573,7 +652,9 @@ function PathView() {
                 {b.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
               </div>
             </div>
-            <button className="goto">{b.s === 'done' ? 'Revisar' : b.s === 'current' ? 'Continuar →' : 'Ver bloque'}</button>
+            <button className="goto">
+              {b.type === 'taller' ? 'Ver taller' : b.type === 'autodiag' ? (b.s === 'done' ? 'Ver resultado' : 'Iniciar test') : b.s === 'done' ? 'Revisar' : b.s === 'current' ? 'Continuar →' : 'Ver bloque'}
+            </button>
           </div>
         ))}
       </div>
@@ -696,7 +777,7 @@ function WhatsApp() {
           <div className="wa-bar">
             <div className="av" style={{background:'var(--accent-glow)', color:'var(--ink)'}}>S</div>
             <div>
-              <div className="t">Solid · Agente Sprinklr</div>
+              <div className="t">MENTOR-IA · Solid Sprinklr</div>
               <div className="s">en línea · 9:00</div>
             </div>
           </div>
@@ -906,4 +987,117 @@ function Dashboard() {
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard });
+// ---------- Cronograma POC ----------
+function Cronograma() {
+  const W = 14; // semanas S-0 … S-13
+  const col = (s, e) => ({ gridColumn: `${s + 2} / ${e + 3}` }); // +2: skip label col; +1: inclusive end
+
+  const phases = [
+    {
+      label: 'VERIFICACIÓN', bg: '#d4edda', tc: '#1a7a3a',
+      rows: [[{ label: 'Verificación Itinerario y Th1ngs', s: 1, e: 2, bg: '#28a745' }]],
+    },
+    {
+      label: 'CREACIÓN', bg: '#fde8e8', tc: '#b71c1c',
+      rows: [[{ label: 'Creación de contenidos POC', s: 1, e: 6, bg: '#e53935' }]],
+    },
+    {
+      label: 'ARRANQUE', bg: '#ede7f6', tc: '#4527a0',
+      rows: [
+        [{ label: 'Kick-off', s: 4, e: 4, bg: '#5c35cc' }],
+        [{ label: 'Comunicación y lanzamiento', s: 4, e: 5, bg: '#7c4dff' }, { label: 'Píldora bienvenida', s: 5, e: 5, bg: '#9575cd' }],
+      ],
+    },
+    {
+      label: 'AUTODIAGNÓSTICO', bg: '#fff8e1', tc: '#e65100',
+      rows: [
+        [{ label: 'Inicial', s: 8, e: 8, bg: '#F3A524' }, { label: 'Final', s: 13, e: 13, bg: '#c87800' }],
+      ],
+    },
+    {
+      label: 'EXP. APRENDIZAJE', bg: '#e3f2fd', tc: '#0d47a1',
+      rows: [
+        [{ label: 'Think Pills · Sprinklr Fundamentals', s: 6, e: 8, bg: '#1565c0' }, { label: 'Taller Fundamentals', s: 8, e: 9, bg: '#0071BE' }],
+        [{ label: 'Think Pills · Publish (Rol y Transversal)', s: 9, e: 12, bg: '#1976d2' }, { label: 'Taller Publish', s: 12, e: 12, bg: '#0071BE' }],
+        [{ label: 'Think Pills · Care (Rol y Transversal)', s: 9, e: 12, bg: '#2196f3' }, { label: 'Taller Care', s: 12, e: 12, bg: '#0071BE' }],
+      ],
+    },
+    {
+      label: 'GOBERNANZA', bg: '#f5f5f5', tc: '#444',
+      rows: [[
+        { label: 'Seg. Op.', s: 4, e: 4, bg: '#999' },
+        { label: 'Seg. Op.', s: 6, e: 6, bg: '#999' },
+        { label: 'Seg. Op.', s: 8, e: 8, bg: '#999' },
+        { label: 'Seg. Op.', s: 10, e: 10, bg: '#999' },
+        { label: 'Seg. Op.', s: 12, e: 12, bg: '#999' },
+      ]],
+    },
+  ];
+
+  return (
+    <div className="cron-root">
+      <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>SOLID GROWTH · Repsol × BeonIt</div>
+      <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,3.5vw,48px)', letterSpacing:'-0.025em', margin:'0 0 4px'}}>Cronograma <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>POC</em></h1>
+      <p style={{fontSize:13, color:'var(--ink-3)', marginBottom:28}}>Prueba de concepto · 163 personas · Presupuesto 50.000 € · S-0 a S-13 (14 semanas)</p>
+
+      {/* Milestone flags */}
+      <div className="cron-milestones">
+        <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--beonit-lime)', fontWeight:700}}>🚩 Inicio POC → S-6</div>
+        <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--repsol-red)', fontWeight:700}}>🏁 Fin POC → S-13</div>
+      </div>
+
+      {/* Gantt */}
+      <div className="cron-gantt">
+        {/* Header */}
+        <div className="cron-header">
+          <div className="cron-label-cell" style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em', textTransform:'uppercase'}}>FASE</div>
+          {Array.from({length: W}, (_, i) => (
+            <div key={i} className={`cron-week ${i === 6 ? 'milestone-start' : i === 13 ? 'milestone-end' : ''}`}>S-{i}</div>
+          ))}
+        </div>
+
+        {/* Phase rows */}
+        {phases.map((ph, pi) => (
+          <div key={pi} className="cron-phase-block">
+            {ph.rows.map((row, ri) => (
+              <div key={ri} className="cron-row">
+                {ri === 0 && (
+                  <div className="cron-label-cell" style={{background: ph.bg, color: ph.tc, rowSpan: ph.rows.length}}>
+                    {ph.label}
+                  </div>
+                )}
+                {ri > 0 && <div className="cron-label-cell" style={{background: ph.bg}}/>}
+                <div className="cron-track">
+                  {Array.from({length: W}, (_, wi) => <div key={wi} className="cron-cell"/>)}
+                  {row.map((bar, bi) => (
+                    <div key={bi} className="cron-bar" style={{
+                      left: (bar.s / (W - 1) * 100) + '%',
+                      width: Math.max(((bar.e - bar.s + 1) / W * 100), 4) + '%',
+                      background: bar.bg,
+                    }}>{bar.label}</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div style={{display:'flex', gap:20, flexWrap:'wrap', marginTop:20, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>
+        {[
+          {c:'#28a745', l:'Verificación'}, {c:'#e53935', l:'Creación'}, {c:'#5c35cc', l:'Arranque'},
+          {c:'#F3A524', l:'Autodiagnóstico'}, {c:'#1565c0', l:'Think Pills'}, {c:'#0071BE', l:'Taller'},
+          {c:'#999', l:'Gobernanza'},
+        ].map((leg, i) => (
+          <div key={i} style={{display:'flex', alignItems:'center', gap:5}}>
+            <div style={{width:12, height:12, borderRadius:2, background:leg.c}}/>
+            <span>{leg.l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma });

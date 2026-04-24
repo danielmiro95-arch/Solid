@@ -50,6 +50,7 @@ function App() {
         {view === 'path' && <PathView/>}
         {view === 'profile' && <Profile/>}
         {view === 'wa' && <WhatsApp/>}
+        {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
         {view === 'saved' && (
           <div className="main-inner">
             <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>Módulos guardados</div>

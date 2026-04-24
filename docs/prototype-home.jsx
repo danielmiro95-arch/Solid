@@ -110,7 +110,8 @@ function Sidebar({ view, setView }) {
     { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
     { id: 'dashboard', label: 'Dashboard',   icon: 'trend', badge: 'NEW' },
-    { id: 'coach',     label: 'Agente IA',   icon: 'sparkle' },
+    { id: 'coach',       label: 'MENTOR-IA',    icon: 'sparkle', badge: 'BETA' },
+    { id: 'cronograma', label: 'Cronograma',  icon: 'trend' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
@@ -272,11 +273,11 @@ function Home({ openDetail, openPlayer, setView }) {
       <div className="ai-cta-banner">
         <div className="ai-cta-orb"/>
         <div className="ai-cta-content">
-          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Agente IA · Powered by Claude</span>
+          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>MENTOR-IA <span className="beta-badge" style={{background:'var(--beonit-lime)',color:'var(--ink)'}}>BETA</span> · IA contextualizada · Sprinklr</span>
           <h2>"¿Cómo apruebo un post urgente fuera del horario habitual?"</h2>
-          <p>Tu agente conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa.</p>
+          <p>MENTOR-IA conoce los flujos de Repsol, tu perfil competencial y las guías de Sprinklr. Respuestas contextualizadas y transferibles al puesto.</p>
           <button className="btn glow" onClick={() => setView('coach')}>
-            <Icon name="sparkle" size={14}/> Abrir agente IA
+            <Icon name="sparkle" size={14}/> Abrir MENTOR-IA
           </button>
         </div>
         <div className="ai-cta-visual">
