@@ -378,13 +378,7 @@ function Coach() {
     { label: 'Escalar a Salesforce', q: '¿Cuándo y cómo transfiero un caso de Sprinklr a Salesforce?' },
     { label: 'Quiz rápido', q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.' },
   ];
-    const q = input.trim();
-    setMsgs(m => [...m, { role: 'user', text: q }]);
-    setInput('');
-    setTimeout(() => {
-      setMsgs(m => [...m, { role: 'ai', text: 'Entendido. En el contexto de Sprinklr para Repsol, te recomiendo revisar el módulo correspondiente en tu ruta de certificación. ¿Quieres que te guíe paso a paso?' }]);
-    }, 800);
-  };
+
   return (
     <div className="coach-root">
       <aside className="coach-side">
