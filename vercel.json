@@ -1,5 +1,7 @@
 {
+  "buildCommand": "echo 'static'",
   "outputDirectory": "docs",
+  "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
   ],
