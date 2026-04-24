@@ -5,32 +5,51 @@ const { useState: useS2, useEffect: useE2 } = React;
 // ---------- Detail ----------
 function Detail({ item, openPlayer, back }) {
   const it = item || PILLS[0];
-  const chapters = [
-    { n: 1, t: 'Por qué decir "no" duele en el trabajo', d: 'El modelo mental tras la evitación.', done: true },
-    { n: 2, t: 'Tres plantillas de no-suave', d: 'Redirige, replantea, reprograma.', done: true },
-    { n: 3, t: 'Cuando la petición sí es buena', d: 'Distinguir encaje de volumen.', current: true },
-    { n: 4, t: 'Escríbelo una sola vez', d: 'Tu canon personal del no.' },
-    { n: 5, t: 'El seguimiento que se queda', d: '24 horas después, ¿qué dices?' },
-  ];
+  const chapsByFormat = {
+    módulo: [
+      { n: 1, t: 'Introducción y contexto en Repsol', d: 'Por qué este módulo importa.', done: true },
+      { n: 2, t: 'Interfaz y accesos en Sprinklr', d: 'Dónde está cada cosa.', done: true },
+      { n: 3, t: 'Flujo de trabajo paso a paso', d: 'El proceso completo.', current: true },
+      { n: 4, t: 'Casos reales del equipo Repsol', d: 'Ejemplos del día a día.' },
+      { n: 5, t: 'Errores comunes y cómo evitarlos', d: 'Lo que falla al principio.' },
+    ],
+    serie: [
+      { n: 1, t: 'Fundamentos', d: 'Base conceptual.', done: true },
+      { n: 2, t: 'Configuración inicial', d: 'Setup en entorno Repsol.', done: true },
+      { n: 3, t: 'Flujo principal', d: 'El proceso completo.', current: true },
+      { n: 4, t: 'Casos avanzados', d: 'Escenarios complejos.' },
+      { n: 5, t: 'Integración con otros sistemas', d: 'Herramientas Repsol.' },
+      { n: 6, t: 'Evaluación final', d: 'Verifica lo aprendido.' },
+    ],
+  };
+  const chapters = chapsByFormat[it.format] || chapsByFormat['módulo'];
   return (
     <>
       <section className="detail-hero">
+        <div style={{position:'relative', padding:'14px 56px 8px', borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+          <button onClick={back} style={{display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'rgba(245,241,232,0.6)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer', padding:'4px 0'}}>
+            <Icon name="back" size={11}/> Volver al catálogo
+          </button>
+        </div>
         <div className="detail-hero-inner">
-          <div className="detail-poster"><div className="ph plum">portada</div></div>
+          <div className="detail-poster"><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0}}/></div>
           <div className="detail-head">
-            <span className="eyebrow eye">Serie · Comunicación</span>
-            <h1>Decir no sin<br/>decir "no".</h1>
-            <p className="lead">Una serie de cinco píldoras sobre el arte silencioso de declinar — sin la disculpa, sin el email de 200 palabras, sin quemar la relación.</p>
+            <span className="eyebrow eye">{it.format} · {it.category}</span>
+            <h1>{it.title}</h1>
+            <p className="lead">Módulo diseñado para el equipo Publish Agent de Repsol. Aprende con flujos y ejemplos reales de las operaciones de comunicación de Repsol en Sprinklr.</p>
             <div className="detail-meta-row">
-              <span>5 PÍLDORAS</span><span className="sep">·</span>
-              <span>14 MIN EN TOTAL</span><span className="sep">·</span>
-              <span>MARTA ALCÁZAR</span><span className="sep">·</span>
-              <span>★ 4.8 · 2.1K TERMINADAS</span>
+              <span>{chapters.length} LECCIONES</span><span className="sep">·</span>
+              <span>{it.duration}</span><span className="sep">·</span>
+              <span style={{textTransform:'uppercase'}}>{it.teacher}</span><span className="sep">·</span>
+              <span>★ {it.rating || '4.8'} · {it.enrolled || '220'} COMPLETADAS</span>
             </div>
             <div className="detail-cta-row">
-              <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Empezar · 3 min</button>
+              <button className="btn glow" onClick={() => openPlayer(it)}>
+                <Icon name="play" size={14}/>
+                {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
+              </button>
               <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
-              <button className="btn ghost"><Icon name="sparkle" size={14}/> Pregunta al coach</button>
+              <button className="btn ghost"><Icon name="sparkle" size={14}/> MENTOR-IA</button>
             </div>
           </div>
         </div>
@@ -39,7 +58,7 @@ function Detail({ item, openPlayer, back }) {
         <div className="detail-outline">
           <h3>Qué hay dentro</h3>
           {chapters.map(c => (
-            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={openPlayer}>
+            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={() => openPlayer(it)}>
               <span className="n">{String(c.n).padStart(2,'0')}</span>
               <div className="t">{c.t}<em>{c.d}</em></div>
               <span className="d">3 MIN</span>
@@ -50,23 +69,23 @@ function Detail({ item, openPlayer, back }) {
           <div>
             <h3>Impartido por</h3>
             <div className="teacher">
-              <div className="av"><div className="ph sand" style={{position:'absolute',inset:0,borderRadius:'50%'}}/></div>
+              <div className="av" style={{position:'relative', overflow:'hidden'}}><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0,borderRadius:'50%'}}/></div>
               <div>
-                <div className="name">Marta Alcázar</div>
-                <div className="bio">Ex-COO. Imparte más de 40 píldoras sobre comunicación y decisiones.</div>
+                <div className="name">{it.teacher}</div>
+                <div className="bio">Equipo de formación Repsol × BeonIt. Especialista en Sprinklr y gestión de contenidos digitales.</div>
               </div>
             </div>
           </div>
           <div>
-            <h3>El coach dice</h3>
+            <h3>MENTOR-IA dice <span className="beta-badge">BETA</span></h3>
             <div style={{padding:'14px 16px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)', fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.5}}>
-              "Con tu 1:1 del jueves con Pablo en mente, el capítulo 3 — 'Cuando la petición sí es buena' — es probablemente el más útil para terminar primero."
+              "Amaia, completar este módulo te acerca al test final de certificación. El nivel de dificultad encaja con tu progreso actual."
             </div>
           </div>
           <div>
-            <h3>Si te gustó esto</h3>
+            <h3>Otros módulos</h3>
             <div className="related-list">
-              {SERIES.slice(0,3).map(s => (
+              {PILLS.filter(p => p.id !== it.id).slice(0,3).map(s => (
                 <div className="related" key={s.id}>
                   <div className="thumb"><div className={`ph ${s.tone}`}/></div>
                   <div className="meta">
@@ -84,52 +103,100 @@ function Detail({ item, openPlayer, back }) {
 }
 
 // ---------- Player ----------
-function Player({ back }) {
+function Player({ back, item }) {
   const [playing, setPlaying] = useS2(true);
+  const it = item || PILLS.find(p => p.yt) || PILLS[0];
+  const hasVideo = !!it.yt;
+
   const chapters = [
-    { n: 1, t: 'Por qué duele decir "no"', d: '0:00 · 3:02', tone: 'plum' },
-    { n: 2, t: 'Tres plantillas', d: '3:02 · 2:48', tone: 'clay' },
-    { n: 3, t: 'Peticiones buenas', d: '5:50 · 3:11', tone: 'warm', active: true },
-    { n: 4, t: 'Escribirlo', d: '9:01 · 2:30', tone: 'olive' },
-    { n: 5, t: 'El seguimiento', d: '11:31 · 2:29', tone: 'teal' },
+    { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal' },
+    { n: 2, t: 'Interfaz y accesos en Sprinklr', d: '0:52 · 1:10', tone: 'plum' },
+    { n: 3, t: 'Flujo de trabajo paso a paso', d: '2:02 · 1:18', tone: 'clay', active: true },
+    { n: 4, t: 'Casos reales del equipo Repsol', d: '3:20 · 0:45', tone: 'olive' },
+    { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm' },
   ];
+
   return (
     <div className="player-root">
       <div className="player-stage">
-        <div className="ph plum">vídeo</div>
-        <div className="player-overlay-top">
-          <button className="back" onClick={back}><Icon name="back" size={12}/> Volver a la serie</button>
-          <div style={{display:'flex', gap:8}}>
-            <button className="back"><Icon name="caption" size={12}/> SUB</button>
-            <button className="back">Notas IA activas</button>
-          </div>
-        </div>
-        <div className="player-overlay-bottom">
-          <div className="title-row">
-            <div>
-              <div className="t-eyebrow">Capítulo 3 de 5 · Decir no sin decir "no"</div>
-              <div className="title">Cuando la petición sí es buena.</div>
-              <div className="sub">MARTA ALCÁZAR · 03:11 · QUEDAN 00:52 EN EL CAPÍTULO</div>
+        {hasVideo ? (
+          <>
+            <iframe
+              key={it.yt}
+              src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white`}
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              allowFullScreen
+              style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
+            />
+            <div className="player-overlay-top" style={{zIndex:2, pointerEvents:'none'}}>
+              <button onClick={back} style={{pointerEvents:'all'}} className="back">
+                <Icon name="back" size={12}/> Volver al módulo
+              </button>
+              <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
+                <button className="back" style={{background:'rgba(243,165,36,0.15)', border:'1px solid rgba(243,165,36,0.4)', color:'var(--accent-glow)'}}>
+                  ✦ MENTOR-IA activo
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="scrubber"><i style={{width:'38%'}}/><b/></div>
-          <div className="player-controls">
-            <button><Icon name="skip" size={18} /></button>
-            <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
-            <button><Icon name="next" size={18}/></button>
-            <button className="pill-btn">1.0×</button>
-            <button className="pill-btn active">Pregunta IA</button>
-            <button><Icon name="vol" size={18}/></button>
-            <span className="time">06:42 / 14:00</span>
+          </>
+        ) : (
+          <>
+            <div className="ph teal" style={{position:'absolute',inset:0}}/>
+            <div className="player-overlay-top">
+              <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
+              <div style={{display:'flex', gap:8}}>
+                <button className="back"><Icon name="caption" size={12}/> SUB</button>
+                <button className="back">MENTOR-IA activo</button>
+              </div>
+            </div>
+            <div className="player-overlay-bottom">
+              <div className="title-row">
+                <div>
+                  <div className="t-eyebrow">{it.category} · {it.duration}</div>
+                  <div className="title">{it.title}</div>
+                  <div className="sub">{(it.teacher || 'BeonIt').toUpperCase()} · {it.duration}</div>
+                </div>
+              </div>
+              <div className="scrubber"><i style={{width:'56%'}}/><b/></div>
+              <div className="player-controls">
+                <button><Icon name="skip" size={18}/></button>
+                <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
+                <button><Icon name="next" size={18}/></button>
+                <button className="pill-btn">1.0×</button>
+                <button className="pill-btn active">Pregunta IA</button>
+                <button><Icon name="vol" size={18}/></button>
+                <span className="time">02:18 / {it.duration || '05:00'}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Below video: pill info + related */}
+      <div className="player-chapter-bar">
+        <div className="pchap active" style={{flex:'0 0 280px'}}>
+          <div className="thumb"><div className={`ph ${it.tone || 'teal'}`}/></div>
+          <div>
+            <div className="n">REPRODUCIENDO AHORA</div>
+            <div className="t">{it.title}</div>
+            <div className="d">{it.teacher} · {it.duration} · {it.category}</div>
           </div>
         </div>
-      </div>
-      <div className="player-chapter-bar">
-        {chapters.map(c => (
-          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`}>
+        {PILLS.filter(p => p.yt && p.id !== it.id).slice(0, 4).map(c => (
+          <div key={c.id} className="pchap" onClick={() => { window.__playerItem = c; back(); setTimeout(() => window.dispatchEvent(new CustomEvent('__openPlayer', {detail: c})), 50); }}>
             <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
-              <div className="n">CAPÍTULO {String(c.n).padStart(2,'0')}</div>
+              <div className="n">CON VÍDEO</div>
+              <div className="t">{c.title}</div>
+              <div className="d">{c.teacher} · {c.duration}</div>
+            </div>
+          </div>
+        ))}
+        {!hasVideo && chapters.map(c => (
+          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`} onClick={() => setPlaying(true)}>
+            <div className="thumb"><div className={`ph ${c.tone}`}/></div>
+            <div>
+              <div className="n">LECCIÓN {String(c.n).padStart(2,'0')}</div>
               <div className="t">{c.t}</div>
               <div className="d">{c.d}</div>
             </div>
@@ -141,19 +208,27 @@ function Player({ back }) {
 }
 
 // ---------- AI Sidekick ----------
-function AISidekick({ setAIMode, aiMode, view, currentPill }) {
+function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useS2('');
+  const contextLabel = {
+    home: 'Vista general · tu progreso',
+    player: 'Viendo módulo · Programar posts',
+    detail: 'Detalle de módulo',
+    path: 'Tu ruta de certificación',
+    dashboard: 'Analytics · visión admin',
+    coach: 'MENTOR-IA · modo completo',
+  }[view] || 'Plataforma Sprinklr';
   return (
     <aside className="ai">
       <div className="ai-head">
         <div className="ai-head-left">
           <span className="orb"/>
           <div>
-            <div className="title">Coach</div>
-            <div className="sub">Leyendo capítulo 3</div>
+            <div className="title">MENTOR-IA <span className="beta-badge">BETA</span></div>
+            <div className="sub">{contextLabel}</div>
           </div>
         </div>
-        <button className="collapse" onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')} title="Ampliar / reducir">
+        <button className="collapse" onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')}>
           {aiMode === 'hero' ? '— Reducir' : '↔ Ampliar'}
         </button>
         <button className="collapse" onClick={() => setAIMode('collapsed')}>× Ocultar</button>
@@ -161,62 +236,61 @@ function AISidekick({ setAIMode, aiMode, view, currentPill }) {
       <div className="ai-body">
         {view === 'player' && (
           <div className="ai-context-card">
-            <div className="thumb"><div className="ph plum"/></div>
+            <div className="thumb"><div className="ph teal"/></div>
             <div className="meta">
-              <span className="eyebrow">Viendo</span>
-              <div className="t">Cuando la petición sí es buena.</div>
+              <span className="eyebrow">Viendo ahora</span>
+              <div className="t">Programar posts · Lección 3 de 5</div>
             </div>
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">Coach · 10:42</span>
+          <span className="who">Agente · 10:42</span>
           <div className="bubble">
-            Buenos días, Amaia. Terminaste <em>Feedback: actúa, no etiquetes</em> el viernes.
-            Te preparé <span className="hl">tres píldoras</span> que encajan con tu 1:1 del jueves con Pablo.
+            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos? <span style={{fontSize:10,opacity:.6}}>· MENTOR-IA</span>
           </div>
         </div>
         <div className="ai-suggest">
-          <div className="thumb"><div className="ph clay"/></div>
+          <div className="thumb"><div className="ph plum"/></div>
           <div className="meta">
-            <div className="t">Decir no sin decir "no"</div>
-            <div className="s">3 min · Marta Alcázar · Comunicación</div>
+            <div className="t">Programar posts y gestión de calendario</div>
+            <div className="s">5 min · Carlos Vega · Calendario</div>
           </div>
         </div>
         <div className="ai-suggest">
           <div className="thumb"><div className="ph olive"/></div>
           <div className="meta">
-            <div className="t">La hora que multiplica</div>
-            <div className="s">3 min · L. Tavares · Foco</div>
+            <div className="t">Monitorización y alertas en tiempo real</div>
+            <div className="s">4 min · Ana García · Analytics</div>
           </div>
         </div>
         <div className="ai-chip-row">
-          <button className="ai-chip">Resume lo que acabo de ver</button>
-          <button className="ai-chip">Dame el TL;DR</button>
-          <button className="ai-chip">Hazme un quiz de 3 preguntas</button>
-          <button className="ai-chip">Convierte esto en un playbook</button>
+          <button className="ai-chip">¿Qué módulo sigue?</button>
+          <button className="ai-chip">Hazme un quiz</button>
+          <button className="ai-chip">Resumen del módulo</button>
+          <button className="ai-chip">Ayuda con aprobaciones</button>
         </div>
         <div className="ai-msg from-me">
           <span className="who">Tú · 10:44</span>
-          <div className="bubble">¿Qué debería preparar para el 1:1 del jueves con Pablo?</div>
+          <div className="bubble">¿Cómo apruebo un post urgente fuera del horario?</div>
         </div>
         <div className="ai-msg from-ai">
-          <span className="who">Coach · 10:44</span>
+          <span className="who">Agente · 10:44</span>
           <div className="bubble">
-            Tres minutos ahora, tres el miércoles. Empieza con <em>Feedback: actúa, no etiquetes</em> — la guardaste la semana pasada. Luego el capítulo 3 que tienes abierto. El miércoles te mando un recordatorio de una línea por WhatsApp.
+            Para aprobaciones urgentes: abre el post en estado <em>"Pendiente"</em>, usa <em>"Aprobación de emergencia"</em> y notifica al manager de turno por Slack. El módulo 2 lo explica paso a paso.
             <div className="ai-chip-row" style={{marginTop:10}}>
-              <button className="ai-chip">Añadir a la ruta</button>
-              <button className="ai-chip">Programar recordatorio</button>
+              <button className="ai-chip">Ver módulo 2</button>
+              <button className="ai-chip">Más detalles</button>
             </div>
           </div>
         </div>
       </div>
       <div className="ai-input-wrap">
         <div className="ai-input">
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregúntale al coach lo que sea…"/>
+          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregunta sobre Sprinklr o tu formación…"/>
           <button className="send"><Icon name="send" size={14}/></button>
         </div>
         <div className="ai-footer-row">
-          <span className="hint">Contexto: píldora actual · tu ruta · últimos 7 días</span>
+          <span className="hint">Contexto: módulo actual · ruta · progreso</span>
           <span className="hint">⌘ ↵</span>
         </div>
       </div>
@@ -224,76 +298,202 @@ function AISidekick({ setAIMode, aiMode, view, currentPill }) {
   );
 }
 
-// ---------- Coach fullscreen ----------
+// ---------- Coach / AI Agent fullscreen ----------
+
+// URL de la API — configurar tras desplegar en Vercel
+// Producción: 'https://TU-PROYECTO.vercel.app/api/chat'
+// Local dev:  'http://localhost:3000/api/chat'
+const MENTOR_API = window.MENTOR_IA_API_URL || null;
+
+const USER_PROFILE = {
+  name: 'Amaia Ruiz',
+  role: 'Publish Agent',
+  progress: 15,
+  currentPill: 4,
+};
+
 function Coach() {
+  const [input, setInput] = useS2('');
+  const [loading, setLoading] = useS2(false);
+  const [apiStatus, setApiStatus] = useS2(MENTOR_API ? 'live' : 'demo');
+  const [msgs, setMsgs] = useS2([
+    { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
+  ]);
+
+  const messagesEndRef = useS2(null);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const q = input.trim();
+    const newMsgs = [...msgs, { role: 'user', text: q }];
+    setMsgs(newMsgs);
+    setInput('');
+    setLoading(true);
+
+    if (MENTOR_API) {
+      // ── Llamada real a Claude ────────────────────────────
+      try {
+        const res = await fetch(MENTOR_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: newMsgs.map(m => ({
+              role: m.role === 'ai' ? 'assistant' : m.role,
+              content: m.text,
+            })),
+            userProfile: USER_PROFILE,
+          }),
+        });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        setMsgs(m => [...m, { role: 'assistant', text: data.content }]);
+        setApiStatus('live');
+      } catch (err) {
+        console.warn('[MENTOR-IA] API error:', err.message);
+        setMsgs(m => [...m, { role: 'assistant', text: 'Lo siento, ha habido un problema al conectar con el servidor. Inténtalo de nuevo en un momento.' }]);
+        setApiStatus('error');
+      }
+    } else {
+      // ── Modo demo: respuestas simuladas contextuales ─────
+      await new Promise(r => setTimeout(r, 900));
+      const demos = {
+        'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
+        'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
+        'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
+        'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
+        'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
+        'default': `Entendido. En el contexto de Sprinklr para Repsol, lo que describes está relacionado con los módulos de tu ruta de certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), te recomiendo revisar las Think Pills correspondientes en la plataforma. ¿Puedes darme más detalles sobre la situación concreta?`,
+      };
+      const key = Object.keys(demos).find(k => q.toLowerCase().includes(k)) || 'default';
+      setMsgs(m => [...m, { role: 'assistant', text: demos[key] }]);
+    }
+    setLoading(false);
+  };
+
+  const quickActions = [
+    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
+    { label: 'Explícame las macros', q: '¿Qué es una macro en Sprinklr y cómo se usa en Repsol?' },
+    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación en Social Publish?' },
+    { label: 'SLA en Care', q: '¿Qué SLA maneja Repsol en Sprinklr Care?' },
+    { label: 'Escalar a Salesforce', q: '¿Cuándo y cómo transfiero un caso de Sprinklr a Salesforce?' },
+    { label: 'Quiz rápido', q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.' },
+  ];
+    const q = input.trim();
+    setMsgs(m => [...m, { role: 'user', text: q }]);
+    setInput('');
+    setTimeout(() => {
+      setMsgs(m => [...m, { role: 'ai', text: 'Entendido. En el contexto de Sprinklr para Repsol, te recomiendo revisar el módulo correspondiente en tu ruta de certificación. ¿Quieres que te guíe paso a paso?' }]);
+    }, 800);
+  };
   return (
     <div className="coach-root">
       <aside className="coach-side">
         <div>
-          <h3>Hoy</h3>
-          <div className="coach-hist-item active">
-            <div className="t">Preparar el 1:1 del jueves</div>
-            <div className="d">HACE 2 MIN</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Resumen de la píldora "Feedback"</div>
-            <div className="d">09:12</div>
-          </div>
+          <h3>Conversaciones de hoy</h3>
+          <div className="coach-hist-item active"><div className="t">Progreso en la certificación</div><div className="d">Hace 2 min</div></div>
+          <div className="coach-hist-item"><div className="t">¿Cómo programar posts recurrentes?</div><div className="d">09:15</div></div>
         </div>
         <div>
           <h3>Esta semana</h3>
-          <div className="coach-hist-item">
-            <div className="t">¿Qué es un buen OKR de Q2?</div>
-            <div className="d">LUN</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Quiz sobre Trabajo Profundo</div>
-            <div className="d">DOM</div>
-          </div>
-          <div className="coach-hist-item">
-            <div className="t">Convierte esto en plantilla</div>
-            <div className="d">SÁB</div>
-          </div>
+          <div className="coach-hist-item"><div className="t">Diferencia entre DAM y biblioteca</div><div className="d">Lun</div></div>
+          <div className="coach-hist-item"><div className="t">Flujo de aprobación urgente</div><div className="d">Dom</div></div>
+          <div className="coach-hist-item"><div className="t">Quiz sobre Publish Agent</div><div className="d">Sáb</div></div>
+        </div>
+        <div>
+          <h3 style={{fontSize:11, marginBottom:8}}>Motores IA</h3>
+          {[
+            { icon:'👥', label:'Cultura Repsol', sub:'Knowledge Points · Expectativas · Objetivos' },
+            { icon:'📊', label:'Perfil competencial', sub:'Test competenciales · Evolución' },
+            { icon:'📄', label:'Base conocimiento Repsol', sub:'Módulos Sprinklr · Procedimientos' },
+          ].map((m,i) => (
+            <div key={i} style={{display:'flex', gap:8, padding:'8px 12px', borderRadius:8, background:'var(--paper-2)', marginBottom:4}}>
+              <span style={{fontSize:14}}>{m.icon}</span>
+              <div>
+                <div style={{fontSize:11, fontWeight:600, color:'var(--beonit-lime)'}}>{m.label}</div>
+                <div style={{fontSize:10, color:'var(--ink-4)', fontFamily:'var(--mono)'}}>{m.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:'auto', padding:'16px 12px', borderTop:'1px solid var(--line)', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', lineHeight:1.6}}>
+          Powered by Claude · Anthropic<br/>
+          Contexto: formación Sprinklr · Repsol
         </div>
       </aside>
       <div className="coach-main">
-        <div className="eyebrow">Coach · 10:44</div>
-        <div className="coach-greeting">
-          Buenos días, <em>Amaia</em>.<br/>
-          Tienes <span className="glow">tres minutos</span> antes del stand-up.
-        </div>
-        <div style={{fontFamily:'var(--serif)', fontSize:17, lineHeight:1.55, color:'var(--ink-3)', maxWidth:'60ch'}}>
-          Seleccioné una píldora que encaja con tu 1:1 del jueves, y una serie corta para la próxima semana. Elige una — o dime en qué quieres trabajar.
+        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:8}}>
+          <div style={{width:36, height:36, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.35)', flexShrink:0}}/>
+          <div>
+            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:20, lineHeight:1}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Maximiza el aprendizaje</div>
+          </div>
         </div>
         <div className="coach-actions">
           <div className="coach-action">
-            <span className="eyebrow">Píldora · 3 min</span>
-            <div className="t">Decir no sin decir "no"</div>
-            <div className="d">Porque señalaste "feedback difícil" en el onboarding.</div>
+            <span className="eyebrow">Módulo siguiente · 5 min</span>
+            <div className="t">Programar posts y calendario</div>
+            <div className="d">Siguiente en tu ruta de certificación Repsol.</div>
           </div>
           <div className="coach-action">
-            <span className="eyebrow">Serie · 14 min</span>
-            <div className="t">El operador silencioso</div>
-            <div className="d">Cuatro de cinco ya vistos por tus compañeros de BeonIt.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Resumen</span>
-            <div className="t">Qué aprendí la semana pasada</div>
-            <div className="d">Un resumen de una página con las siete píldoras que terminaste.</div>
+            <span className="eyebrow">Serie · 22 min</span>
+            <div className="t">Sprinklr Analytics para Repsol</div>
+            <div className="d">5 lecciones para interpretar tus campañas.</div>
           </div>
           <div className="coach-action">
             <span className="eyebrow">Quiz · 90 seg</span>
-            <div className="t">Tres preguntas sobre Feedback</div>
-            <div className="d">Chequeo de retención — tu racha es de 11 días.</div>
+            <div className="t">Test de Publish Agent</div>
+            <div className="d">Verifica lo aprendido en los módulos 1 y 2.</div>
+          </div>
+          <div className="coach-action">
+            <span className="eyebrow">Resumen</span>
+            <div className="t">Lo que aprendí esta semana</div>
+            <div className="d">Flujo de aprobación completado · 2 módulos terminados.</div>
           </div>
         </div>
+        {/* Quick action chips */}
+        <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
+          {quickActions.map((a, i) => (
+            <button key={i} className="ai-chip" onClick={() => { setInput(a.q); }} style={{fontSize:11}}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Conversation */}
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+          {msgs.map((m, i) => (
+            <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
+              <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+              <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+            </div>
+          ))}
+          {loading && (
+            <div className="ai-msg from-ai">
+              <span className="who">MENTOR-IA</span>
+              <div className="bubble mentor-typing">
+                <span/><span/><span/>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
         <div className="coach-input-shell">
-          <textarea placeholder="¿Qué tienes en mente hoy?"/>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+            placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación… (↵ enviar)"
+            disabled={loading}
+          />
           <div className="coach-input-tools">
-            <button className="tool">＋ Adjuntar píldora</button>
-            <button className="tool">＋ Mi calendario</button>
-            <button className="tool">＋ Voz</button>
-            <button className="btn sm send">Preguntar al coach →</button>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:4}}>
+              <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', display:'inline-block'}}/>
+              {apiStatus === 'live' ? 'Claude conectado' : apiStatus === 'error' ? 'Error de conexión' : 'Modo demo'}
+            </div>
+            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
+              {loading ? 'Pensando…' : 'Preguntar →'}
+            </button>
           </div>
         </div>
       </div>
@@ -304,18 +504,38 @@ function Coach() {
 // ---------- Onboarding ----------
 function Onboarding({ done = () => {} }) {
   const [step, setStep] = useS2(0);
-  const [selected, setSelected] = useS2(new Set(['Liderazgo', 'Comunicación']));
-  const [cadence, setCadence] = useS2(5);
-  const topics = ['Liderazgo', 'Comunicación', 'Toma de decisiones', 'Contratación', 'Trabajo profundo', 'Estrategia', 'Feedback', 'Escritura', 'Reuniones', 'Producto', 'Fluidez en IA', 'Negociación'];
-  const toggle = (t) => { const n = new Set(selected); n.has(t) ? n.delete(t) : n.add(t); setSelected(n); };
+  const [selectedAreas, setSelectedAreas] = useS2(new Set(['Publicación', 'Aprobaciones']));
+  const [role, setRole] = useS2('publish');
+  const [notifs, setNotifs] = useS2([true, true, false, false]);
+
+  const areas = ['Social Publish', 'Aprobaciones', 'Calendario editorial', 'Analytics y Reporting', 'Activos DAM', 'Compliance', 'Care y Atención al cliente', 'Integraciones Salesforce', 'Gobernanza y roles', 'Sprinklr Fundamentals'];
+  const toggleArea = (t) => { const n = new Set(selectedAreas); n.has(t) ? n.delete(t) : n.add(t); setSelectedAreas(n); };
+  const toggleNotif = (i) => setNotifs(ns => ns.map((v, idx) => idx === i ? !v : v));
+
+  const roles = [
+    { id: 'publish',   label: 'Publish Agent',   desc: 'Publico y apruebo contenido en Sprinklr' },
+    { id: 'content',   label: 'Content Lead',     desc: 'Lidero la estrategia de contenidos' },
+    { id: 'analytics', label: 'Analytics Lead',   desc: 'Analizo rendimiento de campañas' },
+    { id: 'it',        label: 'IT / Integraciones', desc: 'Gestiono la integración con sistemas Repsol' },
+    { id: 'direccion', label: 'Dirección',         desc: 'Necesito visión global de la plataforma' },
+  ];
+
+  const notifOptions = [
+    { t: 'Recordatorio diario en WhatsApp, 9:00', d: 'Un módulo cada mañana. Sin ruido extra.' },
+    { t: 'Acceso libre desde la app', d: 'Entro cuando tengo tiempo, sin notificaciones.' },
+    { t: 'Resumen semanal por email (viernes)', d: 'Qué aprendiste, qué viene la próxima semana.' },
+    { t: 'Alertas antes de reuniones Sprinklr', d: 'El agente te manda un módulo relevante 30 min antes.' },
+  ];
+
   const steps = [
     {
-      eyebrow: '01 · De 04', title: <>¿Qué quieres <em>afilar</em> primero?</>,
-      lead: 'Elige tres o más. Tu coach los usa para traerte las primeras píldoras — puedes cambiarlos cuando quieras.',
+      eyebrow: '01 · De 04',
+      title: <>¿En qué área de Sprinklr<br/>quieres <em>certificarte</em>?</>,
+      lead: 'Selecciona las áreas prioritarias. Tu ruta de formación se construirá en torno a ellas — puedes cambiarlas después.',
       body: (
         <div className="onb-chips">
-          {topics.map(t => (
-            <button key={t} className={`onb-chip ${selected.has(t) ? 'sel' : ''}`} onClick={() => toggle(t)}>
+          {areas.map(t => (
+            <button key={t} className={`onb-chip ${selectedAreas.has(t) ? 'sel' : ''}`} onClick={() => toggleArea(t)}>
               <span className="mark"/>{t}
             </button>
           ))}
@@ -323,32 +543,32 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '02 · De 04', title: <>¿Cuántos <em>minutos</em> al día?</>,
-      lead: 'Una píldora son tres minutos. Responder con honestidad te da una ruta realista, no una culpa.',
+      eyebrow: '02 · De 04',
+      title: <>¿Cuál es tu <em>rol</em><br/>en Repsol?</>,
+      lead: 'Personalizamos el orden de los módulos y los casos prácticos según tu función en el equipo de comunicación.',
       body: (
-        <div className="cadence-grid">
-          {[{n:3, t:'Una píldora', d:'Lun–Vie · 3 min / día'}, {n:5, t:'Una + cortos', d:'Lun–Vie · 5 min / día'}, {n:15, t:'Modo maratón', d:'Cualquier día · 15 min'}].map(c => (
-            <div key={c.n} className={`cadence-card ${cadence === c.n ? 'sel' : ''}`} onClick={() => setCadence(c.n)}>
-              <span className="n">{c.n}<span style={{fontSize:14, marginLeft:4}}>min</span></span>
-              <span className="t">{c.t}</span>
-              <span className="d">{c.d}</span>
+        <div style={{display:'flex', flexDirection:'column', gap:10, maxWidth:520}}>
+          {roles.map(r => (
+            <div key={r.id} onClick={() => setRole(r.id)}
+              style={{padding:'14px 18px', border:`1px solid ${role === r.id ? 'var(--ink)' : 'var(--line)'}`, borderRadius:12, cursor:'pointer', background: role === r.id ? 'var(--ink)' : 'var(--paper)', transition:'all .12s', display:'flex', alignItems:'center', gap:14}}>
+              <div style={{width:18, height:18, borderRadius:'50%', border:`2px solid ${role === r.id ? 'var(--accent-glow)' : 'var(--line)'}`, background: role === r.id ? 'var(--accent-glow)' : 'transparent', flexShrink:0}}/>
+              <div>
+                <div style={{fontWeight:600, fontSize:14, color: role === r.id ? 'var(--paper)' : 'var(--ink)'}}>{r.label}</div>
+                <div style={{fontSize:12, color: role === r.id ? 'rgba(255,255,255,0.6)' : 'var(--ink-3)', marginTop:2}}>{r.desc}</div>
+              </div>
             </div>
           ))}
         </div>
       )
     },
     {
-      eyebrow: '03 · De 04', title: <>¿Dónde te <em>buscamos</em>?</>,
-      lead: 'La app es la biblioteca. WhatsApp es el empujón. Apaga cualquiera cuando quieras.',
+      eyebrow: '03 · De 04',
+      title: <>¿Cómo quieres <em>aprender</em>?</>,
+      lead: 'Elige cómo quieres recibir tu formación. Puedes activar o desactivar cada canal en cualquier momento desde tu perfil.',
       body: (
         <div style={{display:'flex', flexDirection:'column', gap:12, maxWidth:520}}>
-          {[
-            {t:'Píldora diaria en WhatsApp, 9:00', d:'Un solo mensaje. Tres minutos. Sin ruido.', on:true},
-            {t:'Abrir la app cuando tenga tiempo', d:'Sin push, sin email, sin culpa.', on:true},
-            {t:'Resumen semanal por email, domingo', d:'Qué aprendiste, qué viene ahora.', on:false},
-            {t:'Recordatorios del coach antes de reuniones', d:'Desde tu calendario, nunca automático.', on:false},
-          ].map((x,i) => (
-            <div key={i} className={`wa-toggle ${x.on ? 'on' : ''}`}>
+          {notifOptions.map((x, i) => (
+            <div key={i} className={`wa-toggle ${notifs[i] ? 'on' : ''}`} onClick={() => toggleNotif(i)} style={{cursor:'pointer'}}>
               <div>
                 <div className="t">{x.t}</div>
                 <div className="d">{x.d}</div>
@@ -360,31 +580,46 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '04 · De 04', title: <>Conoce a tu <em>coach</em>.</>,
-      lead: 'Lee lo que terminas, escucha cuando preguntas y no sermonea. Dile hola.',
+      eyebrow: '04 · De 04',
+      title: <>Tu agente IA <em>te espera</em>.</>,
+      lead: 'Conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa — en cualquier momento.',
       body: (
         <div style={{border:'1px solid var(--line)', borderRadius:16, padding:24, maxWidth:560, background:'var(--paper-2)'}}>
-          <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:22, lineHeight:1.3, marginBottom:14}}>
-            "Hola Amaia. A partir de <em>Liderazgo</em> y <em>Comunicación</em>, te abro una ruta de 4 semanas: <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>Cómo ser manager, de verdad</span>. ¿Te encaja?"
+          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
+            <div style={{width:40, height:40, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.4)', flexShrink:0}}/>
+            <div>
+              <div style={{fontWeight:600, fontSize:14}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>IA contextualizada · Maximiza el aprendizaje</div>
+            </div>
+          </div>
+          <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1.4, marginBottom:16, color:'var(--ink)'}}>
+            "Hola. Basándome en tu rol de <em>Publish Agent</em> y las áreas que has elegido, te preparo una ruta de <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>4 semanas y 10 módulos</span>. ¿Empezamos?"
           </div>
           <div style={{display:'flex', gap:10}}>
-            <button className="btn glow">Sí — empieza</button>
+            <button className="btn glow" onClick={done}>Sí — entrar en Solid →</button>
             <button className="btn ghost">Cuéntame más</button>
           </div>
         </div>
       )
     },
   ];
+
   const s = steps[step];
   return (
     <div className="onb-root">
       <div className="onb-visual">
-        <span className="tag">SOLID · 01 / 2026</span>
-        <div>
-          <div className="big-mark">"</div>
-          <h2>Una idea,<br/>dominada<br/>en tres<br/>minutos.</h2>
+        <div style={{display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:28, height:28, borderRadius:6, background:'var(--repsol-red)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:14}}>R</div>
+          <span className="tag" style={{color:'rgba(245,241,232,0.7)'}}>Repsol · Formación Sprinklr</span>
         </div>
-        <span className="tag">bienvenida, Amaia</span>
+        <div>
+          <div className="big-mark" style={{color:'var(--accent-glow)'}}>S</div>
+          <h2>Domina<br/>Sprinklr<br/>como<br/><em>Publish<br/>Agent</em>.</h2>
+        </div>
+        <div>
+          <div className="tag" style={{color:'rgba(245,241,232,0.5)', marginBottom:6}}>Certificación oficial</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(245,241,232,0.35)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Repsol × BeonIt · 2026</div>
+        </div>
       </div>
       <div className="onb-right">
         <div className="step-meta">{s.eyebrow}</div>
@@ -392,9 +627,9 @@ function Onboarding({ done = () => {} }) {
         <p className="lead">{s.lead}</p>
         {s.body}
         <div className="onb-nav">
-          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>Atrás</button>}
-          <button className="btn" onClick={() => step < 3 ? setStep(step+1) : done()}>
-            {step < 3 ? 'Continuar' : 'Entrar en Solid'} →
+          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>← Atrás</button>}
+          <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : done()}>
+            {step < 3 ? 'Continuar →' : 'Entrar en Solid →'}
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">
             {[0,1,2,3].map(i => <span key={i} className={i <= step ? 'on' : ''}/>)}
@@ -408,43 +643,169 @@ function Onboarding({ done = () => {} }) {
 // ---------- Path ----------
 function PathView() {
   const nodes = [
-    { n: 1, t: 'Nombra las expectativas', d: 'Por qué los managers que nombran el trabajo ganan — dos píldoras para abrir.', dur: '2 PÍLDORAS · 6 MIN', s: 'done' },
-    { n: 2, t: 'El 1:1 semanal', d: 'Una agenda que sí funciona. Plantillas incluidas.', dur: '3 PÍLDORAS · 9 MIN', s: 'done' },
-    { n: 3, t: 'Feedback: actúa, no etiquetes', d: 'De la serie "El operador silencioso". Ya lo tenías guardado.', dur: '4 PÍLDORAS · 12 MIN', s: 'current' },
-    { n: 4, t: 'Conversaciones difíciles', d: 'Decir lo incómodo, a propósito, a tiempo.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 5, t: 'Delegar sin desviarse', d: 'Cómo soltar algo y no volver a agarrarlo el viernes.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 6, t: 'Dirigir una decisión', d: 'Memo, reunión, voto — y cuándo usar cuál.', dur: '4 PÍLDORAS · 12 MIN' },
-    { n: 7, t: 'Contratar sin sesgos', d: 'Una ruta lateral corta — promocionable a su propio itinerario.', dur: '3 PÍLDORAS · 9 MIN' },
-    { n: 8, t: 'El manager silencioso', d: 'Píldora de graduación. Escrita por tu coach a partir de tu ruta.', dur: '1 PÍLDORA · 3 MIN' },
+    {
+      type: 'autodiag', s: 'done',
+      t: 'Autodiagnóstico Inicial',
+      d: 'Evaluación de partida: conocimientos previos en Sprinklr, perfil competencial y expectativas de la formación.',
+      pills: 'Test competencial · ~20 min',
+      dur: '20 min',
+      tag: 'Know it',
+    },
+    {
+      type: 'bloque', n: '1+2', s: 'done',
+      t: 'Bloque 1+2 · Sprinklr en Repsol · Fundamentos',
+      d: 'Importancia del programa, registro SSO, Sprinklr como plataforma unificada, canales, posibilidades operativas y activos gestionados.',
+      pills: 'Think Pills 0–5 · 6 módulos',
+      dur: '22 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'bloque', n: '2', s: 'current',
+      t: 'Bloque 2 · Estructura, roles y modelo de gobernanza',
+      d: 'Módulos y submódulos de Sprinklr, impacto por negocio, comunicación entre módulos, roles (Manager / Agent / Reporting) y estructura de equipos.',
+      pills: 'Think Pills 6–10 · 5 módulos',
+      dur: '18 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'taller',
+      t: 'Taller 1 · Sprinklr Fundamentals',
+      d: 'Sesión experiencial de 2 horas. Puesta en común, resolución de dudas y consolidación del aprendizaje de los fundamentos de Sprinklr en el contexto Repsol.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'bloque', n: '3',
+      t: 'Bloque 3 · Gestión estructural de campañas en Social Publish',
+      d: 'Calendario editorial, DAM y reutilización de recursos, campañas y subcampañas, gobernanza operativa y etiquetado de campañas.',
+      pills: 'Think Pills 11–16 · 6 módulos',
+      dur: '22 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'bloque', n: '4',
+      t: 'Bloque 4 · Operativa editorial y control de contenidos',
+      d: 'Publicación multicanal, adaptación por red social, gestión multicanal optimizada, flujos de aprobación, revisión y validación, mecanismos de control y reducción de riesgos.',
+      pills: 'Think Pills 17–22 · 6 módulos',
+      dur: '25 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'bloque', n: '5',
+      t: 'Bloque 5 · Calendario editorial',
+      d: 'Visualización y planificación del contenido a través del calendario. Filtrado y organización de campañas por equipo y territorio.',
+      pills: 'Think Pills 23–24 · 2 módulos',
+      dur: '7 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'bloque', n: '6',
+      t: 'Bloque 6 · Reporting de campañas y performance',
+      d: 'Visualización del rendimiento de campañas y publicaciones. Métricas clave para evaluar la performance del contenido publicado.',
+      pills: 'Think Pills 25–26 · 2 módulos',
+      dur: '9 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'taller',
+      t: 'Taller 2 · Rol Publish Agent y Transversal',
+      d: 'Sesión práctica con flujos reales de publicación en Sprinklr. Resolución de casos del día a día, aprobaciones y gestión multicanal en el entorno Repsol.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'bloque', n: '7',
+      t: 'Bloque 7 · Operativa Community Manager · Care',
+      d: 'Diferencia entre mensaje y caso, agrupación en casos, gestión de conversaciones entrantes, Care Console, Engagement Dashboard, etiquetado, tipos de mensajes, líneas de negocio, escalado a Salesforce.',
+      pills: 'Think Pills 27–36 · 10 módulos',
+      dur: '40 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'bloque', n: '8',
+      t: 'Bloque 8 · SLA y paneles de atención al cliente',
+      d: 'Qué son los SLA y su impacto. Indicadores de SLA para priorizar mensajes. Visualización e interpretación de paneles de Care para priorizar la operativa.',
+      pills: 'Think Pills 37–40 · 4 módulos',
+      dur: '16 min',
+      tag: 'Think it',
+    },
+    {
+      type: 'taller',
+      t: 'Taller 3 · Rol Care Agent y Transversal',
+      d: 'Sesión práctica con gestión de conversaciones en Care. Casos reales de atención al cliente, SLA, escalado a Salesforce y operativa de Community Manager.',
+      pills: '2 h · 15–20 asistentes · Presencial / Virtual',
+      dur: '2 h',
+      tag: 'Explore it',
+    },
+    {
+      type: 'autodiag',
+      t: 'Autodiagnóstico Final · Certificación',
+      d: 'Evaluación de cierre: evolución del conocimiento, impacto de la formación y transferencia al puesto. Necesitas un 80% para obtener la certificación oficial Repsol × BeonIt.',
+      pills: 'Test final competencial · ~30 min',
+      dur: '30 min',
+      tag: 'Own it',
+    },
   ];
   return (
     <div className="path-root">
       <section className="path-hero">
         <div>
-          <span className="eyebrow">Ruta · Semana 4 / 8</span>
-          <h1>Cómo ser<br/><em>manager, de verdad</em>.</h1>
-          <p>Un viaje de 24 píldoras sobre management que no dora la píldora. Construido con la biblioteca de SOLID y las elecciones de tu coach — editable, pausable y tuyo.</p>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>SOLID GROWTH · Ruta certificada</div>
+          <h1>Rol Publish Agent<br/><em>Certificación Repsol</em>.</h1>
+          <p>41 Think Pills organizadas en 8 bloques formativos + 3 Talleres experienciales. Diseñada para el equipo de comunicación de Repsol. Certificación oficial avalada por Repsol × BeonIt.</p>
           <div className="path-stats">
-            <div className="path-stat"><div className="n">24</div><div className="l">Píldoras</div></div>
-            <div className="path-stat"><div className="n">2h 12m</div><div className="l">Tiempo total</div></div>
-            <div className="path-stat"><div className="n">8</div><div className="l">Semanas</div></div>
-            <div className="path-stat"><div className="n">42%</div><div className="l">Completado</div></div>
+            <div className="path-stat"><div className="n">41</div><div className="l">Think Pills</div></div>
+            <div className="path-stat"><div className="n">8</div><div className="l">Bloques</div></div>
+            <div className="path-stat"><div className="n">3</div><div className="l">Talleres</div></div>
+            <div className="path-stat"><div className="n">15%</div><div className="l">Tu progreso</div></div>
           </div>
         </div>
         <div className="path-visual">
-          <div className="ph warm">portada de ruta</div>
-          <div className="path-visual-badge">En curso</div>
+          <div className="ph teal" style={{position:'absolute',inset:0}}/>
+          <div className="path-visual-badge">En curso · Bloque 2/8</div>
         </div>
       </section>
-      <div className="path-map">
-        {nodes.map(node => (
-          <div key={node.n} className={`path-node ${node.s || ''}`} data-n={node.n}>
-            <div>
-              <h3>{node.t}</h3>
-              <p className="d">{node.d}</p>
-              <div className="meta-row"><span>{node.dur}</span>{node.s === 'current' && <span style={{color:'var(--ink)'}}>· ▶ LO SIGUIENTE</span>}</div>
+
+      {/* SOLID GROWTH 5-phase strip */}
+      <div className="sg-strip">
+        {[
+          { phase:'Autodiagnóstico', sub:'Know it',    icon:'◎', color:'var(--beonit-orange)', active:true, done:true },
+          { phase:'Think Pills',      sub:'Think it',   icon:'💊', color:'var(--beonit-blue)', active:true },
+          { phase:'Taller',           sub:'Explore it', icon:'👥', color:'var(--beonit-purple)' },
+          { phase:'MENTOR-IA',        sub:'Do it',      icon:'✦', color:'var(--beonit-lime)' },
+          { phase:'Certificación',    sub:'Own it',     icon:'🏆', color:'var(--repsol-red)' },
+        ].map((p, i, arr) => (
+          <React.Fragment key={i}>
+            <div className={`sg-phase ${p.active ? 'active' : ''} ${p.done ? 'done' : ''}`} style={{'--sg-color': p.color}}>
+              <div className="sg-icon">{p.icon}</div>
+              <div className="sg-phase-name">{p.phase}</div>
+              <div className="sg-phase-sub">{p.sub}</div>
             </div>
-            <button className="goto">{node.s === 'done' ? 'Revisar' : node.s === 'current' ? 'Continuar' : 'Ver avance'}</button>
+            {i < arr.length - 1 && <div className="sg-arrow">→</div>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="path-map">
+        {nodes.map((b, i) => (
+          <div key={i} className={`path-node ${b.s || ''} path-node-${b.type}`} data-n={b.n}>
+            <div>
+              {b.tag && <span className="path-tag">{b.tag}</span>}
+              <h3>{b.t}</h3>
+              <p className="d">{b.d}</p>
+              <div className="meta-row">
+                <span>{b.pills}</span>
+                <span>·</span>
+                <span>{b.dur}</span>
+                {b.s === 'current' && <span style={{color:'var(--ink)', fontWeight:600}}>· ▶ CONTINUAR</span>}
+                {b.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
+              </div>
+            </div>
+            <button className="goto">
+              {b.type === 'taller' ? 'Ver taller' : b.type === 'autodiag' ? (b.s === 'done' ? 'Ver resultado' : 'Iniciar test') : b.s === 'done' ? 'Revisar' : b.s === 'current' ? 'Continuar →' : 'Ver bloque'}
+            </button>
           </div>
         ))}
       </div>
@@ -456,40 +817,39 @@ function PathView() {
 function Profile() {
   const cells = Array.from({length: 98}, (_, i) => {
     const r = Math.sin(i * 2.3) + Math.cos(i * 0.7);
-    const l = r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
-    return l;
+    return r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
   });
   return (
     <div className="profile-root">
       <header className="profile-head">
-        <div className="big-av">A</div>
+        <div className="big-av" style={{background:'var(--repsol-red)'}}>A</div>
         <div>
-          <span className="role">Design Lead · BeonIt</span>
+          <span className="role">Publish Agent · Repsol</span>
           <h1>Amaia <em>Ruiz</em></h1>
         </div>
         <div className="profile-stats">
-          <div className="profile-stat"><div className="n">11</div><div className="l">Días de racha</div></div>
-          <div className="profile-stat"><div className="n">142</div><div className="l">Píldoras terminadas</div></div>
-          <div className="profile-stat"><div className="n">3</div><div className="l">Rutas activas</div></div>
+          <div className="profile-stat"><div className="n">7</div><div className="l">Módulos completados</div></div>
+          <div className="profile-stat"><div className="n">58%</div><div className="l">Certificación</div></div>
+          <div className="profile-stat"><div className="n">3h</div><div className="l">Tiempo de formación</div></div>
         </div>
       </header>
       <div className="profile-grid">
         <section className="profile-section">
-          <h2>Últimas 14 semanas</h2>
+          <h2>Actividad últimas 14 semanas</h2>
           <div className="streak-viz">
             {cells.map((l,i) => <div key={i} className={`streak-cell ${l}`}/>)}
           </div>
           <div style={{display:'flex', justifyContent:'space-between', marginTop:10, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>
             <span>12 ene</span><span>20 abr</span>
           </div>
-          <h2 style={{marginTop:36}}>Lo que terminaste</h2>
+          <h2 style={{marginTop:36}}>Módulos completados</h2>
           <div style={{display:'flex', flexDirection:'column', gap:2}}>
             {[
-              {t:'Feedback: actúa, no etiquetes', d:'Vie · 3 min'},
-              {t:'La regla de las 2 pizzas, revisitada', d:'Jue · 3 min'},
-              {t:'Stand-up de una línea', d:'Mié · :52'},
-              {t:'Cuartos propios (podcast)', d:'Mar · 38 min'},
-              {t:'Entrega menos, aprende más · Ep. 3', d:'Lun · 5 min'},
+              {t:'Crear y gestionar campañas en Sprinklr', d:'Hoy · 4 min'},
+              {t:'Flujo de aprobación de contenido', d:'Ayer · 3 min'},
+              {t:'Aproba un post en 30 segundos (tip)', d:'Lun · :30'},
+              {t:'Crear una cola de publicación (tip)', d:'Lun · :45'},
+              {t:'Estrategia digital Repsol 2025 (charla)', d:'Dom · 22 min'},
             ].map((x,i) => (
               <div key={i} className="outline-item done" style={{gridTemplateColumns:'32px 1fr auto'}}>
                 <span className="n">✓</span>
@@ -503,14 +863,14 @@ function Profile() {
           <h2>Insignias</h2>
           <div className="badge-row">
             {[
-              {t:'Primera píldora', d:'12 ene', e:true, em:'①'},
-              {t:'Racha de 10 días', d:'01 abr', e:true, em:'⚡'},
-              {t:'Primera ruta', d:'20 feb', e:true, em:'◇'},
-              {t:'Maratón nocturno', d:'14 mar', e:true, em:'◐'},
-              {t:'Ave nocturna', d:'Bloqueada', em:'☾'},
-              {t:'Charla con coach', d:'Bloqueada', em:'✦'},
-              {t:'Racha de 30 días', d:'19 / 30', em:'⚡⚡'},
-              {t:'Fin de serie', d:'Bloqueada', em:'▦'},
+              {t:'Primer módulo', d:'12 ene', e:true, em:'①'},
+              {t:'7 módulos completados', d:'20 abr', e:true, em:'⚡'},
+              {t:'Certificación iniciada', d:'15 feb', e:true, em:'◇'},
+              {t:'Test superado', d:'01 mar', e:true, em:'✓'},
+              {t:'Certificación Repsol', d:'Bloqueada', em:'🏆'},
+              {t:'Racha 30 días', d:'Bloqueada', em:'⚡⚡'},
+              {t:'Analytics experto', d:'Bloqueada', em:'📊'},
+              {t:'Compliance ok', d:'Bloqueada', em:'✦'},
             ].map((b,i) => (
               <div key={i} className={`badge ${b.e ? 'earned' : ''}`}>
                 <div className="em">{b.em}</div>
@@ -519,10 +879,13 @@ function Profile() {
               </div>
             ))}
           </div>
-          <h2 style={{marginTop:32}}>Tu canon</h2>
-          <div style={{padding:18, border:'1px solid var(--line)', borderRadius:14, fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.55, color:'var(--ink-2)'}}>
-            "Las reuniones terminan cuando se toma la decisión, no cuando acaba la hora."<br/>
-            <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Guardado de · El operador silencioso, Ep. 2</span>
+          <h2 style={{marginTop:32}}>Certificación en curso</h2>
+          <div style={{padding:18, border:'1px solid var(--line)', borderRadius:14, background:'var(--paper-2)'}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Publish Agent · Repsol × BeonIt</div>
+            <div style={{height:6, background:'var(--line)', borderRadius:3, overflow:'hidden', marginBottom:8}}>
+              <div style={{width:'58%', height:'100%', background:'var(--accent-glow)', borderRadius:3}}/>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>7 de 10 módulos · 58% completado</div>
           </div>
         </aside>
       </div>
@@ -532,22 +895,25 @@ function Profile() {
 
 // ---------- WhatsApp handoff ----------
 function WhatsApp() {
+  const [toggles, setToggles] = useS2([true, true, false, true]);
+  const toggle = (i) => setToggles(ts => ts.map((v, idx) => idx === i ? !v : v));
+  const options = [
+    { t: 'Módulo diario en WhatsApp, 9:00', d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
+    { t: 'Briefs antes de reuniones Sprinklr', d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
+    { t: 'Respuestas del agente IA por WhatsApp', d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
+    { t: 'Resumen semanal (viernes, 17:00)', d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
+  ];
   return (
     <div className="wa-root">
       <div>
         <div className="wa-head">
-          <span className="eyebrow">Multi-canal</span>
-          <h1>Tu <em>empujón</em>, no tu biblioteca.</h1>
-          <p>Solid empezó en WhatsApp — y seguimos ahí. La app es donde descubres, maratoneas y buscas. WhatsApp se queda con lo que mejor hace: una píldora de tres minutos en el momento justo.</p>
+          <div className="lms-hero-eyebrow" style={{marginBottom:12}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
+          <h1>Tu formación,<br/>donde <em>estés</em>.</h1>
+          <p>Solid funciona en la web y en WhatsApp. La plataforma es donde completas módulos y consultas el catálogo. WhatsApp es el recordatorio inteligente que te mantiene en el camino hacia la certificación.</p>
         </div>
         <div className="wa-toggles">
-          {[
-            {t:'Píldora diaria, 9:00', d:'Un mensaje. Tres minutos. Basado en tu ruta.', on:true},
-            {t:'Briefs antes de reuniones', d:'30 min antes de una coincidencia del calendario, una píldora relacionada.', on:true},
-            {t:'Pings del coach', d:'Solo cuando preguntas. Nunca automáticos.', on:false},
-            {t:'Resumen semanal', d:'Domingo por la tarde. Qué aprendiste, qué viene.', on:true},
-          ].map((x,i) => (
-            <div key={i} className={`wa-toggle ${x.on ? 'on' : ''}`}>
+          {options.map((x, i) => (
+            <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
               <div>
                 <div className="t">{x.t}</div>
                 <div className="d">{x.d}</div>
@@ -560,41 +926,39 @@ function WhatsApp() {
       <div className="wa-phone">
         <div className="wa-screen">
           <div className="wa-bar">
-            <div className="av">S</div>
+            <div className="av" style={{background:'var(--accent-glow)', color:'var(--ink)'}}>S</div>
             <div>
-              <div className="t">Solid Coach</div>
+              <div className="t">MENTOR-IA · Solid Sprinklr</div>
               <div className="s">en línea · 9:00</div>
             </div>
           </div>
           <div className="wa-chat">
-            <div className="wa-msg">Buenos días, Amaia ☀️ ¿Tres minutos antes del stand-up?
+            <div className="wa-msg">
+              Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
               <div className="time">9:00</div>
             </div>
             <div className="wa-msg" style={{padding:6}}>
               <div className="pill-card">
-                <div className="thumb"><div className="ph plum">píldora</div></div>
+                <div className="thumb"><div className="ph plum">módulo</div></div>
                 <div className="meta">
-                  <div className="t">Decir no sin decir "no"</div>
-                  <div className="s">Píldora · 3 min · M. Alcázar</div>
+                  <div className="t">Programar posts y gestión de calendario</div>
+                  <div className="s">Módulo · 5 min · Carlos Vega</div>
                 </div>
               </div>
               <span className="wa-cta">▶ Ver en Solid</span>
               <div className="time">9:00</div>
             </div>
-            <div className="wa-msg me">Mándame mejor el TL;DR
-              <div className="time">9:02</div>
-            </div>
-            <div className="wa-msg">Tres plantillas para decir no sin quemar la relación:
-              <br/>· <b>Redirige</b> — "Yo no, pero Pablo es el indicado."
-              <br/>· <b>Replantea</b> — "Sí, si recortamos X."
-              <br/>· <b>Reprograma</b> — "Este sprint no. El siguiente."
-              <div className="time">9:02</div>
-            </div>
-            <div className="wa-msg me">Guárdalo en mi canon
+            <div className="wa-msg me">¿Cómo programo un post recurrente?
               <div className="time">9:03</div>
             </div>
-            <div className="wa-msg">Guardado ✓ Lo verás en <b>Perfil → Tu canon</b>.
+            <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia al crear el post. Puedes definir frecuencia diaria, semanal o personalizada.
               <div className="time">9:03</div>
+            </div>
+            <div className="wa-msg me">Perfecto, gracias
+              <div className="time">9:04</div>
+            </div>
+            <div className="wa-msg">¡De nada! Cuando termines el módulo te desbloquea el de <b>Monitorización</b>. 💪
+              <div className="time">9:04</div>
             </div>
           </div>
         </div>
@@ -605,6 +969,8 @@ function WhatsApp() {
 
 // ---------- Analytics Dashboard ----------
 function Dashboard() {
+  const [checks, setChecks] = useS2([true, true, false, false, false, false]);
+  const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
   const kpis = [
     { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
     { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
@@ -622,13 +988,13 @@ function Dashboard() {
     { name: 'Ana García',    role: 'Analytics Lead', prog: 17,  mods: '2/12',  last: 'Hace 4 días' },
   ];
 
-  const checklist = [
-    { t: 'Crear y gestionar campañas en Sprinklr', done: true },
-    { t: 'Flujo de aprobación de contenido', done: true },
-    { t: 'Programar posts y gestión de calendario', done: false },
-    { t: 'Monitorización y alertas en tiempo real', done: false },
-    { t: 'Gestión de activos digitales en DAM', done: false },
-    { t: 'Compliance y gobernanza de contenido', done: false },
+  const checklistItems = [
+    'Crear y gestionar campañas en Sprinklr',
+    'Flujo de aprobación de contenido',
+    'Programar posts y gestión de calendario',
+    'Monitorización y alertas en tiempo real',
+    'Gestión de activos digitales en DAM',
+    'Compliance y gobernanza de contenido',
   ];
 
   const modules = [
@@ -710,10 +1076,10 @@ function Dashboard() {
           </div>
           <div className="dash-panel-body">
             <div className="check-list">
-              {checklist.map((c, i) => (
-                <div key={i} className={`check-item${c.done ? ' done' : ''}`}>
-                  <div className="check-box">{c.done ? '✓' : ''}</div>
-                  {c.t}
+              {checklistItems.map((t, i) => (
+                <div key={i} className={`check-item${checks[i] ? ' done' : ''}`} onClick={() => toggleCheck(i)}>
+                  <div className="check-box">{checks[i] ? '✓' : ''}</div>
+                  {t}
                 </div>
               ))}
             </div>
@@ -772,4 +1138,117 @@ function Dashboard() {
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard });
+// ---------- Cronograma POC ----------
+function Cronograma() {
+  const W = 14; // semanas S-0 … S-13
+  const col = (s, e) => ({ gridColumn: `${s + 2} / ${e + 3}` }); // +2: skip label col; +1: inclusive end
+
+  const phases = [
+    {
+      label: 'VERIFICACIÓN', bg: '#d4edda', tc: '#1a7a3a',
+      rows: [[{ label: 'Verificación Itinerario y Th1ngs', s: 1, e: 2, bg: '#28a745' }]],
+    },
+    {
+      label: 'CREACIÓN', bg: '#fde8e8', tc: '#b71c1c',
+      rows: [[{ label: 'Creación de contenidos POC', s: 1, e: 6, bg: '#e53935' }]],
+    },
+    {
+      label: 'ARRANQUE', bg: '#ede7f6', tc: '#4527a0',
+      rows: [
+        [{ label: 'Kick-off', s: 4, e: 4, bg: '#5c35cc' }],
+        [{ label: 'Comunicación y lanzamiento', s: 4, e: 5, bg: '#7c4dff' }, { label: 'Píldora bienvenida', s: 5, e: 5, bg: '#9575cd' }],
+      ],
+    },
+    {
+      label: 'AUTODIAGNÓSTICO', bg: '#fff8e1', tc: '#e65100',
+      rows: [
+        [{ label: 'Inicial', s: 8, e: 8, bg: '#F3A524' }, { label: 'Final', s: 13, e: 13, bg: '#c87800' }],
+      ],
+    },
+    {
+      label: 'EXP. APRENDIZAJE', bg: '#e3f2fd', tc: '#0d47a1',
+      rows: [
+        [{ label: 'Think Pills · Sprinklr Fundamentals', s: 6, e: 8, bg: '#1565c0' }, { label: 'Taller Fundamentals', s: 8, e: 9, bg: '#0071BE' }],
+        [{ label: 'Think Pills · Publish (Rol y Transversal)', s: 9, e: 12, bg: '#1976d2' }, { label: 'Taller Publish', s: 12, e: 12, bg: '#0071BE' }],
+        [{ label: 'Think Pills · Care (Rol y Transversal)', s: 9, e: 12, bg: '#2196f3' }, { label: 'Taller Care', s: 12, e: 12, bg: '#0071BE' }],
+      ],
+    },
+    {
+      label: 'GOBERNANZA', bg: '#f5f5f5', tc: '#444',
+      rows: [[
+        { label: 'Seg. Op.', s: 4, e: 4, bg: '#999' },
+        { label: 'Seg. Op.', s: 6, e: 6, bg: '#999' },
+        { label: 'Seg. Op.', s: 8, e: 8, bg: '#999' },
+        { label: 'Seg. Op.', s: 10, e: 10, bg: '#999' },
+        { label: 'Seg. Op.', s: 12, e: 12, bg: '#999' },
+      ]],
+    },
+  ];
+
+  return (
+    <div className="cron-root">
+      <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>SOLID GROWTH · Repsol × BeonIt</div>
+      <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,3.5vw,48px)', letterSpacing:'-0.025em', margin:'0 0 4px'}}>Cronograma <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>POC</em></h1>
+      <p style={{fontSize:13, color:'var(--ink-3)', marginBottom:28}}>Prueba de concepto · 163 personas · Presupuesto 50.000 € · S-0 a S-13 (14 semanas)</p>
+
+      {/* Milestone flags */}
+      <div className="cron-milestones">
+        <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--beonit-lime)', fontWeight:700}}>🚩 Inicio POC → S-6</div>
+        <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--repsol-red)', fontWeight:700}}>🏁 Fin POC → S-13</div>
+      </div>
+
+      {/* Gantt */}
+      <div className="cron-gantt">
+        {/* Header */}
+        <div className="cron-header">
+          <div className="cron-label-cell" style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em', textTransform:'uppercase'}}>FASE</div>
+          {Array.from({length: W}, (_, i) => (
+            <div key={i} className={`cron-week ${i === 6 ? 'milestone-start' : i === 13 ? 'milestone-end' : ''}`}>S-{i}</div>
+          ))}
+        </div>
+
+        {/* Phase rows */}
+        {phases.map((ph, pi) => (
+          <div key={pi} className="cron-phase-block">
+            {ph.rows.map((row, ri) => (
+              <div key={ri} className="cron-row">
+                {ri === 0 && (
+                  <div className="cron-label-cell" style={{background: ph.bg, color: ph.tc, rowSpan: ph.rows.length}}>
+                    {ph.label}
+                  </div>
+                )}
+                {ri > 0 && <div className="cron-label-cell" style={{background: ph.bg}}/>}
+                <div className="cron-track">
+                  {Array.from({length: W}, (_, wi) => <div key={wi} className="cron-cell"/>)}
+                  {row.map((bar, bi) => (
+                    <div key={bi} className="cron-bar" style={{
+                      left: (bar.s / (W - 1) * 100) + '%',
+                      width: Math.max(((bar.e - bar.s + 1) / W * 100), 4) + '%',
+                      background: bar.bg,
+                    }}>{bar.label}</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div style={{display:'flex', gap:20, flexWrap:'wrap', marginTop:20, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>
+        {[
+          {c:'#28a745', l:'Verificación'}, {c:'#e53935', l:'Creación'}, {c:'#5c35cc', l:'Arranque'},
+          {c:'#F3A524', l:'Autodiagnóstico'}, {c:'#1565c0', l:'Think Pills'}, {c:'#0071BE', l:'Taller'},
+          {c:'#999', l:'Gobernanza'},
+        ].map((leg, i) => (
+          <div key={i} style={{display:'flex', alignItems:'center', gap:5}}>
+            <div style={{width:12, height:12, borderRadius:2, background:leg.c}}/>
+            <span>{leg.l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma });
