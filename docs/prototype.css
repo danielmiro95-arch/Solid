@@ -615,13 +615,14 @@
 
 /* ===== Onboarding ===== */
 .onb-root { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 60px); background: var(--paper); }
-.onb-visual { background: var(--dark); color: var(--paper); position: relative; overflow: hidden; padding: 56px; display: flex; flex-direction: column; justify-content: space-between; }
+.onb-visual { background: linear-gradient(160deg, var(--bn-blue) 0%, #00264d 100%); color: #fff; position: relative; overflow: hidden; padding: 56px; display: flex; flex-direction: column; justify-content: space-between; }
 .onb-visual::before {
   content: ''; position: absolute; inset: 0;
-  background: repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 22px);
+  background: radial-gradient(ellipse at 80% 20%, rgba(188,214,48,0.12) 0%, transparent 60%),
+              repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 28px);
 }
-.onb-visual h2 { position: relative; font-family: var(--serif); font-weight: 400; font-style: italic; font-size: 56px; letter-spacing: -0.025em; line-height: 1; margin: 0; }
-.onb-visual .big-mark { position: relative; font-family: var(--serif); font-weight: 600; font-size: 220px; letter-spacing: -0.06em; line-height: 0.8; color: var(--accent-glow); font-style: italic; }
+.onb-visual h2 { position: relative; font-family: var(--serif); font-weight: 700; font-size: clamp(40px,5vw,62px); letter-spacing: -0.025em; line-height: 1.05; margin: 0; color: #fff; }
+.onb-visual .big-mark { position: relative; font-family: var(--serif); font-weight: 600; font-size: 220px; letter-spacing: -0.06em; line-height: 0.8; color: var(--bn-lime); font-style: italic; }
 .onb-visual .tag { position: relative; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(245,241,232,0.6); }
 .onb-right { padding: 56px 64px; display: flex; flex-direction: column; gap: 36px; overflow-y: auto; }
 .onb-right .step-meta { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
@@ -637,9 +638,9 @@
   display: inline-flex; align-items: center; gap: 8px;
 }
 .onb-chip:hover { border-color: var(--ink); }
-.onb-chip.sel { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.onb-chip.sel { background: var(--bn-blue); color: #fff; border-color: var(--bn-blue); }
 .onb-chip .mark { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.4; }
-.onb-chip.sel .mark { opacity: 1; background: var(--accent-glow); }
+.onb-chip.sel .mark { opacity: 1; background: var(--bn-lime); }
 .onb-nav { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .onb-progress { display: flex; gap: 4px; margin-top: 6px; }
 .onb-progress span { height: 2px; width: 28px; background: var(--line); border-radius: 1px; }

@@ -141,7 +141,12 @@ function Player({ back, item }) {
           </>
         ) : (
           <>
-            <div className="ph teal" style={{position:'absolute',inset:0}}/>
+            <div style={{position:'absolute',inset:0, background:`linear-gradient(135deg, var(--bn-blue) 0%, #001f3d 100%)`}}/>
+            <div style={{position:'absolute',inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, zIndex:1}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:4}}>Think Pill {it.pill ?? ''} · {it.category}</div>
+              <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontWeight:700, fontSize:'clamp(22px,3vw,36px)', color:'#fff', textAlign:'center', maxWidth:480, lineHeight:1.2, padding:'0 32px'}}>{it.title}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:4}}>{it.teacher} · {it.duration}</div>
+            </div>
             <div className="player-overlay-top">
               <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
               <div style={{display:'flex', gap:8}}>
@@ -350,7 +355,7 @@ function Coach() {
         setApiStatus('live');
       } catch (err) {
         console.warn('[MENTOR-IA] API error:', err.message);
-        setMsgs(m => [...m, { role: 'assistant', text: 'Lo siento, ha habido un problema al conectar con el servidor. Inténtalo de nuevo en un momento.' }]);
+        setMsgs(m => [...m, { role: 'assistant', text: '⚠️ MENTOR-IA no está disponible en este momento. Respondiendo en modo demo — tus preguntas se guardan y se sincronizarán cuando se restaure la conexión.' }]);
         setApiStatus('error');
       }
     } else {
@@ -415,11 +420,17 @@ function Coach() {
         </div>
       </aside>
       <div className="coach-main">
-        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:8}}>
-          <div style={{width:36, height:36, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.35)', flexShrink:0}}/>
-          <div>
-            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:20, lineHeight:1}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
-            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Maximiza el aprendizaje</div>
+        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 100%)', borderRadius:14, color:'#fff'}}>
+          <div style={{width:40, height:40, borderRadius:12, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, backdropFilter:'blur(4px)'}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
+          </div>
+          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
+            {apiStatus === 'live' ? 'En línea' : apiStatus === 'error' ? 'Sin conexión' : 'Demo'}
           </div>
         </div>
         <div className="coach-actions">
@@ -481,9 +492,8 @@ function Coach() {
             disabled={loading}
           />
           <div className="coach-input-tools">
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:4}}>
-              <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? 'var(--bn-red)' : 'var(--ink-4)', display:'inline-block'}}/>
-              {apiStatus === 'live' ? 'Claude conectado' : apiStatus === 'error' ? 'Error de conexión' : 'Modo demo'}
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+              ↵ enviar · Shift+↵ nueva línea
             </div>
             <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
               {loading ? 'Pensando…' : 'Preguntar →'}
@@ -602,17 +612,27 @@ function Onboarding({ done = () => {} }) {
   return (
     <div className="onb-root">
       <div className="onb-visual">
-        <div style={{display:'flex', alignItems:'center', gap:10}}>
-          <div style={{width:28, height:28, borderRadius:6, background:'var(--repsol-red)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:14}}>R</div>
-          <span className="tag" style={{color:'rgba(245,241,232,0.7)'}}>Repsol · Formación Sprinklr</span>
+        <div style={{display:'flex', alignItems:'center', gap:10, position:'relative'}}>
+          <img src="beonit-logo.png" style={{height:22, width:'auto', opacity:0.9}} alt="BeonIt"/>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginLeft:4}}>× Repsol</span>
         </div>
-        <div>
-          <div className="big-mark" style={{color:'var(--accent-glow)'}}>S</div>
-          <h2>Domina<br/>Sprinklr<br/>como<br/><em>Publish<br/>Agent</em>.</h2>
+        <div style={{position:'relative'}}>
+          <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:16}}>Certificación Sprinklr</div>
+          <h2 style={{fontSize:'clamp(40px,5vw,62px)', fontWeight:700, fontStyle:'normal', lineHeight:1.05}}>Domina<br/>Sprinklr<br/>como<br/><em style={{fontStyle:'italic', color:'var(--bn-lime)'}}>experto</em>.</h2>
+          <div style={{marginTop:24, display:'flex', flexWrap:'wrap', gap:8}}>
+            {['41 Think Pills', '3 Talleres', 'MENTOR-IA', 'Certificado Repsol'].map(t => (
+              <span key={t} style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', padding:'4px 10px', border:'1px solid rgba(255,255,255,0.2)', borderRadius:999, color:'rgba(255,255,255,0.7)'}}>
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
-        <div>
-          <div className="tag" style={{color:'rgba(245,241,232,0.5)', marginBottom:6}}>Certificación oficial</div>
-          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(245,241,232,0.35)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Repsol × BeonIt · 2026</div>
+        <div style={{position:'relative'}}>
+          <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
+            <div style={{width:8, height:8, borderRadius:'50%', background:'var(--bn-lime)'}}/>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>Certificación oficial · 2026</span>
+          </div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SOLID Growth · BeonIt</div>
         </div>
       </div>
       <div className="onb-right">
@@ -1183,7 +1203,7 @@ function Cronograma() {
     <div className="cron-root">
       <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>SOLID GROWTH · Repsol × BeonIt</div>
       <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,3.5vw,48px)', letterSpacing:'-0.025em', margin:'0 0 4px'}}>Cronograma <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>POC</em></h1>
-      <p style={{fontSize:13, color:'var(--ink-3)', marginBottom:28}}>Prueba de concepto · 163 personas · Presupuesto 50.000 € · S-0 a S-13 (14 semanas)</p>
+      <p style={{fontSize:13, color:'var(--ink-3)', marginBottom:28}}>Prueba de concepto · 163 personas · S-0 a S-13 · 14 semanas</p>
 
       {/* Milestone flags */}
       <div className="cron-milestones">
