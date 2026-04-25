@@ -2,6 +2,31 @@
 
 const { useState: useS2, useEffect: useE2 } = React;
 
+const CAT_COLORS = {
+  'Fundamentos': '#0072BE', 'Estructura': '#005a96', 'Gobernanza': '#3d31cc',
+  'Social Publish': '#EB0029', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
+  'Compliance': '#1a1a2e', 'Calendario': '#0072BE', 'Analytics': '#004d8a',
+  'Care': '#B8001F', 'Integraciones': '#3d31cc',
+};
+
+const RepsolDetailCover = ({ pill, category, title }) => {
+  const accent = CAT_COLORS[category] || '#0D1117';
+  return (
+    <div style={{position:'absolute', inset:0, background:`linear-gradient(160deg, ${accent} 0%, #080e1a 100%)`, overflow:'hidden'}}>
+      <div style={{position:'absolute', top:0, left:0, right:0, height:4, background:'#EB0029'}}/>
+      <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 28px)'}}/>
+      <div style={{position:'absolute', right:-20, bottom:-20, fontSize:160, fontWeight:800, fontFamily:'var(--mono)', color:'rgba(255,255,255,0.04)', lineHeight:1, letterSpacing:'-0.05em', userSelect:'none'}}>
+        {pill != null ? String(pill).padStart(2,'0') : ''}
+      </div>
+      <div style={{position:'absolute', bottom:24, left:24, right:24}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)', marginBottom:8}}>Repsol × Sprinklr</div>
+        {category && <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)', fontWeight:700, marginBottom:8}}>{category}</div>}
+        <div style={{fontFamily:'var(--sans)', fontSize:18, fontWeight:600, color:'#fff', lineHeight:1.25, letterSpacing:'-0.01em'}}>{title}</div>
+      </div>
+    </div>
+  );
+};
+
 // ---------- Detail ----------
 function Detail({ item, openPlayer, back }) {
   const it = item || PILLS[0];
@@ -32,7 +57,12 @@ function Detail({ item, openPlayer, back }) {
           </button>
         </div>
         <div className="detail-hero-inner">
-          <div className="detail-poster"><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0}}/></div>
+          <div className="detail-poster">
+            {it.yt
+              ? <img src={`https://img.youtube.com/vi/${it.yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={it.title}/>
+              : <RepsolDetailCover pill={it.pill} category={it.category} title={it.title}/>
+            }
+          </div>
           <div className="detail-head">
             <span className="eyebrow eye">{it.format} · {it.category}</span>
             <h1>{it.title}</h1>
@@ -87,7 +117,12 @@ function Detail({ item, openPlayer, back }) {
             <div className="related-list">
               {PILLS.filter(p => p.id !== it.id).slice(0,3).map(s => (
                 <div className="related" key={s.id}>
-                  <div className="thumb"><div className={`ph ${s.tone}`}/></div>
+                  <div className="thumb" style={{position:'relative', overflow:'hidden'}}>
+                    {s.yt
+                      ? <img src={`https://img.youtube.com/vi/${s.yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={s.title}/>
+                      : <RepsolDetailCover pill={s.pill} category={s.category} title=""/>
+                    }
+                  </div>
                   <div className="meta">
                     <div className="t">{s.title}</div>
                     <div className="s">{s.teacher} · {s.duration}</div>
@@ -133,7 +168,7 @@ function Player({ back, item }) {
                 <Icon name="back" size={12}/> Volver al módulo
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
-                <button className="back" style={{background:'rgba(243,165,36,0.15)', border:'1px solid rgba(243,165,36,0.4)', color:'var(--accent-glow)'}}>
+                <button className="back" style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
                   ✦ MENTOR-IA activo
                 </button>
               </div>
@@ -215,6 +250,9 @@ function Player({ back, item }) {
 // ---------- AI Sidekick ----------
 function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useS2('');
+  const [loading, setLoading] = useS2(false);
+  const [dynMsgs, setDynMsgs] = useS2([]);
+
   const contextLabel = {
     home: 'Vista general · tu progreso',
     player: 'Viendo módulo · Programar posts',
@@ -223,6 +261,52 @@ function AISidekick({ setAIMode, aiMode, view }) {
     dashboard: 'Analytics · visión admin',
     coach: 'MENTOR-IA · modo completo',
   }[view] || 'Plataforma Sprinklr';
+
+  const QUICK = [
+    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
+    { label: 'Hazme un quiz', q: 'Hazme 3 preguntas de repaso sobre lo que he visto.' },
+    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?' },
+    { label: 'Ayuda con macros', q: '¿Qué es una macro en Sprinklr y cómo se usa?' },
+  ];
+
+  const SIDE_DEMOS = {
+    'macro': 'En Sprinklr, una macro es una acción predefinida (texto, etiqueta, reasignación) que se aplica con un clic. Para Repsol Care las más usadas son: acuse de recibo, escalado a Salesforce y cierre de caso. Think Pill 41 tiene el vídeo explicativo.',
+    'aprobaci': 'Para aprobaciones urgentes: abre el post → "Aprobación de emergencia" → notifica al Content Lead por Slack. El flujo estándar requiere revisión previa del Content Lead. Think Pill 20 lo detalla con ejemplos Repsol.',
+    'quiz': '1. ¿Cuántos días tienes para responder un caso en Twitter/X según el SLA de Repsol?\n2. ¿Qué módulo de Sprinklr usas para programar posts?\n3. ¿Para qué sirve el DAM en Social Publish?\nResponde y te doy feedback.',
+    'siguiente': 'Tu siguiente módulo es Think Pill 5 · "Qué activos se gestionan a través de Sprinklr". Duración: 4 min. Tema: Activos DAM. ¿Lo abrimos ahora?',
+    'default': 'Entendido. Puedo ayudarte con Social Publish, Care, Analytics, aprobaciones y tu certificación Sprinklr × Repsol. ¿Qué necesitas?',
+  };
+
+  const sendMsg = async (overrideQ) => {
+    const q = (overrideQ || input).trim();
+    if (!q || loading) return;
+    setDynMsgs(m => [...m, { role: 'user', text: q }]);
+    setInput('');
+    setLoading(true);
+    const apiUrl = window.MENTOR_IA_API_URL;
+    if (apiUrl) {
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: q }], userProfile: { name: 'Amaia Ruiz', role: 'Publish Agent', progress: 15 } }),
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        setDynMsgs(m => [...m, { role: 'assistant', text: data.content }]);
+      } catch {
+        await new Promise(r => setTimeout(r, 600));
+        const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+        setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
+      }
+    } else {
+      await new Promise(r => setTimeout(r, 600));
+      const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+      setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
+    }
+    setLoading(false);
+  };
+
   return (
     <aside className="ai">
       <div className="ai-head">
@@ -249,54 +333,42 @@ function AISidekick({ setAIMode, aiMode, view }) {
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">Agente · 10:42</span>
+          <span className="who">MENTOR-IA</span>
           <div className="bubble">
-            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos? <span style={{fontSize:10,opacity:.6}}>· MENTOR-IA</span>
-          </div>
-        </div>
-        <div className="ai-suggest">
-          <div className="thumb"><div className="ph plum"/></div>
-          <div className="meta">
-            <div className="t">Programar posts y gestión de calendario</div>
-            <div className="s">5 min · Carlos Vega · Calendario</div>
-          </div>
-        </div>
-        <div className="ai-suggest">
-          <div className="thumb"><div className="ph olive"/></div>
-          <div className="meta">
-            <div className="t">Monitorización y alertas en tiempo real</div>
-            <div className="s">4 min · Ana García · Analytics</div>
+            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
           </div>
         </div>
         <div className="ai-chip-row">
-          <button className="ai-chip">¿Qué módulo sigue?</button>
-          <button className="ai-chip">Hazme un quiz</button>
-          <button className="ai-chip">Resumen del módulo</button>
-          <button className="ai-chip">Ayuda con aprobaciones</button>
+          {QUICK.map((q, i) => (
+            <button key={i} className="ai-chip" onClick={() => sendMsg(q.q)}>{q.label}</button>
+          ))}
         </div>
-        <div className="ai-msg from-me">
-          <span className="who">Tú · 10:44</span>
-          <div className="bubble">¿Cómo apruebo un post urgente fuera del horario?</div>
-        </div>
-        <div className="ai-msg from-ai">
-          <span className="who">Agente · 10:44</span>
-          <div className="bubble">
-            Para aprobaciones urgentes: abre el post en estado <em>"Pendiente"</em>, usa <em>"Aprobación de emergencia"</em> y notifica al manager de turno por Slack. El módulo 2 lo explica paso a paso.
-            <div className="ai-chip-row" style={{marginTop:10}}>
-              <button className="ai-chip">Ver módulo 2</button>
-              <button className="ai-chip">Más detalles</button>
-            </div>
+        {dynMsgs.map((m, i) => (
+          <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
+            <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+            <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
           </div>
-        </div>
+        ))}
+        {loading && (
+          <div className="ai-msg from-ai">
+            <span className="who">MENTOR-IA</span>
+            <div className="bubble mentor-typing"><span/><span/><span/></div>
+          </div>
+        )}
       </div>
       <div className="ai-input-wrap">
         <div className="ai-input">
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregunta sobre Sprinklr o tu formación…"/>
-          <button className="send"><Icon name="send" size={14}/></button>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendMsg()}
+            placeholder="Pregunta sobre Sprinklr o tu formación…"
+          />
+          <button className="send" onClick={sendMsg}><Icon name="send" size={14}/></button>
         </div>
         <div className="ai-footer-row">
           <span className="hint">Contexto: módulo actual · ruta · progreso</span>
-          <span className="hint">⌘ ↵</span>
+          <span className="hint">↵ enviar</span>
         </div>
       </div>
     </aside>
@@ -327,16 +399,25 @@ function Coach() {
 
   const messagesEndRef = useS2(null);
 
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const q = input.trim();
+  const DEMOS = {
+    'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
+    'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
+    'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
+    'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
+    'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
+    'certif': 'Tu progreso actual es del 15% — estás en el Bloque 2. Los siguientes hitos son: completar los módulos de Estructura (6 pills) y hacer el mini-test de Gobernanza. A ese ritmo, la certificación completa te llevaría unas 3 semanas más.',
+    'default': 'Entendido. En el contexto de Sprinklr para Repsol, puedo ayudarte con Social Publish, Care, Analytics, flujos de aprobación y certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), ¿puedes darme más detalles sobre lo que necesitas?',
+  };
+
+  const send = async (overrideQ) => {
+    const q = (overrideQ || input).trim();
+    if (!q || loading) return;
     const newMsgs = [...msgs, { role: 'user', text: q }];
     setMsgs(newMsgs);
     setInput('');
     setLoading(true);
 
     if (MENTOR_API) {
-      // ── Llamada real a Claude ────────────────────────────
       try {
         const res = await fetch(MENTOR_API, {
           method: 'POST',
@@ -354,23 +435,16 @@ function Coach() {
         setMsgs(m => [...m, { role: 'assistant', text: data.content }]);
         setApiStatus('live');
       } catch (err) {
-        console.warn('[MENTOR-IA] API error:', err.message);
-        setMsgs(m => [...m, { role: 'assistant', text: '⚠️ MENTOR-IA no está disponible en este momento. Respondiendo en modo demo — tus preguntas se guardan y se sincronizarán cuando se restaure la conexión.' }]);
-        setApiStatus('error');
+        console.warn('[MENTOR-IA] API no disponible, modo demo:', err.message);
+        setApiStatus('demo');
+        await new Promise(r => setTimeout(r, 800));
+        const key = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+        setMsgs(m => [...m, { role: 'assistant', text: DEMOS[key] }]);
       }
     } else {
-      // ── Modo demo: respuestas simuladas contextuales ─────
       await new Promise(r => setTimeout(r, 900));
-      const demos = {
-        'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
-        'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
-        'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
-        'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
-        'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
-        'default': `Entendido. En el contexto de Sprinklr para Repsol, lo que describes está relacionado con los módulos de tu ruta de certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), te recomiendo revisar las Think Pills correspondientes en la plataforma. ¿Puedes darme más detalles sobre la situación concreta?`,
-      };
-      const key = Object.keys(demos).find(k => q.toLowerCase().includes(k)) || 'default';
-      setMsgs(m => [...m, { role: 'assistant', text: demos[key] }]);
+      const key = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+      setMsgs(m => [...m, { role: 'assistant', text: DEMOS[key] }]);
     }
     setLoading(false);
   };
@@ -458,7 +532,7 @@ function Coach() {
         {/* Quick action chips */}
         <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
           {quickActions.map((a, i) => (
-            <button key={i} className="ai-chip" onClick={() => { setInput(a.q); }} style={{fontSize:11}}>
+            <button key={i} className="ai-chip" onClick={() => send(a.q)} style={{fontSize:11}}>
               {a.label}
             </button>
           ))}
