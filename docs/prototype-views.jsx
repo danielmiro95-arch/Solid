@@ -288,7 +288,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
       try {
         const res = await fetch(apiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(window.MENTOR_IA_BYPASS ? { 'x-vercel-protection-bypass': window.MENTOR_IA_BYPASS } : {}) },
           body: JSON.stringify({ messages: [{ role: 'user', content: q }], userProfile: { name: 'Amaia Ruiz', role: 'Publish Agent', progress: 15 } }),
         });
         if (!res.ok) throw new Error(res.status);
@@ -421,7 +421,7 @@ function Coach() {
       try {
         const res = await fetch(MENTOR_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(window.MENTOR_IA_BYPASS ? { 'x-vercel-protection-bypass': window.MENTOR_IA_BYPASS } : {}) },
           body: JSON.stringify({
             messages: newMsgs.map(m => ({
               role: m.role === 'ai' ? 'assistant' : m.role,
