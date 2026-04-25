@@ -283,23 +283,10 @@ function AISidekick({ setAIMode, aiMode, view }) {
     setDynMsgs(m => [...m, { role: 'user', text: q }]);
     setInput('');
     setLoading(true);
-    const apiUrl = window.MENTOR_IA_API_URL;
-    if (apiUrl) {
-      try {
-        const res = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(window.MENTOR_IA_BYPASS ? { 'x-vercel-protection-bypass': window.MENTOR_IA_BYPASS } : {}) },
-          body: JSON.stringify({ messages: [{ role: 'user', content: q }], userProfile: { name: 'Amaia Ruiz', role: 'Publish Agent', progress: 15 } }),
-        });
-        if (!res.ok) throw new Error(res.status);
-        const data = await res.json();
-        setDynMsgs(m => [...m, { role: 'assistant', text: data.content }]);
-      } catch {
-        await new Promise(r => setTimeout(r, 600));
-        const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
-        setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
-      }
-    } else {
+    try {
+      const reply = await callAnthropicDirect([{ role: 'user', text: q }]);
+      setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
+    } catch {
       await new Promise(r => setTimeout(r, 600));
       const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
       setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
@@ -377,10 +364,50 @@ function AISidekick({ setAIMode, aiMode, view }) {
 
 // ---------- Coach / AI Agent fullscreen ----------
 
-// URL de la API — configurar tras desplegar en Vercel
-// Producción: 'https://TU-PROYECTO.vercel.app/api/chat'
-// Local dev:  'http://localhost:3000/api/chat'
-const MENTOR_API = window.MENTOR_IA_API_URL || null;
+const MENTOR_SYSTEM = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
+
+Contexto del programa: SOLID tiene 43 Think Pills que cubren Social Publishing, Aprobaciones, Calendario Editorial, Analytics, Activos DAM, Care y Atención al Cliente, Integraciones con Salesforce y Gobernanza.
+
+Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, actualmente en Bloque 2 (Estructura y gobernanza).
+
+Reglas de respuesta:
+- Responde siempre en español, de forma concisa y práctica (máx 3-4 párrafos)
+- Referencia Think Pills concretas cuando sea relevante (ej: "La Think Pill 20 explica el flujo de aprobación...")
+- Usa ejemplos reales del contexto Repsol
+- Si preguntan por macros → Think Pills 41-42
+- Si preguntan por aprobaciones → Think Pill 20
+- Si preguntan por SLA → Think Pill 37
+- Si preguntan por Salesforce → Think Pills 35-36
+- Si preguntan por calendario editorial → Think Pill 23
+- Si preguntan por DAM → Think Pill 12
+- Si preguntan por publicación multicanal → Think Pills 17-19
+- Si preguntan por roles/permisos → Think Pills 9-10`;
+
+async function callAnthropicDirect(messages) {
+  const key = window.ANTHROPIC_API_KEY;
+  if (!key) throw new Error('no-key');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 600,
+      system: MENTOR_SYSTEM,
+      messages: messages.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.text || m.content || '',
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+  const data = await res.json();
+  return data.content[0].text;
+}
 
 const USER_PROFILE = {
   name: 'Amaia Ruiz',
@@ -392,21 +419,19 @@ const USER_PROFILE = {
 function Coach() {
   const [input, setInput] = useS2('');
   const [loading, setLoading] = useS2(false);
-  const [apiStatus, setApiStatus] = useS2(MENTOR_API ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useS2(window.ANTHROPIC_API_KEY ? 'live' : 'demo');
   const [msgs, setMsgs] = useS2([
     { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
 
-  const messagesEndRef = useS2(null);
-
   const DEMOS = {
-    'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
-    'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
-    'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
-    'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
-    'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
-    'certif': 'Tu progreso actual es del 15% — estás en el Bloque 2. Los siguientes hitos son: completar los módulos de Estructura (6 pills) y hacer el mini-test de Gobernanza. A ese ritmo, la certificación completa te llevaría unas 3 semanas más.',
-    'default': 'Entendido. En el contexto de Sprinklr para Repsol, puedo ayudarte con Social Publish, Care, Analytics, flujos de aprobación y certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), ¿puedes darme más detalles sobre lo que necesitas?',
+    'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma.',
+    'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia.',
+    'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Think Pill 37.',
+    'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo.',
+    'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal y campaña. La Think Pill 23 explica cómo configurar tu vista personalizada.',
+    'certif': 'Tu progreso actual es del 15% — estás en el Bloque 2. Los siguientes hitos: completar los módulos de Estructura (6 pills) y hacer el mini-test de Gobernanza.',
+    'default': 'En el contexto de Sprinklr para Repsol, puedo ayudarte con Social Publish, Care, Analytics, flujos de aprobación y certificación. ¿Puedes darme más detalles sobre lo que necesitas?',
   };
 
   const send = async (overrideQ) => {
@@ -417,34 +442,16 @@ function Coach() {
     setInput('');
     setLoading(true);
 
-    if (MENTOR_API) {
-      try {
-        const res = await fetch(MENTOR_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(window.MENTOR_IA_BYPASS ? { 'x-vercel-protection-bypass': window.MENTOR_IA_BYPASS } : {}) },
-          body: JSON.stringify({
-            messages: newMsgs.map(m => ({
-              role: m.role === 'ai' ? 'assistant' : m.role,
-              content: m.text,
-            })),
-            userProfile: USER_PROFILE,
-          }),
-        });
-        if (!res.ok) throw new Error(`API ${res.status}`);
-        const data = await res.json();
-        setMsgs(m => [...m, { role: 'assistant', text: data.content }]);
-        setApiStatus('live');
-      } catch (err) {
-        console.warn('[MENTOR-IA] API no disponible, modo demo:', err.message);
-        setApiStatus('demo');
-        await new Promise(r => setTimeout(r, 800));
-        const key = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
-        setMsgs(m => [...m, { role: 'assistant', text: DEMOS[key] }]);
-      }
-    } else {
-      await new Promise(r => setTimeout(r, 900));
-      const key = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
-      setMsgs(m => [...m, { role: 'assistant', text: DEMOS[key] }]);
+    try {
+      const reply = await callAnthropicDirect(newMsgs);
+      setMsgs(m => [...m, { role: 'assistant', text: reply }]);
+      setApiStatus('live');
+    } catch (err) {
+      console.warn('[MENTOR-IA] modo demo:', err.message);
+      setApiStatus('demo');
+      await new Promise(r => setTimeout(r, 800));
+      const demoKey = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+      setMsgs(m => [...m, { role: 'assistant', text: DEMOS[demoKey] }]);
     }
     setLoading(false);
   };
