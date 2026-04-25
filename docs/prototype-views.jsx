@@ -364,24 +364,21 @@ function AISidekick({ setAIMode, aiMode, view }) {
 
 // ---------- Coach / AI Agent fullscreen ----------
 
-const MENTOR_SYSTEM = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
+const MENTOR_SYSTEM_BASE = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
+Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, Bloque 2 (Estructura y gobernanza).
+Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.`;
 
-Contexto del programa: SOLID tiene 43 Think Pills que cubren Social Publishing, Aprobaciones, Calendario Editorial, Analytics, Activos DAM, Care y Atención al Cliente, Integraciones con Salesforce y Gobernanza.
+const KB_URL = 'https://raw.githubusercontent.com/danielmiro95-arch/Solid/claude/continue-design-project-ihhAr/api/kb/sprinklr-repsol.md';
+let _cachedKB = null;
 
-Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, actualmente en Bloque 2 (Estructura y gobernanza).
-
-Reglas de respuesta:
-- Responde siempre en español, de forma concisa y práctica (máx 3-4 párrafos)
-- Referencia Think Pills concretas cuando sea relevante (ej: "La Think Pill 20 explica el flujo de aprobación...")
-- Usa ejemplos reales del contexto Repsol
-- Si preguntan por macros → Think Pills 41-42
-- Si preguntan por aprobaciones → Think Pill 20
-- Si preguntan por SLA → Think Pill 37
-- Si preguntan por Salesforce → Think Pills 35-36
-- Si preguntan por calendario editorial → Think Pill 23
-- Si preguntan por DAM → Think Pill 12
-- Si preguntan por publicación multicanal → Think Pills 17-19
-- Si preguntan por roles/permisos → Think Pills 9-10`;
+async function loadKB() {
+  if (_cachedKB) return _cachedKB;
+  try {
+    const r = await fetch(KB_URL);
+    if (r.ok) { _cachedKB = await r.text(); return _cachedKB; }
+  } catch {}
+  return '';
+}
 
 async function callAnthropicDirect(messages) {
   let key = localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY || '';
@@ -390,6 +387,11 @@ async function callAnthropicDirect(messages) {
     if (!key) throw new Error('no-key');
     localStorage.setItem('mentor-ia-key', key);
   }
+  const kb = await loadKB();
+  const system = kb
+    ? `${MENTOR_SYSTEM_BASE}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}`
+    : MENTOR_SYSTEM_BASE;
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -400,8 +402,8 @@ async function callAnthropicDirect(messages) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      system: MENTOR_SYSTEM,
+      max_tokens: 800,
+      system,
       messages: messages.map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.text || m.content || '',
