@@ -384,8 +384,12 @@ Reglas de respuesta:
 - Si preguntan por roles/permisos → Think Pills 9-10`;
 
 async function callAnthropicDirect(messages) {
-  const key = window.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('no-key');
+  let key = localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY || '';
+  if (!key) {
+    key = (prompt('MENTOR-IA · Introduce tu API key de Anthropic (console.anthropic.com → API Keys):') || '').trim();
+    if (!key) throw new Error('no-key');
+    localStorage.setItem('mentor-ia-key', key);
+  }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -419,7 +423,7 @@ const USER_PROFILE = {
 function Coach() {
   const [input, setInput] = useS2('');
   const [loading, setLoading] = useS2(false);
-  const [apiStatus, setApiStatus] = useS2(window.ANTHROPIC_API_KEY ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useS2(localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY ? 'live' : 'demo');
   const [msgs, setMsgs] = useS2([
     { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
