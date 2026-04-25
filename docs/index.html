@@ -13,16 +13,16 @@
 </script>
 
 <script>
-  // v20260425b — limpia caché de Babel y precarga API key
+  // v20260425d — limpia caché de Babel y precarga API key
   (function(){
-    // Limpiar caché de Babel standalone (JSX compilado antiguo)
+    // Limpiar TODO el localStorage relacionado con Babel/código compilado
     Object.keys(localStorage).forEach(function(k){
-      if(k.indexOf('babel')>-1 || k.indexOf('transform')>-1) localStorage.removeItem(k);
+      if(k.indexOf('babel')>-1 || k.indexOf('transform')>-1 || k.indexOf('_prototype')>-1) localStorage.removeItem(k);
     });
     // Reconstruir y guardar API key
     var p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];
     localStorage.setItem('mentor-ia-key', p.join(''));
-    window.SOLID_VERSION = '20260425b';
+    window.SOLID_VERSION = '20260425d';
   })();
 </script>
 
@@ -100,10 +100,10 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
 <script type="text/babel" src="design-canvas.jsx" data-plugins="transform-react-jsx-source" data-filename="design-canvas.jsx"></script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260425" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260425" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260425" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260425" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
+<script type="text/babel" src="components.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
 
 <!-- Deck slides (JSX rendered once into <deck-stage>) -->
 <script type="text/babel" src="deck.jsx" data-plugins="transform-react-jsx-source" data-filename="deck.jsx"></script>
