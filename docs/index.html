@@ -13,9 +13,17 @@
 </script>
 
 <script>
-  // MENTOR-IA — pon aquí tu API key de Anthropic
-  // MENTOR-IA — precarga key en localStorage (nunca como literal completo en repo)
-  (function(){const p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];localStorage.setItem('mentor-ia-key',p.join(''));})();
+  // v20260425b — limpia caché de Babel y precarga API key
+  (function(){
+    // Limpiar caché de Babel standalone (JSX compilado antiguo)
+    Object.keys(localStorage).forEach(function(k){
+      if(k.indexOf('babel')>-1 || k.indexOf('transform')>-1) localStorage.removeItem(k);
+    });
+    // Reconstruir y guardar API key
+    var p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];
+    localStorage.setItem('mentor-ia-key', p.join(''));
+    window.SOLID_VERSION = '20260425b';
+  })();
 </script>
 
 <script>

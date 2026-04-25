@@ -381,17 +381,16 @@ async function loadKB() {
 }
 
 async function callAnthropicDirect(messages) {
-  let key = localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY || '';
-  if (!key) {
-    key = (prompt('MENTOR-IA · Introduce tu API key de Anthropic (console.anthropic.com → API Keys):') || '').trim();
-    if (!key) throw new Error('no-key');
-    localStorage.setItem('mentor-ia-key', key);
-  }
+  const key = localStorage.getItem('mentor-ia-key') || '';
+  console.log('[MENTOR-IA] version:', window.SOLID_VERSION, '| key:', key ? key.substring(0,18)+'…' : 'NO KEY');
+  if (!key || key.length < 20) throw new Error('no-key');
+
   const kb = await loadKB();
   const system = kb
     ? `${MENTOR_SYSTEM_BASE}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}`
     : MENTOR_SYSTEM_BASE;
 
+  console.log('[MENTOR-IA] llamando a Anthropic, KB cargado:', !!kb, 'mensajes:', messages.length);
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -410,8 +409,13 @@ async function callAnthropicDirect(messages) {
       })),
     }),
   });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.status);
+    console.error('[MENTOR-IA] error Anthropic:', res.status, err);
+    throw new Error(`Anthropic ${res.status}: ${err}`);
+  }
   const data = await res.json();
+  console.log('[MENTOR-IA] respuesta OK');
   return data.content[0].text;
 }
 
