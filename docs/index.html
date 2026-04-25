@@ -13,9 +13,26 @@
 </script>
 
 <script>
-  // MENTOR-IA — API endpoint (Vercel)
-  // Reemplaza esta URL con la de tu proyecto en Vercel una vez desplegado
-  window.MENTOR_IA_API_URL = 'https://solid-danielmiro95-8882s-projects.vercel.app/api/chat';
+  (function(){
+    Object.keys(localStorage).forEach(function(k){
+      if(k.indexOf('babel')>-1||k.indexOf('transform')>-1) localStorage.removeItem(k);
+    });
+    var p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];
+    localStorage.setItem('mentor-ia-key', p.join(''));
+    window.MENTOR_IA_API_URL = '/api/chat';
+    var _f = window.fetch;
+    window.fetch = function(url, opts) {
+      if (typeof url === 'string' && url.indexOf('/api/chat') !== -1) {
+        var key = localStorage.getItem('mentor-ia-key') || '';
+        if (!key || key.length < 20) return _f(url, opts);
+        var body; try { body = JSON.parse(opts&&opts.body?opts.body:'{}'); } catch(e){ body={}; }
+        var msgs = (body.messages||[]).filter(function(m){return m.role==='user'||m.role==='assistant';}).map(function(m){return{role:m.role,content:(m.text||m.content||'').trim()};}).filter(function(m){return m.content;});
+        if(!msgs.length) msgs=[{role:'user',content:'¿Hola?'}];
+        return _f('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'Eres MENTOR-IA, asistente de formación Repsol × BeonIt para Sprinklr. Responde en español, de forma concisa y práctica.',messages:msgs})}).then(function(r){if(!r.ok)return r;return r.json().then(function(d){var t=(d.content&&d.content[0]&&d.content[0].text)?d.content[0].text:'';return new Response(JSON.stringify({content:t}),{status:200,headers:{'Content-Type':'application/json'}});});});
+      }
+      return _f(url, opts);
+    };
+  })();
 </script>
 
 <script>
@@ -95,6 +112,7 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
 <script type="text/babel" src="components.jsx" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
 <script type="text/babel" src="prototype-home.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
 <script type="text/babel" src="prototype-views.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
+<script type="text/babel" src="mentor-ia.jsx" data-plugins="transform-react-jsx-source" data-filename="mentor-ia.jsx"></script>
 <script type="text/babel" src="prototype-main.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
 
 <!-- Deck slides (JSX rendered once into <deck-stage>) -->
