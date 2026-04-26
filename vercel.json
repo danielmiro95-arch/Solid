@@ -1,4 +1,7 @@
 {
+  "buildCommand": "echo no-op",
+  "outputDirectory": "docs",
+  "framework": null,
   "headers": [
     {
       "source": "/api/(.*)",
