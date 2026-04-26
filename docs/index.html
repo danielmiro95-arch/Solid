@@ -1,36 +1,67 @@
-<!DOCTYPE html><html lang="en" style="--accent-glow: #6d5efc;"><head>
+<!DOCTYPE html><html lang="en" style="--accent-glow: #005996;"><head>
 
 
 <meta charset="UTF-8">
 <title>SOLID — by BeonIt</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="prototype.css">
 
 <script type="application/json" id="__edit_mode_defaults__">
-{"shape":"mixed","accent":"#F3A524","aiMode":"companion"}
+{"shape":"mixed","accent":"#005996","aiMode":"companion"}
 </script>
 
 <script>
+  // v20260425e — API key + interceptor de fetch (funciona con código viejo y nuevo)
   (function(){
+    // Limpiar caché de Babel
     Object.keys(localStorage).forEach(function(k){
-      if(k.indexOf('babel')>-1||k.indexOf('transform')>-1) localStorage.removeItem(k);
+      if(k.indexOf('babel')>-1 || k.indexOf('transform')>-1 || k.indexOf('_prototype')>-1) localStorage.removeItem(k);
     });
+    // Reconstruir y guardar API key
     var p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];
     localStorage.setItem('mentor-ia-key', p.join(''));
+    window.SOLID_VERSION = '20260425e';
+    // Forzar que el código viejo use /api/chat (será interceptado a continuación)
     window.MENTOR_IA_API_URL = '/api/chat';
-    var _f = window.fetch;
+
+    // Interceptor: si cualquier versión del código llama a /api/chat o a Vercel,
+    // lo redirigimos directamente a Anthropic sin pasar por Vercel.
+    var _origFetch = window.fetch;
     window.fetch = function(url, opts) {
       if (typeof url === 'string' && url.indexOf('/api/chat') !== -1) {
         var key = localStorage.getItem('mentor-ia-key') || '';
-        if (!key || key.length < 20) return _f(url, opts);
-        var body; try { body = JSON.parse(opts&&opts.body?opts.body:'{}'); } catch(e){ body={}; }
-        var msgs = (body.messages||[]).filter(function(m){return m.role==='user'||m.role==='assistant';}).map(function(m){return{role:m.role,content:(m.text||m.content||'').trim()};}).filter(function(m){return m.content;});
-        if(!msgs.length) msgs=[{role:'user',content:'¿Hola?'}];
-        return _f('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'Eres MENTOR-IA, asistente de formación Repsol × BeonIt para Sprinklr. Responde en español, de forma concisa y práctica.',messages:msgs})}).then(function(r){if(!r.ok)return r;return r.json().then(function(d){var t=(d.content&&d.content[0]&&d.content[0].text)?d.content[0].text:'';return new Response(JSON.stringify({content:t}),{status:200,headers:{'Content-Type':'application/json'}});});});
+        if (!key || key.length < 20) return _origFetch(url, opts);
+        var body;
+        try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) { body = {}; }
+        var msgs = (body.messages || [])
+          .filter(function(m){ return m.role === 'user' || m.role === 'assistant'; })
+          .map(function(m){ return { role: m.role, content: (m.text || m.content || '').trim() }; })
+          .filter(function(m){ return m.content; });
+        if (!msgs.length) msgs = [{ role: 'user', content: '¿Hola?' }];
+        var sys = 'Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr. Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.';
+        return _origFetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': key,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: sys, messages: msgs }),
+        }).then(function(r) {
+          if (!r.ok) return r;
+          return r.json().then(function(data) {
+            var text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
+            return new Response(JSON.stringify({ content: text }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            });
+          });
+        });
       }
-      return _f(url, opts);
+      return _origFetch(url, opts);
     };
   })();
 </script>
@@ -39,7 +70,7 @@
 // Persistable defaults for Tweaks
 const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
   "shape": "square",
-  "accent": "#6d5efc",
+  "accent": "#005996",
   "aiMode": "collapsed"
 }/*EDITMODE-END*/;
 </script>
@@ -75,7 +106,7 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
 <body style="cursor: crosshair; background-color: rgba(255, 255, 255, 0.75);" data-cc-id="cc-1">
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="beonit-logo.png" style="height:28px;width:auto;" alt="BeonIt"><span style="font-family:var(--serif);font-weight:700;font-size:20px;letter-spacing:-0.02em;">Solid</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="beonit-logo.png" style="height:22px;width:auto" alt="BeonIt"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--sans);font-weight:800;font-size:16px;letter-spacing:-0.025em;color:var(--ink)">SOLID</span></div>
   <div class="shell-tabs-list" role="tablist">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
     <button class="shell-tab" data-tab="deck">Strategy deck</button>
@@ -109,11 +140,11 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
 <script type="text/babel" src="design-canvas.jsx" data-plugins="transform-react-jsx-source" data-filename="design-canvas.jsx"></script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
-<script type="text/babel" src="prototype-home.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
-<script type="text/babel" src="prototype-views.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
+<script type="text/babel" src="components.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
 <script type="text/babel" src="mentor-ia.jsx" data-plugins="transform-react-jsx-source" data-filename="mentor-ia.jsx"></script>
-<script type="text/babel" src="prototype-main.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260425d" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
 
 <!-- Deck slides (JSX rendered once into <deck-stage>) -->
 <script type="text/babel" src="deck.jsx" data-plugins="transform-react-jsx-source" data-filename="deck.jsx"></script>

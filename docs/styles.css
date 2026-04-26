@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* SOLID — Repsol × BeonIt */
 :root {
@@ -32,7 +32,7 @@
   --bn-turquoise: #66C7C2;
 
   /* ── Alias semánticos ────────────────────────── */
-  --accent-glow:  #6C5FFC;            /* indigo · Revolut-style */
+  --accent-glow:  #005996;            /* BeonIt primary blue */
   --accent-primary: var(--bn-blue);   /* acciones principales */
   --accent-success: var(--bn-lime);   /* progreso / completado */
 
@@ -60,9 +60,8 @@
   --shadow-blue: 0 8px 32px rgba(0,114,190,0.18), 0 2px 8px rgba(0,114,190,0.08);
 
   /* ── Tipografía ──────────────────────────────── */
-  /* Avenir Next en macOS/iOS; Inter Tight como fallback en Windows/Android */
-  --sans:  "Avenir Next", "Avenir", "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --serif: "Avenir Next", "Avenir", "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --sans:  "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
@@ -166,3 +165,6 @@ body {
 .ph.sand  { --ph-a: #e8e4da; --ph-b: #f0ece0; color: rgba(10,10,10,0.5); }
 .ph.lime  { --ph-a: #485e00; --ph-b: #6a8800; }
 .ph.noir  { --ph-a: #000000; --ph-b: #111111; }
+
+/* Coach AI spin animation */
+@keyframes spin { to { transform: rotate(360deg); } }

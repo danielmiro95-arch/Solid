@@ -2,6 +2,31 @@
 
 const { useState: useS2, useEffect: useE2 } = React;
 
+const CAT_COLORS = {
+  'Fundamentos': '#0072BE', 'Estructura': '#005a96', 'Gobernanza': '#3d31cc',
+  'Social Publish': '#EB0029', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
+  'Compliance': '#1a1a2e', 'Calendario': '#0072BE', 'Analytics': '#004d8a',
+  'Care': '#B8001F', 'Integraciones': '#3d31cc',
+};
+
+const RepsolDetailCover = ({ pill, category, title }) => {
+  const accent = CAT_COLORS[category] || '#0D1117';
+  return (
+    <div style={{position:'absolute', inset:0, background:`linear-gradient(160deg, ${accent} 0%, #080e1a 100%)`, overflow:'hidden'}}>
+      <div style={{position:'absolute', top:0, left:0, right:0, height:4, background:'#EB0029'}}/>
+      <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 28px)'}}/>
+      <div style={{position:'absolute', right:-20, bottom:-20, fontSize:160, fontWeight:800, fontFamily:'var(--mono)', color:'rgba(255,255,255,0.04)', lineHeight:1, letterSpacing:'-0.05em', userSelect:'none'}}>
+        {pill != null ? String(pill).padStart(2,'0') : ''}
+      </div>
+      <div style={{position:'absolute', bottom:24, left:24, right:24}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)', marginBottom:8}}>Repsol × Sprinklr</div>
+        {category && <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)', fontWeight:700, marginBottom:8}}>{category}</div>}
+        <div style={{fontFamily:'var(--sans)', fontSize:18, fontWeight:600, color:'#fff', lineHeight:1.25, letterSpacing:'-0.01em'}}>{title}</div>
+      </div>
+    </div>
+  );
+};
+
 // ---------- Detail ----------
 function Detail({ item, openPlayer, back }) {
   const it = item || PILLS[0];
@@ -32,7 +57,12 @@ function Detail({ item, openPlayer, back }) {
           </button>
         </div>
         <div className="detail-hero-inner">
-          <div className="detail-poster"><div className={`ph ${it.tone}`} style={{position:'absolute',inset:0}}/></div>
+          <div className="detail-poster">
+            {it.yt
+              ? <img src={`https://img.youtube.com/vi/${it.yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={it.title}/>
+              : <RepsolDetailCover pill={it.pill} category={it.category} title={it.title}/>
+            }
+          </div>
           <div className="detail-head">
             <span className="eyebrow eye">{it.format} · {it.category}</span>
             <h1>{it.title}</h1>
@@ -49,6 +79,12 @@ function Detail({ item, openPlayer, back }) {
                 {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
               </button>
               <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
+              <button className="btn ghost" onClick={() => window.WATracker && window.WATracker.shareLink(it.id, it.title, it.duration)} style={{background:'#25D366', borderColor:'#25D366', color:'#fff'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}>
+                  <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
+                </svg>
+                Compartir por WhatsApp
+              </button>
               <button className="btn ghost"><Icon name="sparkle" size={14}/> MENTOR-IA</button>
             </div>
           </div>
@@ -87,7 +123,12 @@ function Detail({ item, openPlayer, back }) {
             <div className="related-list">
               {PILLS.filter(p => p.id !== it.id).slice(0,3).map(s => (
                 <div className="related" key={s.id}>
-                  <div className="thumb"><div className={`ph ${s.tone}`}/></div>
+                  <div className="thumb" style={{position:'relative', overflow:'hidden'}}>
+                    {s.yt
+                      ? <img src={`https://img.youtube.com/vi/${s.yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={s.title}/>
+                      : <RepsolDetailCover pill={s.pill} category={s.category} title=""/>
+                    }
+                  </div>
                   <div className="meta">
                     <div className="t">{s.title}</div>
                     <div className="s">{s.teacher} · {s.duration}</div>
@@ -133,7 +174,7 @@ function Player({ back, item }) {
                 <Icon name="back" size={12}/> Volver al módulo
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
-                <button className="back" style={{background:'rgba(243,165,36,0.15)', border:'1px solid rgba(243,165,36,0.4)', color:'var(--accent-glow)'}}>
+                <button className="back" style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
                   ✦ MENTOR-IA activo
                 </button>
               </div>
@@ -215,6 +256,9 @@ function Player({ back, item }) {
 // ---------- AI Sidekick ----------
 function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useS2('');
+  const [loading, setLoading] = useS2(false);
+  const [dynMsgs, setDynMsgs] = useS2([]);
+
   const contextLabel = {
     home: 'Vista general · tu progreso',
     player: 'Viendo módulo · Programar posts',
@@ -223,6 +267,39 @@ function AISidekick({ setAIMode, aiMode, view }) {
     dashboard: 'Analytics · visión admin',
     coach: 'MENTOR-IA · modo completo',
   }[view] || 'Plataforma Sprinklr';
+
+  const QUICK = [
+    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
+    { label: 'Hazme un quiz', q: 'Hazme 3 preguntas de repaso sobre lo que he visto.' },
+    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?' },
+    { label: 'Ayuda con macros', q: '¿Qué es una macro en Sprinklr y cómo se usa?' },
+  ];
+
+  const SIDE_DEMOS = {
+    'macro': 'En Sprinklr, una macro es una acción predefinida (texto, etiqueta, reasignación) que se aplica con un clic. Para Repsol Care las más usadas son: acuse de recibo, escalado a Salesforce y cierre de caso. Think Pill 41 tiene el vídeo explicativo.',
+    'aprobaci': 'Para aprobaciones urgentes: abre el post → "Aprobación de emergencia" → notifica al Content Lead por Slack. El flujo estándar requiere revisión previa del Content Lead. Think Pill 20 lo detalla con ejemplos Repsol.',
+    'quiz': '1. ¿Cuántos días tienes para responder un caso en Twitter/X según el SLA de Repsol?\n2. ¿Qué módulo de Sprinklr usas para programar posts?\n3. ¿Para qué sirve el DAM en Social Publish?\nResponde y te doy feedback.',
+    'siguiente': 'Tu siguiente módulo es Think Pill 5 · "Qué activos se gestionan a través de Sprinklr". Duración: 4 min. Tema: Activos DAM. ¿Lo abrimos ahora?',
+    'default': 'Entendido. Puedo ayudarte con Social Publish, Care, Analytics, aprobaciones y tu certificación Sprinklr × Repsol. ¿Qué necesitas?',
+  };
+
+  const sendMsg = async (overrideQ) => {
+    const q = (overrideQ || input).trim();
+    if (!q || loading) return;
+    setDynMsgs(m => [...m, { role: 'user', text: q }]);
+    setInput('');
+    setLoading(true);
+    try {
+      const reply = await callAnthropicDirect([{ role: 'user', text: q }]);
+      setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
+    } catch {
+      await new Promise(r => setTimeout(r, 600));
+      const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+      setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
+    }
+    setLoading(false);
+  };
+
   return (
     <aside className="ai">
       <div className="ai-head">
@@ -249,54 +326,42 @@ function AISidekick({ setAIMode, aiMode, view }) {
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">Agente · 10:42</span>
+          <span className="who">MENTOR-IA</span>
           <div className="bubble">
-            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos? <span style={{fontSize:10,opacity:.6}}>· MENTOR-IA</span>
-          </div>
-        </div>
-        <div className="ai-suggest">
-          <div className="thumb"><div className="ph plum"/></div>
-          <div className="meta">
-            <div className="t">Programar posts y gestión de calendario</div>
-            <div className="s">5 min · Carlos Vega · Calendario</div>
-          </div>
-        </div>
-        <div className="ai-suggest">
-          <div className="thumb"><div className="ph olive"/></div>
-          <div className="meta">
-            <div className="t">Monitorización y alertas en tiempo real</div>
-            <div className="s">4 min · Ana García · Analytics</div>
+            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
           </div>
         </div>
         <div className="ai-chip-row">
-          <button className="ai-chip">¿Qué módulo sigue?</button>
-          <button className="ai-chip">Hazme un quiz</button>
-          <button className="ai-chip">Resumen del módulo</button>
-          <button className="ai-chip">Ayuda con aprobaciones</button>
+          {QUICK.map((q, i) => (
+            <button key={i} className="ai-chip" onClick={() => sendMsg(q.q)}>{q.label}</button>
+          ))}
         </div>
-        <div className="ai-msg from-me">
-          <span className="who">Tú · 10:44</span>
-          <div className="bubble">¿Cómo apruebo un post urgente fuera del horario?</div>
-        </div>
-        <div className="ai-msg from-ai">
-          <span className="who">Agente · 10:44</span>
-          <div className="bubble">
-            Para aprobaciones urgentes: abre el post en estado <em>"Pendiente"</em>, usa <em>"Aprobación de emergencia"</em> y notifica al manager de turno por Slack. El módulo 2 lo explica paso a paso.
-            <div className="ai-chip-row" style={{marginTop:10}}>
-              <button className="ai-chip">Ver módulo 2</button>
-              <button className="ai-chip">Más detalles</button>
-            </div>
+        {dynMsgs.map((m, i) => (
+          <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
+            <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+            <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
           </div>
-        </div>
+        ))}
+        {loading && (
+          <div className="ai-msg from-ai">
+            <span className="who">MENTOR-IA</span>
+            <div className="bubble mentor-typing"><span/><span/><span/></div>
+          </div>
+        )}
       </div>
       <div className="ai-input-wrap">
         <div className="ai-input">
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Pregunta sobre Sprinklr o tu formación…"/>
-          <button className="send"><Icon name="send" size={14}/></button>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendMsg()}
+            placeholder="Pregunta sobre Sprinklr o tu formación…"
+          />
+          <button className="send" onClick={sendMsg}><Icon name="send" size={14}/></button>
         </div>
         <div className="ai-footer-row">
           <span className="hint">Contexto: módulo actual · ruta · progreso</span>
-          <span className="hint">⌘ ↵</span>
+          <span className="hint">↵ enviar</span>
         </div>
       </div>
     </aside>
@@ -305,10 +370,60 @@ function AISidekick({ setAIMode, aiMode, view }) {
 
 // ---------- Coach / AI Agent fullscreen ----------
 
-// URL de la API — configurar tras desplegar en Vercel
-// Producción: 'https://TU-PROYECTO.vercel.app/api/chat'
-// Local dev:  'http://localhost:3000/api/chat'
-const MENTOR_API = window.MENTOR_IA_API_URL || null;
+const MENTOR_SYSTEM_BASE = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
+Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, Bloque 2 (Estructura y gobernanza).
+Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.`;
+
+const KB_URL = 'https://raw.githubusercontent.com/danielmiro95-arch/Solid/claude/continue-design-project-ihhAr/api/kb/sprinklr-repsol.md';
+let _cachedKB = null;
+
+async function loadKB() {
+  if (_cachedKB) return _cachedKB;
+  try {
+    const r = await fetch(KB_URL);
+    if (r.ok) { _cachedKB = await r.text(); return _cachedKB; }
+  } catch {}
+  return '';
+}
+
+async function callAnthropicDirect(messages) {
+  const key = localStorage.getItem('mentor-ia-key') || '';
+  console.log('[MENTOR-IA] version:', window.SOLID_VERSION, '| key:', key ? key.substring(0,18)+'…' : 'NO KEY');
+  if (!key || key.length < 20) throw new Error('no-key');
+
+  const kb = await loadKB();
+  const system = kb
+    ? `${MENTOR_SYSTEM_BASE}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}`
+    : MENTOR_SYSTEM_BASE;
+
+  console.log('[MENTOR-IA] llamando a Anthropic, KB cargado:', !!kb, 'mensajes:', messages.length);
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system,
+      messages: messages.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.text || m.content || '',
+      })),
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.status);
+    console.error('[MENTOR-IA] error Anthropic:', res.status, err);
+    throw new Error(`Anthropic ${res.status}: ${err}`);
+  }
+  const data = await res.json();
+  console.log('[MENTOR-IA] respuesta OK');
+  return data.content[0].text;
+}
 
 const USER_PROFILE = {
   name: 'Amaia Ruiz',
@@ -320,57 +435,39 @@ const USER_PROFILE = {
 function Coach() {
   const [input, setInput] = useS2('');
   const [loading, setLoading] = useS2(false);
-  const [apiStatus, setApiStatus] = useS2(MENTOR_API ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useS2(localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY ? 'live' : 'demo');
   const [msgs, setMsgs] = useS2([
     { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
 
-  const messagesEndRef = useS2(null);
+  const DEMOS = {
+    'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma.',
+    'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia.',
+    'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Think Pill 37.',
+    'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo.',
+    'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal y campaña. La Think Pill 23 explica cómo configurar tu vista personalizada.',
+    'certif': 'Tu progreso actual es del 15% — estás en el Bloque 2. Los siguientes hitos: completar los módulos de Estructura (6 pills) y hacer el mini-test de Gobernanza.',
+    'default': 'En el contexto de Sprinklr para Repsol, puedo ayudarte con Social Publish, Care, Analytics, flujos de aprobación y certificación. ¿Puedes darme más detalles sobre lo que necesitas?',
+  };
 
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const q = input.trim();
+  const send = async (overrideQ) => {
+    const q = (overrideQ || input).trim();
+    if (!q || loading) return;
     const newMsgs = [...msgs, { role: 'user', text: q }];
     setMsgs(newMsgs);
     setInput('');
     setLoading(true);
 
-    if (MENTOR_API) {
-      // ── Llamada real a Claude ────────────────────────────
-      try {
-        const res = await fetch(MENTOR_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: newMsgs.map(m => ({
-              role: m.role === 'ai' ? 'assistant' : m.role,
-              content: m.text,
-            })),
-            userProfile: USER_PROFILE,
-          }),
-        });
-        if (!res.ok) throw new Error(`API ${res.status}`);
-        const data = await res.json();
-        setMsgs(m => [...m, { role: 'assistant', text: data.content }]);
-        setApiStatus('live');
-      } catch (err) {
-        console.warn('[MENTOR-IA] API error:', err.message);
-        setMsgs(m => [...m, { role: 'assistant', text: '⚠️ MENTOR-IA no está disponible en este momento. Respondiendo en modo demo — tus preguntas se guardan y se sincronizarán cuando se restaure la conexión.' }]);
-        setApiStatus('error');
-      }
-    } else {
-      // ── Modo demo: respuestas simuladas contextuales ─────
-      await new Promise(r => setTimeout(r, 900));
-      const demos = {
-        'macro': 'Una macro en Sprinklr es una respuesta o acción predefinida que puedes aplicar con un solo clic. Para Repsol Care, las macros más usadas son las de acuse de recibo inicial y las de escalado a Salesforce. La Think Pill 41 "Qué es una macro" tiene el vídeo explicativo disponible en la plataforma. ¿Quieres que te indique cómo acceder a ella?',
-        'aprobaci': 'El flujo de aprobación en Repsol Social Publish tiene dos variantes: el flujo estándar (el Content Lead revisa antes de publicar) y el flujo de emergencia para publicaciones urgentes. La Think Pill 20 explica exactamente cómo activar la aprobación de emergencia. ¿Es ese el caso que necesitas resolver?',
-        'sla': 'Los SLA en Repsol definen el tiempo máximo de respuesta por canal: 30 min en Twitter/X, 2h en Facebook e Instagram, 4h en LinkedIn. La barra de SLA en cada caso cambia de verde a rojo conforme se acerca el límite. Lo cubre en detalle la Think Pill 37. ¿Tienes algún caso específico donde el SLA esté en riesgo?',
-        'salesforce': 'La transferencia a Salesforce se usa cuando hay una reclamación formal o el cliente necesita gestión de back office. El flujo es: abrir el caso en Care → "Transferir a Salesforce" → seleccionar tipo de caso → confirmar datos. Las Think Pills 35 y 36 explican el proceso completo con ejemplos de Repsol. ¿Necesitas hacer una transferencia ahora?',
-        'calendar': 'El calendario editorial en Sprinklr Social Publish te permite visualizar todos los contenidos planificados por canal, campaña y territorio. Puedes filtrar por equipo o fecha. La Think Pill 23 explica cómo configurar tu vista personalizada. ¿Quieres saber cómo filtrar por un canal concreto?',
-        'default': `Entendido. En el contexto de Sprinklr para Repsol, lo que describes está relacionado con los módulos de tu ruta de certificación. Basándome en tu progreso actual (Bloque 2 · Estructura y gobernanza), te recomiendo revisar las Think Pills correspondientes en la plataforma. ¿Puedes darme más detalles sobre la situación concreta?`,
-      };
-      const key = Object.keys(demos).find(k => q.toLowerCase().includes(k)) || 'default';
-      setMsgs(m => [...m, { role: 'assistant', text: demos[key] }]);
+    try {
+      const reply = await callAnthropicDirect(newMsgs);
+      setMsgs(m => [...m, { role: 'assistant', text: reply }]);
+      setApiStatus('live');
+    } catch (err) {
+      console.warn('[MENTOR-IA] modo demo:', err.message);
+      setApiStatus('demo');
+      await new Promise(r => setTimeout(r, 800));
+      const demoKey = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
+      setMsgs(m => [...m, { role: 'assistant', text: DEMOS[demoKey] }]);
     }
     setLoading(false);
   };
@@ -419,85 +516,127 @@ function Coach() {
           Contexto: formación Sprinklr · Repsol
         </div>
       </aside>
-      <div className="coach-main">
-        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 100%)', borderRadius:14, color:'#fff'}}>
-          <div style={{width:40, height:40, borderRadius:12, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, backdropFilter:'blur(4px)'}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
+      <div className="coach-main" style={{background:'#0d1117', borderRadius:0, display:'flex', flexDirection:'column'}}>
+        {/* AI header */}
+        <div style={{padding:'16px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:14, background:'rgba(0,0,0,0.3)'}}>
+          {/* Animated orb */}
+          <div style={{position:'relative', width:44, height:44, flexShrink:0}}>
+            <div style={{position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 35% 35%, #0af, #005996 60%, #001a30)', boxShadow:'0 0 20px rgba(0,150,255,0.4)', animation:'none'}}/>
+            <div style={{position:'absolute', inset:3, borderRadius:'50%', background:'rgba(0,0,0,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(150,220,255,0.9)" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/>
+              </svg>
+            </div>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
+            <div style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.02em', color:'#fff', lineHeight:1.1}}>
+              MENTOR-IA
+              <span style={{marginLeft:8, fontFamily:'var(--mono)', fontWeight:400, fontSize:9, background:'#BCD630', color:'#0d1117', padding:'2px 7px', borderRadius:4, letterSpacing:'0.1em', textTransform:'uppercase', verticalAlign:'middle'}}>BETA</span>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,200,255,0.55)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Sprinklr × Repsol</div>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
-            {apiStatus === 'live' ? 'En línea' : apiStatus === 'error' ? 'Sin conexión' : 'Demo'}
-          </div>
-        </div>
-        <div className="coach-actions">
-          <div className="coach-action">
-            <span className="eyebrow">Módulo siguiente · 5 min</span>
-            <div className="t">Programar posts y calendario</div>
-            <div className="d">Siguiente en tu ruta de certificación Repsol.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Serie · 22 min</span>
-            <div className="t">Sprinklr Analytics para Repsol</div>
-            <div className="d">5 lecciones para interpretar tus campañas.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Quiz · 90 seg</span>
-            <div className="t">Test de Publish Agent</div>
-            <div className="d">Verifica lo aprendido en los módulos 1 y 2.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Resumen</span>
-            <div className="t">Lo que aprendí esta semana</div>
-            <div className="d">Flujo de aprobación completado · 2 módulos terminados.</div>
+          <div style={{display:'flex', alignItems:'center', gap:5, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color: apiStatus==='live' ? '#BCD630' : 'rgba(255,255,255,0.3)'}}>
+            <span style={{width:5, height:5, borderRadius:'50%', background: apiStatus==='live' ? '#BCD630' : 'rgba(255,255,255,0.25)', display:'inline-block', boxShadow: apiStatus==='live' ? '0 0 6px #BCD630' : 'none'}}/>
+            {apiStatus === 'live' ? 'En línea' : 'Demo'}
           </div>
         </div>
-        {/* Quick action chips */}
-        <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
+
+        {/* Context cards */}
+        <div style={{display:'flex', gap:8, padding:'12px 24px', borderBottom:'1px solid rgba(255,255,255,0.05)', overflowX:'auto'}}>
+          {[
+            {icon:'📊', label:'15% progreso', sub:'Bloque 2 activo'},
+            {icon:'📚', label:'Módulo siguiente', sub:'Programar posts'},
+            {icon:'🏆', label:'Certificación', sub:'Publish Agent'},
+          ].map((c,i) => (
+            <div key={i} style={{flexShrink:0, padding:'8px 12px', background:'rgba(255,255,255,0.05)', borderRadius:8, border:'1px solid rgba(255,255,255,0.08)', minWidth:110}}>
+              <div style={{fontSize:14, marginBottom:2}}>{c.icon}</div>
+              <div style={{fontSize:11, fontWeight:700, color:'rgba(200,230,255,0.9)', lineHeight:1.2}}>{c.label}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,180,255,0.5)', letterSpacing:'0.06em'}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick chips */}
+        <div style={{display:'flex', gap:6, flexWrap:'wrap', padding:'10px 24px 0'}}>
           {quickActions.map((a, i) => (
-            <button key={i} className="ai-chip" onClick={() => { setInput(a.q); }} style={{fontSize:11}}>
+            <button key={i} onClick={() => send(a.q)} style={{
+              padding:'6px 12px', background:'rgba(0,89,150,0.3)', border:'1px solid rgba(0,150,255,0.25)',
+              borderRadius:20, cursor:'pointer', fontFamily:'var(--sans)', fontSize:11, fontWeight:600,
+              color:'rgba(180,220,255,0.85)', transition:'all .12s', whiteSpace:'nowrap',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(0,89,150,0.55)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background='rgba(0,89,150,0.3)'; }}>
               {a.label}
             </button>
           ))}
         </div>
 
         {/* Conversation */}
-        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:12, padding:'16px 24px'}}>
           {msgs.map((m, i) => (
-            <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-              <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
-              <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+            <div key={i} style={{display:'flex', gap:10, alignItems:'flex-start', flexDirection: m.role==='assistant' ? 'row' : 'row-reverse'}}>
+              {/* Avatar */}
+              <div style={{
+                width:28, height:28, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+                background: m.role==='assistant' ? 'radial-gradient(circle at 35% 35%, #0af, #005996)' : 'rgba(255,255,255,0.15)',
+                boxShadow: m.role==='assistant' ? '0 0 10px rgba(0,150,255,0.3)' : 'none',
+                fontSize:11, fontWeight:800, color:'#fff',
+              }}>
+                {m.role==='assistant' ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(200,230,255,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg> : 'A'}
+              </div>
+              <div style={{
+                maxWidth:'72%', padding:'10px 14px', borderRadius: m.role==='assistant' ? '4px 14px 14px 14px' : '14px 4px 14px 14px',
+                background: m.role==='assistant' ? 'rgba(0,89,150,0.25)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${m.role==='assistant' ? 'rgba(0,150,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
+                color: 'rgba(220,235,255,0.9)', fontSize:13, lineHeight:1.6, whiteSpace:'pre-wrap',
+              }}>
+                {m.role==='assistant' && <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(0,180,255,0.6)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4}}>MENTOR-IA</div>}
+                {m.text}
+              </div>
             </div>
           ))}
           {loading && (
-            <div className="ai-msg from-ai">
-              <span className="who">MENTOR-IA</span>
-              <div className="bubble mentor-typing">
-                <span/><span/><span/>
+            <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+              <div style={{width:28, height:28, borderRadius:'50%', flexShrink:0, background:'radial-gradient(circle at 35% 35%, #0af, #005996)', boxShadow:'0 0 10px rgba(0,150,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(200,230,255,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
+              </div>
+              <div style={{padding:'12px 16px', borderRadius:'4px 14px 14px 14px', background:'rgba(0,89,150,0.25)', border:'1px solid rgba(0,150,255,0.2)', display:'flex', gap:6, alignItems:'center'}}>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
               </div>
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div className="coach-input-shell">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
-            placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación… (↵ enviar)"
-            disabled={loading}
-          />
-          <div className="coach-input-tools">
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
-              ↵ enviar · Shift+↵ nueva línea
-            </div>
-            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
-              {loading ? 'Pensando…' : 'Preguntar →'}
+        <div style={{padding:'12px 20px 20px', borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{display:'flex', gap:8, alignItems:'flex-end', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:14, padding:'8px 8px 8px 16px', transition:'border-color .15s'}}
+            onFocus={e => e.currentTarget.style.borderColor='rgba(0,150,255,0.4)'}
+            onBlur={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+              placeholder="Pregúntame sobre Sprinklr, tu certificación o cualquier módulo… (↵ enviar)"
+              disabled={loading}
+              rows={1}
+              style={{flex:1, background:'transparent', border:'none', outline:'none', resize:'none', fontFamily:'var(--sans)', fontSize:13, color:'rgba(220,235,255,0.85)', lineHeight:1.5, maxHeight:100, overflow:'auto'}}
+            />
+            <button onClick={send} disabled={loading} style={{
+              width:36, height:36, borderRadius:10, border:'none', cursor: loading ? 'default' : 'pointer',
+              background: loading ? 'rgba(0,89,150,0.3)' : 'var(--accent-glow)',
+              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s',
+              boxShadow: loading ? 'none' : '0 4px 12px rgba(0,89,150,0.4)',
+            }}>
+              {loading
+                ? <div style={{width:14, height:14, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'rgba(255,255,255,0.8)', animation:'spin .7s linear infinite'}}/>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><path d="M2 21l21-9L2 3l4.5 9L2 21z"/></svg>
+              }
             </button>
+          </div>
+          <div style={{marginTop:6, fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,180,255,0.35)', letterSpacing:'0.08em', textAlign:'center', textTransform:'uppercase'}}>
+            Powered by Claude · Anthropic · Contexto: Sprinklr × Repsol
           </div>
         </div>
       </div>
@@ -909,72 +1048,532 @@ function Profile() {
 
 // ---------- WhatsApp handoff ----------
 function WhatsApp() {
+  const [tab, setTab] = useS2('notif'); // 'notif' | 'metrics'
   const [toggles, setToggles] = useS2([true, true, false, true]);
+  const [links, setLinks] = useS2([]);
   const toggle = (i) => setToggles(ts => ts.map((v, idx) => idx === i ? !v : v));
+
+  useE2(() => {
+    if (tab === 'metrics' && window.WATracker) setLinks(window.WATracker.getLinks());
+  }, [tab]);
+
   const options = [
     { t: 'Módulo diario en WhatsApp, 9:00', d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
     { t: 'Briefs antes de reuniones Sprinklr', d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
     { t: 'Respuestas del agente IA por WhatsApp', d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
     { t: 'Resumen semanal (viernes, 17:00)', d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
   ];
+
+  const stats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0 };
+  const fmtDate = (ts) => { const d = new Date(ts); return d.toLocaleDateString('es-ES', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); };
+  const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : s+'s';
+
   return (
-    <div className="wa-root">
-      <div>
-        <div className="wa-head">
-          <div className="lms-hero-eyebrow" style={{marginBottom:12}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
-          <h1>Tu formación,<br/>donde <em>estés</em>.</h1>
-          <p>Solid funciona en la web y en WhatsApp. La plataforma es donde completas módulos y consultas el catálogo. WhatsApp es el recordatorio inteligente que te mantiene en el camino hacia la certificación.</p>
-        </div>
-        <div className="wa-toggles">
-          {options.map((x, i) => (
-            <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
-              <div>
-                <div className="t">{x.t}</div>
-                <div className="d">{x.d}</div>
-              </div>
-              <div className="sw"/>
+    <div className="main-inner" style={{maxWidth:980}}>
+      {/* Header */}
+      <div style={{marginBottom:28}}>
+        <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
+        <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,4vw,52px)', letterSpacing:'-0.025em', margin:'0 0 6px'}}>
+          Tu formación, <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>donde estés</em>.
+        </h1>
+        <p style={{fontSize:14, color:'var(--ink-3)', maxWidth:560, lineHeight:1.6}}>
+          Solid funciona en la web y en WhatsApp. Comparte módulos con un enlace rastreado y consulta cuántas personas los abrieron y cuánto tiempo vieron.
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex', gap:4, marginBottom:28, borderBottom:'1px solid var(--line)', paddingBottom:0}}>
+        {[{id:'notif', label:'Notificaciones'}, {id:'metrics', label:'Métricas de enlaces'}].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding:'10px 18px', border:'none', background:'transparent', cursor:'pointer',
+            fontFamily:'var(--sans)', fontSize:13, fontWeight: tab===t.id ? 700 : 500,
+            color: tab===t.id ? 'var(--ink)' : 'var(--ink-3)',
+            borderBottom: tab===t.id ? '2px solid var(--accent-glow)' : '2px solid transparent',
+            marginBottom:-1, transition:'all .12s',
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === 'notif' && (
+        <div className="wa-root" style={{padding:0}}>
+          <div>
+            <div className="wa-toggles" style={{marginBottom:0}}>
+              {options.map((x, i) => (
+                <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
+                  <div><div className="t">{x.t}</div><div className="d">{x.d}</div></div>
+                  <div className="sw"/>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="wa-phone">
+            <div className="wa-screen">
+              <div className="wa-bar">
+                <div className="av" style={{background:'var(--accent-glow)', color:'#fff'}}>S</div>
+                <div><div className="t">MENTOR-IA · Solid Sprinklr</div><div className="s">en línea · 9:00</div></div>
+              </div>
+              <div className="wa-chat">
+                <div className="wa-msg">
+                  Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
+                  <div className="time">9:00</div>
+                </div>
+                <div className="wa-msg" style={{padding:6}}>
+                  <div className="pill-card">
+                    <div className="thumb"><div className="ph plum">módulo</div></div>
+                    <div className="meta">
+                      <div className="t">Programar posts y gestión de calendario</div>
+                      <div className="s">Módulo · 5 min · Carlos Vega</div>
+                    </div>
+                  </div>
+                  <span className="wa-cta">▶ Ver en Solid</span>
+                  <div className="time">9:00</div>
+                </div>
+                <div className="wa-msg me">¿Cómo programo un post recurrente?<div className="time">9:03</div></div>
+                <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia. Puedes definir frecuencia diaria, semanal o personalizada.<div className="time">9:03</div></div>
+                <div className="wa-msg me">Perfecto, gracias<div className="time">9:04</div></div>
+                <div className="wa-msg">¡De nada! Cuando termines, se desbloquea el módulo de <b>Monitorización</b>. 💪<div className="time">9:04</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'metrics' && (
+        <div>
+          {/* KPI row */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:28}}>
+            {[
+              { label:'Enlaces compartidos', value: stats.totalShared, icon:'📤', color:'var(--accent-glow)' },
+              { label:'Aperturas totales',   value: stats.totalOpens,  icon:'👁', color:'var(--bn-green)' },
+              { label:'Aperturas / enlace',  value: stats.ctr,         icon:'📊', color:'var(--bn-orange)' },
+              { label:'Tiempo medio visto',  value: fmtSec(stats.avgWatch||0), icon:'⏱', color:'var(--repsol-red)' },
+            ].map((k,i) => (
+              <div key={i} style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, padding:'16px 18px', boxShadow:'var(--shadow-sm)'}}>
+                <div style={{fontSize:20, marginBottom:6}}>{k.icon}</div>
+                <div style={{fontSize:22, fontWeight:800, letterSpacing:'-0.03em', color:k.color, lineHeight:1}}>{k.value}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:4}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Links table */}
+          <div style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)'}}>
+            <div style={{padding:'14px 20px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+              <div style={{fontWeight:700, fontSize:14}}>Historial de enlaces</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>{links.length} enlaces</div>
+            </div>
+            {links.length === 0 ? (
+              <div style={{padding:'40px 20px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>
+                Aún no has compartido ningún módulo por WhatsApp.<br/>
+                <span style={{fontFamily:'var(--mono)', fontSize:11}}>Abre un módulo y pulsa "Compartir por WhatsApp".</span>
+              </div>
+            ) : (
+              <table style={{width:'100%', borderCollapse:'collapse', fontSize:13}}>
+                <thead>
+                  <tr style={{background:'var(--paper-2)'}}>
+                    {['Módulo','Compartido por','Fecha','Aperturas','Tiempo visto','Acción'].map(h => (
+                      <th key={h} style={{padding:'10px 16px', textAlign:'left', fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:600, borderBottom:'1px solid var(--line)'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {links.map((l,i) => (
+                    <tr key={i} style={{borderBottom:'1px solid var(--line-2)'}}>
+                      <td style={{padding:'12px 16px', fontWeight:600, maxWidth:240}}>
+                        <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:220}}>{l.pillTitle}</div>
+                        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:2}}>{l.duration||'—'}</div>
+                      </td>
+                      <td style={{padding:'12px 16px', color:'var(--ink-3)'}}>{l.sharedBy||'—'}</td>
+                      <td style={{padding:'12px 16px', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', whiteSpace:'nowrap'}}>{fmtDate(l.sharedAt)}</td>
+                      <td style={{padding:'12px 16px'}}>
+                        <span style={{display:'inline-flex', alignItems:'center', gap:5, fontWeight:700, color: l.opens>0 ? 'var(--bn-green)' : 'var(--ink-4)'}}>
+                          {l.opens>0 ? '●' : '○'} {l.opens||0}
+                        </span>
+                      </td>
+                      <td style={{padding:'12px 16px', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>{fmtSec(l.watchSeconds||0)}</td>
+                      <td style={{padding:'12px 16px'}}>
+                        <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(l.url); }} style={{background:'none', border:'1px solid var(--line)', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>
+                          Copiar URL
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* How it works */}
+          <div style={{marginTop:24, padding:'16px 20px', background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Cómo funciona</div>
+            <div style={{display:'flex', gap:24, flexWrap:'wrap'}}>
+              {[
+                { n:'1', t:'Comparte', d:'Pulsa "Compartir por WhatsApp" en cualquier módulo. Se genera un enlace único rastreado.' },
+                { n:'2', t:'Recibe métricas', d:'Cada vez que alguien abre el enlace, se registra una apertura. El tiempo de vídeo también se mide.' },
+                { n:'3', t:'Analiza', d:'Consulta aquí cuántas personas vieron el módulo y cuánto tiempo estuvieron.' },
+              ].map(s => (
+                <div key={s.n} style={{flex:'1 1 160px', display:'flex', gap:10, alignItems:'flex-start'}}>
+                  <div style={{width:24, height:24, borderRadius:'50%', background:'var(--accent-glow)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:12, flexShrink:0}}>{s.n}</div>
+                  <div>
+                    <div style={{fontWeight:700, fontSize:13, marginBottom:2}}>{s.t}</div>
+                    <div style={{fontSize:12, color:'var(--ink-3)', lineHeight:1.5}}>{s.d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Rutas de aprendizaje ----------
+const useS3 = React.useState;
+const useE3 = React.useEffect;
+
+const LEARNING_PATHS = [
+  {
+    id: 'fundamentals', label: 'Fundamentals', roleTag: 'Base · Todos los roles',
+    desc: 'El punto de partida obligatorio antes de cualquier especialización. Cubre los fundamentos de Sprinklr y la estructura de Repsol.',
+    color: '#0072BE', bg: 'linear-gradient(135deg,#0072BE,#004d8a)', icon: '🎓',
+    pills: ['p0','p1','p2','p3','p4','p5','p6','p7'], duration: '28 min', badge: 'obligatoria',
+  },
+  {
+    id: 'managers', label: 'Managers', roleTag: 'Liderazgo y gobernanza',
+    desc: 'Para líderes de equipo. Gobernanza, estructura de roles, flujos de aprobación y visión estratégica de Sprinklr.',
+    color: '#8A3992', bg: 'linear-gradient(135deg,#8A3992,#5a1f6e)', icon: '👑',
+    pills: ['p0','p1','p6','p7','p8','p9','p10','p15','p22'], duration: '34 min', badge: 'rol',
+  },
+  {
+    id: 'publish-agent', label: 'Publish Agent', roleTag: 'Publicación y contenido',
+    desc: 'Operativa de publicación multicanal, gestión de campañas, aprobaciones y calendario editorial en Social Publish.',
+    color: '#EB0029', bg: 'linear-gradient(135deg,#EB0029,#9b0018)', icon: '📢',
+    pills: ['p0','p11','p13','p14','p17','p18','p19','p20','p21','p22','p23','p24'], duration: '52 min', badge: 'rol',
+  },
+  {
+    id: 'care-agent', label: 'Care Agent', roleTag: 'Atención al cliente',
+    desc: 'Gestión de conversaciones entrantes, SLA, Care Console, escalado a Salesforce y operativa de Community Manager.',
+    color: '#036837', bg: 'linear-gradient(135deg,#036837,#024024)', icon: '💬',
+    pills: ['p0','p1','p27','p28','p29','p30','p31','p32','p33','p37','p38','p39','p40'], duration: '55 min', badge: 'rol',
+  },
+  {
+    id: 'reporting', label: 'Reporting Agent', roleTag: 'Analytics y métricas',
+    desc: 'Visualización del rendimiento de campañas, métricas clave y dashboards analíticos para evaluar la performance del contenido.',
+    color: '#004d8a', bg: 'linear-gradient(135deg,#004d8a,#001a30)', icon: '📊',
+    pills: ['p0','p1','p25','p26','p31','p39','p40'], duration: '28 min', badge: 'rol',
+  },
+  {
+    id: 'campaign-global', label: 'Campaign Global', roleTag: 'Campañas multi-territorio',
+    desc: 'Ruta avanzada para gestión de campañas a escala global. Gobernanza, DAM, compliance y publicación en múltiples territorios.',
+    color: '#c87800', bg: 'linear-gradient(135deg,#F3A524,#a36200)', icon: '🌍',
+    pills: ['p0','p11','p13','p15','p16','p22','p23','p24','p25','p26'], duration: '43 min', badge: 'avanzado',
+  },
+];
+
+function Rutas({ openPlayer }) {
+  const [selected, setSelected] = useS3(null);
+  const [completed, setCompleted] = useS3(() => {
+    try { return JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); }
+    catch { return ['p0','p1','p2']; }
+  });
+
+  const getPill = (id) => (window.PILLS || []).find(p => p.id === id);
+  const isUnlocked = (pills, i) => i === 0 || completed.includes(pills[i - 1]);
+  const markDone = (pillId) => {
+    const u = [...new Set([...completed, pillId])];
+    setCompleted(u);
+    localStorage.setItem('solid-completed', JSON.stringify(u));
+  };
+
+  if (selected) {
+    const path = LEARNING_PATHS.find(p => p.id === selected);
+    const doneCount = path.pills.filter(id => completed.includes(id)).length;
+    const pct = Math.round(doneCount / path.pills.length * 100);
+    const nextIdx = path.pills.findIndex(id => !completed.includes(id));
+
+    return (
+      <div className="main-inner" style={{maxWidth:820}}>
+        <button onClick={() => setSelected(null)} style={{display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'var(--ink-4)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer', padding:'0 0 20px', textDecoration:'none'}}>
+          ← Todas las rutas
+        </button>
+
+        {/* Path header */}
+        <div style={{borderRadius:16, overflow:'hidden', marginBottom:28, background:path.bg, color:'#fff', padding:'28px 32px', position:'relative'}}>
+          <div style={{position:'absolute', right:24, top:16, fontSize:56, opacity:0.15}}>{path.icon}</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', opacity:0.6, marginBottom:6}}>{path.roleTag}</div>
+          <h2 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:28, letterSpacing:'-0.025em', margin:'0 0 6px'}}>{path.label}</h2>
+          <p style={{fontSize:13, opacity:0.75, maxWidth:480, lineHeight:1.6, margin:'0 0 20px'}}>{path.desc}</p>
+          <div style={{display:'flex', alignItems:'center', gap:16}}>
+            <div style={{flex:1, height:6, background:'rgba(255,255,255,0.2)', borderRadius:3, overflow:'hidden'}}>
+              <div style={{width:pct+'%', height:'100%', background:'rgba(255,255,255,0.85)', borderRadius:3, transition:'width .4s'}}/>
+            </div>
+            <span style={{fontFamily:'var(--mono)', fontSize:11, fontWeight:700, whiteSpace:'nowrap'}}>{pct}% · {doneCount}/{path.pills.length} módulos</span>
+          </div>
+        </div>
+
+        {/* Module list */}
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+          {path.pills.map((pillId, i) => {
+            const pill = getPill(pillId);
+            if (!pill) return null;
+            const unlocked = isUnlocked(path.pills, i);
+            const done = completed.includes(pillId);
+            const isCurrent = i === nextIdx;
+            return (
+              <div key={pillId} style={{
+                display:'flex', alignItems:'center', gap:14, padding:'14px 18px',
+                background: done ? 'rgba(3,104,55,0.06)' : isCurrent ? '#fff' : 'var(--paper)',
+                border: `1px solid ${done ? '#03683722' : isCurrent ? path.color+'44' : 'var(--line)'}`,
+                borderLeft: isCurrent ? `4px solid ${path.color}` : done ? '4px solid #036837' : '4px solid transparent',
+                borderRadius:12, opacity: !unlocked ? 0.45 : 1,
+                boxShadow: isCurrent ? '0 4px 16px rgba(0,0,0,0.07)' : 'none',
+                transition:'all .15s',
+              }}>
+                {/* Step badge */}
+                <div style={{
+                  width:32, height:32, borderRadius:'50%', flexShrink:0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontWeight:800, fontSize:13,
+                  background: done ? '#036837' : isCurrent ? path.color : 'var(--paper-3)',
+                  color: done || isCurrent ? '#fff' : unlocked ? 'var(--ink-3)' : 'var(--ink-4)',
+                  border: !unlocked ? '2px dashed var(--line)' : 'none',
+                }}>
+                  {done ? '✓' : !unlocked ? '🔒' : i+1}
+                </div>
+
+                {/* Content */}
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13, fontWeight: isCurrent ? 700 : 600, color: !unlocked ? 'var(--ink-4)' : 'var(--ink)', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{pill.title}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+                    {pill.category} · {pill.duration} · {pill.teacher}
+                    {!unlocked && <span style={{color:'var(--ink-4)', marginLeft:6}}>— Completa el módulo anterior</span>}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {done && <span style={{fontFamily:'var(--mono)', fontSize:10, color:'#036837', fontWeight:700, flexShrink:0}}>COMPLETADO</span>}
+                {isCurrent && !done && (
+                  <div style={{display:'flex', gap:8, flexShrink:0}}>
+                    <button onClick={() => openPlayer && openPlayer(pill)} style={{background:path.color, color:'#fff', border:'none', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:12}}>
+                      ▶ Ver
+                    </button>
+                    <button onClick={() => markDone(pillId)} style={{background:'var(--paper-2)', color:'var(--ink-3)', border:'1px solid var(--line)', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>
+                      ✓ Marcar
+                    </button>
+                  </div>
+                )}
+                {unlocked && !done && !isCurrent && (
+                  <button onClick={() => markDone(pillId)} style={{background:'var(--paper-2)', color:'var(--ink-3)', border:'1px solid var(--line)', borderRadius:8, padding:'6px 12px', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, flexShrink:0}}>
+                    Marcar ✓
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
-      <div className="wa-phone">
-        <div className="wa-screen">
-          <div className="wa-bar">
-            <div className="av" style={{background:'var(--accent-glow)', color:'var(--ink)'}}>S</div>
-            <div>
-              <div className="t">MENTOR-IA · Solid Sprinklr</div>
-              <div className="s">en línea · 9:00</div>
-            </div>
-          </div>
-          <div className="wa-chat">
-            <div className="wa-msg">
-              Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
-              <div className="time">9:00</div>
-            </div>
-            <div className="wa-msg" style={{padding:6}}>
-              <div className="pill-card">
-                <div className="thumb"><div className="ph plum">módulo</div></div>
-                <div className="meta">
-                  <div className="t">Programar posts y gestión de calendario</div>
-                  <div className="s">Módulo · 5 min · Carlos Vega</div>
-                </div>
+    );
+  }
+
+  // Path grid
+  return (
+    <div className="main-inner">
+      <div style={{marginBottom:28}}>
+        <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>SOLID GROWTH · Repsol × BeonIt</div>
+        <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,4vw,52px)', letterSpacing:'-0.025em', margin:'0 0 6px'}}>
+          Rutas de <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>aprendizaje</em>.
+        </h1>
+        <p style={{fontSize:14, color:'var(--ink-3)', maxWidth:520, lineHeight:1.6}}>
+          Cada ruta está diseñada para tu rol. Los módulos están ordenados y debes completar uno para desbloquear el siguiente.
+        </p>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:16}}>
+        {LEARNING_PATHS.map(path => {
+          const doneCount = path.pills.filter(id => completed.includes(id)).length;
+          const pct = Math.round(doneCount / path.pills.length * 100);
+          const nextIdx = path.pills.findIndex(id => !completed.includes(id));
+          const nextPill = nextIdx >= 0 ? getPill(path.pills[nextIdx]) : null;
+          return (
+            <div key={path.id} onClick={() => setSelected(path.id)} style={{
+              background:'var(--paper)', border:'1px solid var(--line)', borderRadius:16,
+              overflow:'hidden', cursor:'pointer', transition:'all .18s',
+              boxShadow:'var(--shadow-sm)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='var(--shadow-sm)'; }}>
+              {/* Colored header */}
+              <div style={{background:path.bg, padding:'20px 22px', color:'#fff', position:'relative', overflow:'hidden'}}>
+                <div style={{position:'absolute', right:12, top:8, fontSize:40, opacity:0.15}}>{path.icon}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', opacity:0.65, marginBottom:4}}>{path.roleTag}</div>
+                <div style={{fontWeight:800, fontSize:18, letterSpacing:'-0.02em'}}>{path.label}</div>
+                {path.badge === 'obligatoria' && (
+                  <span style={{display:'inline-block', marginTop:6, fontFamily:'var(--mono)', fontSize:9, background:'rgba(255,255,255,0.2)', padding:'2px 8px', borderRadius:999, letterSpacing:'0.08em', textTransform:'uppercase'}}>Obligatoria</span>
+                )}
               </div>
-              <span className="wa-cta">▶ Ver en Solid</span>
-              <div className="time">9:00</div>
+              {/* Body */}
+              <div style={{padding:'16px 22px'}}>
+                <p style={{fontSize:12, color:'var(--ink-3)', lineHeight:1.6, marginBottom:14, minHeight:48}}>{path.desc}</p>
+                {/* Progress */}
+                <div style={{height:4, background:'var(--paper-3)', borderRadius:2, overflow:'hidden', marginBottom:8}}>
+                  <div style={{width:pct+'%', height:'100%', background:path.color, borderRadius:2, transition:'width .4s'}}/>
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+                    {doneCount}/{path.pills.length} módulos · {path.duration}
+                  </div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, fontWeight:700, color:path.color}}>{pct}%</div>
+                </div>
+                {nextPill && pct < 100 && (
+                  <div style={{marginTop:10, padding:'8px 12px', background:'var(--paper-2)', borderRadius:8, fontSize:11, color:'var(--ink-3)'}}>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)'}}>Siguiente → </span>
+                    {nextPill.title}
+                  </div>
+                )}
+                {pct === 100 && (
+                  <div style={{marginTop:10, padding:'8px 12px', background:'#03683710', borderRadius:8, fontSize:11, color:'#036837', fontWeight:700, textAlign:'center'}}>
+                    ✓ Ruta completada · Certificación disponible
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="wa-msg me">¿Cómo programo un post recurrente?
-              <div className="time">9:03</div>
-            </div>
-            <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia al crear el post. Puedes definir frecuencia diaria, semanal o personalizada.
-              <div className="time">9:03</div>
-            </div>
-            <div className="wa-msg me">Perfecto, gracias
-              <div className="time">9:04</div>
-            </div>
-            <div className="wa-msg">¡De nada! Cuando termines el módulo te desbloquea el de <b>Monitorización</b>. 💪
-              <div className="time">9:04</div>
-            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Chart primitives (pure SVG, no deps) ─────────────────────────────────
+
+function ColumnChart({ data, color = 'var(--accent-glow)', height = 110 }) {
+  const max = Math.max(...data.map(d => d.v), 1);
+  const w = 300, bw = Math.floor(w / data.length) - 4;
+  return (
+    <svg viewBox={`0 0 ${w} ${height + 20}`} style={{width:'100%', overflow:'visible'}}>
+      {data.map((d, i) => {
+        const bh = Math.max(2, Math.round(d.v / max * height));
+        const x = i * (bw + 4) + 2;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - bh} width={bw} height={bh} rx={3} fill={color} opacity="0.85"/>
+            <text x={x + bw/2} y={height + 14} textAnchor="middle" fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{d.l}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function StackedBarChart({ series, categories, height = 140 }) {
+  const colors = ['var(--accent-glow)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--repsol-red)', 'var(--bn-purple)'];
+  const totals = categories.map((_, ci) => series.reduce((s, sr) => s + (sr.values[ci] || 0), 0));
+  const maxT = Math.max(...totals, 1);
+  const barH = height / categories.length - 6;
+  return (
+    <svg viewBox={`0 ${-4} 300 ${height + 20}`} style={{width:'100%', overflow:'visible'}}>
+      {categories.map((cat, ci) => {
+        let x = 0;
+        const total = totals[ci];
+        return (
+          <g key={ci}>
+            <text x={0} y={ci*(barH+6)+barH/2+4} fontSize="9" fill="var(--ink-4)" fontFamily="var(--mono)" textAnchor="start">{cat}</text>
+            {series.map((sr, si) => {
+              const fw = total > 0 ? sr.values[ci] / maxT * 220 : 0;
+              const rect = <rect key={si} x={75+x} y={ci*(barH+6)} width={fw} height={barH} rx={si===0?3:0} fill={colors[si%colors.length]} opacity="0.85"/>;
+              x += fw;
+              return rect;
+            })}
+          </g>
+        );
+      })}
+      {/* Legend */}
+      {series.map((sr, si) => (
+        <g key={si} transform={`translate(${si*80},${height+14})`}>
+          <rect width={10} height={10} rx={2} fill={colors[si%colors.length]} opacity="0.85"/>
+          <text x={14} y={9} fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{sr.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function DonutChart({ segments, size = 120 }) {
+  const total = segments.reduce((s, seg) => s + seg.v, 0) || 1;
+  const r = 42, cx = size/2, cy = size/2, strokeW = 18;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const colors = ['var(--accent-glow)', 'var(--bn-orange)', 'var(--bn-lime)', 'var(--repsol-red)', 'var(--bn-purple)', 'var(--beonit-blue)'];
+  return (
+    <div style={{display:'flex', gap:16, alignItems:'center', flexWrap:'wrap'}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--paper-3)" strokeWidth={strokeW}/>
+        {segments.map((seg, i) => {
+          const pct = seg.v / total;
+          const dash = pct * circumference;
+          const gap = circumference - dash;
+          const el = (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+              stroke={colors[i%colors.length]} strokeWidth={strokeW}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={-offset * circumference}
+              strokeLinecap="butt"
+              transform={`rotate(-90 ${cx} ${cy})`}
+              opacity="0.9"
+            />
+          );
+          offset += pct;
+          return el;
+        })}
+        <text x={cx} y={cy-4} textAnchor="middle" fontSize="14" fontWeight="800" fill="var(--ink)" fontFamily="var(--sans)">{total}</text>
+        <text x={cx} y={cy+10} textAnchor="middle" fontSize="7" fill="var(--ink-4)" fontFamily="var(--mono)">TOTAL</text>
+      </svg>
+      <div style={{display:'flex', flexDirection:'column', gap:5, flex:1, minWidth:100}}>
+        {segments.map((seg, i) => (
+          <div key={i} style={{display:'flex', alignItems:'center', gap:7}}>
+            <div style={{width:10, height:10, borderRadius:2, background:colors[i%colors.length], flexShrink:0, opacity:0.9}}/>
+            <div style={{fontSize:11, color:'var(--ink-3)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{seg.l}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--ink)'}}>{Math.round(seg.v/total*100)}%</div>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const WIDGET_TYPES = [
+  { id:'dropoff',  label:'Drop-off (línea)',   icon:'📉' },
+  { id:'column',   label:'Barras verticales',  icon:'📊' },
+  { id:'stacked',  label:'Stacked Bar',        icon:'🟦' },
+  { id:'donut',    label:'Pastel / Donut',      icon:'🥧' },
+  { id:'modules',  label:'Completación',       icon:'✅' },
+  { id:'users',    label:'Tabla usuarios',     icon:'👤' },
+  { id:'activity', label:'Actividad reciente', icon:'🔔' },
+  { id:'wa',       label:'WhatsApp analytics', icon:'💬' },
+];
+
+function WidgetPicker({ onAdd, onClose }) {
+  return (
+    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center'}} onClick={onClose}>
+      <div style={{background:'var(--paper)', borderRadius:16, padding:24, width:380, boxShadow:'var(--shadow-lg)'}} onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+          <div style={{fontWeight:800, fontSize:16}}>Añadir widget</div>
+          <button onClick={onClose} style={{background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--ink-4)'}}>×</button>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+          {WIDGET_TYPES.map(wt => (
+            <button key={wt.id} onClick={() => { onAdd(wt.id); onClose(); }} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'12px 14px',
+              background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10,
+              cursor:'pointer', fontFamily:'var(--sans)', fontSize:12, fontWeight:600, color:'var(--ink)',
+              transition:'all .12s', textAlign:'left',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor='var(--accent-glow)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
+              <span style={{fontSize:18}}>{wt.icon}</span>{wt.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -985,6 +1584,12 @@ function WhatsApp() {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
+  const [activeWidgets, setActiveWidgets] = useS2(['dropoff', 'column', 'modules', 'users', 'activity', 'wa']);
+  const [showPicker, setShowPicker] = useS2(false);
+  const addWidget = (id) => setActiveWidgets(w => w.includes(id) ? w : [...w, id]);
+  const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
+  const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
+  const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
   const kpis = [
     { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
     { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
@@ -1028,12 +1633,39 @@ function Dashboard() {
     { color: '',       text: 'Luis Romero descargó el certificado de DAM',              time: 'Ayer, 18:30' },
   ];
 
+  const colData = [
+    {l:'Social P.',v:89},{l:'Aprobac.',v:76},{l:'Calendr.',v:54},{l:'Monitor.',v:38},{l:'DAM',v:22},{l:'Complian.',v:11},
+  ];
+  const stackData = {
+    series: [
+      {label:'Completado', values:[89,76,54,38,22,11]},
+      {label:'En progreso', values:[8,12,20,25,15,10]},
+      {label:'Sin iniciar', values:[3,12,26,37,63,79]},
+    ],
+    categories: ['Social Publish','Aprobaciones','Calendario','Monitorización','DAM','Compliance'],
+  };
+  const donutData = [
+    {l:'Publish Agent',v:89},{l:'Care Agent',v:64},{l:'Managers',v:32},{l:'Reporting',v:28},{l:'Sin rol',v:34},
+  ];
+  const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
+
   return (
     <div className="dash-root">
-      <div className="dash-header">
-        <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
-        <h1>Analytics <em>Sprinklr</em></h1>
-        <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+      {showPicker && <WidgetPicker onAdd={addWidget} onClose={() => setShowPicker(false)}/>}
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
+        <div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
+          <h1>Analytics <em>Sprinklr</em></h1>
+          <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+        </div>
+        <button onClick={() => setShowPicker(true)} style={{
+          display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px',
+          background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10,
+          cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13,
+          boxShadow:'0 4px 14px rgba(0,89,150,0.3)', marginTop:8,
+        }}>
+          + Añadir widget
+        </button>
       </div>
 
       <div className="dash-kpis">
@@ -1046,40 +1678,83 @@ function Dashboard() {
         ))}
       </div>
 
+      {/* Dynamic widget grid */}
       <div className="dash-grid">
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Drop-off por minuto · Módulo activo</h3>
-            <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
+        {activeWidgets.includes('dropoff') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Drop-off por minuto</h3>
+              <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
+              <button onClick={() => removeWidget('dropoff')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body">
+              <div className="dropoff-chart">
+                {dropoff.map((v, i) => (
+                  <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}%`}/>
+                ))}
+              </div>
+              <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
+              <div className="dropoff-legend">
+                <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
+                <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
+              </div>
+            </div>
           </div>
-          <div className="dash-panel-body">
-            <div className="dropoff-chart">
-              {dropoff.map((v, i) => (
-                <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}% retenidos`}/>
+        )}
+        {activeWidgets.includes('column') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Completación por módulo</h3>
+              <span className="panel-sub">Barras verticales · % completado</span>
+              <button onClick={() => removeWidget('column')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8}}>
+              <ColumnChart data={colData} color="var(--accent-glow)" height={100}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('stacked') && (
+          <div className="dash-panel" style={{gridColumn:'span 2'}}>
+            <div className="dash-panel-head">
+              <h3>Stacked Bar · Estado por módulo</h3>
+              <span className="panel-sub">Completado · En progreso · Sin iniciar</span>
+              <button onClick={() => removeWidget('stacked')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8}}>
+              <StackedBarChart series={stackData.series} categories={stackData.categories} height={150}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('donut') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Pastel · Distribución por rol</h3>
+              <span className="panel-sub">247 usuarios activos</span>
+              <button onClick={() => removeWidget('donut')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8, paddingBottom:12}}>
+              <DonutChart segments={donutData}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('modules') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Completación por módulo</h3>
+              <span className="panel-sub">% usuarios que terminaron</span>
+              <button onClick={() => removeWidget('modules')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body">
+              {modules.map((m, i) => (
+                <div key={i} className="module-bar-row">
+                  <div className="mod-name">{m.name}</div>
+                  <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
+                  <div className="mod-pct">{m.pct}%</div>
+                </div>
               ))}
             </div>
-            <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
-            <div className="dropoff-legend">
-              <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
-              <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
-            </div>
           </div>
-        </div>
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Completación por módulo</h3>
-            <span className="panel-sub">% usuarios que terminaron</span>
-          </div>
-          <div className="dash-panel-body">
-            {modules.map((m, i) => (
-              <div key={i} className="module-bar-row">
-                <div className="mod-name">{m.name}</div>
-                <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
-                <div className="mod-pct">{m.pct}%</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="dash-grid-3">
@@ -1087,6 +1762,7 @@ function Dashboard() {
           <div className="dash-panel-head">
             <h3>Checklist de aprendizaje</h3>
             <span className="panel-sub">Amaia Ruiz</span>
+            <button onClick={() => removeWidget('checklist')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
           </div>
           <div className="dash-panel-body">
             <div className="check-list">
@@ -1099,10 +1775,11 @@ function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="dash-panel" style={{gridColumn:'span 2'}}>
+        {activeWidgets.includes('users') && <div className="dash-panel" style={{gridColumn:'span 2'}}>
           <div className="dash-panel-head">
             <h3>Usuarios activos</h3>
             <span className="panel-sub">Progreso individual</span>
+            <button onClick={() => removeWidget('users')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
           </div>
           <div className="dash-panel-body" style={{padding:'0 20px'}}>
             <table className="user-table">
@@ -1126,13 +1803,14 @@ function Dashboard() {
               </tbody>
             </table>
           </div>
-        </div>
+        </div>}
       </div>
 
-      <div className="dash-panel">
+      {activeWidgets.includes('activity') && <div className="dash-panel">
         <div className="dash-panel-head">
           <h3>Actividad reciente</h3>
           <span className="panel-sub">Últimas 24 horas</span>
+          <button onClick={() => removeWidget('activity')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
         </div>
         <div className="dash-panel-body">
           <div className="activity-feed">
@@ -1145,6 +1823,56 @@ function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>}
+
+      {/* WhatsApp link analytics */}
+      {activeWidgets.includes('wa') && <div className="dash-panel">
+        <div className="dash-panel-head">
+          <h3 style={{display:'flex', alignItems:'center', gap:8}}>
+            <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:'50%', background:'#25D366', flexShrink:0}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
+              </svg>
+            </span>
+            Analytics WhatsApp
+          </h3>
+          <span className="panel-sub">{waStats.totalShared} enlaces compartidos</span>
+        </div>
+        <div className="dash-panel-body">
+          {/* mini KPI row */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, padding:'0 20px 16px', borderBottom:'1px solid var(--line-2)'}}>
+            {[
+              { label:'Compartidos', value: waStats.totalShared },
+              { label:'Aperturas',   value: waStats.totalOpens },
+              { label:'Ratio apertura', value: waStats.ctr+'×' },
+              { label:'Tiempo medio', value: fmtSec(waStats.avgWatch||0) },
+            ].map((k,i) => (
+              <div key={i} style={{textAlign:'center'}}>
+                <div style={{fontSize:20, fontWeight:800, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>{k.value}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:3}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* top 3 links */}
+          <div style={{padding:'12px 20px'}}>
+            {waStats.links.slice(0,3).map((l,i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'8px 0', borderBottom: i<2 ? '1px solid var(--line-2)' : 'none'}}>
+                <div style={{width:28, height:28, borderRadius:8, background:'#25D36618', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontWeight:800, fontSize:12, color:'#25D366'}}>{i+1}</div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:12, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.pillTitle}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:1}}>por {l.sharedBy||'—'} · {fmtSec(l.watchSeconds||0)} visto</div>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0}}>
+                  <div style={{fontWeight:700, fontSize:14, color: l.opens>0 ? 'var(--bn-green)' : 'var(--ink-4)'}}>{l.opens||0}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.06em'}}>aperturas</div>
+                </div>
+              </div>
+            ))}
+            {waStats.links.length === 0 && (
+              <div style={{textAlign:'center', color:'var(--ink-4)', fontSize:12, padding:'12px 0'}}>Ningún enlace compartido aún.</div>
+            )}
           </div>
         </div>
       </div>
@@ -1260,9 +1988,9 @@ function Cronograma() {
             <span>{leg.l}</span>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma });
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart });

@@ -113,17 +113,20 @@ function Sidebar({ view, setView }) {
     { id: 'home',      label: 'Inicio',      icon: 'home' },
     { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
-    { id: 'dashboard', label: 'Dashboard',   icon: 'trend', badge: 'NEW' },
+    { id: 'rutas',     label: 'Rutas',       icon: 'compass', badge: 'NEW' },
+    { id: 'dashboard', label: 'Dashboard',   icon: 'trend' },
     { id: 'coach',       label: 'MENTOR-IA',    icon: 'sparkle', badge: 'BETA' },
     { id: 'cronograma', label: 'Cronograma',  icon: 'trend' },
+    { id: 'wa',        label: 'WhatsApp',    icon: 'chat', badge: 'NEW' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
   return (
     <aside className="sb">
-      <div className="sb-brand">
-        <img src="beonit-logo.png" style={{height:28, width:'auto'}} alt="BeonIt"/>
-        <span className="mark">Solid</span>
+      <div className="sb-brand" style={{gap:10, alignItems:'center'}}>
+        <img src="beonit-logo.png" style={{height:22, width:'auto', flexShrink:0}} alt="BeonIt"/>
+        <div style={{width:1, height:18, background:'var(--line)', flexShrink:0}}/>
+        <span style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>SOLID</span>
       </div>
 
       <div className="sb-org">
@@ -253,6 +256,37 @@ function Home({ openDetail, openPlayer, setView }) {
         <div className="fb-visual">
           <div className="ph teal" style={{position:'absolute', inset:0}}/>
           <div className="fb-badge">15% completado</div>
+        </div>
+      </div>
+
+      {/* Rutas preview */}
+      <div style={{margin:'40px 0 0'}}>
+        <div className="row-head" style={{marginBottom:16}}>
+          <h2>Rutas de <em>aprendizaje</em></h2>
+          <button className="link-btn" onClick={() => setView('rutas')}>Ver todas →</button>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10}}>
+          {(window.LEARNING_PATHS || [
+            {id:'fundamentals', label:'Fundamentals', color:'#0072BE', bg:'linear-gradient(135deg,#0072BE,#004d8a)', icon:'🎓', pills:8},
+            {id:'publish-agent', label:'Publish Agent', color:'#EB0029', bg:'linear-gradient(135deg,#EB0029,#9b0018)', icon:'📢', pills:12},
+            {id:'care-agent', label:'Care Agent', color:'#036837', bg:'linear-gradient(135deg,#036837,#024024)', icon:'💬', pills:13},
+            {id:'managers', label:'Managers', color:'#8A3992', bg:'linear-gradient(135deg,#8A3992,#5a1f6e)', icon:'👑', pills:9},
+          ]).slice(0,4).map((p, i) => (
+            <div key={p.id||i} onClick={() => setView('rutas')} style={{
+              background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden',
+              cursor:'pointer', transition:'all .15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow=''; }}>
+              <div style={{background:p.bg||'var(--paper-3)', padding:'14px 16px', color:'#fff', display:'flex', alignItems:'center', gap:10}}>
+                <span style={{fontSize:22}}>{p.icon||'📚'}</span>
+                <div style={{fontWeight:800, fontSize:14, letterSpacing:'-0.01em'}}>{p.label}</div>
+              </div>
+              <div style={{padding:'10px 16px', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+                {p.pills} módulos · Secuencial
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

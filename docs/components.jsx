@@ -2,12 +2,44 @@
 
 const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
-const Card = ({ tone = 'noir', title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => (
+const CATEGORY_COLORS = {
+  'Fundamentos':    '#0072BE',
+  'Estructura':     '#005a96',
+  'Gobernanza':     '#3d31cc',
+  'Social Publish': '#EB0029',
+  'Activos':        '#036837',
+  'Aprobaciones':   '#8A3992',
+  'Compliance':     '#1a1a2e',
+  'Calendario':     '#0072BE',
+  'Analytics':      '#004d8a',
+  'Care':           '#B8001F',
+  'Integraciones':  '#3d31cc',
+};
+
+const RepsolCover = ({ pill, category }) => {
+  const accent = CATEGORY_COLORS[category] || '#0D1117';
+  return (
+    <div style={{position:'absolute', inset:0, background:'#080e1a', overflow:'hidden'}}>
+      <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:'#EB0029'}}/>
+      <div style={{position:'absolute', top:3, left:0, bottom:0, width:3, background:accent, opacity:0.7}}/>
+      <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px)'}}/>
+      <div style={{position:'absolute', right:-6, bottom:-10, fontSize:76, fontWeight:800, fontFamily:'var(--mono)', color:'rgba(235,0,41,0.06)', lineHeight:1, letterSpacing:'-0.05em', userSelect:'none', pointerEvents:'none'}}>
+        {pill != null ? String(pill).padStart(2,'0') : ''}
+      </div>
+      <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:'10px 12px', gap:2}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:7.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.3)'}}>Repsol × Sprinklr</div>
+        {category && <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:accent === '#EB0029' || accent === '#B8001F' ? '#ff6b6b' : '#6C8EFF', fontWeight:700}}>{category}</div>}
+      </div>
+    </div>
+  );
+};
+
+const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => (
   <div className="card" onClick={onClick}>
     <div className="card-thumb">
       {yt
         ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title}/>
-        : <div className={`ph ${tone}`}/>
+        : <RepsolCover pill={pill} category={category}/>
       }
       <div className="card-hover-overlay">
         <div className="card-play-btn"><Icon name="play" size={16}/></div>
