@@ -79,6 +79,12 @@ function Detail({ item, openPlayer, back }) {
                 {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
               </button>
               <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
+              <button className="btn ghost" onClick={() => window.WATracker && window.WATracker.shareLink(it.id, it.title, it.duration)} style={{background:'#25D366', borderColor:'#25D366', color:'#fff'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}>
+                  <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
+                </svg>
+                Compartir por WhatsApp
+              </button>
               <button className="btn ghost"><Icon name="sparkle" size={14}/> MENTOR-IA</button>
             </div>
           </div>
@@ -1000,74 +1006,182 @@ function Profile() {
 
 // ---------- WhatsApp handoff ----------
 function WhatsApp() {
+  const [tab, setTab] = useS2('notif'); // 'notif' | 'metrics'
   const [toggles, setToggles] = useS2([true, true, false, true]);
+  const [links, setLinks] = useS2([]);
   const toggle = (i) => setToggles(ts => ts.map((v, idx) => idx === i ? !v : v));
+
+  useE2(() => {
+    if (tab === 'metrics' && window.WATracker) setLinks(window.WATracker.getLinks());
+  }, [tab]);
+
   const options = [
     { t: 'Módulo diario en WhatsApp, 9:00', d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
     { t: 'Briefs antes de reuniones Sprinklr', d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
     { t: 'Respuestas del agente IA por WhatsApp', d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
     { t: 'Resumen semanal (viernes, 17:00)', d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
   ];
+
+  const stats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0 };
+  const fmtDate = (ts) => { const d = new Date(ts); return d.toLocaleDateString('es-ES', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); };
+  const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : s+'s';
+
   return (
-    <div className="wa-root">
-      <div>
-        <div className="wa-head">
-          <div className="lms-hero-eyebrow" style={{marginBottom:12}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
-          <h1>Tu formación,<br/>donde <em>estés</em>.</h1>
-          <p>Solid funciona en la web y en WhatsApp. La plataforma es donde completas módulos y consultas el catálogo. WhatsApp es el recordatorio inteligente que te mantiene en el camino hacia la certificación.</p>
-        </div>
-        <div className="wa-toggles">
-          {options.map((x, i) => (
-            <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
-              <div>
-                <div className="t">{x.t}</div>
-                <div className="d">{x.d}</div>
-              </div>
-              <div className="sw"/>
-            </div>
-          ))}
-        </div>
+    <div className="main-inner" style={{maxWidth:980}}>
+      {/* Header */}
+      <div style={{marginBottom:28}}>
+        <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
+        <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,4vw,52px)', letterSpacing:'-0.025em', margin:'0 0 6px'}}>
+          Tu formación, <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>donde estés</em>.
+        </h1>
+        <p style={{fontSize:14, color:'var(--ink-3)', maxWidth:560, lineHeight:1.6}}>
+          Solid funciona en la web y en WhatsApp. Comparte módulos con un enlace rastreado y consulta cuántas personas los abrieron y cuánto tiempo vieron.
+        </p>
       </div>
-      <div className="wa-phone">
-        <div className="wa-screen">
-          <div className="wa-bar">
-            <div className="av" style={{background:'var(--accent-glow)', color:'var(--ink)'}}>S</div>
-            <div>
-              <div className="t">MENTOR-IA · Solid Sprinklr</div>
-              <div className="s">en línea · 9:00</div>
-            </div>
-          </div>
-          <div className="wa-chat">
-            <div className="wa-msg">
-              Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
-              <div className="time">9:00</div>
-            </div>
-            <div className="wa-msg" style={{padding:6}}>
-              <div className="pill-card">
-                <div className="thumb"><div className="ph plum">módulo</div></div>
-                <div className="meta">
-                  <div className="t">Programar posts y gestión de calendario</div>
-                  <div className="s">Módulo · 5 min · Carlos Vega</div>
+
+      {/* Tabs */}
+      <div style={{display:'flex', gap:4, marginBottom:28, borderBottom:'1px solid var(--line)', paddingBottom:0}}>
+        {[{id:'notif', label:'Notificaciones'}, {id:'metrics', label:'Métricas de enlaces'}].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding:'10px 18px', border:'none', background:'transparent', cursor:'pointer',
+            fontFamily:'var(--sans)', fontSize:13, fontWeight: tab===t.id ? 700 : 500,
+            color: tab===t.id ? 'var(--ink)' : 'var(--ink-3)',
+            borderBottom: tab===t.id ? '2px solid var(--accent-glow)' : '2px solid transparent',
+            marginBottom:-1, transition:'all .12s',
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === 'notif' && (
+        <div className="wa-root" style={{padding:0}}>
+          <div>
+            <div className="wa-toggles" style={{marginBottom:0}}>
+              {options.map((x, i) => (
+                <div key={i} className={`wa-toggle ${toggles[i] ? 'on' : ''}`} onClick={() => toggle(i)} style={{cursor:'pointer'}}>
+                  <div><div className="t">{x.t}</div><div className="d">{x.d}</div></div>
+                  <div className="sw"/>
                 </div>
+              ))}
+            </div>
+          </div>
+          <div className="wa-phone">
+            <div className="wa-screen">
+              <div className="wa-bar">
+                <div className="av" style={{background:'var(--accent-glow)', color:'#fff'}}>S</div>
+                <div><div className="t">MENTOR-IA · Solid Sprinklr</div><div className="s">en línea · 9:00</div></div>
               </div>
-              <span className="wa-cta">▶ Ver en Solid</span>
-              <div className="time">9:00</div>
-            </div>
-            <div className="wa-msg me">¿Cómo programo un post recurrente?
-              <div className="time">9:03</div>
-            </div>
-            <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia al crear el post. Puedes definir frecuencia diaria, semanal o personalizada.
-              <div className="time">9:03</div>
-            </div>
-            <div className="wa-msg me">Perfecto, gracias
-              <div className="time">9:04</div>
-            </div>
-            <div className="wa-msg">¡De nada! Cuando termines el módulo te desbloquea el de <b>Monitorización</b>. 💪
-              <div className="time">9:04</div>
+              <div className="wa-chat">
+                <div className="wa-msg">
+                  Buenos días, Amaia ☀️ Hoy toca el módulo de <b>Programar posts y calendario</b>. ¿Lo vemos ahora? (5 min)
+                  <div className="time">9:00</div>
+                </div>
+                <div className="wa-msg" style={{padding:6}}>
+                  <div className="pill-card">
+                    <div className="thumb"><div className="ph plum">módulo</div></div>
+                    <div className="meta">
+                      <div className="t">Programar posts y gestión de calendario</div>
+                      <div className="s">Módulo · 5 min · Carlos Vega</div>
+                    </div>
+                  </div>
+                  <span className="wa-cta">▶ Ver en Solid</span>
+                  <div className="time">9:00</div>
+                </div>
+                <div className="wa-msg me">¿Cómo programo un post recurrente?<div className="time">9:03</div></div>
+                <div className="wa-msg">En Sprinklr, ve a <b>Publish → Queue</b> y activa la opción de recurrencia. Puedes definir frecuencia diaria, semanal o personalizada.<div className="time">9:03</div></div>
+                <div className="wa-msg me">Perfecto, gracias<div className="time">9:04</div></div>
+                <div className="wa-msg">¡De nada! Cuando termines, se desbloquea el módulo de <b>Monitorización</b>. 💪<div className="time">9:04</div></div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {tab === 'metrics' && (
+        <div>
+          {/* KPI row */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:28}}>
+            {[
+              { label:'Enlaces compartidos', value: stats.totalShared, icon:'📤', color:'var(--accent-glow)' },
+              { label:'Aperturas totales',   value: stats.totalOpens,  icon:'👁', color:'var(--bn-green)' },
+              { label:'Aperturas / enlace',  value: stats.ctr,         icon:'📊', color:'var(--bn-orange)' },
+              { label:'Tiempo medio visto',  value: fmtSec(stats.avgWatch||0), icon:'⏱', color:'var(--repsol-red)' },
+            ].map((k,i) => (
+              <div key={i} style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, padding:'16px 18px', boxShadow:'var(--shadow-sm)'}}>
+                <div style={{fontSize:20, marginBottom:6}}>{k.icon}</div>
+                <div style={{fontSize:22, fontWeight:800, letterSpacing:'-0.03em', color:k.color, lineHeight:1}}>{k.value}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:4}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Links table */}
+          <div style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)'}}>
+            <div style={{padding:'14px 20px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+              <div style={{fontWeight:700, fontSize:14}}>Historial de enlaces</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>{links.length} enlaces</div>
+            </div>
+            {links.length === 0 ? (
+              <div style={{padding:'40px 20px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>
+                Aún no has compartido ningún módulo por WhatsApp.<br/>
+                <span style={{fontFamily:'var(--mono)', fontSize:11}}>Abre un módulo y pulsa "Compartir por WhatsApp".</span>
+              </div>
+            ) : (
+              <table style={{width:'100%', borderCollapse:'collapse', fontSize:13}}>
+                <thead>
+                  <tr style={{background:'var(--paper-2)'}}>
+                    {['Módulo','Compartido por','Fecha','Aperturas','Tiempo visto','Acción'].map(h => (
+                      <th key={h} style={{padding:'10px 16px', textAlign:'left', fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:600, borderBottom:'1px solid var(--line)'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {links.map((l,i) => (
+                    <tr key={i} style={{borderBottom:'1px solid var(--line-2)'}}>
+                      <td style={{padding:'12px 16px', fontWeight:600, maxWidth:240}}>
+                        <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:220}}>{l.pillTitle}</div>
+                        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:2}}>{l.duration||'—'}</div>
+                      </td>
+                      <td style={{padding:'12px 16px', color:'var(--ink-3)'}}>{l.sharedBy||'—'}</td>
+                      <td style={{padding:'12px 16px', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', whiteSpace:'nowrap'}}>{fmtDate(l.sharedAt)}</td>
+                      <td style={{padding:'12px 16px'}}>
+                        <span style={{display:'inline-flex', alignItems:'center', gap:5, fontWeight:700, color: l.opens>0 ? 'var(--bn-green)' : 'var(--ink-4)'}}>
+                          {l.opens>0 ? '●' : '○'} {l.opens||0}
+                        </span>
+                      </td>
+                      <td style={{padding:'12px 16px', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>{fmtSec(l.watchSeconds||0)}</td>
+                      <td style={{padding:'12px 16px'}}>
+                        <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(l.url); }} style={{background:'none', border:'1px solid var(--line)', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>
+                          Copiar URL
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* How it works */}
+          <div style={{marginTop:24, padding:'16px 20px', background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Cómo funciona</div>
+            <div style={{display:'flex', gap:24, flexWrap:'wrap'}}>
+              {[
+                { n:'1', t:'Comparte', d:'Pulsa "Compartir por WhatsApp" en cualquier módulo. Se genera un enlace único rastreado.' },
+                { n:'2', t:'Recibe métricas', d:'Cada vez que alguien abre el enlace, se registra una apertura. El tiempo de vídeo también se mide.' },
+                { n:'3', t:'Analiza', d:'Consulta aquí cuántas personas vieron el módulo y cuánto tiempo estuvieron.' },
+              ].map(s => (
+                <div key={s.n} style={{flex:'1 1 160px', display:'flex', gap:10, alignItems:'flex-start'}}>
+                  <div style={{width:24, height:24, borderRadius:'50%', background:'var(--accent-glow)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:12, flexShrink:0}}>{s.n}</div>
+                  <div>
+                    <div style={{fontWeight:700, fontSize:13, marginBottom:2}}>{s.t}</div>
+                    <div style={{fontSize:12, color:'var(--ink-3)', lineHeight:1.5}}>{s.d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1076,6 +1190,8 @@ function WhatsApp() {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
+  const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
+  const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
   const kpis = [
     { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
     { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
@@ -1236,6 +1352,56 @@ function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp link analytics */}
+      <div className="dash-panel">
+        <div className="dash-panel-head">
+          <h3 style={{display:'flex', alignItems:'center', gap:8}}>
+            <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:'50%', background:'#25D366', flexShrink:0}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
+              </svg>
+            </span>
+            Analytics WhatsApp
+          </h3>
+          <span className="panel-sub">{waStats.totalShared} enlaces compartidos</span>
+        </div>
+        <div className="dash-panel-body">
+          {/* mini KPI row */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, padding:'0 20px 16px', borderBottom:'1px solid var(--line-2)'}}>
+            {[
+              { label:'Compartidos', value: waStats.totalShared },
+              { label:'Aperturas',   value: waStats.totalOpens },
+              { label:'Ratio apertura', value: waStats.ctr+'×' },
+              { label:'Tiempo medio', value: fmtSec(waStats.avgWatch||0) },
+            ].map((k,i) => (
+              <div key={i} style={{textAlign:'center'}}>
+                <div style={{fontSize:20, fontWeight:800, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>{k.value}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:3}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* top 3 links */}
+          <div style={{padding:'12px 20px'}}>
+            {waStats.links.slice(0,3).map((l,i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'8px 0', borderBottom: i<2 ? '1px solid var(--line-2)' : 'none'}}>
+                <div style={{width:28, height:28, borderRadius:8, background:'#25D36618', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontWeight:800, fontSize:12, color:'#25D366'}}>{i+1}</div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:12, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.pillTitle}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:1}}>por {l.sharedBy||'—'} · {fmtSec(l.watchSeconds||0)} visto</div>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0}}>
+                  <div style={{fontWeight:700, fontSize:14, color: l.opens>0 ? 'var(--bn-green)' : 'var(--ink-4)'}}>{l.opens||0}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.06em'}}>aperturas</div>
+                </div>
+              </div>
+            ))}
+            {waStats.links.length === 0 && (
+              <div style={{textAlign:'center', color:'var(--ink-4)', fontSize:12, padding:'12px 0'}}>Ningún enlace compartido aún.</div>
+            )}
           </div>
         </div>
       </div>

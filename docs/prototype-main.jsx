@@ -2,6 +2,65 @@
 
 const { useState: useSM, useEffect: useEM } = React;
 
+// ── WhatsApp Link Tracker ──────────────────────────────────────────────────
+const WATracker = (function() {
+  const KEY = 'solid-wa-links';
+
+  function getLinks() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; }
+  }
+  function save(links) { localStorage.setItem(KEY, JSON.stringify(links)); }
+
+  function seedIfEmpty() {
+    if (getLinks().length > 0) return;
+    const now = Date.now();
+    const d = 86400000;
+    save([
+      { token:'wt_demo1', pillId:'p20', pillTitle:'Cómo son los flujos de aprobación dentro de la operativa de publicación', sharedAt: now-7*d, opens:15, watchSeconds:210, sharedBy:'Sara Molina' },
+      { token:'wt_demo2', pillId:'p0',  pillTitle:'Importancia de este programa',                                           sharedAt: now-3*d, opens:12, watchSeconds:145, sharedBy:'Amaia Ruiz' },
+      { token:'wt_demo3', pillId:'p41', pillTitle:'Qué es una macro',                                                       sharedAt: now-1*d, opens:8,  watchSeconds:98,  sharedBy:'Carlos Vega' },
+      { token:'wt_demo4', pillId:'p3',  pillTitle:'Qué canales hay dentro de Sprinklr',                                    sharedAt: now-2*3600000, opens:3, watchSeconds:45, sharedBy:'Amaia Ruiz' },
+    ]);
+  }
+
+  function shareLink(pillId, pillTitle, duration) {
+    const token = 'wt_' + Math.random().toString(36).substr(2,6) + '_' + Date.now().toString(36);
+    const base = window.location.href.split('?')[0].split('#')[0];
+    const url = base + '?pill=' + pillId + '&wtrack=' + token;
+    const links = getLinks();
+    links.unshift({ token, pillId, pillTitle, duration: duration || '3 min', url, sharedAt: Date.now(), opens: 0, watchSeconds: 0, sharedBy: 'Amaia Ruiz' });
+    save(links);
+    const msg = '📚 *SOLID · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    return token;
+  }
+
+  function trackOpen(token) {
+    const links = getLinks();
+    const l = links.find(x => x.token === token);
+    if (l) { l.opens = (l.opens||0) + 1; l.lastOpenAt = Date.now(); save(links); }
+  }
+
+  function addWatchTime(token, seconds) {
+    const links = getLinks();
+    const l = links.find(x => x.token === token);
+    if (l) { l.watchSeconds = (l.watchSeconds||0) + seconds; save(links); }
+  }
+
+  function getStats() {
+    const links = getLinks();
+    const totalShared = links.length;
+    const totalOpens = links.reduce((s,l) => s+(l.opens||0), 0);
+    const totalWatch = links.reduce((s,l) => s+(l.watchSeconds||0), 0);
+    const ctr = totalShared > 0 ? (totalOpens / totalShared).toFixed(1) : '0';
+    const avgWatch = totalOpens > 0 ? Math.round(totalWatch / totalOpens) : 0;
+    return { totalShared, totalOpens, totalWatch, ctr, avgWatch, links };
+  }
+
+  return { getLinks, shareLink, trackOpen, addWatchTime, getStats, seedIfEmpty };
+})();
+window.WATracker = WATracker;
+
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, setView] = useSM(saved.view || 'home');
@@ -9,6 +68,23 @@ function App() {
   const [shape, setShape] = useSM(saved.shape || 'mixed');
   const [accent, setAccent] = useSM(saved.accent || '#F3A524');
   const [detailItem, setDetailItem] = useSM(null);
+
+  // Initialize tracker and handle tracked URL opens
+  useEM(() => {
+    WATracker.seedIfEmpty();
+    const params = new URLSearchParams(window.location.search);
+    const wtrack = params.get('wtrack');
+    const pillId = params.get('pill');
+    if (wtrack) {
+      WATracker.trackOpen(wtrack);
+      if (pillId && window.PILLS) {
+        const pill = window.PILLS.find(p => p.id === pillId);
+        if (pill) { setDetailItem(pill); setView('player'); }
+      }
+      // Clean URL without reload
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEM(() => {
     localStorage.setItem('solid-proto', JSON.stringify({ view, aiMode, shape, accent }));

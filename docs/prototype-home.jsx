@@ -116,14 +116,25 @@ function Sidebar({ view, setView }) {
     { id: 'dashboard', label: 'Dashboard',   icon: 'trend', badge: 'NEW' },
     { id: 'coach',       label: 'MENTOR-IA',    icon: 'sparkle', badge: 'BETA' },
     { id: 'cronograma', label: 'Cronograma',  icon: 'trend' },
+    { id: 'wa',        label: 'WhatsApp',    icon: 'chat', badge: 'NEW' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <img src="beonit-logo.png" style={{height:28, width:'auto'}} alt="BeonIt"/>
-        <span className="mark">Solid</span>
+        <div style={{width:30, height:30, borderRadius:7, background:'var(--accent-glow)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" fill="white" opacity="0.9"/>
+            <rect x="13" y="3" width="8" height="8" rx="1.5" fill="white" opacity="0.6"/>
+            <rect x="3" y="13" width="8" height="8" rx="1.5" fill="white" opacity="0.6"/>
+            <rect x="13" y="13" width="8" height="8" rx="1.5" fill="white" opacity="0.3"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.03em', lineHeight:1.1, color:'var(--ink)'}}>SOLID</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', lineHeight:1}}>by BeonIt</div>
+        </div>
       </div>
 
       <div className="sb-org">
