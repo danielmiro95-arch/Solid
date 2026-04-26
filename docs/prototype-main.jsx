@@ -123,6 +123,7 @@ function App() {
         {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}
         {view === 'coach' && <Coach/>}
         {view === 'dashboard' && <Dashboard/>}
+        {view === 'rutas' && <Rutas openPlayer={openPlayer}/>}
         {view === 'path' && <PathView/>}
         {view === 'profile' && <Profile/>}
         {view === 'wa' && <WhatsApp/>}

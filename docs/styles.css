@@ -165,3 +165,6 @@ body {
 .ph.sand  { --ph-a: #e8e4da; --ph-b: #f0ece0; color: rgba(10,10,10,0.5); }
 .ph.lime  { --ph-a: #485e00; --ph-b: #6a8800; }
 .ph.noir  { --ph-a: #000000; --ph-b: #111111; }
+
+/* Coach AI spin animation */
+@keyframes spin { to { transform: rotate(360deg); } }

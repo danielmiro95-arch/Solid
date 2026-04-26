@@ -516,85 +516,127 @@ function Coach() {
           Contexto: formación Sprinklr · Repsol
         </div>
       </aside>
-      <div className="coach-main">
-        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 100%)', borderRadius:14, color:'#fff'}}>
-          <div style={{width:40, height:40, borderRadius:12, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, backdropFilter:'blur(4px)'}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
+      <div className="coach-main" style={{background:'#0d1117', borderRadius:0, display:'flex', flexDirection:'column'}}>
+        {/* AI header */}
+        <div style={{padding:'16px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:14, background:'rgba(0,0,0,0.3)'}}>
+          {/* Animated orb */}
+          <div style={{position:'relative', width:44, height:44, flexShrink:0}}>
+            <div style={{position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 35% 35%, #0af, #005996 60%, #001a30)', boxShadow:'0 0 20px rgba(0,150,255,0.4)', animation:'none'}}/>
+            <div style={{position:'absolute', inset:3, borderRadius:'50%', background:'rgba(0,0,0,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(150,220,255,0.9)" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/>
+              </svg>
+            </div>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
+            <div style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.02em', color:'#fff', lineHeight:1.1}}>
+              MENTOR-IA
+              <span style={{marginLeft:8, fontFamily:'var(--mono)', fontWeight:400, fontSize:9, background:'#BCD630', color:'#0d1117', padding:'2px 7px', borderRadius:4, letterSpacing:'0.1em', textTransform:'uppercase', verticalAlign:'middle'}}>BETA</span>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,200,255,0.55)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Sprinklr × Repsol</div>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
-            {apiStatus === 'live' ? 'En línea' : apiStatus === 'error' ? 'Sin conexión' : 'Demo'}
-          </div>
-        </div>
-        <div className="coach-actions">
-          <div className="coach-action">
-            <span className="eyebrow">Módulo siguiente · 5 min</span>
-            <div className="t">Programar posts y calendario</div>
-            <div className="d">Siguiente en tu ruta de certificación Repsol.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Serie · 22 min</span>
-            <div className="t">Sprinklr Analytics para Repsol</div>
-            <div className="d">5 lecciones para interpretar tus campañas.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Quiz · 90 seg</span>
-            <div className="t">Test de Publish Agent</div>
-            <div className="d">Verifica lo aprendido en los módulos 1 y 2.</div>
-          </div>
-          <div className="coach-action">
-            <span className="eyebrow">Resumen</span>
-            <div className="t">Lo que aprendí esta semana</div>
-            <div className="d">Flujo de aprobación completado · 2 módulos terminados.</div>
+          <div style={{display:'flex', alignItems:'center', gap:5, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color: apiStatus==='live' ? '#BCD630' : 'rgba(255,255,255,0.3)'}}>
+            <span style={{width:5, height:5, borderRadius:'50%', background: apiStatus==='live' ? '#BCD630' : 'rgba(255,255,255,0.25)', display:'inline-block', boxShadow: apiStatus==='live' ? '0 0 6px #BCD630' : 'none'}}/>
+            {apiStatus === 'live' ? 'En línea' : 'Demo'}
           </div>
         </div>
-        {/* Quick action chips */}
-        <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
+
+        {/* Context cards */}
+        <div style={{display:'flex', gap:8, padding:'12px 24px', borderBottom:'1px solid rgba(255,255,255,0.05)', overflowX:'auto'}}>
+          {[
+            {icon:'📊', label:'15% progreso', sub:'Bloque 2 activo'},
+            {icon:'📚', label:'Módulo siguiente', sub:'Programar posts'},
+            {icon:'🏆', label:'Certificación', sub:'Publish Agent'},
+          ].map((c,i) => (
+            <div key={i} style={{flexShrink:0, padding:'8px 12px', background:'rgba(255,255,255,0.05)', borderRadius:8, border:'1px solid rgba(255,255,255,0.08)', minWidth:110}}>
+              <div style={{fontSize:14, marginBottom:2}}>{c.icon}</div>
+              <div style={{fontSize:11, fontWeight:700, color:'rgba(200,230,255,0.9)', lineHeight:1.2}}>{c.label}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,180,255,0.5)', letterSpacing:'0.06em'}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick chips */}
+        <div style={{display:'flex', gap:6, flexWrap:'wrap', padding:'10px 24px 0'}}>
           {quickActions.map((a, i) => (
-            <button key={i} className="ai-chip" onClick={() => send(a.q)} style={{fontSize:11}}>
+            <button key={i} onClick={() => send(a.q)} style={{
+              padding:'6px 12px', background:'rgba(0,89,150,0.3)', border:'1px solid rgba(0,150,255,0.25)',
+              borderRadius:20, cursor:'pointer', fontFamily:'var(--sans)', fontSize:11, fontWeight:600,
+              color:'rgba(180,220,255,0.85)', transition:'all .12s', whiteSpace:'nowrap',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(0,89,150,0.55)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background='rgba(0,89,150,0.3)'; }}>
               {a.label}
             </button>
           ))}
         </div>
 
         {/* Conversation */}
-        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:12, padding:'16px 24px'}}>
           {msgs.map((m, i) => (
-            <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-              <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
-              <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+            <div key={i} style={{display:'flex', gap:10, alignItems:'flex-start', flexDirection: m.role==='assistant' ? 'row' : 'row-reverse'}}>
+              {/* Avatar */}
+              <div style={{
+                width:28, height:28, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+                background: m.role==='assistant' ? 'radial-gradient(circle at 35% 35%, #0af, #005996)' : 'rgba(255,255,255,0.15)',
+                boxShadow: m.role==='assistant' ? '0 0 10px rgba(0,150,255,0.3)' : 'none',
+                fontSize:11, fontWeight:800, color:'#fff',
+              }}>
+                {m.role==='assistant' ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(200,230,255,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg> : 'A'}
+              </div>
+              <div style={{
+                maxWidth:'72%', padding:'10px 14px', borderRadius: m.role==='assistant' ? '4px 14px 14px 14px' : '14px 4px 14px 14px',
+                background: m.role==='assistant' ? 'rgba(0,89,150,0.25)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${m.role==='assistant' ? 'rgba(0,150,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
+                color: 'rgba(220,235,255,0.9)', fontSize:13, lineHeight:1.6, whiteSpace:'pre-wrap',
+              }}>
+                {m.role==='assistant' && <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(0,180,255,0.6)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4}}>MENTOR-IA</div>}
+                {m.text}
+              </div>
             </div>
           ))}
           {loading && (
-            <div className="ai-msg from-ai">
-              <span className="who">MENTOR-IA</span>
-              <div className="bubble mentor-typing">
-                <span/><span/><span/>
+            <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+              <div style={{width:28, height:28, borderRadius:'50%', flexShrink:0, background:'radial-gradient(circle at 35% 35%, #0af, #005996)', boxShadow:'0 0 10px rgba(0,150,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(200,230,255,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
+              </div>
+              <div style={{padding:'12px 16px', borderRadius:'4px 14px 14px 14px', background:'rgba(0,89,150,0.25)', border:'1px solid rgba(0,150,255,0.2)', display:'flex', gap:6, alignItems:'center'}}>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
+                <span className="mentor-dot" style={{width:7, height:7, borderRadius:'50%', background:'rgba(0,150,255,0.7)', display:'inline-block'}}/>
               </div>
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div className="coach-input-shell">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
-            placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación… (↵ enviar)"
-            disabled={loading}
-          />
-          <div className="coach-input-tools">
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
-              ↵ enviar · Shift+↵ nueva línea
-            </div>
-            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
-              {loading ? 'Pensando…' : 'Preguntar →'}
+        <div style={{padding:'12px 20px 20px', borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{display:'flex', gap:8, alignItems:'flex-end', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:14, padding:'8px 8px 8px 16px', transition:'border-color .15s'}}
+            onFocus={e => e.currentTarget.style.borderColor='rgba(0,150,255,0.4)'}
+            onBlur={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+              placeholder="Pregúntame sobre Sprinklr, tu certificación o cualquier módulo… (↵ enviar)"
+              disabled={loading}
+              rows={1}
+              style={{flex:1, background:'transparent', border:'none', outline:'none', resize:'none', fontFamily:'var(--sans)', fontSize:13, color:'rgba(220,235,255,0.85)', lineHeight:1.5, maxHeight:100, overflow:'auto'}}
+            />
+            <button onClick={send} disabled={loading} style={{
+              width:36, height:36, borderRadius:10, border:'none', cursor: loading ? 'default' : 'pointer',
+              background: loading ? 'rgba(0,89,150,0.3)' : 'var(--accent-glow)',
+              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s',
+              boxShadow: loading ? 'none' : '0 4px 12px rgba(0,89,150,0.4)',
+            }}>
+              {loading
+                ? <div style={{width:14, height:14, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'rgba(255,255,255,0.8)', animation:'spin .7s linear infinite'}}/>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><path d="M2 21l21-9L2 3l4.5 9L2 21z"/></svg>
+              }
             </button>
+          </div>
+          <div style={{marginTop:6, fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,180,255,0.35)', letterSpacing:'0.08em', textAlign:'center', textTransform:'uppercase'}}>
+            Powered by Claude · Anthropic · Contexto: Sprinklr × Repsol
           </div>
         </div>
       </div>
@@ -1186,10 +1228,366 @@ function WhatsApp() {
   );
 }
 
+// ---------- Rutas de aprendizaje ----------
+const useS3 = React.useState;
+const useE3 = React.useEffect;
+
+const LEARNING_PATHS = [
+  {
+    id: 'fundamentals', label: 'Fundamentals', roleTag: 'Base · Todos los roles',
+    desc: 'El punto de partida obligatorio antes de cualquier especialización. Cubre los fundamentos de Sprinklr y la estructura de Repsol.',
+    color: '#0072BE', bg: 'linear-gradient(135deg,#0072BE,#004d8a)', icon: '🎓',
+    pills: ['p0','p1','p2','p3','p4','p5','p6','p7'], duration: '28 min', badge: 'obligatoria',
+  },
+  {
+    id: 'managers', label: 'Managers', roleTag: 'Liderazgo y gobernanza',
+    desc: 'Para líderes de equipo. Gobernanza, estructura de roles, flujos de aprobación y visión estratégica de Sprinklr.',
+    color: '#8A3992', bg: 'linear-gradient(135deg,#8A3992,#5a1f6e)', icon: '👑',
+    pills: ['p0','p1','p6','p7','p8','p9','p10','p15','p22'], duration: '34 min', badge: 'rol',
+  },
+  {
+    id: 'publish-agent', label: 'Publish Agent', roleTag: 'Publicación y contenido',
+    desc: 'Operativa de publicación multicanal, gestión de campañas, aprobaciones y calendario editorial en Social Publish.',
+    color: '#EB0029', bg: 'linear-gradient(135deg,#EB0029,#9b0018)', icon: '📢',
+    pills: ['p0','p11','p13','p14','p17','p18','p19','p20','p21','p22','p23','p24'], duration: '52 min', badge: 'rol',
+  },
+  {
+    id: 'care-agent', label: 'Care Agent', roleTag: 'Atención al cliente',
+    desc: 'Gestión de conversaciones entrantes, SLA, Care Console, escalado a Salesforce y operativa de Community Manager.',
+    color: '#036837', bg: 'linear-gradient(135deg,#036837,#024024)', icon: '💬',
+    pills: ['p0','p1','p27','p28','p29','p30','p31','p32','p33','p37','p38','p39','p40'], duration: '55 min', badge: 'rol',
+  },
+  {
+    id: 'reporting', label: 'Reporting Agent', roleTag: 'Analytics y métricas',
+    desc: 'Visualización del rendimiento de campañas, métricas clave y dashboards analíticos para evaluar la performance del contenido.',
+    color: '#004d8a', bg: 'linear-gradient(135deg,#004d8a,#001a30)', icon: '📊',
+    pills: ['p0','p1','p25','p26','p31','p39','p40'], duration: '28 min', badge: 'rol',
+  },
+  {
+    id: 'campaign-global', label: 'Campaign Global', roleTag: 'Campañas multi-territorio',
+    desc: 'Ruta avanzada para gestión de campañas a escala global. Gobernanza, DAM, compliance y publicación en múltiples territorios.',
+    color: '#c87800', bg: 'linear-gradient(135deg,#F3A524,#a36200)', icon: '🌍',
+    pills: ['p0','p11','p13','p15','p16','p22','p23','p24','p25','p26'], duration: '43 min', badge: 'avanzado',
+  },
+];
+
+function Rutas({ openPlayer }) {
+  const [selected, setSelected] = useS3(null);
+  const [completed, setCompleted] = useS3(() => {
+    try { return JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); }
+    catch { return ['p0','p1','p2']; }
+  });
+
+  const getPill = (id) => (window.PILLS || []).find(p => p.id === id);
+  const isUnlocked = (pills, i) => i === 0 || completed.includes(pills[i - 1]);
+  const markDone = (pillId) => {
+    const u = [...new Set([...completed, pillId])];
+    setCompleted(u);
+    localStorage.setItem('solid-completed', JSON.stringify(u));
+  };
+
+  if (selected) {
+    const path = LEARNING_PATHS.find(p => p.id === selected);
+    const doneCount = path.pills.filter(id => completed.includes(id)).length;
+    const pct = Math.round(doneCount / path.pills.length * 100);
+    const nextIdx = path.pills.findIndex(id => !completed.includes(id));
+
+    return (
+      <div className="main-inner" style={{maxWidth:820}}>
+        <button onClick={() => setSelected(null)} style={{display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'var(--ink-4)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer', padding:'0 0 20px', textDecoration:'none'}}>
+          ← Todas las rutas
+        </button>
+
+        {/* Path header */}
+        <div style={{borderRadius:16, overflow:'hidden', marginBottom:28, background:path.bg, color:'#fff', padding:'28px 32px', position:'relative'}}>
+          <div style={{position:'absolute', right:24, top:16, fontSize:56, opacity:0.15}}>{path.icon}</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', opacity:0.6, marginBottom:6}}>{path.roleTag}</div>
+          <h2 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:28, letterSpacing:'-0.025em', margin:'0 0 6px'}}>{path.label}</h2>
+          <p style={{fontSize:13, opacity:0.75, maxWidth:480, lineHeight:1.6, margin:'0 0 20px'}}>{path.desc}</p>
+          <div style={{display:'flex', alignItems:'center', gap:16}}>
+            <div style={{flex:1, height:6, background:'rgba(255,255,255,0.2)', borderRadius:3, overflow:'hidden'}}>
+              <div style={{width:pct+'%', height:'100%', background:'rgba(255,255,255,0.85)', borderRadius:3, transition:'width .4s'}}/>
+            </div>
+            <span style={{fontFamily:'var(--mono)', fontSize:11, fontWeight:700, whiteSpace:'nowrap'}}>{pct}% · {doneCount}/{path.pills.length} módulos</span>
+          </div>
+        </div>
+
+        {/* Module list */}
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+          {path.pills.map((pillId, i) => {
+            const pill = getPill(pillId);
+            if (!pill) return null;
+            const unlocked = isUnlocked(path.pills, i);
+            const done = completed.includes(pillId);
+            const isCurrent = i === nextIdx;
+            return (
+              <div key={pillId} style={{
+                display:'flex', alignItems:'center', gap:14, padding:'14px 18px',
+                background: done ? 'rgba(3,104,55,0.06)' : isCurrent ? '#fff' : 'var(--paper)',
+                border: `1px solid ${done ? '#03683722' : isCurrent ? path.color+'44' : 'var(--line)'}`,
+                borderLeft: isCurrent ? `4px solid ${path.color}` : done ? '4px solid #036837' : '4px solid transparent',
+                borderRadius:12, opacity: !unlocked ? 0.45 : 1,
+                boxShadow: isCurrent ? '0 4px 16px rgba(0,0,0,0.07)' : 'none',
+                transition:'all .15s',
+              }}>
+                {/* Step badge */}
+                <div style={{
+                  width:32, height:32, borderRadius:'50%', flexShrink:0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontWeight:800, fontSize:13,
+                  background: done ? '#036837' : isCurrent ? path.color : 'var(--paper-3)',
+                  color: done || isCurrent ? '#fff' : unlocked ? 'var(--ink-3)' : 'var(--ink-4)',
+                  border: !unlocked ? '2px dashed var(--line)' : 'none',
+                }}>
+                  {done ? '✓' : !unlocked ? '🔒' : i+1}
+                </div>
+
+                {/* Content */}
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13, fontWeight: isCurrent ? 700 : 600, color: !unlocked ? 'var(--ink-4)' : 'var(--ink)', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{pill.title}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+                    {pill.category} · {pill.duration} · {pill.teacher}
+                    {!unlocked && <span style={{color:'var(--ink-4)', marginLeft:6}}>— Completa el módulo anterior</span>}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {done && <span style={{fontFamily:'var(--mono)', fontSize:10, color:'#036837', fontWeight:700, flexShrink:0}}>COMPLETADO</span>}
+                {isCurrent && !done && (
+                  <div style={{display:'flex', gap:8, flexShrink:0}}>
+                    <button onClick={() => openPlayer && openPlayer(pill)} style={{background:path.color, color:'#fff', border:'none', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:12}}>
+                      ▶ Ver
+                    </button>
+                    <button onClick={() => markDone(pillId)} style={{background:'var(--paper-2)', color:'var(--ink-3)', border:'1px solid var(--line)', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>
+                      ✓ Marcar
+                    </button>
+                  </div>
+                )}
+                {unlocked && !done && !isCurrent && (
+                  <button onClick={() => markDone(pillId)} style={{background:'var(--paper-2)', color:'var(--ink-3)', border:'1px solid var(--line)', borderRadius:8, padding:'6px 12px', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, flexShrink:0}}>
+                    Marcar ✓
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Path grid
+  return (
+    <div className="main-inner">
+      <div style={{marginBottom:28}}>
+        <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>SOLID GROWTH · Repsol × BeonIt</div>
+        <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,4vw,52px)', letterSpacing:'-0.025em', margin:'0 0 6px'}}>
+          Rutas de <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>aprendizaje</em>.
+        </h1>
+        <p style={{fontSize:14, color:'var(--ink-3)', maxWidth:520, lineHeight:1.6}}>
+          Cada ruta está diseñada para tu rol. Los módulos están ordenados y debes completar uno para desbloquear el siguiente.
+        </p>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:16}}>
+        {LEARNING_PATHS.map(path => {
+          const doneCount = path.pills.filter(id => completed.includes(id)).length;
+          const pct = Math.round(doneCount / path.pills.length * 100);
+          const nextIdx = path.pills.findIndex(id => !completed.includes(id));
+          const nextPill = nextIdx >= 0 ? getPill(path.pills[nextIdx]) : null;
+          return (
+            <div key={path.id} onClick={() => setSelected(path.id)} style={{
+              background:'var(--paper)', border:'1px solid var(--line)', borderRadius:16,
+              overflow:'hidden', cursor:'pointer', transition:'all .18s',
+              boxShadow:'var(--shadow-sm)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='var(--shadow-sm)'; }}>
+              {/* Colored header */}
+              <div style={{background:path.bg, padding:'20px 22px', color:'#fff', position:'relative', overflow:'hidden'}}>
+                <div style={{position:'absolute', right:12, top:8, fontSize:40, opacity:0.15}}>{path.icon}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', opacity:0.65, marginBottom:4}}>{path.roleTag}</div>
+                <div style={{fontWeight:800, fontSize:18, letterSpacing:'-0.02em'}}>{path.label}</div>
+                {path.badge === 'obligatoria' && (
+                  <span style={{display:'inline-block', marginTop:6, fontFamily:'var(--mono)', fontSize:9, background:'rgba(255,255,255,0.2)', padding:'2px 8px', borderRadius:999, letterSpacing:'0.08em', textTransform:'uppercase'}}>Obligatoria</span>
+                )}
+              </div>
+              {/* Body */}
+              <div style={{padding:'16px 22px'}}>
+                <p style={{fontSize:12, color:'var(--ink-3)', lineHeight:1.6, marginBottom:14, minHeight:48}}>{path.desc}</p>
+                {/* Progress */}
+                <div style={{height:4, background:'var(--paper-3)', borderRadius:2, overflow:'hidden', marginBottom:8}}>
+                  <div style={{width:pct+'%', height:'100%', background:path.color, borderRadius:2, transition:'width .4s'}}/>
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+                    {doneCount}/{path.pills.length} módulos · {path.duration}
+                  </div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:10, fontWeight:700, color:path.color}}>{pct}%</div>
+                </div>
+                {nextPill && pct < 100 && (
+                  <div style={{marginTop:10, padding:'8px 12px', background:'var(--paper-2)', borderRadius:8, fontSize:11, color:'var(--ink-3)'}}>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)'}}>Siguiente → </span>
+                    {nextPill.title}
+                  </div>
+                )}
+                {pct === 100 && (
+                  <div style={{marginTop:10, padding:'8px 12px', background:'#03683710', borderRadius:8, fontSize:11, color:'#036837', fontWeight:700, textAlign:'center'}}>
+                    ✓ Ruta completada · Certificación disponible
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Chart primitives (pure SVG, no deps) ─────────────────────────────────
+
+function ColumnChart({ data, color = 'var(--accent-glow)', height = 110 }) {
+  const max = Math.max(...data.map(d => d.v), 1);
+  const w = 300, bw = Math.floor(w / data.length) - 4;
+  return (
+    <svg viewBox={`0 0 ${w} ${height + 20}`} style={{width:'100%', overflow:'visible'}}>
+      {data.map((d, i) => {
+        const bh = Math.max(2, Math.round(d.v / max * height));
+        const x = i * (bw + 4) + 2;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - bh} width={bw} height={bh} rx={3} fill={color} opacity="0.85"/>
+            <text x={x + bw/2} y={height + 14} textAnchor="middle" fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{d.l}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function StackedBarChart({ series, categories, height = 140 }) {
+  const colors = ['var(--accent-glow)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--repsol-red)', 'var(--bn-purple)'];
+  const totals = categories.map((_, ci) => series.reduce((s, sr) => s + (sr.values[ci] || 0), 0));
+  const maxT = Math.max(...totals, 1);
+  const barH = height / categories.length - 6;
+  return (
+    <svg viewBox={`0 ${-4} 300 ${height + 20}`} style={{width:'100%', overflow:'visible'}}>
+      {categories.map((cat, ci) => {
+        let x = 0;
+        const total = totals[ci];
+        return (
+          <g key={ci}>
+            <text x={0} y={ci*(barH+6)+barH/2+4} fontSize="9" fill="var(--ink-4)" fontFamily="var(--mono)" textAnchor="start">{cat}</text>
+            {series.map((sr, si) => {
+              const fw = total > 0 ? sr.values[ci] / maxT * 220 : 0;
+              const rect = <rect key={si} x={75+x} y={ci*(barH+6)} width={fw} height={barH} rx={si===0?3:0} fill={colors[si%colors.length]} opacity="0.85"/>;
+              x += fw;
+              return rect;
+            })}
+          </g>
+        );
+      })}
+      {/* Legend */}
+      {series.map((sr, si) => (
+        <g key={si} transform={`translate(${si*80},${height+14})`}>
+          <rect width={10} height={10} rx={2} fill={colors[si%colors.length]} opacity="0.85"/>
+          <text x={14} y={9} fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{sr.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function DonutChart({ segments, size = 120 }) {
+  const total = segments.reduce((s, seg) => s + seg.v, 0) || 1;
+  const r = 42, cx = size/2, cy = size/2, strokeW = 18;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const colors = ['var(--accent-glow)', 'var(--bn-orange)', 'var(--bn-lime)', 'var(--repsol-red)', 'var(--bn-purple)', 'var(--beonit-blue)'];
+  return (
+    <div style={{display:'flex', gap:16, alignItems:'center', flexWrap:'wrap'}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--paper-3)" strokeWidth={strokeW}/>
+        {segments.map((seg, i) => {
+          const pct = seg.v / total;
+          const dash = pct * circumference;
+          const gap = circumference - dash;
+          const el = (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+              stroke={colors[i%colors.length]} strokeWidth={strokeW}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={-offset * circumference}
+              strokeLinecap="butt"
+              transform={`rotate(-90 ${cx} ${cy})`}
+              opacity="0.9"
+            />
+          );
+          offset += pct;
+          return el;
+        })}
+        <text x={cx} y={cy-4} textAnchor="middle" fontSize="14" fontWeight="800" fill="var(--ink)" fontFamily="var(--sans)">{total}</text>
+        <text x={cx} y={cy+10} textAnchor="middle" fontSize="7" fill="var(--ink-4)" fontFamily="var(--mono)">TOTAL</text>
+      </svg>
+      <div style={{display:'flex', flexDirection:'column', gap:5, flex:1, minWidth:100}}>
+        {segments.map((seg, i) => (
+          <div key={i} style={{display:'flex', alignItems:'center', gap:7}}>
+            <div style={{width:10, height:10, borderRadius:2, background:colors[i%colors.length], flexShrink:0, opacity:0.9}}/>
+            <div style={{fontSize:11, color:'var(--ink-3)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{seg.l}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--ink)'}}>{Math.round(seg.v/total*100)}%</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const WIDGET_TYPES = [
+  { id:'dropoff',  label:'Drop-off (línea)',   icon:'📉' },
+  { id:'column',   label:'Barras verticales',  icon:'📊' },
+  { id:'stacked',  label:'Stacked Bar',        icon:'🟦' },
+  { id:'donut',    label:'Pastel / Donut',      icon:'🥧' },
+  { id:'modules',  label:'Completación',       icon:'✅' },
+  { id:'users',    label:'Tabla usuarios',     icon:'👤' },
+  { id:'activity', label:'Actividad reciente', icon:'🔔' },
+  { id:'wa',       label:'WhatsApp analytics', icon:'💬' },
+];
+
+function WidgetPicker({ onAdd, onClose }) {
+  return (
+    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center'}} onClick={onClose}>
+      <div style={{background:'var(--paper)', borderRadius:16, padding:24, width:380, boxShadow:'var(--shadow-lg)'}} onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+          <div style={{fontWeight:800, fontSize:16}}>Añadir widget</div>
+          <button onClick={onClose} style={{background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--ink-4)'}}>×</button>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+          {WIDGET_TYPES.map(wt => (
+            <button key={wt.id} onClick={() => { onAdd(wt.id); onClose(); }} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'12px 14px',
+              background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10,
+              cursor:'pointer', fontFamily:'var(--sans)', fontSize:12, fontWeight:600, color:'var(--ink)',
+              transition:'all .12s', textAlign:'left',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor='var(--accent-glow)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
+              <span style={{fontSize:18}}>{wt.icon}</span>{wt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Analytics Dashboard ----------
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
+  const [activeWidgets, setActiveWidgets] = useS2(['dropoff', 'column', 'modules', 'users', 'activity', 'wa']);
+  const [showPicker, setShowPicker] = useS2(false);
+  const addWidget = (id) => setActiveWidgets(w => w.includes(id) ? w : [...w, id]);
+  const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
   const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
   const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
   const kpis = [
@@ -1235,12 +1633,39 @@ function Dashboard() {
     { color: '',       text: 'Luis Romero descargó el certificado de DAM',              time: 'Ayer, 18:30' },
   ];
 
+  const colData = [
+    {l:'Social P.',v:89},{l:'Aprobac.',v:76},{l:'Calendr.',v:54},{l:'Monitor.',v:38},{l:'DAM',v:22},{l:'Complian.',v:11},
+  ];
+  const stackData = {
+    series: [
+      {label:'Completado', values:[89,76,54,38,22,11]},
+      {label:'En progreso', values:[8,12,20,25,15,10]},
+      {label:'Sin iniciar', values:[3,12,26,37,63,79]},
+    ],
+    categories: ['Social Publish','Aprobaciones','Calendario','Monitorización','DAM','Compliance'],
+  };
+  const donutData = [
+    {l:'Publish Agent',v:89},{l:'Care Agent',v:64},{l:'Managers',v:32},{l:'Reporting',v:28},{l:'Sin rol',v:34},
+  ];
+  const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
+
   return (
     <div className="dash-root">
-      <div className="dash-header">
-        <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
-        <h1>Analytics <em>Sprinklr</em></h1>
-        <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+      {showPicker && <WidgetPicker onAdd={addWidget} onClose={() => setShowPicker(false)}/>}
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
+        <div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
+          <h1>Analytics <em>Sprinklr</em></h1>
+          <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+        </div>
+        <button onClick={() => setShowPicker(true)} style={{
+          display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px',
+          background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10,
+          cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13,
+          boxShadow:'0 4px 14px rgba(0,89,150,0.3)', marginTop:8,
+        }}>
+          + Añadir widget
+        </button>
       </div>
 
       <div className="dash-kpis">
@@ -1253,40 +1678,83 @@ function Dashboard() {
         ))}
       </div>
 
+      {/* Dynamic widget grid */}
       <div className="dash-grid">
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Drop-off por minuto · Módulo activo</h3>
-            <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
+        {activeWidgets.includes('dropoff') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Drop-off por minuto</h3>
+              <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
+              <button onClick={() => removeWidget('dropoff')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body">
+              <div className="dropoff-chart">
+                {dropoff.map((v, i) => (
+                  <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}%`}/>
+                ))}
+              </div>
+              <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
+              <div className="dropoff-legend">
+                <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
+                <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
+              </div>
+            </div>
           </div>
-          <div className="dash-panel-body">
-            <div className="dropoff-chart">
-              {dropoff.map((v, i) => (
-                <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}% retenidos`}/>
+        )}
+        {activeWidgets.includes('column') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Completación por módulo</h3>
+              <span className="panel-sub">Barras verticales · % completado</span>
+              <button onClick={() => removeWidget('column')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8}}>
+              <ColumnChart data={colData} color="var(--accent-glow)" height={100}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('stacked') && (
+          <div className="dash-panel" style={{gridColumn:'span 2'}}>
+            <div className="dash-panel-head">
+              <h3>Stacked Bar · Estado por módulo</h3>
+              <span className="panel-sub">Completado · En progreso · Sin iniciar</span>
+              <button onClick={() => removeWidget('stacked')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8}}>
+              <StackedBarChart series={stackData.series} categories={stackData.categories} height={150}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('donut') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Pastel · Distribución por rol</h3>
+              <span className="panel-sub">247 usuarios activos</span>
+              <button onClick={() => removeWidget('donut')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8, paddingBottom:12}}>
+              <DonutChart segments={donutData}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('modules') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>Completación por módulo</h3>
+              <span className="panel-sub">% usuarios que terminaron</span>
+              <button onClick={() => removeWidget('modules')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body">
+              {modules.map((m, i) => (
+                <div key={i} className="module-bar-row">
+                  <div className="mod-name">{m.name}</div>
+                  <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
+                  <div className="mod-pct">{m.pct}%</div>
+                </div>
               ))}
             </div>
-            <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
-            <div className="dropoff-legend">
-              <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
-              <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
-            </div>
           </div>
-        </div>
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Completación por módulo</h3>
-            <span className="panel-sub">% usuarios que terminaron</span>
-          </div>
-          <div className="dash-panel-body">
-            {modules.map((m, i) => (
-              <div key={i} className="module-bar-row">
-                <div className="mod-name">{m.name}</div>
-                <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
-                <div className="mod-pct">{m.pct}%</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="dash-grid-3">
@@ -1294,6 +1762,7 @@ function Dashboard() {
           <div className="dash-panel-head">
             <h3>Checklist de aprendizaje</h3>
             <span className="panel-sub">Amaia Ruiz</span>
+            <button onClick={() => removeWidget('checklist')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
           </div>
           <div className="dash-panel-body">
             <div className="check-list">
@@ -1306,10 +1775,11 @@ function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="dash-panel" style={{gridColumn:'span 2'}}>
+        {activeWidgets.includes('users') && <div className="dash-panel" style={{gridColumn:'span 2'}}>
           <div className="dash-panel-head">
             <h3>Usuarios activos</h3>
             <span className="panel-sub">Progreso individual</span>
+            <button onClick={() => removeWidget('users')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
           </div>
           <div className="dash-panel-body" style={{padding:'0 20px'}}>
             <table className="user-table">
@@ -1333,13 +1803,14 @@ function Dashboard() {
               </tbody>
             </table>
           </div>
-        </div>
+        </div>}
       </div>
 
-      <div className="dash-panel">
+      {activeWidgets.includes('activity') && <div className="dash-panel">
         <div className="dash-panel-head">
           <h3>Actividad reciente</h3>
           <span className="panel-sub">Últimas 24 horas</span>
+          <button onClick={() => removeWidget('activity')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
         </div>
         <div className="dash-panel-body">
           <div className="activity-feed">
@@ -1354,10 +1825,10 @@ function Dashboard() {
             ))}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* WhatsApp link analytics */}
-      <div className="dash-panel">
+      {activeWidgets.includes('wa') && <div className="dash-panel">
         <div className="dash-panel-head">
           <h3 style={{display:'flex', alignItems:'center', gap:8}}>
             <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:'50%', background:'#25D366', flexShrink:0}}>
@@ -1517,9 +1988,9 @@ function Cronograma() {
             <span>{leg.l}</span>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma });
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart });
