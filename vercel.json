@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo '--- Vercel build diagnostic ---' && echo 'pwd:' && pwd && echo 'ls -la:' && ls -la && echo 'docs check:' && (test -d docs && ls -la docs | head -20 && echo 'docs OK') || (echo 'ERROR: docs/ missing at build root — check Vercel Root Directory setting' && exit 1)",
+  "buildCommand": "echo '=== Vercel build ===' && echo 'pwd:' && pwd && echo 'ls -la:' && ls -la && (if [ -d docs ]; then echo 'docs/ found at CWD — OK'; else echo 'docs/ missing at CWD (Root Directory likely set to docs/), creating self-symlink so outputDirectory resolves' && ln -sfn . docs; fi) && echo 'final docs:' && ls -la docs | head -8",
   "outputDirectory": "docs",
   "framework": null,
   "headers": [

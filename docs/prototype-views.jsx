@@ -1509,11 +1509,134 @@ function DonutChart({ segments, size = 120 }) {
   );
 }
 
+// ── Line / Area chart con gradiente ──────────────────────────────────────
+function AreaChart({ data, color = 'var(--accent-glow)', height = 110 }) {
+  const max = Math.max(...data.map(d => d.v), 1);
+  const w = 300, pad = 10;
+  const stepX = (w - pad*2) / Math.max(1, data.length - 1);
+  const points = data.map((d, i) => {
+    const x = pad + i * stepX;
+    const y = height - Math.round(d.v / max * (height - 14)) - 2;
+    return [x, y];
+  });
+  const linePath = points.map((p, i) => (i===0?'M':'L') + p[0] + ',' + p[1]).join(' ');
+  const areaPath = linePath + ` L ${points[points.length-1][0]},${height} L ${points[0][0]},${height} Z`;
+  const gradId = 'g-' + Math.random().toString(36).slice(2,8);
+  return (
+    <svg viewBox={`0 0 ${w} ${height + 22}`} style={{width:'100%', overflow:'visible'}}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor={color} stopOpacity="0.45"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0.02"/>
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`}/>
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      {points.map((p, i) => (
+        <circle key={i} cx={p[0]} cy={p[1]} r="2.4" fill={color} stroke="var(--paper)" strokeWidth="1.2"/>
+      ))}
+      {data.map((d, i) => i % 2 === 0 && (
+        <text key={i} x={pad + i*stepX} y={height + 14} textAnchor="middle" fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{d.l}</text>
+      ))}
+    </svg>
+  );
+}
+
+// ── Activity heatmap (calendario por días/horas) ─────────────────────────
+function HeatmapChart({ rows, cols, matrix, color = 'var(--accent-glow)' }) {
+  const cellW = 18, cellH = 16, gap = 2, labelW = 20;
+  const w = labelW + cols.length * (cellW + gap);
+  const h = rows.length * (cellH + gap) + 18;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%', overflow:'visible'}}>
+      {rows.map((r, ri) => (
+        <g key={ri}>
+          <text x={0} y={ri*(cellH+gap) + cellH*0.7} fontSize="9" fill="var(--ink-4)" fontFamily="var(--mono)">{r}</text>
+          {cols.map((_, ci) => {
+            const v = matrix[ri][ci];
+            const op = 0.08 + (v/100) * 0.85;
+            return <rect key={ci} x={labelW + ci*(cellW+gap)} y={ri*(cellH+gap)} width={cellW} height={cellH} rx={2.5} fill={color} opacity={op}>
+              <title>{r} · día {ci+1} — actividad {v}</title>
+            </rect>;
+          })}
+        </g>
+      ))}
+      {[0, Math.floor(cols.length/2), cols.length-1].map(ci => (
+        <text key={ci} x={labelW + ci*(cellW+gap) + cellW/2} y={rows.length*(cellH+gap) + 12} textAnchor="middle" fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">d{ci+1}</text>
+      ))}
+    </svg>
+  );
+}
+
+// ── Gauge / KPI dial ─────────────────────────────────────────────────────
+function GaugeChart({ value, label, sub, target = 80, size = 160 }) {
+  const cx = size/2, cy = size*0.62, r = size*0.42;
+  const arcPath = (start, end) => {
+    const sx = cx + r*Math.cos(start), sy = cy + r*Math.sin(start);
+    const ex = cx + r*Math.cos(end),   ey = cy + r*Math.sin(end);
+    const large = end - start > Math.PI ? 1 : 0;
+    return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`;
+  };
+  const v = Math.max(0, Math.min(100, value));
+  const startA = Math.PI * 0.85, endA = Math.PI * 2.15;
+  const valueA = startA + (endA - startA) * (v/100);
+  const targetA = startA + (endA - startA) * (target/100);
+  const color = v >= target ? 'var(--bn-lime)' : v >= target*0.75 ? 'var(--accent-glow)' : 'var(--bn-orange)';
+  return (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
+      <svg width={size} height={size*0.78} viewBox={`0 0 ${size} ${size*0.78}`}>
+        <path d={arcPath(startA, endA)} stroke="var(--paper-3)" strokeWidth="14" fill="none" strokeLinecap="round"/>
+        <path d={arcPath(startA, valueA)} stroke={color} strokeWidth="14" fill="none" strokeLinecap="round"/>
+        <line x1={cx + (r-10)*Math.cos(targetA)} y1={cy + (r-10)*Math.sin(targetA)} x2={cx + (r+10)*Math.cos(targetA)} y2={cy + (r+10)*Math.sin(targetA)} stroke="var(--ink-4)" strokeWidth="1.5" strokeDasharray="2 2"/>
+        <text x={cx} y={cy - 2} textAnchor="middle" fontSize={size*0.22} fontWeight="800" fill="var(--ink)" fontFamily="var(--sans)">{Math.round(v)}<tspan fontSize={size*0.11} fill="var(--ink-4)">%</tspan></text>
+        <text x={cx} y={cy + size*0.12} textAnchor="middle" fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)" letterSpacing="0.08em">META {target}%</text>
+      </svg>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:12, fontWeight:700, color:'var(--ink)'}}>{label}</div>
+        <div style={{fontSize:10, color:'var(--ink-4)', fontFamily:'var(--mono)', marginTop:2}}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Funnel chart (conversión) ────────────────────────────────────────────
+function FunnelChart({ stages }) {
+  const top = stages[0]?.v || 1;
+  const w = 280;
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:6, padding:'4px 0'}}>
+      {stages.map((s, i) => {
+        const pct = s.v / top;
+        const widthPx = Math.max(60, pct * w);
+        const conv = i === 0 ? 100 : Math.round(s.v / top * 100);
+        const drop = i === 0 ? 0 : Math.round((stages[i-1].v - s.v) / Math.max(1, stages[i-1].v) * 100);
+        return (
+          <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
+            <div style={{flex:'0 0 36%', fontSize:11, color:'var(--ink-3)', fontWeight:600}}>{s.l}</div>
+            <div style={{flex:1, position:'relative', height:26}}>
+              <div style={{position:'absolute', left:0, top:0, height:'100%', width:widthPx, background:s.c, opacity:0.85, clipPath:'polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%)', borderRadius:'3px 0 0 3px'}}/>
+              <div style={{position:'absolute', left:8, top:0, height:'100%', display:'flex', alignItems:'center', fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'#fff', textShadow:'0 1px 2px rgba(0,0,0,0.25)'}}>{s.v}</div>
+            </div>
+            <div style={{flex:'0 0 64px', textAlign:'right', fontFamily:'var(--mono)', fontSize:10}}>
+              <div style={{color:'var(--ink-3)', fontWeight:700}}>{conv}%</div>
+              {drop > 0 && <div style={{color:'var(--repsol-red)', fontSize:9}}>−{drop}%</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const WIDGET_TYPES = [
   { id:'dropoff',  label:'Drop-off (línea)',   icon:'📉' },
   { id:'column',   label:'Barras verticales',  icon:'📊' },
   { id:'stacked',  label:'Stacked Bar',        icon:'🟦' },
   { id:'donut',    label:'Pastel / Donut',      icon:'🥧' },
+  { id:'area',     label:'Tendencia (área)',   icon:'📈' },
+  { id:'heatmap',  label:'Heatmap actividad',  icon:'🟧' },
+  { id:'gauge',    label:'Gauge / KPI dial',   icon:'⏱' },
+  { id:'funnel',   label:'Funnel conversión',  icon:'🔻' },
   { id:'modules',  label:'Completación',       icon:'✅' },
   { id:'users',    label:'Tabla usuarios',     icon:'👤' },
   { id:'activity', label:'Actividad reciente', icon:'🔔' },
@@ -1551,7 +1674,7 @@ function WidgetPicker({ onAdd, onClose }) {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
-  const [activeWidgets, setActiveWidgets] = useS2(['dropoff', 'column', 'modules', 'users', 'activity', 'wa']);
+  const [activeWidgets, setActiveWidgets] = useS2(['dropoff', 'column', 'gauge', 'area', 'funnel', 'modules', 'heatmap', 'users', 'activity', 'wa']);
   const [showPicker, setShowPicker] = useS2(false);
   const addWidget = (id) => setActiveWidgets(w => w.includes(id) ? w : [...w, id]);
   const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
@@ -1614,7 +1737,33 @@ function Dashboard() {
   const donutData = [
     {l:'Publish Agent',v:89},{l:'Care Agent',v:64},{l:'Managers',v:32},{l:'Reporting',v:28},{l:'Sin rol',v:34},
   ];
-  const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
+
+  // Datos para nuevos widgets
+  const trendData = [
+    {l:'L 14',v:142},{l:'M 15',v:168},{l:'X 16',v:155},{l:'J 17',v:184},{l:'V 18',v:210},
+    {l:'S 19',v:96},{l:'D 20',v:78},{l:'L 21',v:201},{l:'M 22',v:223},{l:'X 23',v:198},
+    {l:'J 24',v:241},{l:'V 25',v:258},{l:'S 26',v:112},{l:'D 27',v:247},
+  ];
+  const heatData = (() => {
+    const rows = ['L','M','X','J','V','S','D'];
+    const cols = Array.from({length:14}, (_,i) => i);
+    const matrix = rows.map((r, ri) => cols.map((_, ci) => {
+      // patrón realista: más actividad lunes-viernes 9-17h, menos finde
+      const weekend = ri >= 5 ? 0.25 : 1;
+      const peak = Math.exp(-Math.pow((ci - 6.5)/4, 2));
+      const noise = 0.4 + Math.random() * 0.6;
+      return Math.round(weekend * peak * noise * 100);
+    }));
+    return { rows, cols, matrix };
+  })();
+  const gaugeData = { value: 73, label:'Engagement global', sub:'meta trimestral 80%', target: 80 };
+  const funnelData = [
+    { l:'Matriculados',     v:247, c:'var(--bn-blue)' },
+    { l:'Iniciaron P0',      v:231, c:'var(--accent-glow)' },
+    { l:'Completan Bloque 1',v:198, c:'var(--bn-lime)' },
+    { l:'Completan Bloque 4',v:142, c:'var(--bn-orange)' },
+    { l:'Certificados',      v: 89, c:'var(--repsol-red)' },
+  ];
 
   return (
     <div className="dash-root">
@@ -1701,6 +1850,54 @@ function Dashboard() {
             </div>
             <div className="dash-panel-body" style={{paddingTop:8, paddingBottom:12}}>
               <DonutChart segments={donutData}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('area') && (
+          <div className="dash-panel" style={{gridColumn:'span 2'}}>
+            <div className="dash-panel-head">
+              <h3>Tendencia · Sesiones diarias</h3>
+              <span className="panel-sub">Últimas 2 semanas · MENTOR-IA + módulos</span>
+              <button onClick={() => removeWidget('area')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:8}}>
+              <AreaChart data={trendData} color="var(--accent-glow)" height={120}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('heatmap') && (
+          <div className="dash-panel" style={{gridColumn:'span 2'}}>
+            <div className="dash-panel-head">
+              <h3>Heatmap · Actividad por día y franja</h3>
+              <span className="panel-sub">Densidad de uso · 7 días × 14 franjas horarias</span>
+              <button onClick={() => removeWidget('heatmap')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:10, paddingBottom:14}}>
+              <HeatmapChart rows={heatData.rows} cols={heatData.cols} matrix={heatData.matrix} color="var(--bn-blue)"/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('gauge') && (
+          <div className="dash-panel">
+            <div className="dash-panel-head">
+              <h3>KPI · Engagement</h3>
+              <span className="panel-sub">vs meta trimestral</span>
+              <button onClick={() => removeWidget('gauge')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:6, paddingBottom:14, display:'flex', justifyContent:'center'}}>
+              <GaugeChart value={gaugeData.value} label={gaugeData.label} sub={gaugeData.sub} target={gaugeData.target}/>
+            </div>
+          </div>
+        )}
+        {activeWidgets.includes('funnel') && (
+          <div className="dash-panel" style={{gridColumn:'span 2'}}>
+            <div className="dash-panel-head">
+              <h3>Funnel · Matriculación → Certificación</h3>
+              <span className="panel-sub">Conversión por etapa · cohorte completa</span>
+              <button onClick={() => removeWidget('funnel')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+            </div>
+            <div className="dash-panel-body" style={{paddingTop:10, paddingBottom:14}}>
+              <FunnelChart stages={funnelData}/>
             </div>
           </div>
         )}
@@ -1960,4 +2157,4 @@ function Cronograma() {
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart });
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart, AreaChart, HeatmapChart, GaugeChart, FunnelChart });
