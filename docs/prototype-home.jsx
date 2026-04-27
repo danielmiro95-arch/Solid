@@ -109,35 +109,44 @@ function CategoryBar({ active, setActive }) {
 }
 
 function Sidebar({ view, setView }) {
+  const [profile, setProfile] = useState(window.UserProfile ? window.UserProfile.get() : { name:'Amaia Ruiz', role:'Publish Agent', team:'Repsol', avatarColor:'var(--repsol-red)' });
+  useEffect(() => {
+    const h = () => setProfile(window.UserProfile.get());
+    window.addEventListener('user-profile-changed', h);
+    return () => window.removeEventListener('user-profile-changed', h);
+  }, []);
+
   const items = [
     { id: 'home',      label: 'Inicio',      icon: 'home' },
     { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
     { id: 'rutas',     label: 'Rutas',       icon: 'compass', badge: 'NEW' },
     { id: 'dashboard', label: 'Dashboard',   icon: 'trend' },
-    { id: 'coach',       label: 'MENTOR-IA',    icon: 'sparkle', badge: 'BETA' },
-    { id: 'cronograma', label: 'Cronograma',  icon: 'trend' },
+    { id: 'coach',     label: 'MENTOR-IA',   icon: 'sparkle', badge: 'BETA' },
+    { id: 'cronograma',label: 'Cronograma',  icon: 'trend' },
     { id: 'wa',        label: 'WhatsApp',    icon: 'chat', badge: 'NEW' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
+
+  const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+  const openPalette = () => window.__openPalette && window.__openPalette();
+
   return (
     <aside className="sb">
-      <div className="sb-brand" style={{gap:10, alignItems:'center'}}>
-        <img src="beonit-logo.png" style={{height:22, width:'auto', flexShrink:0}} alt="BeonIt"/>
-        <div style={{width:1, height:18, background:'var(--line)', flexShrink:0}}/>
-        <span style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>SOLID</span>
+      <div className="sb-brand" style={{alignItems:'center'}}>
+        <img src="sgs-on-logo.png?v=20260427e" style={{height:30, width:'auto', flexShrink:0}} alt="SGS|on"/>
       </div>
 
       <div className="sb-org">
         <div className="sb-org-logo">R</div>
         <div>
-          <div className="sb-org-name">Repsol</div>
+          <div className="sb-org-name">{profile.team}</div>
           <div className="sb-org-sub">Formación Sprinklr</div>
         </div>
       </div>
 
-      <button className="sb-search">
+      <button className="sb-search" onClick={openPalette}>
         <Icon name="search" size={14}/>
         <span>Buscar módulos…</span>
         <span className="kbd">⌘K</span>
@@ -157,20 +166,20 @@ function Sidebar({ view, setView }) {
         <div className="sb-section-title">Mi progreso</div>
         <div className="sb-paths">
           <div className="sb-path" onClick={() => setView('path')}>
-            <div className="sb-path-title">Rol Publish Agent · Certificación</div>
+            <div className="sb-path-title">Rol {profile.role} · Certificación</div>
             <div className="sb-progress"><i style={{width:'15%'}}/></div>
             <div className="sb-path-meta"><span>Think Pill 4 / 27</span><span>·</span><span>15%</span></div>
           </div>
         </div>
       </div>
 
-      <div className="sb-user">
-        <div className="sb-avatar" style={{background:'var(--repsol-red)'}}>A</div>
+      <button className="sb-user" onClick={() => setView('profile')} style={{border:'none', background:'transparent', textAlign:'left', cursor:'pointer', padding:0, width:'100%'}}>
+        <div className="sb-avatar" style={{background:profile.avatarColor}}>{initials}</div>
         <div>
-          <div className="sb-user-name">Amaia Ruiz</div>
-          <div className="sb-user-role">Publish Agent · Repsol</div>
+          <div className="sb-user-name">{profile.name}</div>
+          <div className="sb-user-role">{profile.role} · {profile.team}</div>
         </div>
-      </div>
+      </button>
     </aside>
   );
 }

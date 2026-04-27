@@ -986,7 +986,10 @@
   padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px;
   background: var(--paper); display: flex; flex-direction: column; gap: 6px;
   position: relative; overflow: hidden;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  cursor: default;
 }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: rgba(0,114,190,0.18); }
 .kpi-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--kpi-color, var(--ink)); }
 .kpi-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
 .kpi-value { font-family: var(--serif); font-style: italic; font-size: 32px; letter-spacing: -0.02em; line-height: 1; color: var(--ink); }

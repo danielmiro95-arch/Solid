@@ -28,7 +28,17 @@ const RepsolDetailCover = ({ pill, category, title }) => {
 };
 
 // ---------- Detail ----------
-function Detail({ item, openPlayer, back }) {
+function Detail({ item, openPlayer, back, setView, setAIMode }) {
+  const [bookmarked, setBookmarked] = useS2(window.Bookmarks ? window.Bookmarks.has(item?.id) : false);
+  const toggleBookmark = () => {
+    if (!item || !window.Bookmarks) return;
+    const now = window.Bookmarks.toggle(item.id);
+    setBookmarked(now);
+  };
+  const askMentor = () => {
+    if (setAIMode) setAIMode('hero');
+    else if (setView) setView('coach');
+  };
   const it = item || PILLS[0];
   const chapsByFormat = {
     módulo: [
@@ -78,14 +88,16 @@ function Detail({ item, openPlayer, back }) {
                 <Icon name="play" size={14}/>
                 {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
               </button>
-              <button className="btn ghost"><Icon name="bookmark" size={14}/> Guardar</button>
+              <button className="btn ghost" onClick={toggleBookmark} style={bookmarked ? {background:'var(--accent-glow)', borderColor:'var(--accent-glow)', color:'#fff'} : {}}>
+                <Icon name="bookmark" size={14}/> {bookmarked ? 'Guardado ✓' : 'Guardar'}
+              </button>
               <button className="btn ghost" onClick={() => window.WATracker && window.WATracker.shareLink(it.id, it.title, it.duration)} style={{background:'#25D366', borderColor:'#25D366', color:'#fff'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}>
                   <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
                 </svg>
                 Compartir por WhatsApp
               </button>
-              <button className="btn ghost"><Icon name="sparkle" size={14}/> MENTOR-IA</button>
+              <button className="btn ghost" onClick={askMentor}><Icon name="sparkle" size={14}/> Preguntar a MENTOR-IA</button>
             </div>
           </div>
         </div>
@@ -617,6 +629,21 @@ function Onboarding({ done = () => {} }) {
   const [selectedAreas, setSelectedAreas] = useS2(new Set(['Publicación', 'Aprobaciones']));
   const [role, setRole] = useS2('publish');
   const [notifs, setNotifs] = useS2([true, true, false, false]);
+  const [showMentorInfo, setShowMentorInfo] = useS2(false);
+
+  const persistOnboarding = () => {
+    localStorage.setItem('solid-onboarding', JSON.stringify({
+      areas: Array.from(selectedAreas),
+      role,
+      notifs,
+      completedAt: Date.now(),
+    }));
+    if (window.UserProfile) {
+      const roleLabel = ({ publish:'Publish Agent', content:'Content Lead', analytics:'Analytics Lead', it:'IT / Integraciones', direccion:'Dirección' })[role] || 'Publish Agent';
+      window.UserProfile.update({ role: roleLabel });
+    }
+    done();
+  };
 
   const areas = ['Social Publish', 'Aprobaciones', 'Calendario editorial', 'Analytics y Reporting', 'Activos DAM', 'Compliance', 'Care y Atención al cliente', 'Integraciones Salesforce', 'Gobernanza y roles', 'Sprinklr Fundamentals'];
   const toggleArea = (t) => { const n = new Set(selectedAreas); n.has(t) ? n.delete(t) : n.add(t); setSelectedAreas(n); };
@@ -706,9 +733,21 @@ function Onboarding({ done = () => {} }) {
             "Hola. Basándome en tu rol de <em>Publish Agent</em> y las áreas que has elegido, te preparo una ruta de <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>4 semanas y 10 módulos</span>. ¿Empezamos?"
           </div>
           <div style={{display:'flex', gap:10}}>
-            <button className="btn glow" onClick={done}>Sí — entrar en Solid →</button>
-            <button className="btn ghost">Cuéntame más</button>
+            <button className="btn glow" onClick={persistOnboarding}>Sí — entrar en SGS|on →</button>
+            <button className="btn ghost" onClick={() => setShowMentorInfo(s => !s)}>{showMentorInfo ? 'Ocultar' : 'Cuéntame más'}</button>
           </div>
+          {showMentorInfo && (
+            <div style={{marginTop:16, padding:'14px 16px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, fontSize:13, lineHeight:1.55, color:'var(--ink-2)'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Qué hace MENTOR-IA</div>
+              <ul style={{margin:0, paddingLeft:18}}>
+                <li>Resuelve dudas sobre Sprinklr en el contexto Repsol con respuestas accionables</li>
+                <li>Te recomienda el próximo módulo basándose en tu progreso y rol</li>
+                <li>Genera quizzes personalizados para repasar lo aprendido</li>
+                <li>Conoce las 41 Think Pills del currículum y sabe cuál cubre cada tema</li>
+                <li>Funciona desde la barra lateral, en pantalla completa o por WhatsApp</li>
+              </ul>
+            </div>
+          )}
         </div>
       )
     },
@@ -738,7 +777,7 @@ function Onboarding({ done = () => {} }) {
             <div style={{width:8, height:8, borderRadius:'50%', background:'var(--bn-lime)'}}/>
             <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>Certificación oficial · 2026</span>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SOLID Growth · BeonIt</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SGS|on · BeonIt × Repsol</div>
         </div>
       </div>
       <div className="onb-right">
@@ -748,8 +787,8 @@ function Onboarding({ done = () => {} }) {
         {s.body}
         <div className="onb-nav">
           {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>← Atrás</button>}
-          <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : done()}>
-            {step < 3 ? 'Continuar →' : 'Entrar en Solid →'}
+          <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : persistOnboarding()}>
+            {step < 3 ? 'Continuar →' : 'Entrar en SGS|on →'}
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">
             {[0,1,2,3].map(i => <span key={i} className={i <= step ? 'on' : ''}/>)}
@@ -761,7 +800,15 @@ function Onboarding({ done = () => {} }) {
 }
 
 // ---------- Path ----------
-function PathView() {
+function PathView({ openPlayer, setView }) {
+  const goToNext = () => {
+    const PILLS = window.PILLS || [];
+    let completed = [];
+    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    const next = PILLS.find(p => !completed.includes(p.id));
+    if (next && openPlayer) openPlayer(next);
+    else if (setView) setView('browse');
+  };
   const nodes = [
     {
       type: 'autodiag', s: 'done',
@@ -881,6 +928,10 @@ function PathView() {
             <div className="path-stat"><div className="n">3</div><div className="l">Talleres</div></div>
             <div className="path-stat"><div className="n">15%</div><div className="l">Tu progreso</div></div>
           </div>
+          <div style={{display:'flex', gap:10, marginTop:20, flexWrap:'wrap'}}>
+            <button className="btn glow" onClick={goToNext}><Icon name="play" size={14}/> Continuar formación →</button>
+            {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={14}/> Preguntar a MENTOR-IA</button>}
+          </div>
         </div>
         <div className="path-visual">
           <div className="ph teal" style={{position:'absolute',inset:0}}/>
@@ -923,7 +974,7 @@ function PathView() {
                 {b.s === 'done' && <span style={{color:'var(--beonit-lime)', fontWeight:600}}>· ✓ COMPLETADO</span>}
               </div>
             </div>
-            <button className="goto">
+            <button className="goto" onClick={goToNext}>
               {b.type === 'taller' ? 'Ver taller' : b.type === 'autodiag' ? (b.s === 'done' ? 'Ver resultado' : 'Iniciar test') : b.s === 'done' ? 'Revisar' : b.s === 'current' ? 'Continuar →' : 'Ver bloque'}
             </button>
           </div>
@@ -934,25 +985,158 @@ function PathView() {
 }
 
 // ---------- Profile ----------
-function Profile() {
+function Profile({ setView }) {
+  const [profile, setProfileState] = useS2(window.UserProfile ? window.UserProfile.get() : { name:'Amaia Ruiz', role:'Publish Agent', team:'Repsol', avatarColor:'var(--repsol-red)', email:'amaia.ruiz@repsol.com' });
+  const [editing, setEditing] = useS2(false);
+  const [showCert, setShowCert] = useS2(false);
+  const [draft, setDraft] = useS2(profile);
+
+  React.useEffect(() => {
+    const h = () => setProfileState(window.UserProfile.get());
+    window.addEventListener('user-profile-changed', h);
+    return () => window.removeEventListener('user-profile-changed', h);
+  }, []);
+
   const cells = Array.from({length: 98}, (_, i) => {
     const r = Math.sin(i * 2.3) + Math.cos(i * 0.7);
     return r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
   });
+
+  const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+  const firstName = profile.name.split(/\s+/)[0] || profile.name;
+  const surnames = profile.name.split(/\s+/).slice(1).join(' ');
+  const avatarSwatches = ['var(--repsol-red)', 'var(--bn-blue)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--bn-purple)', 'var(--ink)'];
+
+  const openEdit = () => { setDraft(profile); setEditing(true); };
+  const saveEdit = () => {
+    if (window.UserProfile) window.UserProfile.update(draft);
+    setProfileState(draft);
+    setEditing(false);
+  };
+
+  const downloadCert = () => {
+    const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ${profile.name}</title>
+<style>
+@page { size: A4 landscape; margin: 0; }
+body { font-family: 'Manrope', system-ui, sans-serif; margin:0; padding:60px; min-height:100vh; box-sizing:border-box;
+  background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%); display:flex; flex-direction:column; }
+.frame { border:6px double #005996; padding:50px 60px; flex:1; display:flex; flex-direction:column; background:#fff; }
+.kicker { font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#94A3B8; margin-bottom:8px; }
+h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
+.lead { font-size:14px; color:#4A5568; max-width:560px; margin:0 0 36px; line-height:1.55; }
+.name { font-family:'Manrope', sans-serif; font-style:italic; font-weight:700; font-size:62px; color:#005996; margin:0 0 12px; letter-spacing:-0.025em; }
+.role { font-size:18px; color:#0D1117; margin-bottom:36px; }
+.cert-line { height:2px; background:linear-gradient(90deg,#005996, #BCD630, #005996); margin: 28px 0; }
+.foot { display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; font-size:12px; color:#4A5568; }
+.sig { font-family:'Manrope', sans-serif; font-style:italic; font-size:20px; color:#0D1117; border-top:1px solid #ccc; padding-top:6px; margin-top:24px; }
+</style></head><body><div class="frame">
+<div class="kicker">SGS|on · BeonIt × Repsol · Certificación oficial</div>
+<h1>Certificado de formación</h1>
+<div class="lead">Por la presente certificamos que la persona reseñada a continuación ha completado satisfactoriamente la formación oficial Sprinklr del programa SOLID GROWTH dentro del entorno Repsol, superando todos los autodiagnósticos, talleres y módulos requeridos.</div>
+<div class="name">${profile.name}</div>
+<div class="role">${profile.role} · ${profile.team}</div>
+<div class="cert-line"></div>
+<div class="foot">
+  <div><strong>Fecha de emisión</strong><br/>${today}</div>
+  <div><strong>Programa</strong><br/>SOLID GROWTH · Sprinklr Fundamentals</div>
+  <div><div class="sig">BeonIt × Repsol</div><div style="font-family:monospace;font-size:10px;color:#94A3B8;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">Equipo de formación</div></div>
+</div>
+</div></body></html>`;
+    const blob = new Blob([html], { type:'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Certificado-Sprinklr-${profile.name.replace(/\s+/g,'-')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    setShowCert(false);
+  };
+
+  const shareProfile = async () => {
+    const text = `${profile.name} · ${profile.role} en ${profile.team}\n\nProgreso en certificación Sprinklr SGS|on: 58%`;
+    if (navigator.share) {
+      try { await navigator.share({ title:`Perfil ${profile.name}`, text }); return; } catch(e) {}
+    }
+    try { await navigator.clipboard.writeText(text); alert('Resumen del perfil copiado al portapapeles.'); }
+    catch(e) { alert(text); }
+  };
+
   return (
     <div className="profile-root">
-      <header className="profile-head">
-        <div className="big-av" style={{background:'var(--repsol-red)'}}>A</div>
-        <div>
-          <span className="role">Publish Agent · Repsol</span>
-          <h1>Amaia <em>Ruiz</em></h1>
+      <header className="profile-head" style={{flexWrap:'wrap', gap:16}}>
+        <div className="big-av" style={{background:profile.avatarColor}}>{initials}</div>
+        <div style={{flex:1, minWidth:200}}>
+          <span className="role">{profile.role} · {profile.team}</span>
+          <h1>{firstName} {surnames && <em>{surnames}</em>}</h1>
+          <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', letterSpacing:'0.06em', marginTop:4}}>{profile.email}</div>
         </div>
         <div className="profile-stats">
           <div className="profile-stat"><div className="n">7</div><div className="l">Módulos completados</div></div>
           <div className="profile-stat"><div className="n">58%</div><div className="l">Certificación</div></div>
           <div className="profile-stat"><div className="n">3h</div><div className="l">Tiempo de formación</div></div>
         </div>
+        <div style={{display:'flex', gap:8, flexWrap:'wrap', flexBasis:'100%'}}>
+          <button className="btn ghost" onClick={openEdit}><Icon name="user" size={13}/> Editar perfil</button>
+          <button className="btn ghost" onClick={() => setShowCert(true)}><Icon name="bookmark" size={13}/> Descargar certificado</button>
+          <button className="btn ghost" onClick={shareProfile}><Icon name="send" size={13}/> Compartir perfil</button>
+          {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={13}/> Hablar con MENTOR-IA</button>}
+        </div>
       </header>
+
+      {editing && (
+        <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={() => setEditing(false)}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(480px, 96vw)', padding:24, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+            <h2 style={{margin:'0 0 18px', fontSize:20, fontFamily:'var(--sans)'}}>Editar perfil</h2>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Nombre completo</div>
+              <input value={draft.name} onChange={e => setDraft({...draft, name:e.target.value})} style={{width:'100%', padding:'9px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14}}/>
+            </label>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email</div>
+              <input value={draft.email} onChange={e => setDraft({...draft, email:e.target.value})} style={{width:'100%', padding:'9px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14}}/>
+            </label>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+              <select value={draft.role} onChange={e => setDraft({...draft, role:e.target.value})} style={{width:'100%', padding:'9px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)'}}>
+                {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección'].map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <div style={{marginBottom:18}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6}}>Color del avatar</div>
+              <div style={{display:'flex', gap:8}}>
+                {avatarSwatches.map(c => (
+                  <button key={c} onClick={() => setDraft({...draft, avatarColor:c})} style={{width:32, height:32, borderRadius:'50%', background:c, border:draft.avatarColor === c ? '3px solid var(--ink)' : '1px solid var(--line)', cursor:'pointer'}}/>
+                ))}
+              </div>
+            </div>
+            <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+              <button className="btn ghost" onClick={() => setEditing(false)}>Cancelar</button>
+              <button className="btn glow" onClick={saveEdit}>Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCert && (
+        <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={() => setShowCert(false)}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(520px, 96vw)', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Certificación · 58% completado</div>
+            <h2 style={{margin:'0 0 14px', fontSize:22}}>Certificado en preparación</h2>
+            <p style={{fontSize:14, lineHeight:1.55, color:'var(--ink-3)', marginBottom:18}}>El certificado oficial se emite tras completar el 100% de la ruta. Puedes descargar ahora una <strong>versión preliminar</strong> con tu progreso actual para tu archivo personal.</p>
+            <div style={{padding:14, background:'var(--paper-2)', borderRadius:10, marginBottom:20, fontSize:13, color:'var(--ink-2)'}}>
+              <div><strong>{profile.name}</strong> · {profile.role}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', marginTop:4}}>SGS|on · BeonIt × Repsol</div>
+            </div>
+            <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+              <button className="btn ghost" onClick={() => setShowCert(false)}>Cerrar</button>
+              <button className="btn glow" onClick={downloadCert}>Descargar (HTML / imprimible)</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="profile-grid">
         <section className="profile-section">
           <h2>Actividad últimas 14 semanas</h2>
@@ -1674,7 +1858,13 @@ function WidgetPicker({ onAdd, onClose }) {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
-  const [activeWidgets, setActiveWidgets] = useS2(['dropoff', 'column', 'gauge', 'area', 'funnel', 'modules', 'heatmap', 'users', 'activity', 'wa']);
+  const DASH_KEY = 'solid-dash-widgets';
+  const DEFAULT_WIDGETS = ['dropoff', 'column', 'gauge', 'area', 'funnel', 'modules', 'heatmap', 'users', 'activity', 'wa'];
+  const [activeWidgets, setActiveWidgets] = useS2(() => {
+    try { const s = JSON.parse(localStorage.getItem(DASH_KEY) || 'null'); return Array.isArray(s) ? s : DEFAULT_WIDGETS; }
+    catch(e) { return DEFAULT_WIDGETS; }
+  });
+  React.useEffect(() => { localStorage.setItem(DASH_KEY, JSON.stringify(activeWidgets)); }, [activeWidgets]);
   const [showPicker, setShowPicker] = useS2(false);
   const addWidget = (id) => setActiveWidgets(w => w.includes(id) ? w : [...w, id]);
   const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
