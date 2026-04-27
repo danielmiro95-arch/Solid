@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="es"><head>
+
+
+<meta charset="UTF-8">
+<title>Solid · by beonit — Estrategia, Prototipo, Canvas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600;1,700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=beonit-1">
+<link rel="stylesheet" href="prototype.css?v=beonit-1">
+
+<script type="application/json" id="__edit_mode_defaults__">
+{"shape":"mixed","accent":"#F3A525","aiMode":"companion"}
+</script>
+
+<script>
+// Persistable defaults for Tweaks
+const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
+  "shape": "mixed",
+  "accent": "#F3A525",
+  "aiMode": "companion"
+}/*EDITMODE-END*/;
+</script>
+
+<style>
+  /* Deck-stage slide set lives in its own panel */
+  #deck-panel deck-stage { width: 100%; display: block; }
+  #canvas-panel { height: calc(100vh - 60px); }
+  #canvas-root { width: 100%; height: 100%; }
+
+  /* Hide scrollbars in the main content; keep its scroll */
+  body { overflow-x: hidden; }
+</style>
+<style id="deck-stage-print-page">@page { size: 1920px 1080px; margin: 0; } @media print { html, body { margin: 0 !important; padding: 0 !important; background: none !important; overflow: visible !important; height: auto !important; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }</style><style id="dc-styles">.dc-editable{cursor:text;outline:none;white-space:nowrap;border-radius:3px;padding:0 2px;margin:0 -2px}
+.dc-editable:focus{background:#fff;box-shadow:0 0 0 1.5px #c96442}
+[data-dc-slot]{transition:transform .18s cubic-bezier(.2,.7,.3,1)}
+[data-dc-slot].dc-dragging{transition:none;z-index:10;pointer-events:none}
+[data-dc-slot].dc-dragging .dc-card{box-shadow:0 12px 40px rgba(0,0,0,.25),0 0 0 2px #c96442;transform:scale(1.02)}
+.dc-card{transition:box-shadow .15s,transform .15s}
+.dc-card *{scrollbar-width:none}
+.dc-card *::-webkit-scrollbar{display:none}
+.dc-labelrow{display:flex;align-items:center;gap:4px;height:24px}
+.dc-grip{cursor:grab;display:flex;align-items:center;padding:5px 4px;border-radius:4px;transition:background .12s}
+.dc-grip:hover{background:rgba(0,0,0,.08)}
+.dc-grip:active{cursor:grabbing}
+.dc-labeltext{cursor:pointer;border-radius:4px;padding:3px 6px;display:flex;align-items:center;transition:background .12s}
+.dc-labeltext:hover{background:rgba(0,0,0,.05)}
+.dc-expand{position:absolute;bottom:100%;right:0;margin-bottom:5px;z-index:2;opacity:0;transition:opacity .12s,background .12s;
+  width:22px;height:22px;border-radius:5px;border:none;cursor:pointer;padding:0;
+  background:transparent;color:rgba(60,50,40,.7);display:flex;align-items:center;justify-content:center}
+.dc-expand:hover{background:rgba(0,0,0,.06);color:#2a251f}
+[data-dc-slot]:hover .dc-expand{opacity:1}</style></head>
+<body style="cursor: crosshair; background-color: rgba(255, 255, 255, 0.75);" data-cc-id="cc-1">
+
+<nav class="shell-tabs">
+  <div class="shell-wordmark">Solid<sup>2.0</sup><span class="by">by <b>beonit</b></span></div>
+  <div class="shell-tabs-list" role="tablist">
+    <button class="shell-tab" data-tab="prototype">Prototipo</button>
+    <button class="shell-tab" data-tab="deck">Estrategia</button>
+    <button class="shell-tab active" data-tab="canvas">Variaciones</button>
+  </div>
+  <div class="shell-meta" id="meta-label">Canvas · Variaciones</div>
+</nav>
+
+<!-- Prototype panel -->
+<section class="shell-panel" id="prototype-panel">
+  <div id="proto-root"><div class="proto-root ai-collapsed" data-screen-label="Prototype · home"><aside class="sb"><div class="sb-brand"><span class="mark">Solid<span class="dot"></span></span></div><button class="sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 104.9 12l4.6 4.6 1.4-1.4-4.6-4.6A7 7 0 0011 4z"></path></svg><span>Search ideas, people…</span><span class="kbd">⌘K</span></button><div><div class="sb-nav"><button class="sb-item active"><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 4l9 8M5 10v10h14V10"></path></svg></span>Today</button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM8.5 15.5L10 10l5.5-1.5L14 14z"></path></svg></span>Discover</button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"></path></svg></span>Coach</button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7a3 3 0 013 3v13H7a3 3 0 01-3-3V4zM20 4h-7a3 3 0 00-3 3v13h7a3 3 0 003-3V4z"></path></svg></span>My path</button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></span>Saved<span class="sb-badge">12</span></button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c0 4.97-4.03 9-9 9-1.5 0-2.9-.37-4.13-1.02L3 21l1.04-4.87A8.95 8.95 0 013 12c0-4.97 4.03-9 9-9s9 4.03 9 9z"></path></svg></span>WhatsApp</button><button class="sb-item "><span class="sb-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"></path></svg></span>Profile</button></div></div><div><div class="sb-section-title">Active paths</div><div class="sb-paths"><div class="sb-path"><div class="sb-path-title">Becoming a Manager, Honestly</div><div class="sb-progress"><i style="width: 42%;"></i></div><div class="sb-path-meta"><span>Week 4 / 8</span><span>·</span><span>Next: Feedback</span></div></div><div class="sb-path"><div class="sb-path-title">Deep Work for Teams</div><div class="sb-progress"><i style="width: 18%;"></i></div><div class="sb-path-meta"><span>Week 1 / 4</span></div></div></div></div><div class="sb-user"><div class="sb-avatar">A</div><div><div class="sb-user-name">Amaia Ruiz</div><div class="sb-user-role">BeonIt · Design Lead</div></div></div></aside><main class="main"><div class="main-inner shape-square"><section class="hero"><div><div class="hero-eye"><span class="chip">Tuesday, 10:42</span><span class="chip">3 min · ready for you</span></div><h1>One <em>idea</em> a day.<br>A library of <span class="glow">them</span>.</h1><p class="hero-sub">Your next three minutes is waiting. After that, stay as long as you like — a series, a path, or a quiet podcast while you walk.</p><div class="hero-ctas"><button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14l11-7z"></path></svg> Resume · Feedback: act, don't label</button><button class="btn ghost">Browse today</button></div></div><div class="hero-card"><div class="ph plum"></div><button class="hero-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14l11-7z"></path></svg></button><div class="hero-card-meta"><span class="eyebrow">Editor's pick · Pill</span><div class="title">Say no without<br>saying "no".</div><div class="foot"><span>Marta Alcázar</span><span>·</span><span>3 MIN</span><span>·</span><span>Communication</span></div></div></div></section><section class="row row-continue"><div class="row-head"><h2>Continue <em>where you left off</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph clay">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span><div class="progress-bar"><i style="width: 65%;"></i></div></div><div class="card-title">Say no without saying "no"</div><div class="card-meta"><span>Marta Alcázar</span><span class="dot"></span><span>3 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph teal">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span><div class="progress-bar"><i style="width: 38%;"></i></div></div><div class="card-title">The one hour that compounds</div><div class="card-meta"><span>L. Tavares</span><span class="dot"></span><span>3 min</span></div></div></div></section><section class="row "><div class="row-head"><h2>Today's <em>three minutes</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph clay">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span><div class="progress-bar"><i style="width: 65%;"></i></div></div><div class="card-title">Say no without saying "no"</div><div class="card-meta"><span>Marta Alcázar</span><span class="dot"></span><span>3 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph olive">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span></div><div class="card-title">The 2‑pizza rule, rebuilt</div><div class="card-meta"><span>Dan Okafor</span><span class="dot"></span><span>3 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph plum">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span></div><div class="card-title">Feedback: act, don't label</div><div class="card-meta"><span>Priya Venkat</span><span class="dot"></span><span>3 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph teal">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span><div class="progress-bar"><i style="width: 38%;"></i></div></div><div class="card-title">The one hour that compounds</div><div class="card-meta"><span>L. Tavares</span><span class="dot"></span><span>3 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph warm">pill</div><span class="format-tag">pill</span><span class="dur-tag">3 min</span></div><div class="card-title">Meetings that don't need you</div><div class="card-meta"><span>Ines Rahman</span><span class="dot"></span><span>3 min</span></div></div></div></section><div class="feature-strip"><div><span class="eyebrow">Ask the coach</span><h2>"What should I learn before Thursday's 1:1?"</h2><p>Your coach knows your calendar, your paths, and what you finished last week. It answers in one pill — or a short series when you need it.</p><button class="btn glow">Open coach →</button></div><div class="visual"><div class="ph noir" style="position: absolute; inset: 0px;">coach preview</div></div></div><section class="row row-reels"><div class="row-head"><h2>Shorts <em>under a minute</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph lime">reel</div><span class="format-tag">reel</span><span class="dur-tag">:52</span></div><div class="card-title">One‑line standup</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:52</span></div></div><div class="card pill"><div class="card-img"><div class="ph warm">reel</div><span class="format-tag">reel</span><span class="dur-tag">:38</span></div><div class="card-title">Kill the recurring meeting</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:38</span></div></div><div class="card pill"><div class="card-img"><div class="ph plum">reel</div><span class="format-tag">reel</span><span class="dur-tag">:45</span></div><div class="card-title">The 3‑sentence update</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:45</span></div></div><div class="card pill"><div class="card-img"><div class="ph olive">reel</div><span class="format-tag">reel</span><span class="dur-tag">:29</span></div><div class="card-title">Good → Great → Gone</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:29</span></div></div><div class="card pill"><div class="card-img"><div class="ph teal">reel</div><span class="format-tag">reel</span><span class="dur-tag">:41</span></div><div class="card-title">Name the elephant</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:41</span></div></div><div class="card pill"><div class="card-img"><div class="ph clay">reel</div><span class="format-tag">reel</span><span class="dur-tag">:33</span></div><div class="card-title">What to cut first</div><div class="card-meta"><span>@solid</span><span class="dot"></span><span>:33</span></div></div></div></section><section class="row "><div class="row-head"><h2>Series <em>when one isn't enough</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph noir">series</div><span class="format-tag">series</span><span class="dur-tag">24 min</span></div><div class="card-title">The Quiet Operator</div><div class="card-meta"><span>5 episodes</span><span class="dot"></span><span>24 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph clay">series</div><span class="format-tag">series</span><span class="dur-tag">18 min</span></div><div class="card-title">Drafting Decisions</div><div class="card-meta"><span>4 episodes</span><span class="dot"></span><span>18 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph sand">series</div><span class="format-tag">series</span><span class="dur-tag">32 min</span></div><div class="card-title">Writing to Think</div><div class="card-meta"><span>7 episodes</span><span class="dot"></span><span>32 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph teal">series</div><span class="format-tag">series</span><span class="dur-tag">27 min</span></div><div class="card-title">Ship Less, Learn More</div><div class="card-meta"><span>6 episodes</span><span class="dot"></span><span>27 min</span></div></div></div></section><section class="row "><div class="row-head"><h2>Podcasts <em>longer form</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph noir">podcast</div><span class="format-tag">podcast</span><span class="dur-tag">42 min</span></div><div class="card-title">The Long Context</div><div class="card-meta"><span>Ep. 14 · Estela Moreno</span><span class="dot"></span><span>42 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph plum">podcast</div><span class="format-tag">podcast</span><span class="dur-tag">38 min</span></div><div class="card-title">Rooms of Their Own</div><div class="card-meta"><span>Ep. 8 · R. Bellini</span><span class="dot"></span><span>38 min</span></div></div><div class="card pill"><div class="card-img"><div class="ph olive">podcast</div><span class="format-tag">podcast</span><span class="dur-tag">51 min</span></div><div class="card-title">Slow Software</div><div class="card-meta"><span>Ep. 21 · M. Delacroix</span><span class="dot"></span><span>51 min</span></div></div></div></section><section class="row "><div class="row-head"><h2>Paths <em>a full journey</em></h2><span class="link">Browse all →</span></div><div class="row-scroll"><div class="card pill"><div class="card-img"><div class="ph warm">path</div><span class="format-tag">path</span><span class="dur-tag">2h 12m</span></div><div class="card-title">Becoming a Manager, Honestly</div><div class="card-meta"><span>8 weeks · 24 pills</span><span class="dot"></span><span>2h 12m</span></div></div><div class="card pill"><div class="card-img"><div class="ph teal">path</div><span class="format-tag">path</span><span class="dur-tag">1h 06m</span></div><div class="card-title">Deep Work for Teams</div><div class="card-meta"><span>4 weeks · 12 pills</span><span class="dot"></span><span>1h 06m</span></div></div><div class="card pill"><div class="card-img"><div class="ph plum">path</div><span class="format-tag">path</span><span class="dur-tag">1h 48m</span></div><div class="card-title">Hiring Without Bias</div><div class="card-meta"><span>6 weeks · 18 pills</span><span class="dot"></span><span>1h 48m</span></div></div></div></section></div></main><button class="ai-rail-btn" title="Open coach"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"></path></svg></button><button style="position: fixed; left: 16px; bottom: 16px; z-index: 300; background: var(--paper); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: var(--ink-4);">See onboarding</button><div style="position: fixed; right: 20px; top: 76px; width: 280px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; z-index: 600; box-shadow: rgba(0, 0, 0, 0.12) 0px 20px 60px;"><div style="font-family: var(--serif); font-style: italic; font-size: 17px; margin-bottom: 4px;">Tweaks</div><div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 16px;">Live · saved to file</div><div style="margin-bottom: 16px;"><div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Pill card shape</div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;"><button style="padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;">mixed</button><button style="padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;">capsule</button><button style="padding: 7px 10px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;">square</button><button style="padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;">vertical</button></div></div><div style="margin-bottom: 16px;"><div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Accent</div><div style="display: flex; gap: 8px;"><button style="width: 28px; height: 28px; border-radius: 50%; background: rgb(200, 255, 61); border: 1px solid var(--line); cursor: pointer;"></button><button style="width: 28px; height: 28px; border-radius: 50%; background: rgb(255, 90, 31); border: 1px solid var(--line); cursor: pointer;"></button><button style="width: 28px; height: 28px; border-radius: 50%; background: rgb(109, 94, 252); border: 2px solid var(--ink); cursor: pointer;"></button><button style="width: 28px; height: 28px; border-radius: 50%; background: rgb(0, 212, 168); border: 1px solid var(--line); cursor: pointer;"></button><button style="width: 28px; height: 28px; border-radius: 50%; background: rgb(255, 201, 61); border: 1px solid var(--line); cursor: pointer;"></button></div></div><div><div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Coach prominence</div><div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;"><button style="padding: 7px 6px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;">collapsed</button><button style="padding: 7px 6px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;">companion</button><button style="padding: 7px 6px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;">hero</button></div></div></div></div></div>
+</section>
+
+<!-- Deck panel -->
+<section class="shell-panel" id="deck-panel">
+  <deck-stage width="1920" height="1080" id="deck-host"></deck-stage>
+</section>
+
+<!-- Canvas panel -->
+<section class="shell-panel active" id="canvas-panel">
+  <div id="canvas-root"></div>
+</section>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Deck stage + design canvas shells -->
+<script src="deck-stage.js"></script>
+<script type="text/babel" src="design-canvas.jsx" data-plugins="transform-react-jsx-source" data-filename="design-canvas.jsx"></script>
+
+<!-- Prototype components + views -->
+<script type="text/babel" src="components.jsx" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
+<script type="text/babel" src="prototype-home.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
+<script type="text/babel" src="prototype-views.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
+<script type="text/babel" src="prototype-main.jsx" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
+
+<!-- Deck slides (JSX rendered once into <deck-stage>) -->
+<script type="text/babel" src="deck.jsx" data-plugins="transform-react-jsx-source" data-filename="deck.jsx"></script>
+<script type="text/babel" src="canvas.jsx" data-plugins="transform-react-jsx-source" data-filename="canvas.jsx"></script>
+
+<!-- Boot -->
+<script type="text/babel" data-plugins="transform-react-jsx-source" data-filename="inline-7">
+(function(){
+  // Tab state persisted
+  const tabs = ['prototype','deck','canvas'];
+  const saved = localStorage.getItem('solid-tab') || 'prototype';
+
+  function activate(tab){
+    tabs.forEach(t => {
+      document.querySelector(`.shell-tab[data-tab="${t}"]`).classList.toggle('active', t === tab);
+      document.getElementById(`${t}-panel`).classList.toggle('active', t === tab);
+    });
+    document.getElementById('meta-label').textContent = {
+      prototype: 'Prototipo · Interactivo',
+      deck: 'Estrategia · Presentación',
+      canvas: 'Canvas · Variaciones',
+    }[tab];
+    localStorage.setItem('solid-tab', tab);
+  }
+
+  tabs.forEach(t => {
+    document.querySelector(`.shell-tab[data-tab="${t}"]`).addEventListener('click', () => activate(t));
+  });
+  activate(saved);
+
+  // Mount prototype
+  ReactDOM.createRoot(document.getElementById('proto-root')).render(<PrototypeApp/>);
+
+  // Mount deck into deck-stage as children
+  const deckHost = document.getElementById('deck-host');
+  const deckMount = document.createElement('div');
+  deckHost.appendChild(deckMount);
+  // Render Deck once, move resulting <section>s into deck-stage directly
+  const deckRoot = ReactDOM.createRoot(deckMount);
+  deckRoot.render(<Deck/>);
+  // After paint, move rendered sections up to deck-stage so it manages them
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const sections = deckMount.querySelectorAll(':scope > section');
+      sections.forEach(s => deckHost.appendChild(s));
+      deckMount.remove();
+    }, 80);
+  });
+
+  // Mount canvas
+  ReactDOM.createRoot(document.getElementById('canvas-root')).render(<Canvas/>);
+})();
+</script>
+
+
+
+</body></html>

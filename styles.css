@@ -1,0 +1,166 @@
+/* SOLID 2.0 — beonit spin-off · editorial premium tokens */
+:root {
+  /* ===== beonit base ===== */
+  --black: #000000;
+  --white: #FFFFFF;
+
+  /* Editorial paper-blacks (warmer than pure to keep premium feel) */
+  --paper: #FAFAF7;
+  --paper-2: #F1EFE9;
+  --paper-3: #E7E4DB;
+
+  /* Ink scale */
+  --ink: #0A0A0A;
+  --ink-2: #1A1A1A;
+  --ink-3: #3D3D3D;
+  --ink-4: #6F6F6F;
+  --ink-5: #9A9A9A;
+
+  --line: rgba(0, 0, 0, 0.10);
+  --line-2: rgba(0, 0, 0, 0.06);
+  --line-strong: rgba(0, 0, 0, 0.18);
+
+  /* Dark surfaces (for hero blocks, deck cover, player) */
+  --dark: #000000;
+  --dark-2: #0E0E0E;
+  --dark-3: #1A1A1A;
+  --dark-4: #242424;
+
+  /* ===== beonit corporate accent — drop of water ===== */
+  --accent: #F3A525;          /* services / corporate accent */
+  --accent-2: #F67C1C;        /* intermediate */
+  --accent-glow: #F3A525;     /* same; legacy var name kept */
+  --highlight: rgba(243, 165, 37, 0.18);
+
+  /* ===== Verticals (paleta multicolor de beonit) — used as category colors ===== */
+  --v-services:    #F3A525;
+  --v-allinone:    #FC220D;
+  --v-industry:    #BD2882;
+  --v-fashion:     #8A3992;
+  --v-media:       #0072BE;
+  --v-finance:     #036837;
+  --v-energy:      #BCD630;
+  --v-hospitality: #FCCB00;
+  --v-healthcare:  #66C7C2;
+  --v-fastmoving:  #F45744;
+  --v-mobility:    #DAD244;
+  --v-aapp:        #5857A9;
+
+  /* ===== Typography =====
+     --sans  is beonit corporate (Avenir Next, fallback Manrope) — used for body, UI, sidebar.
+     --serif is the editorial italic display (Cormorant Garamond) — used for big headlines
+             and the emphasized italic words that give Solid its magazine feel.
+     This keeps the spin-off premium while body type stays brand-true to beonit. */
+  --sans:  "Avenir Next", "Avenir Next LT Pro", "Manrope",
+           -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --serif: "Cormorant Garamond", "GT Sectra", "Source Serif Pro", "Fraunces", Georgia, serif;
+  --display-italic: "Cormorant Garamond", "GT Sectra", Georgia, serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "ss02", "cv11";
+}
+
+/* Editorial italic helper — used inside h1/h2 for emphasized words */
+em, .ital {
+  font-family: var(--display-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ===== Top shell (tab bar) ===== */
+.shell-tabs {
+  position: sticky; top: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.shell-wordmark {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: italic;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+}
+.shell-wordmark sup {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: super;
+  margin-left: 4px;
+  color: var(--ink-4);
+}
+.shell-wordmark .by {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-4);
+  margin-left: 10px;
+}
+.shell-wordmark .by b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.shell-tabs-list { display: flex; gap: 4px; background: var(--paper-2); border-radius: 999px; padding: 4px; }
+.shell-tab {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.shell-tab:hover { color: var(--ink); }
+.shell-tab.active { background: var(--ink); color: var(--paper); }
+.shell-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase; }
+
+.shell-panel { display: none; }
+.shell-panel.active { display: block; }
+
+/* Utility */
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--display-italic); font-style: italic; }
+.eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+
+/* ===== Placeholder imagery — using beonit verticals for richness ===== */
+.ph {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 14px),
+    linear-gradient(180deg, var(--ph-b, #1a1a1a), var(--ph-a, #000000));
+  color: rgba(255, 255, 255, 0.78);
+  display: flex; align-items: flex-end;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px;
+}
+/* Map legacy tone names to beonit vertical palette */
+.ph.warm  { --ph-a: #B8780E; --ph-b: #F3A525; }      /* services */
+.ph.olive { --ph-a: #6E8019; --ph-b: #BCD630; color: rgba(0,0,0,0.7); }       /* energy */
+.ph.plum  { --ph-a: #5C1640; --ph-b: #BD2882; }      /* industry */
+.ph.teal  { --ph-a: #2E6F6B; --ph-b: #66C7C2; color: rgba(0,0,0,0.75); }      /* healthcare */
+.ph.clay  { --ph-a: #B5251A; --ph-b: #FC220D; }      /* all in one */
+.ph.sand  { --ph-a: #E8E0CD; --ph-b: #F1EFE9; color: rgba(0,0,0,0.6); }
+.ph.lime  { --ph-a: #BCD630; --ph-b: #DAD244; color: rgba(0,0,0,0.75); }       /* mobility */
+.ph.noir  { --ph-a: #0E0E0E; --ph-b: #1A1A1A; }
