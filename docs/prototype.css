@@ -1573,3 +1573,135 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
   40%           { opacity: 1;   transform: scale(1.1); }
 }
+
+/* ===== MENTOR-IA polish pack ===================================== */
+/* Avatar con pulso (logo MENTOR-IA arcoíris sobre fondo negro) */
+.mentor-avatar {
+  position: relative;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #0D1117;
+  box-shadow: 0 0 0 2px var(--paper), 0 6px 18px rgba(138, 57, 146, 0.28);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.mentor-avatar::before,
+.mentor-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bn-purple-2);
+  opacity: 0;
+  animation: mentorRing 2.4s ease-out infinite;
+  pointer-events: none;
+}
+.mentor-avatar::after { animation-delay: 1.2s; border-color: var(--bn-blue); }
+@keyframes mentorRing {
+  0%   { transform: scale(0.85); opacity: 0.55; }
+  80%  { transform: scale(1.6);  opacity: 0; }
+  100% { transform: scale(1.6);  opacity: 0; }
+}
+.mentor-avatar.lg {
+  width: 52px; height: 52px;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.18), 0 8px 22px rgba(138, 57, 146, 0.4);
+}
+.mentor-avatar img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  display: block;
+  /* el PNG ya viene con gradiente arcoíris sobre fondo blanco; usamos blend para sacarlo del fondo negro */
+  mix-blend-mode: screen;
+  filter: brightness(1.05) saturate(1.1);
+}
+
+/* Markdown render dentro de las burbujas */
+.md-text { line-height: 1.55; }
+.md-text > *:first-child { margin-top: 0; }
+.md-text > *:last-child  { margin-bottom: 0; }
+.md-text p { margin: 0 0 8px; }
+.md-text strong { font-weight: 700; color: var(--ink); }
+.md-text em { font-style: italic; }
+.md-text code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: rgba(0,114,190,0.08);
+  border: 1px solid rgba(0,114,190,0.18);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--bn-blue-dark);
+}
+.md-text ul, .md-text ol { margin: 4px 0 8px; padding-left: 20px; }
+.md-text li { margin: 2px 0; }
+.md-text h3, .md-text h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.md-text blockquote {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--bn-lime);
+  background: rgba(188,214,48,0.08);
+  font-size: 13px;
+  color: var(--ink-2);
+  border-radius: 0 6px 6px 0;
+}
+
+/* Think Pill badge */
+.tp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px 1px 5px;
+  margin: 0 1px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--bn-blue) 0%, var(--bn-blue-dark) 100%);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  box-shadow: 0 1px 4px rgba(0,114,190,0.3);
+  white-space: nowrap;
+}
+.tp-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--bn-lime);
+  flex-shrink: 0;
+}
+
+/* Gradiente sutil de fondo en burbujas de AI */
+.ai-msg.from-ai .bubble {
+  background: linear-gradient(180deg, var(--paper) 0%, rgba(0,114,190,0.04) 100%);
+  border: 1px solid rgba(0,114,190,0.12);
+  box-shadow: 0 2px 8px rgba(0,114,190,0.05);
+}
+
+/* Burbujas con avatar lateral en el modo Coach */
+.coach-msg-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.coach-msg-row.from-me { flex-direction: row-reverse; }
+.coach-msg-row .ai-msg { max-width: calc(100% - 50px); }
+
+/* Sugerencias contextuales (pills más visibles) */
+.ai-chip.ctx {
+  background: linear-gradient(135deg, rgba(0,114,190,0.08) 0%, rgba(188,214,48,0.10) 100%);
+  border-color: rgba(0,114,190,0.25);
+  color: var(--bn-blue-dark);
+  font-weight: 600;
+}
+.ai-chip.ctx:hover { background: var(--bn-blue); color: #fff; border-color: var(--bn-blue); }

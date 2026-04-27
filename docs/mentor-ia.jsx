@@ -1,61 +1,181 @@
-// mentor-ia.jsx — MENTOR-IA standalone (nuevo fichero, sin caché)
-// Sobreescribe window.Coach y window.AISidekick con la versión correcta
-// que llama directamente a Anthropic API sin pasar por Vercel.
+// mentor-ia.jsx — MENTOR-IA standalone (polish pack v2)
+// Llama a la serverless function /api/chat en Vercel (api/chat.js).
 
-const { useState: useM, useEffect: useEM } = React;
+const { useState: useM, useEffect: useEM, useRef: useMRef } = React;
 
-const MENTOR_KB_URL = 'https://raw.githubusercontent.com/danielmiro95-arch/Solid/claude/continue-design-project-ihhAr/api/kb/sprinklr-repsol.md';
-let _mkb = null;
-
-async function _loadKB() {
-  if (_mkb) return _mkb;
-  try { const r = await fetch(MENTOR_KB_URL); if (r.ok) { _mkb = await r.text(); return _mkb; } } catch {}
-  return '';
-}
-
-const MENTOR_SYS = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
-Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, Bloque 2 (Estructura y gobernanza).
-Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.`;
+const MENTOR_USER_PROFILE = {
+  name: 'Amaia Ruiz',
+  role: 'Publish Agent',
+  progress: 15,
+  currentPill: 4,
+};
 
 async function _callAI(messages) {
-  const key = localStorage.getItem('mentor-ia-key') || '';
-  console.log('[MENTOR-IA v2] key:', key ? key.substring(0,18)+'…' : 'NO KEY');
-  if (!key || key.length < 20) throw new Error('no-key');
-  const kb = await _loadKB();
-  const system = kb ? `${MENTOR_SYS}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}` : MENTOR_SYS;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const url = window.MENTOR_IA_API_URL || '/api/chat';
+  const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system,
       messages: messages.map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.text || m.content || '',
       })),
+      userProfile: MENTOR_USER_PROFILE,
     }),
   });
   if (!res.ok) {
     const err = await res.text().catch(() => res.status);
-    console.error('[MENTOR-IA v2] error:', res.status, err);
+    console.error('[MENTOR-IA] error:', res.status, err);
     throw new Error(`${res.status}`);
   }
   const data = await res.json();
-  console.log('[MENTOR-IA v2] OK');
-  return data.content[0].text;
+  return data.content || '';
 }
+
+// ── Avatar pulsante (logo MENTOR-IA) ────────────────────────────────────────
+function MentorAvatar({ size = 'sm' }) {
+  return (
+    <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427e'} alt="MENTOR-IA"/>
+    </div>
+  );
+}
+
+// ── Markdown render minimalista (con Think Pill badges) ──────────────────────
+// Soporta: **negrita**, *cursiva*, `code`, listas (- / 1.), ### headers,
+// > citas, líneas en blanco como párrafos, y detección de "Pill X" / "PX".
+function renderInline(text, keyPrefix = '') {
+  // Detecta "Pill 4", "Pill 4 de 41", "P4", "Think Pill 20" → <span class="tp-badge">P4</span>
+  const tokens = [];
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|(?:Think\s+)?Pills?\s+\d+(?:\s*[-–]\s*\d+)?(?:\s*de\s*\d+)?|\bP\d{1,2}\b)/gi;
+  let lastIdx = 0;
+  let match;
+  let i = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) tokens.push(text.slice(lastIdx, match.index));
+    const m = match[0];
+    if (m.startsWith('**')) {
+      tokens.push(<strong key={keyPrefix + 'b' + (i++)}>{m.slice(2, -2)}</strong>);
+    } else if (m.startsWith('*')) {
+      tokens.push(<em key={keyPrefix + 'i' + (i++)}>{m.slice(1, -1)}</em>);
+    } else if (m.startsWith('`')) {
+      tokens.push(<code key={keyPrefix + 'c' + (i++)}>{m.slice(1, -1)}</code>);
+    } else {
+      // Think Pill badge — extrae número(s)
+      const numMatch = m.match(/\d+(?:\s*[-–]\s*\d+)?/);
+      const num = numMatch ? numMatch[0].replace(/\s+/g, '') : '?';
+      tokens.push(<span key={keyPrefix + 'p' + (i++)} className="tp-badge" title={m}>P{num}</span>);
+    }
+    lastIdx = match.index + m.length;
+  }
+  if (lastIdx < text.length) tokens.push(text.slice(lastIdx));
+  return tokens;
+}
+
+function MarkdownText({ text }) {
+  if (!text) return null;
+  const lines = text.split(/\n/);
+  const blocks = [];
+  let buf = [];
+  let listType = null; // 'ul' | 'ol' | null
+  let listItems = [];
+
+  const flushBuf = (k) => {
+    if (buf.length) {
+      blocks.push(<p key={'p' + k}>{renderInline(buf.join(' '), 'p' + k + '-')}</p>);
+      buf = [];
+    }
+  };
+  const flushList = (k) => {
+    if (listItems.length) {
+      const Tag = listType === 'ol' ? 'ol' : 'ul';
+      blocks.push(
+        <Tag key={'l' + k}>
+          {listItems.map((li, idx) => <li key={idx}>{renderInline(li, 'l' + k + '-' + idx + '-')}</li>)}
+        </Tag>
+      );
+      listItems = [];
+      listType = null;
+    }
+  };
+
+  lines.forEach((raw, k) => {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) {
+      flushBuf(k); flushList(k);
+      return;
+    }
+    const ulMatch = line.match(/^[\s]*[-*]\s+(.*)$/);
+    const olMatch = line.match(/^[\s]*\d+[.)]\s+(.*)$/);
+    const hMatch  = line.match(/^(#{2,4})\s+(.*)$/);
+    const qMatch  = line.match(/^>\s+(.*)$/);
+    if (hMatch) {
+      flushBuf(k); flushList(k);
+      const Tag = hMatch[1].length >= 4 ? 'h4' : 'h3';
+      blocks.push(<Tag key={'h' + k}>{renderInline(hMatch[2], 'h' + k + '-')}</Tag>);
+    } else if (qMatch) {
+      flushBuf(k); flushList(k);
+      blocks.push(<blockquote key={'q' + k}>{renderInline(qMatch[1], 'q' + k + '-')}</blockquote>);
+    } else if (ulMatch) {
+      flushBuf(k);
+      if (listType !== 'ul') flushList(k);
+      listType = 'ul';
+      listItems.push(ulMatch[1]);
+    } else if (olMatch) {
+      flushBuf(k);
+      if (listType !== 'ol') flushList(k);
+      listType = 'ol';
+      listItems.push(olMatch[1]);
+    } else {
+      flushList(k);
+      buf.push(line);
+    }
+  });
+  flushBuf('end'); flushList('end');
+
+  return <div className="md-text">{blocks}</div>;
+}
+
+// ── Sugerencias contextuales por vista ──────────────────────────────────────
+const CTX_SUGGESTIONS = {
+  home:      [
+    { label:'¿Qué módulo sigue?',           q:'¿Cuál es el siguiente módulo que debería hacer?' },
+    { label:'Resumen de mi progreso',       q:'Hazme un resumen breve de mi progreso y dónde estoy.' },
+    { label:'Quiz de 3 preguntas',          q:'Hazme 3 preguntas de repaso sobre lo último que he visto.' },
+  ],
+  player:    [
+    { label:'Resume este módulo',           q:'Resúmeme en 3 puntos lo más importante del módulo que estoy viendo.' },
+    { label:'Da un ejemplo Repsol',         q:'Dame un ejemplo concreto de cómo aplica esto en Repsol.' },
+    { label:'¿Qué Think Pill profundiza?',  q:'¿Qué Think Pill cubre esto en mayor profundidad?' },
+  ],
+  detail:    [
+    { label:'Explícamelo simple',           q:'Explícame este tema como si fuera la primera vez que lo veo.' },
+    { label:'Casos de uso',                 q:'Dame 3 casos de uso reales en Repsol.' },
+  ],
+  path:      [
+    { label:'¿Qué me falta?',               q:'¿Qué me falta para completar la certificación?' },
+    { label:'Plan para esta semana',        q:'Hazme un plan realista para esta semana.' },
+  ],
+  dashboard: [
+    { label:'Cohortes en riesgo',           q:'¿Qué cohortes están en riesgo según el dashboard?' },
+    { label:'Top 3 acciones',               q:'Sugiéreme las 3 acciones de mayor impacto ahora mismo.' },
+  ],
+  coach:     [
+    { label:'¿Qué módulo sigue?',           q:'¿Cuál es el siguiente módulo que debería hacer?' },
+    { label:'Explícame las macros',         q:'¿Qué es una macro en Sprinklr y cómo se usa en Repsol?' },
+    { label:'Flujo de aprobación',          q:'¿Cómo funciona el flujo de aprobación en Social Publish?' },
+    { label:'SLA en Care',                  q:'¿Qué SLA maneja Repsol en Sprinklr Care?' },
+    { label:'Escalar a Salesforce',         q:'¿Cuándo y cómo transfiero un caso de Sprinklr a Salesforce?' },
+    { label:'Quiz rápido',                  q:'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.' },
+  ],
+};
 
 // ── AISidekick (panel lateral) ──────────────────────────────────────────────
 function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useM('');
   const [loading, setLoading] = useM(false);
   const [msgs, setMsgs] = useM([]);
+  const scrollRef = useMRef(null);
 
   const contextLabel = {
     home: 'Vista general · tu progreso',
@@ -66,12 +186,11 @@ function AISidekick({ setAIMode, aiMode, view }) {
     coach: 'MENTOR-IA · modo completo',
   }[view] || 'Plataforma Sprinklr';
 
-  const QUICK = [
-    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
-    { label: 'Hazme un quiz', q: 'Hazme 3 preguntas de repaso sobre lo que he visto.' },
-    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?' },
-    { label: 'Ayuda con macros', q: '¿Qué es una macro en Sprinklr y cómo se usa?' },
-  ];
+  const QUICK = CTX_SUGGESTIONS[view] || CTX_SUGGESTIONS.home;
+
+  useEM(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [msgs, loading]);
 
   const send = async (overrideQ) => {
     const q = (overrideQ || input).trim();
@@ -93,7 +212,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     <aside className="ai">
       <div className="ai-head">
         <div className="ai-head-left">
-          <span className="orb"/>
+          <MentorAvatar/>
           <div>
             <div className="title">MENTOR-IA <span className="beta-badge">BETA</span></div>
             <div className="sub">{contextLabel}</div>
@@ -104,7 +223,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         </button>
         <button className="collapse" onClick={() => setAIMode('collapsed')}>× Ocultar</button>
       </div>
-      <div className="ai-body">
+      <div className="ai-body" ref={scrollRef}>
         {view === 'player' && (
           <div className="ai-context-card">
             <div className="thumb"><div className="ph teal"/></div>
@@ -117,18 +236,22 @@ function AISidekick({ setAIMode, aiMode, view }) {
         <div className="ai-msg from-ai">
           <span className="who">MENTOR-IA</span>
           <div className="bubble">
-            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
+            <MarkdownText text={`¡Hola Amaia! Llevas un **58% de tu certificación**. El siguiente módulo es *Programar posts* (cubierto en Pill 17). ¿Seguimos?`}/>
           </div>
         </div>
         <div className="ai-chip-row">
           {QUICK.map((q, i) => (
-            <button key={i} className="ai-chip" onClick={() => send(q.q)}>{q.label}</button>
+            <button key={i} className="ai-chip ctx" onClick={() => send(q.q)}>{q.label}</button>
           ))}
         </div>
         {msgs.map((m, i) => (
           <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
             <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
-            <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+            <div className="bubble">
+              {m.role === 'assistant'
+                ? <MarkdownText text={m.text}/>
+                : <span style={{whiteSpace:'pre-wrap'}}>{m.text}</span>}
+            </div>
           </div>
         ))}
         {loading && (
@@ -161,19 +284,17 @@ function AISidekick({ setAIMode, aiMode, view }) {
 function Coach() {
   const [input, setInput] = useM('');
   const [loading, setLoading] = useM(false);
-  const [apiStatus, setApiStatus] = useM(localStorage.getItem('mentor-ia-key') ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useM('live');
   const [msgs, setMsgs] = useM([
-    { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
+    { role: 'assistant', text: '¡Hola **Amaia**! Soy MENTOR-IA, tu asistente de formación Sprinklr.\n\nLlevas un **15% de tu certificación** — estás en el *Bloque 2*, sobre estructura y gobernanza (Pills 6-10).\n\n¿En qué te puedo ayudar hoy?' },
   ]);
+  const scrollRef = useMRef(null);
 
-  const quickActions = [
-    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
-    { label: 'Explícame las macros', q: '¿Qué es una macro en Sprinklr y cómo se usa en Repsol?' },
-    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación en Social Publish?' },
-    { label: 'SLA en Care', q: '¿Qué SLA maneja Repsol en Sprinklr Care?' },
-    { label: 'Escalar a Salesforce', q: '¿Cuándo y cómo transfiero un caso de Sprinklr a Salesforce?' },
-    { label: 'Quiz rápido', q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.' },
-  ];
+  const quickActions = CTX_SUGGESTIONS.coach;
+
+  useEM(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [msgs, loading]);
 
   const send = async (overrideQ) => {
     const q = (overrideQ || input).trim();
@@ -229,10 +350,8 @@ function Coach() {
         </div>
       </aside>
       <div className="coach-main">
-        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 100%)', borderRadius:14, color:'#fff'}}>
-          <div style={{width:40, height:40, borderRadius:12, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, backdropFilter:'blur(4px)'}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>
-          </div>
+        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 60%, #003a72 100%)', borderRadius:14, color:'#fff', boxShadow:'0 8px 24px rgba(0,89,150,0.25)'}}>
+          <MentorAvatar size="lg"/>
           <div style={{flex:1}}>
             <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
             <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
@@ -250,14 +369,18 @@ function Coach() {
         </div>
         <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
           {quickActions.map((a, i) => (
-            <button key={i} className="ai-chip" onClick={() => send(a.q)} style={{fontSize:11}}>{a.label}</button>
+            <button key={i} className="ai-chip ctx" onClick={() => send(a.q)} style={{fontSize:11}}>{a.label}</button>
           ))}
         </div>
-        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+        <div ref={scrollRef} style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
           {msgs.map((m, i) => (
             <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
               <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
-              <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+              <div className="bubble">
+                {m.role === 'assistant'
+                  ? <MarkdownText text={m.text}/>
+                  : <span style={{whiteSpace:'pre-wrap'}}>{m.text}</span>}
+              </div>
             </div>
           ))}
           {loading && (
@@ -288,5 +411,5 @@ function Coach() {
 }
 
 // Sobreescribir los componentes en window (después de prototype-views.jsx)
-Object.assign(window, { AISidekick, Coach });
-console.log('[MENTOR-IA v2] componentes cargados y registrados en window');
+Object.assign(window, { AISidekick, Coach, MentorAvatar, MarkdownText });
+console.log('[MENTOR-IA v3] polish pack cargado · markdown + Think Pill badges + sugerencias contextuales');
