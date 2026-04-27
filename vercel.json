@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo '=== Vercel build ===' && echo 'pwd:' && pwd && echo 'ls -la:' && ls -la && (if [ -d docs ]; then echo 'docs/ found at CWD — OK'; else echo 'docs/ missing at CWD (Root Directory likely set to docs/), creating self-symlink so outputDirectory resolves' && ln -sfn . docs; fi) && echo 'final docs:' && ls -la docs | head -8",
+  "buildCommand": "pwd && ls -la && [ -d docs ] || ln -sfn . docs",
   "outputDirectory": "docs",
   "framework": null,
   "headers": [
