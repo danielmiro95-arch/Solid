@@ -13,56 +13,13 @@
 </script>
 
 <script>
-  // v20260425e — API key + interceptor de fetch (funciona con código viejo y nuevo)
   (function(){
-    // Limpiar caché de Babel
     Object.keys(localStorage).forEach(function(k){
       if(k.indexOf('babel')>-1 || k.indexOf('transform')>-1 || k.indexOf('_prototype')>-1) localStorage.removeItem(k);
     });
-    // Reconstruir y guardar API key
-    var p=['sk-ant-','api03-a3pG6rWWug2vLUFjjhd371LZM2hZZzVIDMzPwf7pUaXRH','kj0LJ9JJkBEaatRDxN6JkeUTZGoBJ-8MJSAQKGUug-bjxNIwAA'];
-    localStorage.setItem('mentor-ia-key', p.join(''));
-    window.SOLID_VERSION = '20260426b';
-    // Forzar que el código viejo use /api/chat (será interceptado a continuación)
-    window.MENTOR_IA_API_URL = '/api/chat';
-
-    // Interceptor: si cualquier versión del código llama a /api/chat o a Vercel,
-    // lo redirigimos directamente a Anthropic sin pasar por Vercel.
-    var _origFetch = window.fetch;
-    window.fetch = function(url, opts) {
-      if (typeof url === 'string' && url.indexOf('/api/chat') !== -1) {
-        var key = localStorage.getItem('mentor-ia-key') || '';
-        if (!key || key.length < 20) return _origFetch(url, opts);
-        var body;
-        try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) { body = {}; }
-        var msgs = (body.messages || [])
-          .filter(function(m){ return m.role === 'user' || m.role === 'assistant'; })
-          .map(function(m){ return { role: m.role, content: (m.text || m.content || '').trim() }; })
-          .filter(function(m){ return m.content; });
-        if (!msgs.length) msgs = [{ role: 'user', content: '¿Hola?' }];
-        var sys = 'Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr. Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.';
-        return _origFetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': key,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: sys, messages: msgs }),
-        }).then(function(r) {
-          if (!r.ok) return r;
-          return r.json().then(function(data) {
-            var text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
-            return new Response(JSON.stringify({ content: text }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-            });
-          });
-        });
-      }
-      return _origFetch(url, opts);
-    };
+    localStorage.removeItem('mentor-ia-key');
+    window.SOLID_VERSION = '20260427a';
+    window.MENTOR_IA_API_URL = 'https://solid-platform.vercel.app/api/chat';
   })();
 </script>
 
@@ -140,11 +97,11 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
 <script type="text/babel" src="design-canvas.jsx" data-plugins="transform-react-jsx-source" data-filename="design-canvas.jsx"></script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260426b" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260426b" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260426b" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260426b" data-plugins="transform-react-jsx-source" data-filename="mentor-ia.jsx"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260426b" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
+<script type="text/babel" src="components.jsx?v=20260427a" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427a" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427a" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427a" data-plugins="transform-react-jsx-source" data-filename="mentor-ia.jsx"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427a" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
 
 <!-- Deck slides (JSX rendered once into <deck-stage>) -->
 <script type="text/babel" src="deck.jsx" data-plugins="transform-react-jsx-source" data-filename="deck.jsx"></script>

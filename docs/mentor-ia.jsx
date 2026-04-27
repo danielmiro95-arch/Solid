@@ -1,54 +1,35 @@
-// mentor-ia.jsx — MENTOR-IA standalone (nuevo fichero, sin caché)
-// Sobreescribe window.Coach y window.AISidekick con la versión correcta
-// que llama directamente a Anthropic API sin pasar por Vercel.
+// mentor-ia.jsx — MENTOR-IA standalone
+// Llama a la serverless function /api/chat en Vercel (api/chat.js).
 
 const { useState: useM, useEffect: useEM } = React;
 
-const MENTOR_KB_URL = 'https://raw.githubusercontent.com/danielmiro95-arch/Solid/claude/continue-design-project-ihhAr/api/kb/sprinklr-repsol.md';
-let _mkb = null;
-
-async function _loadKB() {
-  if (_mkb) return _mkb;
-  try { const r = await fetch(MENTOR_KB_URL); if (r.ok) { _mkb = await r.text(); return _mkb; } } catch {}
-  return '';
-}
-
-const MENTOR_SYS = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
-Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, Bloque 2 (Estructura y gobernanza).
-Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.`;
+const MENTOR_USER_PROFILE = {
+  name: 'Amaia Ruiz',
+  role: 'Publish Agent',
+  progress: 15,
+  currentPill: 4,
+};
 
 async function _callAI(messages) {
-  const key = localStorage.getItem('mentor-ia-key') || '';
-  console.log('[MENTOR-IA v2] key:', key ? key.substring(0,18)+'…' : 'NO KEY');
-  if (!key || key.length < 20) throw new Error('no-key');
-  const kb = await _loadKB();
-  const system = kb ? `${MENTOR_SYS}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}` : MENTOR_SYS;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const url = window.MENTOR_IA_API_URL || '/api/chat';
+  const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system,
       messages: messages.map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.text || m.content || '',
       })),
+      userProfile: MENTOR_USER_PROFILE,
     }),
   });
   if (!res.ok) {
     const err = await res.text().catch(() => res.status);
-    console.error('[MENTOR-IA v2] error:', res.status, err);
+    console.error('[MENTOR-IA] error:', res.status, err);
     throw new Error(`${res.status}`);
   }
   const data = await res.json();
-  console.log('[MENTOR-IA v2] OK');
-  return data.content[0].text;
+  return data.content || '';
 }
 
 // ── AISidekick (panel lateral) ──────────────────────────────────────────────
@@ -161,7 +142,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
 function Coach() {
   const [input, setInput] = useM('');
   const [loading, setLoading] = useM(false);
-  const [apiStatus, setApiStatus] = useM(localStorage.getItem('mentor-ia-key') ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useM('live');
   const [msgs, setMsgs] = useM([
     { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);

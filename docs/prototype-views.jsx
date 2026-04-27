@@ -290,7 +290,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     setInput('');
     setLoading(true);
     try {
-      const reply = await callAnthropicDirect([{ role: 'user', text: q }]);
+      const reply = await callMentorAPI([{ role: 'user', text: q }]);
       setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
     } catch {
       await new Promise(r => setTimeout(r, 600));
@@ -370,61 +370,6 @@ function AISidekick({ setAIMode, aiMode, view }) {
 
 // ---------- Coach / AI Agent fullscreen ----------
 
-const MENTOR_SYSTEM_BASE = `Eres MENTOR-IA, el asistente de formación de Repsol × BeonIt para la plataforma Sprinklr.
-Perfil del usuario: Amaia Ruiz, rol Publish Agent, 15% completado, Bloque 2 (Estructura y gobernanza).
-Responde siempre en español, de forma concisa y práctica. Referencia Think Pills concretas cuando sea relevante.`;
-
-const KB_URL = 'https://raw.githubusercontent.com/danielmiro95-arch/Solid/claude/continue-design-project-ihhAr/api/kb/sprinklr-repsol.md';
-let _cachedKB = null;
-
-async function loadKB() {
-  if (_cachedKB) return _cachedKB;
-  try {
-    const r = await fetch(KB_URL);
-    if (r.ok) { _cachedKB = await r.text(); return _cachedKB; }
-  } catch {}
-  return '';
-}
-
-async function callAnthropicDirect(messages) {
-  const key = localStorage.getItem('mentor-ia-key') || '';
-  console.log('[MENTOR-IA] version:', window.SOLID_VERSION, '| key:', key ? key.substring(0,18)+'…' : 'NO KEY');
-  if (!key || key.length < 20) throw new Error('no-key');
-
-  const kb = await loadKB();
-  const system = kb
-    ? `${MENTOR_SYSTEM_BASE}\n\n--- BASE DE CONOCIMIENTO REPSOL × SPRINKLR ---\n${kb}`
-    : MENTOR_SYSTEM_BASE;
-
-  console.log('[MENTOR-IA] llamando a Anthropic, KB cargado:', !!kb, 'mensajes:', messages.length);
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system,
-      messages: messages.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.text || m.content || '',
-      })),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text().catch(() => res.status);
-    console.error('[MENTOR-IA] error Anthropic:', res.status, err);
-    throw new Error(`Anthropic ${res.status}: ${err}`);
-  }
-  const data = await res.json();
-  console.log('[MENTOR-IA] respuesta OK');
-  return data.content[0].text;
-}
-
 const USER_PROFILE = {
   name: 'Amaia Ruiz',
   role: 'Publish Agent',
@@ -432,10 +377,32 @@ const USER_PROFILE = {
   currentPill: 4,
 };
 
+async function callMentorAPI(messages) {
+  const url = window.MENTOR_IA_API_URL || '/api/chat';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: messages.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.text || m.content || '',
+      })),
+      userProfile: USER_PROFILE,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.status);
+    console.error('[MENTOR-IA] error:', res.status, err);
+    throw new Error(`${res.status}`);
+  }
+  const data = await res.json();
+  return data.content || '';
+}
+
 function Coach() {
   const [input, setInput] = useS2('');
   const [loading, setLoading] = useS2(false);
-  const [apiStatus, setApiStatus] = useS2(localStorage.getItem('mentor-ia-key') || window.ANTHROPIC_API_KEY ? 'live' : 'demo');
+  const [apiStatus, setApiStatus] = useS2('live');
   const [msgs, setMsgs] = useS2([
     { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
@@ -459,7 +426,7 @@ function Coach() {
     setLoading(true);
 
     try {
-      const reply = await callAnthropicDirect(newMsgs);
+      const reply = await callMentorAPI(newMsgs);
       setMsgs(m => [...m, { role: 'assistant', text: reply }]);
       setApiStatus('live');
     } catch (err) {
