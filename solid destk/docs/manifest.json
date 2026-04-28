@@ -1,0 +1,25 @@
+{
+  "name": "SGS|on · Plataforma de formación Sprinklr",
+  "short_name": "SGS|on",
+  "description": "Plataforma de formación Sprinklr para Repsol · BeonIt × Repsol. 41 Think Pills, 3 talleres, MENTOR-IA y certificación oficial.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0D1117",
+  "theme_color": "#0072BE",
+  "categories": ["education", "productivity", "business"],
+  "icons": [
+    { "src": "mentor-ia-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "mentor-ia-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "sgs-on-logo.png",    "sizes": "any",     "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Inicio", "url": "/?view=home", "icons": [{ "src": "mentor-ia-logo.png", "sizes": "96x96" }] },
+    { "name": "MENTOR-IA", "url": "/?view=coach", "icons": [{ "src": "mentor-ia-logo.png", "sizes": "96x96" }] },
+    { "name": "Mi ruta", "url": "/?view=path", "icons": [{ "src": "mentor-ia-logo.png", "sizes": "96x96" }] },
+    { "name": "Bandeja", "url": "/?view=inbox", "icons": [{ "src": "mentor-ia-logo.png", "sizes": "96x96" }] }
+  ],
+  "prefer_related_applications": false
+}

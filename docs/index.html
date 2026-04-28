@@ -3,17 +3,27 @@
 
 <meta charset="UTF-8">
 <title>SGS|on — by BeonIt × Repsol</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
+<!-- PWA · instalable como app · iOS y Android -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0072BE">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SGS|on">
+<link rel="apple-touch-icon" href="/mentor-ia-logo.png">
+<link rel="icon" type="image/png" href="/mentor-ia-logo.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260427x">
-<link rel="stylesheet" href="prototype.css?v=20260427x">
+<link rel="stylesheet" href="styles.css?v=20260427y">
+<link rel="stylesheet" href="prototype.css?v=20260427y">
 
 <script>
   (function(){
-    var V = '20260427x';
+    var V = '20260427y';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -46,7 +56,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427x" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427y" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
   <div class="shell-tabs-list" role="tablist" style="display:none">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
   </div>
@@ -57,7 +67,7 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427x</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427y</div>
 
 <!-- Prototype panel -->
 <section class="shell-panel" id="prototype-panel">
@@ -77,6 +87,30 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<!-- Service worker · PWA offline-first + push notifications -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').then(function(reg) {
+      console.log('[SGS|on] SW registrado · scope', reg.scope);
+    }).catch(function(err) {
+      console.warn('[SGS|on] SW registro falló', err);
+    });
+  });
+}
+// Detectar evento beforeinstallprompt para mostrar nuestro propio CTA "Instalar"
+window._installPromptEvent = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  window._installPromptEvent = e;
+  window.dispatchEvent(new Event('install-available'));
+});
+window.addEventListener('appinstalled', function() {
+  window._installPromptEvent = null;
+  console.log('[SGS|on] App instalada en home screen');
+});
+</script>
 
 <!-- Supabase SDK · solo activa si hay env vars en Vercel (SUPABASE_URL + SUPABASE_ANON_KEY) -->
 <script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -109,11 +143,11 @@
 </script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260427x"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260427x"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260427x"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260427x"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260427x"></script>
+<script type="text/babel" src="components.jsx?v=20260427y"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427y"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427y"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427y"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427y"></script>
 
 <!-- Boot -->
 <script type="text/babel">
