@@ -81,9 +81,12 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 28px;
   height: 60px;
-  background: var(--paper);
-  border-bottom: 1px solid var(--line);
-  box-shadow: var(--shadow-sm);
+  background:
+    linear-gradient(90deg, rgba(0,114,190,0.04) 0%, rgba(255,255,255,0) 35%, rgba(255,255,255,0) 65%, rgba(188,214,48,0.05) 100%),
+    linear-gradient(180deg, #f8fafd 0%, #eef2f7 100%);
+  border-bottom: 1px solid rgba(0,114,190,0.12);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(0,89,150,0.04);
+  backdrop-filter: blur(8px);
 }
 .shell-wordmark {
   font-family: var(--sans);
