@@ -235,6 +235,37 @@ function InviteUsersModal({ onClose }) {
     }).catch(() => {});
   };
 
+  const sendInviteEmail = async (inv) => {
+    if (!inv) return;
+    const me = window.Auth && window.Auth.currentUser();
+    try {
+      const r = await fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inv.email,
+          name: inv.name,
+          token: inv.token,
+          role: inv.role,
+          team: inv.team,
+          fromName: me ? me.name : 'Equipo BeonIt',
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (r.status === 503) {
+          if (window.Toast) window.Toast.error('Email no configurado · lee docs/EMAIL-AND-SSO-SETUP.md');
+        } else {
+          if (window.Toast) window.Toast.error('No se pudo enviar: ' + (data.error || r.status));
+        }
+        return;
+      }
+      if (window.Toast) window.Toast.success('Email enviado a ' + inv.email, { icon: '✉' });
+    } catch (e) {
+      if (window.Toast) window.Toast.error('Error de red enviando email');
+    }
+  };
+
   const csvSample = 'email,name,role,team\nana.lopez@repsol.com,Ana López,Publish Agent,Repsol\njuan.perez@repsol.com,Juan Pérez,Care Agent,Repsol\nlaura.gomez@repsol.com,Laura Gómez,Content Lead,Repsol';
 
   return (
@@ -319,9 +350,13 @@ function InviteUsersModal({ onClose }) {
                       <div style={{fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{inv.email}</div>
                       <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{inv.role} · {inv.team}</div>
                     </div>
+                    <button onClick={() => sendInviteEmail(inv)} title="Enviar email de invitación"
+                      style={{padding:'5px 10px', border:'1px solid var(--bn-lime)', borderRadius:6, background:'rgba(188,214,48,0.12)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-lime-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
+                      ✉ Enviar email
+                    </button>
                     <button onClick={() => copyInvite(inv.token)} title="Copiar link de invitación"
                       style={{padding:'5px 10px', border:'1px solid var(--bn-blue)', borderRadius:6, background:'rgba(0,114,190,0.06)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-blue-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
-                      Copiar link →
+                      Copiar link
                     </button>
                   </div>
                 ))}
@@ -1842,6 +1877,29 @@ function LoginScreen() {
     } catch(e) { setError(e.message); }
   };
 
+  const ssoLogin = async () => {
+    setError('');
+    if (!window.supabaseClient) {
+      setError('SSO requiere Supabase activo. Lee docs/EMAIL-AND-SSO-SETUP.md');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await window.supabaseClient.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: window.location.origin + '/' + (inviteToken ? '?invite=' + inviteToken : ''),
+          scopes: 'email openid profile',
+        },
+      });
+      if (error) throw error;
+      // Browser redirige a Microsoft, no llegamos aquí normalmente
+    } catch (err) {
+      setError('SSO Microsoft falló: ' + (err.message || err));
+      setSubmitting(false);
+    }
+  };
+
   const users = Auth.listUsers ? Auth.listUsers() : [];
 
   return (
@@ -1936,6 +1994,24 @@ function LoginScreen() {
               {submitting ? 'Cargando…' : mode === 'login' ? 'Entrar →' : 'Crear cuenta →'}
             </button>
           </form>
+
+          {isSupabase && (
+            <>
+              <div style={{display:'flex', alignItems:'center', gap:10, margin:'18px 0', color:'var(--ink-4)', fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase'}}>
+                <div style={{flex:1, height:1, background:'var(--line)'}}/>
+                <span>o</span>
+                <div style={{flex:1, height:1, background:'var(--line)'}}/>
+              </div>
+              <button type="button" onClick={ssoLogin} disabled={submitting}
+                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'11px 16px', border:'1px solid var(--line)', borderRadius:10, background:'#fff', cursor:'pointer', fontFamily:'var(--sans)', fontSize:14, fontWeight:600, color:'var(--ink-2)', transition:'border-color .14s, box-shadow .14s'}}
+                onMouseEnter={e => e.currentTarget.style.borderColor='var(--ink-3)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
+                <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
+                Continuar con Microsoft
+              </button>
+              <div style={{marginTop:6, fontSize:11, color:'var(--ink-4)', textAlign:'center'}}>SSO corporativo · usa tu cuenta @repsol.com</div>
+            </>
+          )}
 
           <div style={{marginTop:18, fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', display:'flex', alignItems:'center', gap:6}}>
             <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? 'var(--bn-lime)' : 'var(--bn-orange)', display:'inline-block'}}/>
@@ -2154,6 +2230,22 @@ function PendingInvitationsBlock({ invitations }) {
     }).catch(() => {});
   };
 
+  const sendEmail = async (inv) => {
+    const me = window.Auth && window.Auth.currentUser();
+    try {
+      const r = await fetch('/api/send-invite', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email:inv.email, name:inv.name, token:inv.token, role:inv.role, team:inv.team, fromName: me ? me.name : 'Equipo BeonIt' }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (window.Toast) window.Toast.error(r.status === 503 ? 'Email no configurado' : (data.error || 'Error'));
+      } else {
+        if (window.Toast) window.Toast.success('Email enviado a ' + inv.email, { icon: '✉' });
+      }
+    } catch(e) { if (window.Toast) window.Toast.error('Error de red'); }
+  };
+
   const remove = (token, email) => {
     if (!confirm('¿Borrar la invitación a ' + email + '?')) return;
     window.Invitations.remove(token);
@@ -2183,9 +2275,13 @@ function PendingInvitationsBlock({ invitations }) {
                 </div>
                 <div style={{fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink-4)'}}>{inv.role} · {inv.team} · creada {fmtRel(inv.createdAt)}</div>
               </div>
+              <button onClick={() => sendEmail(inv)} title="Enviar email"
+                style={{padding:'6px 10px', border:'1px solid var(--bn-lime)', borderRadius:6, background:'rgba(188,214,48,0.12)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-lime-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
+                ✉ Email
+              </button>
               <button onClick={() => copyInvite(inv.token)} title="Copiar link"
-                style={{padding:'6px 12px', border:'1px solid var(--bn-blue)', borderRadius:6, background:'rgba(0,114,190,0.06)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-blue-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
-                Copiar link
+                style={{padding:'6px 10px', border:'1px solid var(--bn-blue)', borderRadius:6, background:'rgba(0,114,190,0.06)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-blue-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
+                Link
               </button>
               <button onClick={() => remove(inv.token, inv.email)} title="Borrar invitación"
                 style={{padding:'6px 10px', border:'1px solid rgba(235,0,41,0.3)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>
