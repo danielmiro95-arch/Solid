@@ -62,11 +62,149 @@ const WATracker = (function() {
 })();
 window.WATracker = WATracker;
 
-// ── Bookmarks (Saved library) ──────────────────────────────────────────────
+// ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
+// Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
+// ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
+// y poderlo sustituir por Supabase / Auth0 / Azure AD en una sola capa.
+const Auth = (function() {
+  const USERS_KEY = 'sgson-users';
+  const SESSION_KEY = 'sgson-session';
+  const COLORS = ['var(--repsol-red)', 'var(--bn-blue)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--bn-purple)', 'var(--bn-turquoise)', 'var(--ink)'];
+
+  function _load(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+    catch (e) { return fallback; }
+  }
+
+  function listUsers() { return _load(USERS_KEY, []); }
+  function _saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    window.dispatchEvent(new Event('auth-users-changed'));
+  }
+
+  function _genId() { return 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function currentUserId() { return localStorage.getItem(SESSION_KEY); }
+  function currentUser() {
+    const id = currentUserId();
+    if (!id) return null;
+    return listUsers().find(function(u){ return u.id === id; }) || null;
+  }
+  function isAuthenticated() { return !!currentUser(); }
+  function isAdmin() { var u = currentUser(); return !!(u && u.isAdmin); }
+
+  function signup(data) {
+    var users = listUsers();
+    if (!data.email || !data.email.includes('@')) throw new Error('Email no válido');
+    if (!data.name || data.name.trim().length < 2) throw new Error('Nombre demasiado corto');
+    var existing = users.find(function(u){ return u.email === data.email.toLowerCase(); });
+    if (existing) throw new Error('Ya existe un usuario con ese email');
+    var user = {
+      id: _genId(),
+      email: data.email.toLowerCase(),
+      name: data.name.trim(),
+      role: data.role || 'Publish Agent',
+      team: data.team || 'Repsol',
+      avatarColor: data.avatarColor || COLORS[users.length % COLORS.length],
+      // El primer usuario registrado es admin por defecto.
+      // Si el email contiene 'admin' o termina en @beonit, también es admin.
+      isAdmin: !!data.isAdmin || users.length === 0 || /admin/i.test(data.email) || /@beonit\./i.test(data.email),
+      createdAt: Date.now(),
+      lastLoginAt: Date.now(),
+    };
+    users.push(user);
+    _saveUsers(users);
+    localStorage.setItem(SESSION_KEY, user.id);
+    window.dispatchEvent(new Event('auth-changed'));
+    return user;
+  }
+
+  function login(email) {
+    var users = listUsers();
+    var user = users.find(function(u){ return u.email === (email || '').toLowerCase(); });
+    if (!user) throw new Error('No existe un usuario con ese email');
+    user.lastLoginAt = Date.now();
+    _saveUsers(users);
+    localStorage.setItem(SESSION_KEY, user.id);
+    window.dispatchEvent(new Event('auth-changed'));
+    return user;
+  }
+
+  function logout() {
+    localStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new Event('auth-changed'));
+  }
+
+  function updateUser(id, patch) {
+    var users = listUsers();
+    var idx = users.findIndex(function(u){ return u.id === id; });
+    if (idx < 0) return null;
+    users[idx] = Object.assign({}, users[idx], patch);
+    _saveUsers(users);
+    if (users[idx].id === currentUserId()) {
+      window.dispatchEvent(new Event('auth-changed'));
+    }
+    return users[idx];
+  }
+
+  function deleteUser(id) {
+    var users = listUsers().filter(function(u){ return u.id !== id; });
+    _saveUsers(users);
+    // Borrar también su storage namespaced
+    Object.keys(localStorage).forEach(function(k){
+      if (k.endsWith(':' + id)) localStorage.removeItem(k);
+    });
+    if (currentUserId() === id) logout();
+  }
+
+  function setAdmin(id, value) { return updateUser(id, { isAdmin: !!value }); }
+
+  // Seed: si no hay usuarios, crea un admin demo para arrancar la primera vez
+  function seedIfEmpty() {
+    if (listUsers().length === 0) {
+      signup({
+        email: 'admin@beonit.com',
+        name: 'Admin BeonIt',
+        role: 'Administrador',
+        team: 'BeonIt',
+        avatarColor: 'var(--ink)',
+        isAdmin: true,
+      });
+      // Loguea como demo Repsol también
+      var current = currentUserId();
+      signup({
+        email: 'amaia.ruiz@repsol.com',
+        name: 'Amaia Ruiz',
+        role: 'Publish Agent',
+        team: 'Repsol',
+        avatarColor: 'var(--repsol-red)',
+      });
+      // Vuelve a la sesión que tenía
+      if (current) localStorage.setItem(SESSION_KEY, current);
+    }
+  }
+
+  return {
+    listUsers, currentUser, currentUserId, isAuthenticated, isAdmin,
+    signup, login, logout, updateUser, deleteUser, setAdmin, seedIfEmpty,
+    USERS_KEY, SESSION_KEY,
+  };
+})();
+window.Auth = Auth;
+
+// Helper: namespacing de localStorage por usuario actual
+// Para keys que dependen del usuario (bookmarks, chats, progreso, etc.)
+function _userScopedKey(baseKey) {
+  var id = Auth.currentUserId();
+  return id ? baseKey + ':' + id : baseKey;
+}
+window.userKey = _userScopedKey;
+
+// ── Bookmarks (Saved library) por usuario ──────────────────────────────────
 const Bookmarks = (function() {
-  const KEY = 'solid-bookmarks';
-  function get() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
-  function save(ids) { localStorage.setItem(KEY, JSON.stringify(ids)); window.dispatchEvent(new Event('bookmarks-changed')); }
+  function _key() { return _userScopedKey('solid-bookmarks'); }
+  function get() { try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch(e) { return []; } }
+  function save(ids) { localStorage.setItem(_key(), JSON.stringify(ids)); window.dispatchEvent(new Event('bookmarks-changed')); }
   function has(id) { return get().includes(id); }
   function toggle(id) {
     const ids = get();
@@ -80,20 +218,35 @@ const Bookmarks = (function() {
 })();
 window.Bookmarks = Bookmarks;
 
-// ── User profile (editable) ────────────────────────────────────────────────
+// ── User profile (editable) — derivado del usuario autenticado ────────────
+// Lee del Auth.currentUser() y guarda los cambios en el registro de usuarios.
 const UserProfile = (function() {
-  const KEY = 'solid-user-profile';
-  const DEFAULT = { name: 'Amaia Ruiz', role: 'Publish Agent', team: 'Repsol', avatarColor: 'var(--repsol-red)', email: 'amaia.ruiz@repsol.com' };
+  const DEFAULT = { name: 'Sin sesión', role: '—', team: '—', avatarColor: 'var(--ink-3)', email: '' };
   function get() {
-    try { return Object.assign({}, DEFAULT, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e) { return Object.assign({}, DEFAULT); }
+    var u = window.Auth ? window.Auth.currentUser() : null;
+    if (!u) return Object.assign({}, DEFAULT);
+    return {
+      name: u.name, role: u.role, team: u.team,
+      avatarColor: u.avatarColor, email: u.email,
+      isAdmin: !!u.isAdmin, id: u.id,
+    };
   }
   function update(patch) {
-    const merged = Object.assign({}, get(), patch);
-    localStorage.setItem(KEY, JSON.stringify(merged));
-    window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: merged }));
-    return merged;
+    var u = window.Auth ? window.Auth.currentUser() : null;
+    if (!u) return DEFAULT;
+    var fields = ['name', 'role', 'team', 'avatarColor', 'email'];
+    var clean = {};
+    fields.forEach(function(f){ if (patch[f] !== undefined) clean[f] = patch[f]; });
+    var updated = window.Auth.updateUser(u.id, clean);
+    var profileShape = {
+      name: updated.name, role: updated.role, team: updated.team,
+      avatarColor: updated.avatarColor, email: updated.email,
+      isAdmin: !!updated.isAdmin, id: updated.id,
+    };
+    window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: profileShape }));
+    return profileShape;
   }
-  function reset() { localStorage.removeItem(KEY); window.dispatchEvent(new Event('user-profile-changed')); }
+  function reset() {/* legacy noop */}
   return { get, update, reset, DEFAULT };
 })();
 window.UserProfile = UserProfile;
@@ -192,6 +345,16 @@ function App() {
   const [accent, setAccent] = useSM(saved.accent || '#F3A524');
   const [detailItem, setDetailItem] = useSM(null);
 
+  // Auth state — re-render cuando cambia el usuario
+  const [authUser, setAuthUser] = useSM(() => Auth.currentUser());
+  useEM(() => {
+    Auth.seedIfEmpty();
+    setAuthUser(Auth.currentUser());
+    const refresh = () => setAuthUser(Auth.currentUser());
+    window.addEventListener('auth-changed', refresh);
+    return () => window.removeEventListener('auth-changed', refresh);
+  }, []);
+
   // Initialize tracker and handle tracked URL opens
   useEM(() => {
     WATracker.seedIfEmpty();
@@ -257,6 +420,8 @@ function App() {
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
 
+  if (!authUser) return <LoginScreen/>;
+
   return (
     <div className={rootClass} data-screen-label={`Prototype · ${view}`}>
       {view !== 'onboarding' && (
@@ -280,6 +445,7 @@ function App() {
         {view === 'wa' && <WhatsApp/>}
         {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
         {view === 'saved' && <SavedView openDetail={openDetail} setView={setView}/>}
+        {view === 'admin' && (Auth.isAdmin() ? <AdminPanel setView={setView}/> : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
         {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/></div>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
@@ -348,7 +514,7 @@ function SavedView({ openDetail, setView }) {
 function OnboardingRing({ onClick }) {
   const computeProgress = () => {
     try {
-      const raw = JSON.parse(localStorage.getItem('solid-onboarding') || '{}');
+      const raw = JSON.parse(localStorage.getItem(window.userKey('solid-onboarding')) || '{}');
       if (raw.completedAt) return { value: 1, label: 'Completado', completed: true };
       const total = raw.totalSteps || 4;
       const step = Math.max(0, Math.min(total, raw.step || 0));
@@ -488,12 +654,12 @@ function Toaster() {
 
 // ── Chat history (MENTOR-IA conversaciones persistentes) ──────────────────
 const ChatHistory = (function() {
-  const KEY = 'solid-chats';
-  const ACTIVE_KEY = 'solid-active-chat';
-  function list() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
-  function save(chats) { localStorage.setItem(KEY, JSON.stringify(chats)); window.dispatchEvent(new Event('chats-changed')); }
-  function activeId() { return localStorage.getItem(ACTIVE_KEY) || null; }
-  function setActive(id) { if (id) localStorage.setItem(ACTIVE_KEY, id); else localStorage.removeItem(ACTIVE_KEY); window.dispatchEvent(new Event('chats-changed')); }
+  function _key() { return _userScopedKey('solid-chats'); }
+  function _activeKey() { return _userScopedKey('solid-active-chat'); }
+  function list() { try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch(e) { return []; } }
+  function save(chats) { localStorage.setItem(_key(), JSON.stringify(chats)); window.dispatchEvent(new Event('chats-changed')); }
+  function activeId() { return localStorage.getItem(_activeKey()) || null; }
+  function setActive(id) { if (id) localStorage.setItem(_activeKey(), id); else localStorage.removeItem(_activeKey()); window.dispatchEvent(new Event('chats-changed')); }
   function get(id) { return list().find(c => c.id === id); }
   function create(initial) {
     const id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
@@ -583,4 +749,283 @@ function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) 
   );
 }
 
+// ── Login / Signup screen ─────────────────────────────────────────────────
+function LoginScreen() {
+  const [mode, setMode] = useSM('login'); // 'login' | 'signup'
+  const [email, setEmail] = useSM('');
+  const [name, setName] = useSM('');
+  const [role, setRole] = useSM('Publish Agent');
+  const [team, setTeam] = useSM('Repsol');
+  const [error, setError] = useSM('');
+  const [submitting, setSubmitting] = useSM(false);
+
+  const submit = (e) => {
+    e && e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      if (mode === 'login') {
+        const u = Auth.login(email);
+        if (window.Toast) window.Toast.success('Bienvenido de vuelta, ' + u.name.split(' ')[0], { icon: '👋' });
+      } else {
+        const u = Auth.signup({ email, name, role, team });
+        if (window.Toast) window.Toast.success('Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    setSubmitting(false);
+  };
+
+  const quickLogin = (em) => { setEmail(em); setTimeout(() => { try { Auth.login(em); if (window.Toast) window.Toast.success('Sesión iniciada', { icon: '✓' }); } catch(e) { setError(e.message); } }, 50); };
+
+  const users = Auth.listUsers();
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:1000, display:'flex',
+      background:'linear-gradient(135deg, #0D1117 0%, #1a2940 50%, #2a1f4d 100%)',
+      overflow:'auto',
+    }}>
+      {/* Lado visual izquierdo */}
+      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#fff', minWidth:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:10}}>
+          <img src={"sgs-on-logo.png?v=" + (window.SOLID_VERSION || 'init')} style={{height:36, filter:'brightness(1.6) saturate(1.2)'}} alt="SGS|on"/>
+        </div>
+        <div>
+          <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:18}}>Plataforma de formación · 2026</div>
+          <h1 style={{fontFamily:'var(--sans)', fontSize:'clamp(40px, 5.5vw, 68px)', fontWeight:300, lineHeight:1.05, letterSpacing:'-0.02em', margin:0}}>
+            Domina<br/>Sprinklr<br/>como <em style={{fontStyle:'italic', fontWeight:600, background:'linear-gradient(135deg, #BCD630, #66C7C2)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>experto</em>.
+          </h1>
+          <div style={{marginTop:32, display:'flex', gap:10, flexWrap:'wrap'}}>
+            {['41 Think Pills', '3 Talleres', 'MENTOR-IA', 'Certificado Repsol'].map(t => (
+              <span key={t} style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', padding:'5px 11px', border:'1px solid rgba(255,255,255,0.2)', borderRadius:999, color:'rgba(255,255,255,0.75)'}}>{t}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>
+          BeonIt × Repsol · Powered by Claude
+        </div>
+      </div>
+
+      {/* Form lado derecho */}
+      <div style={{flex:'0 0 460px', maxWidth:'100%', background:'var(--paper)', padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'}}>
+        <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
+          <div style={{display:'flex', gap:6, marginBottom:32, padding:4, background:'var(--paper-2)', borderRadius:10, width:'fit-content'}}>
+            <button onClick={() => { setMode('login'); setError(''); }}
+              style={{padding:'7px 18px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
+                background: mode==='login' ? 'var(--paper)' : 'transparent', color: mode==='login' ? 'var(--ink)' : 'var(--ink-3)',
+                boxShadow: mode==='login' ? 'var(--shadow-sm)' : 'none'}}>Iniciar sesión</button>
+            <button onClick={() => { setMode('signup'); setError(''); }}
+              style={{padding:'7px 18px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
+                background: mode==='signup' ? 'var(--paper)' : 'transparent', color: mode==='signup' ? 'var(--ink)' : 'var(--ink-3)',
+                boxShadow: mode==='signup' ? 'var(--shadow-sm)' : 'none'}}>Crear cuenta</button>
+          </div>
+          <h2 style={{margin:'0 0 8px', fontSize:24, letterSpacing:'-0.01em'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
+          <p style={{fontSize:13.5, color:'var(--ink-3)', marginBottom:24, lineHeight:1.5}}>{mode === 'login' ? 'Introduce el email con el que te registraste.' : 'Te llevará 30 segundos. Sin password — versión demo.'}</p>
+
+          <form onSubmit={submit}>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email</div>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
+                style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+            </label>
+            {mode === 'signup' && (
+              <>
+                <label style={{display:'block', marginBottom:12}}>
+                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Nombre completo</div>
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
+                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                </label>
+                <label style={{display:'block', marginBottom:12}}>
+                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+                  <select value={role} onChange={e => setRole(e.target.value)}
+                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)', boxSizing:'border-box'}}>
+                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </label>
+                <label style={{display:'block', marginBottom:12}}>
+                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Equipo</div>
+                  <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
+                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                </label>
+              </>
+            )}
+            {error && (
+              <div style={{padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5, marginBottom:12}}>
+                {error}
+              </div>
+            )}
+            <button type="submit" disabled={submitting} className="btn glow" style={{width:'100%', justifyContent:'center', marginTop:6, opacity: submitting ? 0.6 : 1}}>
+              {submitting ? 'Cargando…' : mode === 'login' ? 'Entrar →' : 'Crear cuenta →'}
+            </button>
+          </form>
+
+          {users.length > 0 && mode === 'login' && (
+            <div style={{marginTop:28, paddingTop:20, borderTop:'1px solid var(--line)'}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:10}}>Acceso rápido (demo)</div>
+              <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                {users.slice(0, 4).map(u => (
+                  <button key={u.id} onClick={() => quickLogin(u.email)} type="button"
+                    style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--line)', borderRadius:8, background:'var(--paper)', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)'}}>
+                    <div style={{width:28, height:28, borderRadius:'50%', background:u.avatarColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
+                      {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                    </div>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:13, fontWeight:500, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
+                      <div style={{fontSize:10.5, color:'var(--ink-4)', fontFamily:'var(--mono)'}}>{u.email}</div>
+                    </div>
+                    {u.isAdmin && <span style={{fontFamily:'var(--mono)', fontSize:9, padding:'2px 6px', background:'var(--ink)', color:'#fff', borderRadius:4, letterSpacing:'0.06em'}}>ADMIN</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Admin panel · vista exclusiva para admins ──────────────────────────────
+function AdminPanel({ setView }) {
+  const [users, setUsers] = useSM(Auth.listUsers());
+  const [filter, setFilter] = useSM('');
+  useEM(() => {
+    const refresh = () => setUsers(Auth.listUsers());
+    window.addEventListener('auth-users-changed', refresh);
+    return () => window.removeEventListener('auth-users-changed', refresh);
+  }, []);
+
+  const filtered = users.filter(u => !filter || (u.name + ' ' + u.email + ' ' + u.role + ' ' + u.team).toLowerCase().includes(filter.toLowerCase()));
+  const totalUsers = users.length;
+  const totalAdmins = users.filter(u => u.isAdmin).length;
+  const totalActive7d = users.filter(u => Date.now() - (u.lastLoginAt || 0) < 7*86400000).length;
+
+  // Métricas agregadas: cuentos los completados/chats/bookmarks por usuario
+  const userMetrics = users.map(u => {
+    let bookmarks = 0, chats = 0, completed = 0;
+    try { bookmarks = JSON.parse(localStorage.getItem('solid-bookmarks:' + u.id) || '[]').length; } catch(e) {}
+    try { chats = JSON.parse(localStorage.getItem('solid-chats:' + u.id) || '[]').length; } catch(e) {}
+    try { completed = JSON.parse(localStorage.getItem('solid-completed:' + u.id) || '[]').length; } catch(e) {}
+    return { ...u, _bookmarks: bookmarks, _chats: chats, _completed: completed };
+  });
+  const totalCompletions = userMetrics.reduce((s,u) => s + u._completed, 0);
+  const totalChats = userMetrics.reduce((s,u) => s + u._chats, 0);
+
+  const filteredMetrics = userMetrics.filter(u => !filter || (u.name + ' ' + u.email + ' ' + u.role + ' ' + u.team).toLowerCase().includes(filter.toLowerCase()));
+
+  const fmtRel = (ts) => {
+    if (!ts) return '—';
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60) return 'ahora';
+    if (d < 3600) return Math.floor(d/60) + ' min';
+    if (d < 86400) return Math.floor(d/3600) + ' h';
+    return Math.floor(d/86400) + ' d';
+  };
+
+  const toggleAdmin = (u) => {
+    if (u.id === Auth.currentUserId() && u.isAdmin) {
+      if (!confirm('¿Quitarte el rol admin a TI mismo? Perderás acceso a este panel.')) return;
+    }
+    Auth.setAdmin(u.id, !u.isAdmin);
+    if (window.Toast) window.Toast.success((u.isAdmin ? 'Quitado admin a ' : 'Hecho admin a ') + u.name);
+  };
+  const removeUser = (u) => {
+    if (u.id === Auth.currentUserId()) { alert('No puedes borrar tu propio usuario.'); return; }
+    if (!confirm('¿Borrar definitivamente a ' + u.name + ' y todos sus datos (bookmarks, chats, progreso)?')) return;
+    Auth.deleteUser(u.id);
+    if (window.Toast) window.Toast.info('Usuario eliminado · ' + u.name);
+  };
+
+  return (
+    <div className="main-inner" style={{padding:'32px 48px', maxWidth:'none'}}>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:24}}>
+        <div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot" style={{background:'var(--ink)'}}/>Panel de administración</div>
+          <h1 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:'clamp(28px,3vw,38px)', letterSpacing:'-0.02em', margin:'4px 0 0'}}>Usuarios y métricas</h1>
+          <p style={{fontSize:13.5, color:'var(--ink-3)', margin:'8px 0 0', maxWidth:580}}>Gestiona los usuarios de la plataforma, sus roles y revisa métricas agregadas en tiempo real.</p>
+        </div>
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Buscar usuario, email, rol…"
+          style={{padding:'10px 14px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--sans)', fontSize:13, minWidth:280, outline:'none'}}/>
+      </div>
+
+      {/* KPIs admin */}
+      <div className="dash-kpis" style={{marginBottom:28}}>
+        {[
+          { label:'Usuarios totales', value: totalUsers, color:'var(--bn-blue)' },
+          { label:'Activos últimos 7d', value: totalActive7d, color:'var(--bn-lime)' },
+          { label:'Administradores', value: totalAdmins, color:'var(--ink)' },
+          { label:'Conversaciones MENTOR-IA', value: totalChats, color:'var(--bn-purple)' },
+          { label:'Módulos completados', value: totalCompletions, color:'var(--bn-orange)' },
+        ].map((k, i) => (
+          <div key={i} className="kpi-card" style={{'--kpi-color': k.color}}>
+            <div className="kpi-label">{k.label}</div>
+            <div className="kpi-value">{k.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla de usuarios */}
+      <div className="dash-panel" style={{padding:0, overflow:'hidden'}}>
+        <div className="dash-panel-head" style={{padding:'16px 22px'}}>
+          <h3>Usuarios ({filtered.length})</h3>
+          <span className="panel-sub">Click en cualquier fila para ver acciones</span>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table className="user-table" style={{width:'100%'}}>
+            <thead>
+              <tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Bookmarks</th><th>Última conexión</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+              {filteredMetrics.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div style={{display:'flex', alignItems:'center', gap:10}}>
+                      <div style={{width:30, height:30, borderRadius:'50%', background:u.avatarColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
+                        {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="u-name">{u.name} {u.isAdmin && <span style={{fontFamily:'var(--mono)', fontSize:8.5, padding:'1px 5px', background:'var(--ink)', color:'#fff', borderRadius:3, letterSpacing:'0.06em', marginLeft:4}}>ADMIN</span>}</div>
+                        <div className="u-role">{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><div style={{fontSize:12.5}}>{u.role}</div><div style={{fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink-4)'}}>{u.team}</div></td>
+                  <td>
+                    <div className="prog-pill">
+                      <div className="prog-bar-sm"><i style={{width: Math.min(100, (u._completed/(window.PILLS||[]).length || 1) * 100) + '%'}}/></div>
+                      <span style={{fontFamily:'var(--mono)', fontSize:11}}>{u._completed} pills</span>
+                    </div>
+                  </td>
+                  <td style={{fontFamily:'var(--mono)', fontSize:12}}>{u._chats}</td>
+                  <td style={{fontFamily:'var(--mono)', fontSize:12}}>{u._bookmarks}</td>
+                  <td style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{fmtRel(u.lastLoginAt)}</td>
+                  <td>
+                    <div style={{display:'flex', gap:6}}>
+                      <button onClick={() => toggleAdmin(u)} title={u.isAdmin ? 'Quitar admin' : 'Hacer admin'}
+                        style={{padding:'5px 10px', borderRadius:6, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', fontSize:11, fontFamily:'var(--mono)', letterSpacing:'0.06em'}}>
+                        {u.isAdmin ? '− admin' : '+ admin'}
+                      </button>
+                      <button onClick={() => removeUser(u)} title="Borrar usuario"
+                        style={{padding:'5px 10px', borderRadius:6, border:'1px solid rgba(235,0,41,0.3)', background:'transparent', cursor:'pointer', fontSize:11, color:'var(--repsol-red)', fontFamily:'var(--mono)', letterSpacing:'0.06em'}}>
+                        × borrar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredMetrics.length === 0 && (
+                <tr><td colSpan="7" style={{textAlign:'center', padding:32, color:'var(--ink-4)', fontSize:13}}>Sin usuarios que coincidan.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.LoginScreen = LoginScreen;
+window.AdminPanel = AdminPanel;
 window.PrototypeApp = App;
