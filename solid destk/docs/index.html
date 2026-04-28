@@ -5,12 +5,12 @@
 <title>SGS|on — by BeonIt × Repsol</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260427h">
-<link rel="stylesheet" href="prototype.css?v=20260427h">
+<link rel="stylesheet" href="styles.css?v=20260427i">
+<link rel="stylesheet" href="prototype.css?v=20260427i">
 
 <script>
   (function(){
-    var V = '20260427h';
+    var V = '20260427i';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -41,7 +41,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427h" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427i" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
   <div class="shell-tabs-list" role="tablist" style="display:none">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
   </div>
@@ -50,7 +50,15 @@
 
 <!-- Prototype panel -->
 <section class="shell-panel" id="prototype-panel">
-  <div id="proto-root"></div>
+  <div id="proto-root">
+    <!-- Fallback visible si la app NO monta. React lo borrará en cuanto monte; si lo ves, la app no arrancó. -->
+    <div id="boot-error" style="font-family:system-ui,sans-serif;padding:48px 24px;max-width:640px;margin:80px auto;color:#0D1117">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px">SGS|on · cargando…</div>
+      <h1 style="margin:0 0 12px;font-size:28px;letter-spacing:-0.02em">Si esto persiste más de 5 segundos, la app no ha podido cargar.</h1>
+      <p style="font-size:14px;line-height:1.55;color:#4A5568;margin:0 0 16px">Posibles causas: tu navegador bloquea CDNs externos (unpkg.com), o un script .jsx ha fallado al transformar.</p>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#F5F7FA;padding:12px 14px;border-radius:6px;color:#1C2433">Abre la consola (F12) y mira los errores en rojo.</div>
+    </div>
+  </div>
 </section>
 
 
@@ -60,44 +68,68 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260427h" data-plugins="transform-react-jsx-source" data-filename="components.jsx"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260427h" data-plugins="transform-react-jsx-source" data-filename="prototype-home.jsx"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260427h" data-plugins="transform-react-jsx-source" data-filename="prototype-views.jsx"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260427h" data-plugins="transform-react-jsx-source" data-filename="mentor-ia.jsx"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260427h" data-plugins="transform-react-jsx-source" data-filename="prototype-main.jsx"></script>
+<script type="text/babel" src="components.jsx?v=20260427i"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427i"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427i"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427i"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427i"></script>
 
 <!-- Boot -->
-<script type="text/babel" data-plugins="transform-react-jsx-source" data-filename="inline-7">
+<script type="text/babel">
 (function(){
-  // Activamos siempre el panel del prototipo. Los tabs deck/canvas están
-  // ocultos en producción; mantenemos el código defensivo por si el shell vuelve.
-  function activate(tab){
-    ['prototype','deck','canvas'].forEach(t => {
-      const btn = document.querySelector('.shell-tab[data-tab="' + t + '"]');
-      if (btn) btn.classList.toggle('active', t === tab);
-      const panel = document.getElementById(t + '-panel');
-      if (panel) panel.classList.toggle('active', t === tab);
-    });
-    const label = document.getElementById('meta-label');
-    if (label) label.textContent = 'Plataforma de formación';
+  function showBootError(title, detail) {
+    var protoEl = document.getElementById('proto-root');
+    if (!protoEl) return;
+    protoEl.innerHTML = ''
+      + '<div style="font-family:system-ui,sans-serif;padding:48px 24px;max-width:720px;margin:60px auto;color:#0D1117">'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#EB0029;margin-bottom:8px">SGS|on · arranque fallido</div>'
+      + '<h1 style="margin:0 0 12px;font-size:24px;letter-spacing:-0.02em">' + title + '</h1>'
+      + '<pre style="font-family:\'JetBrains Mono\',monospace;font-size:12px;background:#F5F7FA;padding:14px 16px;border-radius:8px;white-space:pre-wrap;word-break:break-word;color:#1C2433;margin:0;line-height:1.5">' + detail + '</pre>'
+      + '<div style="margin-top:14px;font-size:13px;color:#4A5568">Abre la consola (F12 → Console) para más detalle. Comparte la captura para diagnosticar.</div>'
+      + '</div>';
   }
 
-  document.querySelectorAll('.shell-tab').forEach(btn => {
-    btn.addEventListener('click', () => activate(btn.getAttribute('data-tab')));
+  // Capturar cualquier error global durante el arranque
+  window.addEventListener('error', function(ev){
+    var msg = (ev.error && ev.error.stack) || ev.message || 'Error sin detalle';
+    showBootError('Error de JavaScript durante la carga', String(msg));
   });
-  activate('prototype');
 
-  // Vaciamos cualquier HTML pre-renderizado heredado de cuando esto era un
-  // Claude artifact, para que React monte limpio
-  var protoEl = document.getElementById('proto-root');
-  if (protoEl) {
-    protoEl.innerHTML = '';
-    ReactDOM.createRoot(protoEl).render(<PrototypeApp/>);
+  try {
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      showBootError('React no se cargó', 'Las CDNs unpkg.com pueden estar bloqueadas por tu red/VPN. Comprueba en la consola la pestaña Network: ¿react.production.min.js cargó?');
+      return;
+    }
+
+    function activate(tab){
+      ['prototype','deck','canvas'].forEach(function(t){
+        var btn = document.querySelector('.shell-tab[data-tab="' + t + '"]');
+        if (btn) btn.classList.toggle('active', t === tab);
+        var panel = document.getElementById(t + '-panel');
+        if (panel) panel.classList.toggle('active', t === tab);
+      });
+      var label = document.getElementById('meta-label');
+      if (label) label.textContent = 'Plataforma de formación';
+    }
+
+    document.querySelectorAll('.shell-tab').forEach(function(btn){
+      btn.addEventListener('click', function(){ activate(btn.getAttribute('data-tab')); });
+    });
+    activate('prototype');
+
+    if (typeof PrototypeApp === 'undefined') {
+      showBootError('Componente PrototypeApp no definido', 'Alguno de los .jsx no se cargó o falló al transformar. Comprueba la consola por errores de Babel/sintaxis.');
+      return;
+    }
+
+    var protoEl = document.getElementById('proto-root');
+    if (protoEl) {
+      protoEl.innerHTML = '';
+      ReactDOM.createRoot(protoEl).render(<PrototypeApp/>);
+    }
+  } catch (err) {
+    showBootError('Excepción al montar React', (err && err.stack) || String(err));
   }
-
-  // Deck y Canvas solo se montan si sus tabs están visibles. Como están
-  // ocultas, no hacemos nada — ahorra ciclos y evita errores si los componentes
-  // tienen dependencias rotas.
 })();
 </script>
 
