@@ -868,6 +868,150 @@ const Inbox = (function() {
 })();
 window.Inbox = Inbox;
 
+// ── RouteExams · examen final de cada ruta + emisión de certificado ─────────
+// Banco de preguntas por id de ruta (3 por ruta). Pasar = todas correctas.
+const ROUTE_EXAM_BANK = {
+  fundamentals: {
+    title: 'Examen final · Fundamentals',
+    questions: [
+      { q: '¿Cuál es el rol que aprueba contenido antes de publicar en redes corporativas?', options: ['Publish Agent', 'Content Lead', 'Care Agent', 'Analytics Lead'], answer: 1 },
+      { q: '¿Cuántas Think Pills cubre el bloque 1+2 (Fundamentos)?', options: ['3 pills', '6 pills', '10 pills', '12 pills'], answer: 1 },
+      { q: '¿Qué módulo de Sprinklr se usa para gestionar activos digitales reutilizables?', options: ['Social Publish', 'DAM (Digital Asset Management)', 'Care', 'Reporting'], answer: 1 },
+    ],
+  },
+  managers: {
+    title: 'Examen final · Managers',
+    questions: [
+      { q: '¿Qué rol tiene permisos para aprobar publicación en producción?', options: ['Agent', 'Manager', 'Reporting', 'Viewer'], answer: 1 },
+      { q: 'En el flujo de aprobación urgente ("fast-track"), ¿qué SLA de revisión aplica en Repsol?', options: ['2 horas', '4 horas', '24 horas', '48 horas'], answer: 0 },
+      { q: '¿Qué herramienta usa Repsol para escalar casos de Sprinklr?', options: ['HubSpot', 'Zendesk', 'Salesforce', 'ServiceNow'], answer: 2 },
+    ],
+  },
+  publish: {
+    title: 'Examen final · Publish Agent',
+    questions: [
+      { q: '¿Desde dónde se programa una publicación multicanal?', options: ['Care', 'Calendario editorial de Social Publish', 'DAM', 'Reporting'], answer: 1 },
+      { q: '¿Qué permite Sprinklr en publicación multicanal sin reescribir el copy?', options: ['Adaptación automática por red social', 'Solo Twitter', 'Solo LinkedIn', 'Programación manual canal a canal'], answer: 0 },
+      { q: '¿Qué hace una macro en Sprinklr?', options: ['Genera reportes', 'Aplica una acción predefinida con un click', 'Borra contenido programado', 'Cambia idioma'], answer: 1 },
+    ],
+  },
+  care: {
+    title: 'Examen final · Care Agent',
+    questions: [
+      { q: '¿Cuál es el First Response SLA estándar de Repsol Care en horario laboral?', options: ['1 h', '2 h', '4 h', '8 h'], answer: 1 },
+      { q: '¿Qué acción ejecuta una macro al recibir un mensaje recurrente?', options: ['Borra el caso', 'Responde, etiqueta y/o deriva con un click', 'Notifica solo al admin', 'Bloquea al usuario'], answer: 1 },
+      { q: '¿A qué sistema escala Care un caso crítico?', options: ['HubSpot', 'Salesforce', 'Slack', 'Excel'], answer: 1 },
+    ],
+  },
+  analytics: {
+    title: 'Examen final · Analytics Lead',
+    questions: [
+      { q: '¿Qué módulo usarías para monitorización en tiempo real?', options: ['Sprinklr Insights', 'Sprinklr DAM', 'Sprinklr Publish', 'Sprinklr Print'], answer: 0 },
+      { q: '¿Qué dimensión NO es típica de un dashboard Repsol?', options: ['Engagement por canal', 'Coste por punto de venta', 'Reach por país', 'Sentimiento agregado'], answer: 1 },
+      { q: '¿Qué tipo de gráfica usarías para visualizar drop-off de un funnel formativo?', options: ['Pastel', 'Línea descendente', 'Mapa de calor', 'Treemap'], answer: 1 },
+    ],
+  },
+};
+
+const RouteExams = (function() {
+  function _key() { return _userScopedKey('sgson-route-exams'); }
+  function getAll() { try { return JSON.parse(localStorage.getItem(_key()) || '{}'); } catch(e) { return {}; } }
+  function saveAll(d) { localStorage.setItem(_key(), JSON.stringify(d)); window.dispatchEvent(new Event('exams-changed')); }
+  function get(routeId) { return getAll()[routeId] || null; }
+  function record(routeId, score, total, passed) {
+    const all = getAll();
+    all[routeId] = { score, total, passed, completedAt: Date.now() };
+    saveAll(all);
+  }
+  function reset(routeId) { const all = getAll(); delete all[routeId]; saveAll(all); }
+  function bank(routeId) { return ROUTE_EXAM_BANK[routeId] || null; }
+  return { getAll, get, record, reset, bank };
+})();
+window.RouteExams = RouteExams;
+
+// ── Submissions · entregas de video por módulo, revisadas por admin ──────────
+// Para no llenar localStorage con binarios pesados, guardamos METADATOS de la
+// entrega + thumbnail base64 + duración. El video real no se persiste — en el
+// modelo SaaS real iría a S3/Vercel Blob/Supabase Storage. Aquí basta para la
+// demo del flujo.
+const Submissions = (function() {
+  const ALL_KEY = 'sgson-submissions-global'; // todas, accesibles por admin
+  function _load() { try { return JSON.parse(localStorage.getItem(ALL_KEY) || '[]'); } catch(e) { return []; } }
+  function _save(s) { localStorage.setItem(ALL_KEY, JSON.stringify(s)); window.dispatchEvent(new Event('submissions-changed')); }
+
+  function listAll() { return _load(); }
+  function listByUser(userId) { return _load().filter(s => s.userId === userId); }
+  function listByPill(pillId) { return _load().filter(s => s.pillId === pillId); }
+  function listPending() { return _load().filter(s => s.status === 'pending'); }
+  function get(id) { return _load().find(s => s.id === id); }
+
+  function getForUserAndPill(userId, pillId) {
+    return _load().find(s => s.userId === userId && s.pillId === pillId) || null;
+  }
+
+  function submit({ pillId, pillTitle, fileName, fileSize, durationSec, thumbDataUrl }) {
+    var u = window.Auth && window.Auth.currentUser();
+    if (!u) throw new Error('Necesitas iniciar sesión');
+    if (durationSec > 600) throw new Error('Vídeo demasiado largo · máximo 10 minutos');
+    var existing = getForUserAndPill(u.id, pillId);
+    var sub = {
+      id: existing ? existing.id : 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+      userId: u.id, userName: u.name, userEmail: u.email, userAvatarColor: u.avatarColor,
+      pillId, pillTitle,
+      fileName, fileSize, durationSec, thumbDataUrl,
+      status: 'pending', // 'pending' | 'approved' | 'rejected'
+      submittedAt: Date.now(),
+      reviewedAt: null, reviewedBy: null, feedback: null,
+    };
+    var all = _load();
+    if (existing) { all = all.map(s => s.id === existing.id ? sub : s); }
+    else { all.unshift(sub); }
+    _save(all);
+    // Notificar a todos los admins
+    if (window.Auth) {
+      // No tenemos tabla de notifs por admin individual, dejamos un toast al usuario
+    }
+    return sub;
+  }
+
+  function review(id, status, feedback) {
+    var u = window.Auth && window.Auth.currentUser();
+    if (!u || !u.isAdmin) throw new Error('Solo admins pueden revisar');
+    var all = _load();
+    var idx = all.findIndex(s => s.id === id);
+    if (idx < 0) return null;
+    all[idx].status = status; // 'approved' | 'rejected'
+    all[idx].reviewedAt = Date.now();
+    all[idx].reviewedBy = { id: u.id, name: u.name };
+    all[idx].feedback = feedback || null;
+    _save(all);
+    // Notificar al usuario que entregó
+    var sub = all[idx];
+    var users = window.Auth.listUsers();
+    var owner = users.find(x => x.id === sub.userId);
+    if (owner) {
+      // Inyectar notificación en el inbox del owner
+      var key = 'sgson-inbox:' + owner.id;
+      try {
+        var ib = JSON.parse(localStorage.getItem(key) || '{"messages":[],"notifications":[]}');
+        ib.notifications = [{
+          id: 'n_' + Date.now().toString(36),
+          text: 'Tu entrega de "' + sub.pillTitle + '" ha sido ' + (status === 'approved' ? 'APROBADA ✓' : 'rechazada — revisa el feedback'),
+          kind: status, icon: status === 'approved' ? '✓' : '✗',
+          createdAt: Date.now(), read: false,
+        }].concat(ib.notifications || []);
+        localStorage.setItem(key, JSON.stringify(ib));
+      } catch(e) {}
+    }
+    return all[idx];
+  }
+
+  function remove(id) { _save(_load().filter(s => s.id !== id)); }
+
+  return { listAll, listByUser, listByPill, listPending, get, getForUserAndPill, submit, review, remove };
+})();
+window.Submissions = Submissions;
+
 function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) {
   const persist = (edits) => window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
   return (
@@ -1185,6 +1329,125 @@ function AdminPanel({ setView }) {
           </table>
         </div>
       </div>
+
+      {/* Cola de revisión de entregas prácticas */}
+      <AdminSubmissionsQueue/>
+    </div>
+  );
+}
+
+function AdminSubmissionsQueue() {
+  const [subs, setSubs] = useSM(Submissions.listAll());
+  const [filter, setFilter] = useSM('pending'); // 'pending' | 'all' | 'approved' | 'rejected'
+  const [reviewing, setReviewing] = useSM(null);
+  const [feedback, setFeedback] = useSM('');
+
+  useEM(() => {
+    const refresh = () => setSubs(Submissions.listAll());
+    window.addEventListener('submissions-changed', refresh);
+    return () => window.removeEventListener('submissions-changed', refresh);
+  }, []);
+
+  const filtered = filter === 'all' ? subs : subs.filter(s => s.status === filter);
+  const counts = {
+    pending: subs.filter(s => s.status === 'pending').length,
+    approved: subs.filter(s => s.status === 'approved').length,
+    rejected: subs.filter(s => s.status === 'rejected').length,
+    all: subs.length,
+  };
+
+  const review = (status) => {
+    if (!reviewing) return;
+    Submissions.review(reviewing.id, status, feedback || null);
+    if (window.Toast) window.Toast.success('Entrega ' + (status === 'approved' ? 'aprobada' : 'rechazada'));
+    setReviewing(null);
+    setFeedback('');
+  };
+
+  const fmtDur = (s) => Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
+  const fmtSize = (b) => b < 1024*1024 ? (b/1024).toFixed(0) + ' KB' : (b/1024/1024).toFixed(1) + ' MB';
+
+  return (
+    <div className="dash-panel" style={{padding:0, marginTop:24, overflow:'hidden'}}>
+      <div className="dash-panel-head" style={{padding:'16px 22px'}}>
+        <h3>Entregas prácticas · revisión</h3>
+        <span className="panel-sub">Vídeos enviados por los usuarios — revisa y da feedback</span>
+      </div>
+      <div style={{padding:'12px 22px', borderBottom:'1px solid var(--line-2)', display:'flex', gap:6, flexWrap:'wrap'}}>
+        {[
+          { id:'pending', label:'Pendientes', count: counts.pending, color:'var(--bn-orange)' },
+          { id:'approved', label:'Aprobadas', count: counts.approved, color:'var(--bn-lime)' },
+          { id:'rejected', label:'Rechazadas', count: counts.rejected, color:'var(--repsol-red)' },
+          { id:'all', label:'Todas', count: counts.all, color:'var(--ink-3)' },
+        ].map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)} style={{padding:'6px 12px', borderRadius:8, border:'1px solid ' + (filter === f.id ? f.color : 'var(--line)'), background: filter === f.id ? f.color : 'var(--paper)', color: filter === f.id ? (f.id === 'approved' ? 'var(--ink)' : '#fff') : 'var(--ink-3)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:700}}>
+            {f.label} {f.count > 0 && <span style={{marginLeft:4, opacity:0.85}}>· {f.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{padding:'40px 20px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>
+          {filter === 'pending' ? 'Sin entregas pendientes de revisión.' : 'Sin entregas en este estado.'}
+        </div>
+      ) : (
+        <div style={{padding:'8px 14px 16px'}}>
+          {filtered.map(s => {
+            const statusColor = { pending:'var(--bn-orange)', approved:'var(--bn-lime)', rejected:'var(--repsol-red)' }[s.status];
+            return (
+              <div key={s.id} style={{display:'flex', gap:12, padding:'14px', border:'1px solid var(--line)', borderRadius:10, background:'var(--paper)', marginBottom:8, alignItems:'flex-start'}}>
+                {s.thumbDataUrl && <img src={s.thumbDataUrl} style={{width:120, borderRadius:6, flexShrink:0, border:'1px solid var(--line)'}} alt=""/>}
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
+                    <div style={{width:24, height:24, borderRadius:'50%', background:s.userAvatarColor || 'var(--ink)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0}}>
+                      {(s.userName || '?').split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                    </div>
+                    <span style={{fontSize:12.5, fontWeight:600}}>{s.userName}</span>
+                    <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>· {s.userEmail}</span>
+                    <span style={{marginLeft:'auto', fontFamily:'var(--mono)', fontSize:9.5, padding:'2px 8px', borderRadius:999, background: statusColor, color: s.status === 'approved' ? 'var(--ink)' : '#fff', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>{s.status}</span>
+                  </div>
+                  <div style={{fontSize:13.5, fontWeight:600, marginBottom:3, color:'var(--ink)'}}>{s.pillTitle}</div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{s.fileName} · {fmtDur(s.durationSec)} · {fmtSize(s.fileSize)} · enviado {new Date(s.submittedAt).toLocaleString('es-ES', {dateStyle:'short', timeStyle:'short'})}</div>
+                  {s.feedback && (
+                    <div style={{marginTop:8, padding:'7px 10px', background:'var(--paper-2)', borderLeft:'3px solid ' + statusColor, borderRadius:'0 6px 6px 0', fontSize:12, color:'var(--ink-3)'}}>
+                      <strong style={{color:'var(--ink-4)', fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase'}}>Feedback</strong> · {s.feedback}
+                    </div>
+                  )}
+                  {s.status === 'pending' && (
+                    <div style={{display:'flex', gap:6, marginTop:10}}>
+                      <button className="btn ghost" style={{padding:'6px 12px', fontSize:12}} onClick={() => { setReviewing(s); setFeedback(''); }}>Revisar →</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal de revisión */}
+      {reviewing && (
+        <div onClick={() => setReviewing(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(540px, 96vw)', padding:28}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Revisar entrega</div>
+            <h2 style={{margin:'0 0 4px', fontSize:18}}>{reviewing.pillTitle}</h2>
+            <div style={{fontSize:12.5, color:'var(--ink-3)', marginBottom:16}}>de <strong>{reviewing.userName}</strong> · {reviewing.userEmail}</div>
+            {reviewing.thumbDataUrl && <img src={reviewing.thumbDataUrl} style={{width:'100%', maxHeight:240, objectFit:'cover', borderRadius:8, marginBottom:14, border:'1px solid var(--line)'}} alt=""/>}
+            <label style={{display:'block', marginBottom:14}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:5}}>Feedback (opcional)</div>
+              <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Comenta la entrega · qué hizo bien, qué mejorar…" rows="4"
+                style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:13, outline:'none', resize:'vertical', boxSizing:'border-box'}}/>
+            </label>
+            <div style={{display:'flex', gap:8, justifyContent:'space-between'}}>
+              <button className="btn ghost" onClick={() => setReviewing(null)}>Cancelar</button>
+              <div style={{display:'flex', gap:8}}>
+                <button onClick={() => review('rejected')} style={{padding:'8px 14px', borderRadius:8, border:'1px solid rgba(235,0,41,0.3)', background:'rgba(235,0,41,0.06)', color:'var(--repsol-red)', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600}}>Rechazar</button>
+                <button onClick={() => review('approved')} className="btn glow" style={{background:'var(--bn-lime)', color:'var(--ink)'}}>Aprobar ✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1353,6 +1616,291 @@ function InboxView({ openDetail, setView }) {
   );
 }
 window.InboxView = InboxView;
+
+// ── Examen final de ruta · modal con 3 preguntas + cert al pasar ──────────
+function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
+  const bank = RouteExams.bank(routeId);
+  const [answers, setAnswers] = useSM({}); // {qIdx: optionIdx}
+  const [submitted, setSubmitted] = useSM(false);
+  const [result, setResult] = useSM(null); // { score, total, passed }
+
+  if (!bank) {
+    return (
+      <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+        <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, padding:32, maxWidth:420}}>
+          <h2 style={{margin:'0 0 12px'}}>Examen no disponible</h2>
+          <p style={{color:'var(--ink-3)', marginBottom:18}}>Esta ruta aún no tiene examen final configurado.</p>
+          <button className="btn ghost" onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    );
+  }
+
+  const submit = () => {
+    let score = 0;
+    bank.questions.forEach((q, i) => { if (answers[i] === q.answer) score++; });
+    const total = bank.questions.length;
+    const passed = score === total;
+    setResult({ score, total, passed });
+    setSubmitted(true);
+    RouteExams.record(routeId, score, total, passed);
+    if (passed) {
+      if (window.Toast) window.Toast.success('¡Aprobado! Generando certificado…', { icon: '🎉' });
+      if (window.Inbox) {
+        window.Inbox.addNotification('Has superado el examen final de la ruta "' + (routeLabel || routeId) + '"', { kind:'achievement', icon:'🏆' });
+      }
+      if (onPassed) onPassed({ score, total });
+    } else {
+      if (window.Toast) window.Toast.error('Has fallado · ' + score + '/' + total + ' correctas. Repasa y vuelve a intentarlo.');
+    }
+  };
+
+  const downloadCert = () => {
+    var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: 'Sprinklr', team: 'Repsol' };
+    const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
+'<style>@page{size:A4 landscape;margin:0}body{font-family:Manrope,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
+'<div class="frame"><div class="kicker">SGS|on · BeonIt × Repsol · Certificación oficial</div>' +
+'<h1>Certificado de ruta · ' + (routeLabel || routeId) + '</h1>' +
+'<div class="lead">Por la presente certificamos que la persona reseñada ha completado y aprobado el examen final de esta ruta dentro de la formación oficial Sprinklr del programa SOLID GROWTH para Repsol.</div>' +
+'<div class="name">' + u.name + '</div>' +
+'<div class="role">' + u.role + ' · ' + u.team + '</div>' +
+'<div class="cert-line"></div>' +
+'<div class="foot"><div><strong>Fecha</strong><br/>' + today + '</div><div><strong>Resultado</strong><br/>Aprobado · ' + (result ? result.score + '/' + result.total : '?') + '</div><div><div class="sig">BeonIt × Repsol</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div></div></div></body></html>';
+    const blob = new Blob([html], { type:'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Certificado-' + (routeId || 'ruta') + '-' + (u.name || '').replace(/\s+/g,'-') + '.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+  };
+
+  const allAnswered = bank.questions.every((_, i) => answers[i] !== undefined);
+
+  return (
+    <div onClick={!submitted ? onClose : null} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
+      <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(620px, 96vw)', maxHeight:'90vh', overflowY:'auto', padding:32, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--bn-blue)', fontWeight:700}}>EXAMEN FINAL</span>
+          {submitted && result && (
+            <span style={{fontFamily:'var(--mono)', fontSize:10, padding:'3px 10px', borderRadius:999, background: result.passed ? 'var(--bn-lime)' : 'rgba(235,0,41,0.12)', color: result.passed ? 'var(--ink)' : 'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>
+              {result.passed ? '✓ Aprobado' : '✗ No aprobado'}
+            </span>
+          )}
+        </div>
+        <h2 style={{margin:'0 0 16px', fontSize:22, fontFamily:'var(--sans)', letterSpacing:'-0.01em'}}>{bank.title}</h2>
+        {!submitted && <p style={{fontSize:13.5, color:'var(--ink-3)', marginBottom:20}}>Responde las 3 preguntas. Necesitas <strong>todas correctas</strong> para superar el examen y descargar tu certificado oficial.</p>}
+
+        {bank.questions.map((q, qi) => {
+          const userAns = answers[qi];
+          const isCorrect = submitted && userAns === q.answer;
+          return (
+            <div key={qi} style={{marginBottom:20, padding:'16px 18px', border:'1px solid var(--line)', borderRadius:12, background: submitted ? (isCorrect ? 'rgba(188,214,48,0.08)' : 'rgba(235,0,41,0.06)') : 'var(--paper-2)'}}>
+              <div style={{display:'flex', alignItems:'flex-start', gap:10, marginBottom:12}}>
+                <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', fontWeight:700, marginTop:3}}>P{qi + 1}</span>
+                <div style={{flex:1, fontSize:14, fontWeight:600, color:'var(--ink)', lineHeight:1.4}}>{q.q}</div>
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                {q.options.map((opt, oi) => {
+                  const isUserChoice = userAns === oi;
+                  const showCorrect = submitted && oi === q.answer;
+                  const showWrong = submitted && isUserChoice && oi !== q.answer;
+                  return (
+                    <button key={oi} disabled={submitted} onClick={() => setAnswers(a => ({...a, [qi]: oi}))}
+                      style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', border:'1px solid ' + (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : isUserChoice ? 'var(--bn-blue)' : 'var(--line)'), borderRadius:8, background: showCorrect ? 'rgba(188,214,48,0.15)' : showWrong ? 'rgba(235,0,41,0.08)' : isUserChoice ? 'rgba(0,114,190,0.06)' : 'var(--paper)', cursor: submitted ? 'default' : 'pointer', textAlign:'left', fontFamily:'var(--sans)', fontSize:13, color:'var(--ink)'}}>
+                      <span style={{width:18, height:18, borderRadius:'50%', border:'2px solid ' + (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : isUserChoice ? 'var(--bn-blue)' : 'var(--line)'), background: (isUserChoice || showCorrect) ? (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : 'var(--bn-blue)') : 'transparent', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff', fontWeight:700}}>
+                        {showCorrect ? '✓' : showWrong ? '✗' : isUserChoice ? '●' : ''}
+                      </span>
+                      <span style={{flex:1}}>{opt}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {!submitted ? (
+          <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:8}}>
+            <button className="btn ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn glow" onClick={submit} disabled={!allAnswered} style={{opacity: allAnswered ? 1 : 0.5}}>Enviar respuestas →</button>
+          </div>
+        ) : (
+          <div style={{marginTop:18, padding:'18px 20px', background: result.passed ? 'rgba(188,214,48,0.1)' : 'var(--paper-2)', borderRadius:12, border:'1px solid ' + (result.passed ? 'var(--bn-lime)' : 'var(--line)')}}>
+            <div style={{fontSize:14, fontWeight:600, marginBottom:6, color:'var(--ink)'}}>
+              {result.passed ? '🎉 Has aprobado con ' + result.score + '/' + result.total : 'Has obtenido ' + result.score + '/' + result.total + ' · necesitas las 3 correctas para aprobar'}
+            </div>
+            <div style={{fontSize:12.5, color:'var(--ink-3)', marginBottom:14, lineHeight:1.5}}>
+              {result.passed ? 'Tu certificado oficial está listo para descargar.' : 'Repasa el material y vuelve a intentarlo cuando quieras.'}
+            </div>
+            <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+              {!result.passed && <button className="btn ghost" onClick={() => { setAnswers({}); setSubmitted(false); setResult(null); }}>Reintentar</button>}
+              <button className="btn ghost" onClick={onClose}>Cerrar</button>
+              {result.passed && <button className="btn glow" onClick={downloadCert}>↓ Descargar certificado</button>}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+window.RouteExamModal = RouteExamModal;
+
+// ── Video submission · entrega de examen práctico por módulo ───────────────
+function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
+  const [file, setFile] = useSM(null);
+  const [duration, setDuration] = useSM(0);
+  const [thumb, setThumb] = useSM(null);
+  const [error, setError] = useSM('');
+  const [submitting, setSubmitting] = useSM(false);
+  const [existing, setExisting] = useSM(null);
+
+  useEM(() => {
+    var u = window.Auth && window.Auth.currentUser();
+    if (u && window.Submissions) {
+      setExisting(window.Submissions.getForUserAndPill(u.id, pillId));
+    }
+    const refresh = () => {
+      var u2 = window.Auth && window.Auth.currentUser();
+      if (u2) setExisting(window.Submissions.getForUserAndPill(u2.id, pillId));
+    };
+    window.addEventListener('submissions-changed', refresh);
+    return () => window.removeEventListener('submissions-changed', refresh);
+  }, [pillId]);
+
+  const onPick = (e) => {
+    setError('');
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith('video/')) { setError('El archivo debe ser un vídeo (.mp4, .mov, .webm…)'); return; }
+    if (f.size > 200 * 1024 * 1024) { setError('Vídeo demasiado grande · máximo 200MB'); return; }
+
+    setFile(f);
+
+    // Extraer duración + thumbnail del primer frame
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.muted = true;
+    v.src = URL.createObjectURL(f);
+    v.onloadedmetadata = () => {
+      const sec = Math.round(v.duration);
+      setDuration(sec);
+      if (sec > 600) {
+        setError('Vídeo demasiado largo · ' + Math.floor(sec/60) + ':' + (sec%60).toString().padStart(2,'0') + ' · máximo 10:00');
+      }
+      v.currentTime = Math.min(2, sec / 4);
+    };
+    v.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 240;
+        canvas.height = (240 / v.videoWidth) * v.videoHeight || 135;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        setThumb(canvas.toDataURL('image/jpeg', 0.7));
+      } catch(e) {}
+      URL.revokeObjectURL(v.src);
+    };
+  };
+
+  const submit = () => {
+    if (!file || error) return;
+    setSubmitting(true);
+    try {
+      const sub = Submissions.submit({
+        pillId, pillTitle,
+        fileName: file.name,
+        fileSize: file.size,
+        durationSec: duration,
+        thumbDataUrl: thumb,
+      });
+      setExisting(sub);
+      if (window.Toast) window.Toast.success('Entrega enviada · pendiente de revisión por admin', { icon: '↑' });
+      if (onClose) setTimeout(onClose, 1200);
+    } catch (err) {
+      setError(err.message);
+    }
+    setSubmitting(false);
+  };
+
+  const fmtSize = (b) => b < 1024*1024 ? (b/1024).toFixed(0) + ' KB' : (b/1024/1024).toFixed(1) + ' MB';
+  const fmtDur = (s) => Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
+
+  if (existing) {
+    const statusColor = { pending:'var(--bn-orange)', approved:'var(--bn-lime)', rejected:'var(--repsol-red)' }[existing.status];
+    const statusLabel = { pending:'Pendiente de revisión', approved:'Aprobado', rejected:'Rechazado' }[existing.status];
+    return (
+      <div style={{padding:'18px 20px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)'}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)'}}>Entrega práctica</span>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, padding:'3px 10px', borderRadius:999, background: statusColor, color: existing.status === 'approved' ? 'var(--ink)' : '#fff', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>{statusLabel}</span>
+        </div>
+        <div style={{display:'flex', gap:14, alignItems:'flex-start'}}>
+          {existing.thumbDataUrl && <img src={existing.thumbDataUrl} style={{width:120, borderRadius:8, flexShrink:0, border:'1px solid var(--line)'}} alt=""/>}
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:13, fontWeight:600, marginBottom:4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{existing.fileName}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{fmtDur(existing.durationSec)} · {fmtSize(existing.fileSize)}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink-4)', marginTop:6}}>Enviado: {new Date(existing.submittedAt).toLocaleString('es-ES', {dateStyle:'short', timeStyle:'short'})}</div>
+            {existing.feedback && (
+              <div style={{marginTop:10, padding:'8px 10px', background: existing.status === 'approved' ? 'rgba(188,214,48,0.1)' : 'rgba(235,0,41,0.06)', borderLeft:'3px solid ' + statusColor, borderRadius:'0 6px 6px 0', fontSize:12.5, color:'var(--ink-2)', lineHeight:1.5}}>
+                <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:3}}>Feedback {existing.reviewedBy ? '· ' + existing.reviewedBy.name : ''}</div>
+                {existing.feedback}
+              </div>
+            )}
+          </div>
+        </div>
+        {existing.status !== 'pending' && (
+          <button className="btn ghost" style={{marginTop:14}} onClick={() => { Submissions.remove(existing.id); setExisting(null); setFile(null); setThumb(null); setDuration(0); }}>↺ Reenviar entrega</button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{padding:'18px 20px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)'}}>
+      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
+        <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--bn-purple)', fontWeight:700}}>Examen práctico · entrega obligatoria</span>
+      </div>
+      <div style={{fontSize:13.5, color:'var(--ink-2)', marginBottom:14, lineHeight:1.55}}>
+        Para superar este módulo, sube un vídeo donde demuestres haber realizado <strong>algo real en Sprinklr</strong> aplicando lo aprendido. Los admins lo revisarán y darán feedback.
+      </div>
+      <div style={{fontSize:12, color:'var(--ink-4)', marginBottom:14, fontFamily:'var(--mono)'}}>
+        Requisitos · Vídeo de máximo <strong>10:00</strong> · MP4/MOV/WEBM · 200 MB max
+      </div>
+
+      <label style={{display:'block', padding:'24px', border:'2px dashed var(--line)', borderRadius:10, background:'var(--paper)', cursor:'pointer', textAlign:'center', transition:'border-color .14s'}}
+        onMouseEnter={e => e.currentTarget.style.borderColor='var(--bn-blue)'} onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
+        <div style={{fontSize:24, marginBottom:6, opacity:0.5}}>📹</div>
+        <div style={{fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:3}}>{file ? 'Cambiar vídeo' : 'Selecciona o arrastra tu vídeo'}</div>
+        <div style={{fontSize:11, color:'var(--ink-4)'}}>Click para abrir el explorador</div>
+        <input type="file" accept="video/*" onChange={onPick} style={{display:'none'}}/>
+      </label>
+
+      {file && (
+        <div style={{marginTop:14, display:'flex', gap:12, alignItems:'flex-start', padding:'10px 12px', background:'var(--paper)', borderRadius:8, border:'1px solid var(--line)'}}>
+          {thumb && <img src={thumb} style={{width:90, borderRadius:6, flexShrink:0, border:'1px solid var(--line)'}} alt=""/>}
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{file.name}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, color: error ? 'var(--repsol-red)' : 'var(--ink-4)', marginTop:3}}>{duration > 0 ? fmtDur(duration) : 'analizando…'} · {fmtSize(file.size)}</div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{marginTop:12, padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>
+      )}
+
+      <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:14}}>
+        {onClose && <button className="btn ghost" onClick={onClose}>Cancelar</button>}
+        <button className="btn glow" onClick={submit} disabled={!file || !!error || submitting} style={{opacity: !file || error || submitting ? 0.5 : 1}}>
+          {submitting ? 'Enviando…' : 'Enviar entrega →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+window.VideoSubmissionForm = VideoSubmissionForm;
 
 window.LoginScreen = LoginScreen;
 window.AdminPanel = AdminPanel;

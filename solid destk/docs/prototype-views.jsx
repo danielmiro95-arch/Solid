@@ -116,6 +116,12 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
               <span className="d">3 MIN</span>
             </div>
           ))}
+          {/* Examen práctico del módulo · subir vídeo Sprinklr */}
+          {item && item.id && typeof VideoSubmissionForm !== 'undefined' && (
+            <div style={{marginTop:24}}>
+              <VideoSubmissionForm pillId={item.id} pillTitle={item.title}/>
+            </div>
+          )}
         </div>
         <aside className="detail-side">
           <div>
@@ -828,6 +834,18 @@ function PathView({ openPlayer, setView }) {
     if (next && openPlayer) openPlayer(next);
     else if (setView) setView('browse');
   };
+  // Examen final — usamos la ruta del rol del usuario actual (mejor: 'publish' si Publish Agent)
+  const [showExam, setShowExam] = useS2(false);
+  const profile = window.UserProfile ? window.UserProfile.get() : { role: 'Publish Agent' };
+  const examRouteId = (() => {
+    const role = (profile.role || '').toLowerCase();
+    if (role.includes('manager') || role.includes('lead') && role.includes('content')) return 'managers';
+    if (role.includes('care')) return 'care';
+    if (role.includes('analytics')) return 'analytics';
+    if (role.includes('publish')) return 'publish';
+    return 'fundamentals';
+  })();
+  const examResult = window.RouteExams ? window.RouteExams.get(examRouteId) : null;
   const nodes = [
     {
       type: 'autodiag', s: 'done',
@@ -971,8 +989,12 @@ function PathView({ openPlayer, setView }) {
           </div>
           <div style={{display:'flex', gap:10, marginTop:20, flexWrap:'wrap'}}>
             <button className="btn glow" onClick={goToNext}><Icon name="play" size={14}/> Continuar formación →</button>
+            <button className="btn ghost" onClick={() => setShowExam(true)} style={examResult && examResult.passed ? {borderColor:'var(--bn-lime)', color:'var(--bn-lime-dark)', background:'rgba(188,214,48,0.08)'} : {}}>
+              {examResult && examResult.passed ? '✓ Examen aprobado · ver de nuevo' : '🎓 Examen final de la ruta'}
+            </button>
             {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={14}/> Preguntar a MENTOR-IA</button>}
           </div>
+          {showExam && typeof RouteExamModal !== 'undefined' && <RouteExamModal routeId={examRouteId} routeLabel={profile.role} onClose={() => setShowExam(false)}/>}
         </div>
         <div className="path-visual">
           {/* Visualización SVG del progreso de la ruta — sustituye al placeholder ph teal */}
