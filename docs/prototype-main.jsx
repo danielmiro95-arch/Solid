@@ -1256,6 +1256,7 @@ function App() {
       )}
 
       <Toaster/>
+      <InstallBanner/>
 
       <CommandPalette
         open={paletteOpen}
@@ -1298,6 +1299,63 @@ function SavedView({ openDetail, setView }) {
 }
 
 // ── Onboarding ring · botón flotante que se va llenando con el progreso ───
+// ── PWA install banner · aparece cuando beforeinstallprompt está disponible ─
+function InstallBanner() {
+  const [available, setAvailable] = useSM(!!window._installPromptEvent);
+  const [dismissed, setDismissed] = useSM(localStorage.getItem('sgson-install-dismissed') === '1');
+
+  useEM(() => {
+    const onAvailable = () => setAvailable(true);
+    const onInstalled = () => setAvailable(false);
+    window.addEventListener('install-available', onAvailable);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('install-available', onAvailable);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
+  const install = async () => {
+    const ev = window._installPromptEvent;
+    if (!ev) return;
+    ev.prompt();
+    const { outcome } = await ev.userChoice;
+    if (outcome === 'accepted') {
+      window._installPromptEvent = null;
+      setAvailable(false);
+      if (window.Toast) window.Toast.success('App instalada · ábrela desde tu home', { icon: '📱' });
+    }
+  };
+  const dismiss = () => {
+    localStorage.setItem('sgson-install-dismissed', '1');
+    setDismissed(true);
+  };
+
+  if (!available || dismissed) return null;
+
+  return (
+    <div style={{position:'fixed', bottom:96, right:22, zIndex:299, maxWidth:280,
+      background:'linear-gradient(135deg, #0D1117 0%, #1a2940 50%, #2a1f4d 100%)',
+      color:'#fff', padding:'14px 16px', borderRadius:14,
+      boxShadow:'0 12px 32px rgba(0,89,150,0.35), 0 0 0 1px rgba(255,255,255,0.08)',
+      animation:'toastSlideIn .3s ease'}}>
+      <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+        <span style={{fontSize:22, flexShrink:0, marginTop:-2}}>📱</span>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:13, fontWeight:700, marginBottom:3}}>Instala SGS|on</div>
+          <div style={{fontSize:11.5, color:'rgba(255,255,255,0.75)', lineHeight:1.45, marginBottom:10}}>
+            Acceso rápido desde tu home screen y notificaciones de progreso.
+          </div>
+          <div style={{display:'flex', gap:6}}>
+            <button onClick={install} style={{padding:'5px 10px', borderRadius:6, border:'none', background:'var(--bn-lime)', color:'var(--ink)', fontFamily:'var(--mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', cursor:'pointer'}}>Instalar</button>
+            <button onClick={dismiss} style={{padding:'5px 10px', borderRadius:6, border:'1px solid rgba(255,255,255,0.2)', background:'transparent', color:'rgba(255,255,255,0.7)', fontFamily:'var(--mono)', fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', cursor:'pointer'}}>Ahora no</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OnboardingRing({ onClick }) {
   const computeProgress = () => {
     try {
@@ -2045,6 +2103,47 @@ function LoginScreen() {
 }
 
 // ── Admin panel · vista exclusiva para admins ──────────────────────────────
+function ExportMenu({ onUsers, onSubmissions, onCohort }) {
+  const [open, setOpen] = useSM(false);
+  useEM(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
+  }, [open]);
+  const onItem = (fn, e) => { e.stopPropagation(); setOpen(false); fn && fn(); };
+
+  return (
+    <div style={{position:'relative'}}>
+      <button onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="btn ghost" style={{display:'inline-flex', alignItems:'center', gap:6}}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar
+      </button>
+      {open && (
+        <div style={{position:'absolute', top:'calc(100% + 6px)', right:0, zIndex:200, minWidth:240,
+          background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, boxShadow:'0 12px 32px rgba(0,0,0,0.12)',
+          padding:6}} onClick={e => e.stopPropagation()}>
+          {[
+            { label:'Usuarios · CSV',           sub:'Lista con métricas básicas',     icon:'👤', fn: onUsers },
+            { label:'Entregas prácticas · CSV', sub:'Vídeos enviados + revisión',     icon:'🎬', fn: onSubmissions },
+            { label:'Reporte de cohorte · HTML', sub:'KPIs + tabla agregada (imprimible)', icon:'📄', fn: onCohort },
+          ].map((x, i) => (
+            <button key={i} onClick={(e) => onItem(x.fn, e)} style={{display:'flex', alignItems:'flex-start', gap:10, width:'100%', padding:'10px 12px', border:'none', background:'transparent', borderRadius:8, cursor:'pointer', textAlign:'left'}}
+              onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+              <span style={{fontSize:16, flexShrink:0}}>{x.icon}</span>
+              <div>
+                <div style={{fontSize:13, fontWeight:600, color:'var(--ink)'}}>{x.label}</div>
+                <div style={{fontSize:11, color:'var(--ink-4)', marginTop:1}}>{x.sub}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ setView }) {
   const [users, setUsers] = useSM(Auth.listUsers());
   const [filter, setFilter] = useSM('');
@@ -2065,6 +2164,87 @@ function AdminPanel({ setView }) {
   const totalUsers = users.length;
   const totalAdmins = users.filter(u => u.isAdmin).length;
   const totalActive7d = users.filter(u => Date.now() - (u.lastLoginAt || 0) < 7*86400000).length;
+
+  // Helpers de export
+  const _download = (filename, content, mime) => {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+  };
+  const _csvCell = (v) => {
+    if (v == null) return '';
+    const s = String(v).replace(/"/g, '""');
+    return /[",\n;]/.test(s) ? '"' + s + '"' : s;
+  };
+  const exportUsersCSV = () => {
+    const rows = [['email','name','role','team','is_admin','created_at','last_login','bookmarks','chats','pills_completed']];
+    userMetrics.forEach(u => rows.push([
+      u.email, u.name, u.role, u.team, u.isAdmin ? 'yes' : 'no',
+      u.createdAt ? new Date(u.createdAt).toISOString() : '',
+      u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : '',
+      u._bookmarks, u._chats, u._completed,
+    ]));
+    const csv = rows.map(r => r.map(_csvCell).join(',')).join('\n');
+    _download('sgson-users-' + new Date().toISOString().slice(0,10) + '.csv', csv, 'text/csv');
+    if (window.Toast) window.Toast.success(userMetrics.length + ' usuarios exportados', { icon: '↓' });
+  };
+  const exportSubmissionsCSV = () => {
+    const subs = (window.Submissions && window.Submissions.listAll()) || [];
+    const rows = [['user_email','user_name','pill_id','pill_title','status','duration_sec','file_size','submitted_at','reviewed_at','reviewer','feedback']];
+    subs.forEach(s => rows.push([
+      s.userEmail || '', s.userName || '', s.pillId || '', s.pillTitle || '',
+      s.status, s.durationSec, s.fileSize,
+      s.submittedAt ? new Date(s.submittedAt).toISOString() : '',
+      s.reviewedAt ? new Date(s.reviewedAt).toISOString() : '',
+      s.reviewedBy ? s.reviewedBy.name : '',
+      s.feedback || '',
+    ]));
+    const csv = rows.map(r => r.map(_csvCell).join(',')).join('\n');
+    _download('sgson-submissions-' + new Date().toISOString().slice(0,10) + '.csv', csv, 'text/csv');
+    if (window.Toast) window.Toast.success(subs.length + ' entregas exportadas', { icon: '↓' });
+  };
+  const exportCohortReport = () => {
+    const today = new Date().toLocaleDateString('es-ES', { dateStyle:'long' });
+    const subs = (window.Submissions && window.Submissions.listAll()) || [];
+    const usersHtml = userMetrics.sort((a,b) => b._completed - a._completed).map(u => {
+      const initials = u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+      const pct = Math.round((u._completed / Math.max(1, (window.PILLS||[]).length || 41)) * 100);
+      return '<tr>' +
+        '<td><div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:50%;background:' + u.avatarColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">' + initials + '</div>' + u.name + (u.isAdmin ? ' <span style="font-family:monospace;font-size:8px;padding:1px 5px;background:#0D1117;color:#fff;border-radius:3px">ADMIN</span>' : '') + '</div><div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u.email + '</div></td>' +
+        '<td>' + u.role + '<div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u.team + '</div></td>' +
+        '<td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#EDF0F5;border-radius:3px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#BCD630,#0072BE)"></div></div><span style="font-family:monospace;font-size:11px;font-weight:700;flex-shrink:0">' + pct + '%</span></div><div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u._completed + ' / ' + ((window.PILLS||[]).length || 41) + ' pills</div></td>' +
+        '<td style="font-family:monospace;font-size:11px">' + u._chats + ' chats</td>' +
+        '<td style="font-family:monospace;font-size:11px">' + u._bookmarks + ' guardados</td>' +
+        '<td style="font-family:monospace;font-size:10px;color:#94A3B8">' + (u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('es-ES') : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+    const subsByStatus = { pending:0, approved:0, rejected:0 };
+    subs.forEach(s => subsByStatus[s.status] = (subsByStatus[s.status] || 0) + 1);
+    const html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de cohorte · SGS|on · ' + today + '</title>' +
+'<style>@page{size:A4;margin:18mm}body{font-family:Manrope,system-ui,sans-serif;color:#0D1117;margin:0;padding:0;line-height:1.5}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94A3B8;margin-bottom:6px}h1{font-size:32px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid #EDF0F5;padding-bottom:6px}.subtitle{color:#4A5568;margin:0 0 28px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.kpi{padding:14px;border:1px solid #EDF0F5;border-radius:10px}.kpi-label{font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94A3B8;margin-bottom:4px}.kpi-value{font-size:24px;font-weight:800;letter-spacing:-.02em}table{width:100%;border-collapse:collapse;font-size:12px}thead th{text-align:left;padding:8px 10px;background:#F5F7FA;font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#4A5568;border-bottom:1px solid #EDF0F5}tbody td{padding:10px;border-bottom:1px solid #EDF0F5;vertical-align:top}.foot{margin-top:36px;padding-top:18px;border-top:2px solid #0072BE;font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}.brand{background:linear-gradient(135deg,#BCD630,#0072BE,#8A3992);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}</style>' +
+'</head><body>' +
+'<div class="kicker">SGS|on · BeonIt × Repsol · Reporte de cohorte</div>' +
+'<h1>Cohorte SGS|on · <span class="brand">snapshot</span> ' + today + '</h1>' +
+'<p class="subtitle">Reporte agregado de progreso, exámenes y entregas prácticas de los ' + totalUsers + ' usuarios de la plataforma. Generado el ' + today + '.</p>' +
+'<div class="kpis">' +
+'<div class="kpi"><div class="kpi-label">Usuarios</div><div class="kpi-value">' + totalUsers + '</div></div>' +
+'<div class="kpi"><div class="kpi-label">Activos 7d</div><div class="kpi-value">' + totalActive7d + '</div></div>' +
+'<div class="kpi"><div class="kpi-label">Pills completadas</div><div class="kpi-value">' + totalCompletions + '</div></div>' +
+'<div class="kpi"><div class="kpi-label">Conversaciones IA</div><div class="kpi-value">' + totalChats + '</div></div>' +
+'<div class="kpi"><div class="kpi-label">Entregas pendientes</div><div class="kpi-value">' + (subsByStatus.pending || 0) + '</div></div>' +
+'</div>' +
+'<h2>Entregas prácticas · estado</h2>' +
+'<p style="font-size:13px;color:#4A5568">Pendientes <strong>' + (subsByStatus.pending || 0) + '</strong> · Aprobadas <strong>' + (subsByStatus.approved || 0) + '</strong> · Rechazadas <strong>' + (subsByStatus.rejected || 0) + '</strong>. Tasa aprobación: <strong>' + (subs.length > 0 ? Math.round((subsByStatus.approved / subs.length) * 100) : 0) + '%</strong>.</p>' +
+'<h2>Tabla de usuarios · ordenados por progreso</h2>' +
+'<table><thead><tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Guardados</th><th>Última conexión</th></tr></thead><tbody>' + usersHtml + '</tbody></table>' +
+'<div class="foot"><span>SGS|on · BeonIt × Repsol</span><span>Reporte generado · ' + today + '</span></div>' +
+'</body></html>';
+    _download('sgson-cohort-report-' + new Date().toISOString().slice(0,10) + '.html', html, 'text/html');
+    if (window.Toast) window.Toast.success('Reporte generado · imprimible como PDF', { icon: '📄' });
+  };
 
   // Métricas agregadas: cuentos los completados/chats/bookmarks por usuario
   const userMetrics = users.map(u => {
@@ -2123,6 +2303,7 @@ function AdminPanel({ setView }) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             Invitar usuarios
           </button>
+          <ExportMenu onUsers={exportUsersCSV} onSubmissions={exportSubmissionsCSV} onCohort={exportCohortReport}/>
         </div>
       </div>
 
