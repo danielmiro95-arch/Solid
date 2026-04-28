@@ -1,6 +1,6 @@
 // prototype-home.jsx — SOLID · Repsol × BeonIt
 
-const { useState } = React;
+const { useState, useEffect } = React;
 
 // ── Repsol · Sprinklr · 41 Think Pills (currículum real) ──────────────────
 const PILLS = [
