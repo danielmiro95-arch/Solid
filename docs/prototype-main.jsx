@@ -192,17 +192,260 @@ const Auth = (function() {
 })();
 window.Auth = Auth;
 
-// ── SupabaseAuth · adapter Phase 2 ──────────────────────────────────────────
-// Cuando window.supabaseClient existe (configurado vía /api/config con env vars),
-// monkey-patcheamos los métodos de Auth para que vayan al backend real:
-//   signup → supabase.auth.signUp + insert profile (trigger)
-//   login  → supabase.auth.signInWithPassword
-//   logout → supabase.auth.signOut
-//   currentUser → lee profile de la DB cacheado en window._sbProfile
-//
-// Hasta que Supabase confirma la sesión, currentUser() devuelve null para
-// evitar que la app monte con un usuario fantasma. El LoginScreen detecta
-// el modo y pinta el form con password real.
+// ── InviteUsersModal · UI de invitación bulk ────────────────────────────────
+function InviteUsersModal({ onClose }) {
+  const [tab, setTab] = useSM('single'); // 'single' | 'bulk'
+  const [email, setEmail] = useSM('');
+  const [name, setName] = useSM('');
+  const [role, setRole] = useSM('Publish Agent');
+  const [team, setTeam] = useSM('Repsol');
+  const [csv, setCsv] = useSM('');
+  const [result, setResult] = useSM(null);
+  const [error, setError] = useSM('');
+
+  const submitSingle = (e) => {
+    e && e.preventDefault();
+    setError('');
+    try {
+      const inv = Invitations.create({ email, name, role, team });
+      if (inv.duplicate) {
+        setError('Ya existe un usuario o invitación pendiente con ese email.');
+      } else {
+        setResult({ created: [inv], skipped: [], errors: [] });
+        if (window.Toast) window.Toast.success('Invitación creada · ' + inv.email, { icon: '✉' });
+        setEmail(''); setName('');
+      }
+    } catch (err) { setError(err.message); }
+  };
+  const submitBulk = () => {
+    setError('');
+    if (!csv.trim()) { setError('Pega los emails primero.'); return; }
+    const r = Invitations.bulkCreate(csv);
+    setResult(r);
+    if (window.Toast) {
+      if (r.created.length > 0) window.Toast.success(r.created.length + ' invitaciones creadas', { icon: '✉' });
+      if (r.errors.length > 0) window.Toast.error(r.errors.length + ' errores en el CSV');
+    }
+  };
+
+  const copyInvite = (token) => {
+    const url = Invitations.inviteUrl(token);
+    navigator.clipboard.writeText(url).then(() => {
+      if (window.Toast) window.Toast.success('Link copiado al portapapeles', { icon: '📋' });
+    }).catch(() => {});
+  };
+
+  const csvSample = 'email,name,role,team\nana.lopez@repsol.com,Ana López,Publish Agent,Repsol\njuan.perez@repsol.com,Juan Pérez,Care Agent,Repsol\nlaura.gomez@repsol.com,Laura Gómez,Content Lead,Repsol';
+
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
+      <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(640px, 96vw)', maxHeight:'92vh', overflowY:'auto', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
+          <div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--bn-blue)', fontWeight:700, marginBottom:4}}>ADMIN · INVITAR USUARIOS</div>
+            <h2 style={{margin:0, fontSize:22, fontFamily:'var(--sans)', letterSpacing:'-0.01em'}}>Añadir gente a la plataforma</h2>
+            <p style={{fontSize:13, color:'var(--ink-3)', marginTop:8, marginBottom:0, lineHeight:1.5}}>
+              Crea cuentas de antemano y comparte el link de invitación con cada persona. Cuando lo abran, harán signup con un click sin crear password.
+            </p>
+          </div>
+          <button onClick={onClose} style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div style={{display:'flex', gap:4, marginBottom:18, padding:4, background:'var(--paper-2)', borderRadius:10, width:'fit-content'}}>
+          {[{id:'single', label:'Una a una'}, {id:'bulk', label:'Bulk (CSV)'}].map(t => (
+            <button key={t.id} onClick={() => { setTab(t.id); setResult(null); setError(''); }}
+              style={{padding:'7px 14px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
+                background: tab === t.id ? 'var(--paper)' : 'transparent', color: tab === t.id ? 'var(--ink)' : 'var(--ink-3)',
+                boxShadow: tab === t.id ? 'var(--shadow-sm)' : 'none'}}>{t.label}</button>
+          ))}
+        </div>
+
+        {tab === 'single' && (
+          <form onSubmit={submitSingle}>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email *</div>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ana.lopez@repsol.com" autoFocus
+                style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+            </label>
+            <label style={{display:'block', marginBottom:12}}>
+              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Nombre</div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Ana López" style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+            </label>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14}}>
+              <label>
+                <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+                <select value={role} onChange={e => setRole(e.target.value)} style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)', boxSizing:'border-box'}}>
+                  {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </label>
+              <label>
+                <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Equipo</div>
+                <input value={team} onChange={e => setTeam(e.target.value)} style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+              </label>
+            </div>
+            {error && <div style={{padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5, marginBottom:12}}>{error}</div>}
+            <button type="submit" className="btn glow" style={{width:'100%', justifyContent:'center'}}>Crear invitación →</button>
+          </form>
+        )}
+
+        {tab === 'bulk' && (
+          <div>
+            <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>CSV · una línea por usuario</div>
+            <div style={{fontSize:12, color:'var(--ink-3)', marginBottom:8}}>Formato: <code style={{fontFamily:'var(--mono)', fontSize:11, background:'var(--paper-2)', padding:'1px 5px', borderRadius:3}}>email,name,role,team</code> · primera línea cabecera opcional · separador coma o punto y coma</div>
+            <textarea value={csv} onChange={e => setCsv(e.target.value)} rows="10" placeholder={csvSample} spellCheck={false}
+              style={{width:'100%', padding:'12px 14px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--mono)', fontSize:12, outline:'none', resize:'vertical', boxSizing:'border-box', lineHeight:1.5}}/>
+            <div style={{display:'flex', gap:8, marginTop:10, alignItems:'center'}}>
+              <button type="button" onClick={() => setCsv(csvSample)} style={{padding:'6px 12px', border:'1px solid var(--line)', borderRadius:8, background:'var(--paper-2)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>Pegar ejemplo</button>
+              <button type="button" onClick={submitBulk} className="btn glow" style={{marginLeft:'auto'}}>Importar CSV →</button>
+            </div>
+            {error && <div style={{marginTop:12, padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>}
+          </div>
+        )}
+
+        {result && (
+          <div style={{marginTop:18, padding:'14px 16px', background:'var(--paper-2)', borderRadius:10, border:'1px solid var(--line)'}}>
+            <div style={{display:'flex', gap:18, marginBottom:12, fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase'}}>
+              {result.created.length > 0 && <span style={{color:'var(--bn-lime-dark)', fontWeight:700}}>✓ {result.created.length} creadas</span>}
+              {result.skipped.length > 0 && <span style={{color:'var(--bn-orange)'}}>↷ {result.skipped.length} duplicadas</span>}
+              {result.errors.length > 0 && <span style={{color:'var(--repsol-red)'}}>✗ {result.errors.length} errores</span>}
+            </div>
+            {result.created.length > 0 && (
+              <div style={{display:'flex', flexDirection:'column', gap:6, maxHeight:240, overflowY:'auto'}}>
+                {result.created.map(inv => (
+                  <div key={inv.token} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background:'var(--paper)', borderRadius:7, border:'1px solid var(--line)'}}>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{inv.email}</div>
+                      <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{inv.role} · {inv.team}</div>
+                    </div>
+                    <button onClick={() => copyInvite(inv.token)} title="Copiar link de invitación"
+                      style={{padding:'5px 10px', border:'1px solid var(--bn-blue)', borderRadius:6, background:'rgba(0,114,190,0.06)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-blue-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
+                      Copiar link →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {result.errors.length > 0 && (
+              <div style={{marginTop:10, fontSize:11.5, color:'var(--repsol-red)', fontFamily:'var(--mono)'}}>
+                {result.errors.map((e, i) => <div key={i}>L{i+1}: {e.error} → "{e.line}"</div>)}
+              </div>
+            )}
+            {window.SGSON_BACKEND !== 'supabase' && (
+              <div style={{marginTop:12, padding:'8px 10px', background:'rgba(243,165,37,0.1)', border:'1px solid rgba(243,165,37,0.3)', borderRadius:6, fontSize:11.5, color:'#7a4400', lineHeight:1.5}}>
+                ⚠ <strong>Modo demo</strong>: los emails NO se envían realmente. Copia los links y compártelos manualmente. Activa Supabase + Resend para envío automático.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+window.InviteUsersModal = InviteUsersModal;
+
+// ── SupabaseAuth · adapter Phase 2 ────────────────────────────────────────── · invitaciones masivas a la cohorte (CSV bulk + tokens) ────
+// Modelo: el admin importa una lista de emails, cada uno se convierte en una
+// pre-cuenta con status='invited' + token único. El usuario abre /?invite=<tok>
+// y completa registro con un click. Funciona en demo mode (localStorage) y
+// queda preparado para mandar emails reales (Resend/Postmark) cuando se active
+// Supabase + función serverless con service_role en commit G.
+const Invitations = (function() {
+  const KEY = 'sgson-invitations'; // global a la plataforma (admin las gestiona)
+
+  function _load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function _save(invs) { localStorage.setItem(KEY, JSON.stringify(invs)); window.dispatchEvent(new Event('invitations-changed')); }
+
+  function _genToken() { return 'inv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  function list() { return _load(); }
+  function getByToken(token) { return _load().find(i => i.token === token); }
+  function getByEmail(email) { return _load().find(i => i.email === (email || '').toLowerCase()); }
+
+  // Crea una invitación · idempotente sobre email
+  function create(data) {
+    if (!data.email || !data.email.includes('@')) throw new Error('Email inválido: ' + data.email);
+    const email = data.email.toLowerCase().trim();
+
+    // Si el email ya tiene cuenta activa, no se invita
+    if (window.Auth && window.Auth.listUsers().find(u => u.email === email)) {
+      return { duplicate: true, email };
+    }
+    // Si ya tiene invitación pendiente, devolver la existente
+    const existing = getByEmail(email);
+    if (existing && existing.status === 'pending') return existing;
+
+    const inv = {
+      token: _genToken(),
+      email,
+      name: (data.name || '').trim() || email.split('@')[0],
+      role: data.role || 'Publish Agent',
+      team: data.team || 'Repsol',
+      status: 'pending', // 'pending' | 'accepted' | 'expired'
+      createdAt: Date.now(),
+      acceptedAt: null,
+      sentBy: window.Auth && window.Auth.currentUser() ? window.Auth.currentUser().email : null,
+    };
+    const all = _load();
+    all.unshift(inv);
+    _save(all);
+    return inv;
+  }
+
+  // Procesa CSV: una línea por usuario · `email[,name][,role][,team]`
+  function bulkCreate(csvText) {
+    const results = { created: [], skipped: [], errors: [] };
+    const lines = csvText.split(/\n|\r/).map(l => l.trim()).filter(Boolean);
+    lines.forEach((line, idx) => {
+      // Soporta cabecera "email,name,role,team" — la salta
+      if (idx === 0 && /^email/i.test(line)) return;
+      const parts = line.split(/[;,\t]/).map(p => p.trim());
+      const data = { email: parts[0], name: parts[1], role: parts[2], team: parts[3] };
+      try {
+        const inv = create(data);
+        if (inv.duplicate) results.skipped.push({ email: inv.email, reason: 'ya tiene cuenta o invitación' });
+        else results.created.push(inv);
+      } catch (err) {
+        results.errors.push({ line, error: err.message });
+      }
+    });
+    return results;
+  }
+
+  function inviteUrl(token) {
+    const base = window.location.href.split('?')[0].split('#')[0];
+    return base + '?invite=' + token;
+  }
+
+  function markAccepted(token) {
+    const all = _load();
+    const idx = all.findIndex(i => i.token === token);
+    if (idx < 0) return null;
+    all[idx].status = 'accepted';
+    all[idx].acceptedAt = Date.now();
+    _save(all);
+    return all[idx];
+  }
+
+  function remove(token) { _save(_load().filter(i => i.token !== token)); }
+
+  function resend(token) {
+    const inv = getByToken(token);
+    if (!inv) return null;
+    // En demo mode no se envía email real, sólo mostramos el link.
+    // En Supabase mode → llamará a /api/send-invite (commit G)
+    if (window.SGSON_BACKEND === 'supabase') {
+      // TODO commit G: fetch('/api/send-invite', {body: JSON.stringify({email: inv.email, token})})
+    }
+    return inv;
+  }
+
+  return { list, getByToken, getByEmail, create, bulkCreate, inviteUrl, markAccepted, remove, resend };
+})();
+window.Invitations = Invitations;
+
+// ── SupabaseAuth adapter Phase 2 ────────────────────────────────────────────
 function _activateSupabaseAuth() {
   if (!window.supabaseClient) return;
   const sb = window.supabaseClient;
@@ -1218,12 +1461,21 @@ function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) 
 // ── Login / Signup screen ─────────────────────────────────────────────────
 function LoginScreen() {
   const isSupabase = (typeof window !== 'undefined' && window.SGSON_BACKEND === 'supabase');
-  const [mode, setMode] = useSM('login'); // 'login' | 'signup'
-  const [email, setEmail] = useSM('');
+
+  // Detectar invite token en la URL (?invite=inv_xxx)
+  const inviteToken = (() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('invite');
+  })();
+  const invitation = inviteToken && window.Invitations ? window.Invitations.getByToken(inviteToken) : null;
+
+  const [mode, setMode] = useSM(invitation ? 'signup' : 'login'); // si llega por invite, vamos directo a signup
+  const [email, setEmail] = useSM(invitation ? invitation.email : '');
   const [password, setPassword] = useSM('');
-  const [name, setName] = useSM('');
-  const [role, setRole] = useSM('Publish Agent');
-  const [team, setTeam] = useSM('Repsol');
+  const [name, setName] = useSM(invitation ? invitation.name : '');
+  const [role, setRole] = useSM(invitation ? invitation.role : 'Publish Agent');
+  const [team, setTeam] = useSM(invitation ? invitation.team : 'Repsol');
   const [error, setError] = useSM('');
   const [submitting, setSubmitting] = useSM(false);
 
@@ -1237,7 +1489,14 @@ function LoginScreen() {
         if (window.Toast && u) window.Toast.success('Bienvenido de vuelta, ' + (u.name || '').split(' ')[0], { icon: '👋' });
       } else {
         const u = await Promise.resolve(Auth.signup({ email, password, name, role, team }));
-        if (window.Toast && u) window.Toast.success('Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
+        if (invitation && window.Invitations) {
+          window.Invitations.markAccepted(invitation.token);
+          // limpia el query param para no procesarlo otra vez en reloads
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }
+        if (window.Toast && u) window.Toast.success(invitation ? 'Bienvenido · invitación aceptada' : 'Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
       }
     } catch (err) {
       setError((err && err.message) || 'Error desconocido');
@@ -1286,6 +1545,12 @@ function LoginScreen() {
       {/* Form lado derecho */}
       <div style={{flex:'0 0 460px', maxWidth:'100%', background:'var(--paper)', padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'}}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
+          {invitation && (
+            <div style={{padding:'14px 16px', background:'rgba(188,214,48,0.1)', border:'1px solid rgba(188,214,48,0.4)', borderRadius:10, marginBottom:20}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--bn-lime-dark)', fontWeight:700, marginBottom:4}}>✉ Invitación recibida</div>
+              <div style={{fontSize:13, color:'var(--ink-2)', lineHeight:1.5}}>Hola <strong>{invitation.name}</strong>, te han invitado a SGS|on como <strong>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
+            </div>
+          )}
           <div style={{display:'flex', gap:6, marginBottom:32, padding:4, background:'var(--paper-2)', borderRadius:10, width:'fit-content'}}>
             <button onClick={() => { setMode('login'); setError(''); }}
               style={{padding:'7px 18px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
@@ -1378,6 +1643,13 @@ function LoginScreen() {
 function AdminPanel({ setView }) {
   const [users, setUsers] = useSM(Auth.listUsers());
   const [filter, setFilter] = useSM('');
+  const [showInvite, setShowInvite] = useSM(false);
+  const [invitations, setInvitations] = useSM(window.Invitations ? window.Invitations.list() : []);
+  useEM(() => {
+    const refresh = () => setInvitations(window.Invitations ? window.Invitations.list() : []);
+    window.addEventListener('invitations-changed', refresh);
+    return () => window.removeEventListener('invitations-changed', refresh);
+  }, []);
   useEM(() => {
     const refresh = () => setUsers(Auth.listUsers());
     window.addEventListener('auth-users-changed', refresh);
@@ -1439,9 +1711,17 @@ function AdminPanel({ setView }) {
             </span>
           </div>
         </div>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Buscar usuario, email, rol…"
-          style={{padding:'10px 14px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--sans)', fontSize:13, minWidth:280, outline:'none'}}/>
+        <div style={{display:'flex', gap:10, alignItems:'center', flexWrap:'wrap'}}>
+          <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Buscar usuario, email, rol…"
+            style={{padding:'10px 14px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--sans)', fontSize:13, minWidth:280, outline:'none'}}/>
+          <button onClick={() => setShowInvite(true)} className="btn glow" style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Invitar usuarios
+          </button>
+        </div>
       </div>
+
+      {showInvite && <InviteUsersModal onClose={() => setShowInvite(false)}/>}
 
       {/* KPIs admin */}
       <div className="dash-kpis" style={{marginBottom:28}}>
@@ -1516,8 +1796,76 @@ function AdminPanel({ setView }) {
         </div>
       </div>
 
+      {/* Invitaciones pendientes */}
+      <PendingInvitationsBlock invitations={invitations}/>
+
       {/* Cola de revisión de entregas prácticas */}
       <AdminSubmissionsQueue/>
+    </div>
+  );
+}
+
+function PendingInvitationsBlock({ invitations }) {
+  const pending = (invitations || []).filter(i => i.status === 'pending');
+  const accepted = (invitations || []).filter(i => i.status === 'accepted');
+  if (!invitations || invitations.length === 0) return null;
+
+  const fmtRel = (ts) => {
+    if (!ts) return '—';
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60) return 'ahora';
+    if (d < 3600) return Math.floor(d/60) + ' min';
+    if (d < 86400) return Math.floor(d/3600) + ' h';
+    return Math.floor(d/86400) + ' d';
+  };
+
+  const copyInvite = (token) => {
+    navigator.clipboard.writeText(window.Invitations.inviteUrl(token)).then(() => {
+      if (window.Toast) window.Toast.success('Link copiado', { icon: '📋' });
+    }).catch(() => {});
+  };
+
+  const remove = (token, email) => {
+    if (!confirm('¿Borrar la invitación a ' + email + '?')) return;
+    window.Invitations.remove(token);
+    if (window.Toast) window.Toast.info('Invitación eliminada');
+  };
+
+  return (
+    <div className="dash-panel" style={{padding:0, marginTop:24, overflow:'hidden'}}>
+      <div className="dash-panel-head" style={{padding:'16px 22px'}}>
+        <h3>Invitaciones · {pending.length} pendientes · {accepted.length} aceptadas</h3>
+        <span className="panel-sub">Comparte el link con cada persona — al abrirlo crean cuenta con un click</span>
+      </div>
+      {pending.length === 0 ? (
+        <div style={{padding:'28px 20px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>Sin invitaciones pendientes. Pulsa "Invitar usuarios" arriba para añadir más.</div>
+      ) : (
+        <div style={{padding:'8px 14px 16px'}}>
+          {pending.map(inv => (
+            <div key={inv.token} style={{display:'flex', gap:10, padding:'12px 14px', border:'1px solid var(--line)', borderRadius:10, background:'var(--paper)', marginBottom:6, alignItems:'center'}}>
+              <div style={{width:30, height:30, borderRadius:'50%', background:'var(--bn-orange)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
+                {(inv.name || inv.email).split(/\s+|@|\./)[0][0].toUpperCase() + ((inv.name || inv.email).split(/\s+|@|\./)[1] || '')[0]?.toUpperCase()}
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:2}}>
+                  <span style={{fontSize:13, fontWeight:600}}>{inv.name || '—'}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>· {inv.email}</span>
+                  <span style={{marginLeft:'auto', fontFamily:'var(--mono)', fontSize:9, padding:'2px 8px', borderRadius:999, background:'var(--bn-orange)', color:'#fff', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>Pendiente</span>
+                </div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink-4)'}}>{inv.role} · {inv.team} · creada {fmtRel(inv.createdAt)}</div>
+              </div>
+              <button onClick={() => copyInvite(inv.token)} title="Copiar link"
+                style={{padding:'6px 12px', border:'1px solid var(--bn-blue)', borderRadius:6, background:'rgba(0,114,190,0.06)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-blue-dark)', fontWeight:700, letterSpacing:'0.06em'}}>
+                Copiar link
+              </button>
+              <button onClick={() => remove(inv.token, inv.email)} title="Borrar invitación"
+                style={{padding:'6px 10px', border:'1px solid rgba(235,0,41,0.3)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
