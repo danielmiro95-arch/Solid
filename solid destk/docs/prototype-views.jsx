@@ -168,16 +168,58 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
 // ---------- Player ----------
 function Player({ back, item }) {
   const [playing, setPlaying] = useS2(true);
+  const [currentSec, setCurrentSec] = useS2(0);
+  const [speed, setSpeed] = useS2(1);
+  const [muted, setMuted] = useS2(false);
+  const [showSubs, setShowSubs] = useS2(true);
   const it = item || PILLS.find(p => p.yt) || PILLS[0];
   const hasVideo = !!it.yt;
 
   const chapters = [
-    { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal' },
-    { n: 2, t: 'Interfaz y accesos en Sprinklr', d: '0:52 · 1:10', tone: 'plum' },
-    { n: 3, t: 'Flujo de trabajo paso a paso', d: '2:02 · 1:18', tone: 'clay', active: true },
-    { n: 4, t: 'Casos reales del equipo Repsol', d: '3:20 · 0:45', tone: 'olive' },
-    { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm' },
+    { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
+    { n: 2, t: 'Interfaz y accesos en Sprinklr',    d: '0:52 · 1:10', tone: 'plum',  start: 52,  end: 122 },
+    { n: 3, t: 'Flujo de trabajo paso a paso',      d: '2:02 · 1:18', tone: 'clay',  start: 122, end: 200, active: true },
+    { n: 4, t: 'Casos reales del equipo Repsol',    d: '3:20 · 0:45', tone: 'olive', start: 200, end: 245 },
+    { n: 5, t: 'Errores comunes y cómo evitarlos',  d: '4:05 · 0:55', tone: 'warm',  start: 245, end: 300 },
   ];
+  const totalSec = 300; // 5 min
+  const fmtTime = (s) => Math.floor(s/60) + ':' + (Math.round(s) % 60).toString().padStart(2,'0');
+
+  // Reloj simulado (sólo en path SIN YouTube — el iframe de YT no se controla sin la IFrame API)
+  useE2(() => {
+    if (hasVideo) return; // YT iframe maneja su propio tiempo
+    if (!playing) return;
+    const t = setInterval(() => {
+      setCurrentSec(c => {
+        const next = c + speed;
+        if (next >= totalSec) { setPlaying(false); return totalSec; }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [playing, speed, hasVideo]);
+
+  // Atajos de teclado: espacio = play/pause, ← → = seek 10s, M = mute
+  useE2(() => {
+    if (hasVideo) return; // los YT iframes capturan los eventos
+    const onKey = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); setPlaying(p => !p); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); setCurrentSec(c => Math.max(0, c - 10)); }
+      else if (e.code === 'ArrowRight') { e.preventDefault(); setCurrentSec(c => Math.min(totalSec, c + 10)); }
+      else if (e.code === 'KeyM') { e.preventDefault(); setMuted(m => !m); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hasVideo]);
+
+  const seekTo = (sec) => setCurrentSec(Math.max(0, Math.min(totalSec, sec)));
+  const seekBar = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    seekTo(pct * totalSec);
+  };
+  const currentChapter = chapters.find(c => currentSec >= c.start && currentSec < c.end) || chapters[0];
 
   return (
     <div className="player-root">
@@ -220,20 +262,27 @@ function Player({ back, item }) {
             <div className="player-overlay-bottom">
               <div className="title-row">
                 <div>
-                  <div className="t-eyebrow">{it.category} · {it.duration}</div>
+                  <div className="t-eyebrow">{it.category} · capítulo {currentChapter.n} · {currentChapter.t}</div>
                   <div className="title">{it.title}</div>
                   <div className="sub">{(it.teacher || 'BeonIt').toUpperCase()} · {it.duration}</div>
                 </div>
               </div>
-              <div className="scrubber"><i style={{width:'56%'}}/><b/></div>
+              {/* Scrubber clickeable con marcadores de capítulos */}
+              <div className="scrubber" onClick={seekBar} style={{cursor:'pointer', position:'relative'}}>
+                <i style={{width: (currentSec / totalSec * 100) + '%'}}/>
+                <b style={{left: (currentSec / totalSec * 100) + '%'}}/>
+                {chapters.slice(1).map(ch => (
+                  <span key={ch.n} style={{position:'absolute', left: (ch.start / totalSec * 100) + '%', top:-2, width:2, height:8, background:'rgba(255,255,255,0.6)', borderRadius:1, pointerEvents:'none'}}/>
+                ))}
+              </div>
               <div className="player-controls">
-                <button><Icon name="skip" size={18}/></button>
-                <button className="play" onClick={() => setPlaying(!playing)}><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
-                <button><Icon name="next" size={18}/></button>
-                <button className="pill-btn">1.0×</button>
-                <button className="pill-btn active">Pregunta IA</button>
-                <button><Icon name="vol" size={18}/></button>
-                <span className="time">02:18 / {it.duration || '05:00'}</span>
+                <button onClick={() => seekTo(currentSec - 10)} title="Atrás 10s (←)"><Icon name="skip" size={18}/></button>
+                <button className="play" onClick={() => setPlaying(!playing)} title="Play / pausa (espacio)"><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
+                <button onClick={() => seekTo(currentSec + 10)} title="Avanzar 10s (→)"><Icon name="next" size={18}/></button>
+                <button className="pill-btn" onClick={() => setSpeed(s => s === 1 ? 1.25 : s === 1.25 ? 1.5 : s === 1.5 ? 2 : s === 2 ? 0.75 : 1)} title="Velocidad de reproducción">{speed}×</button>
+                <button className="pill-btn" onClick={() => setShowSubs(s => !s)} style={{opacity: showSubs ? 1 : 0.5}} title="Subtítulos">SUB</button>
+                <button onClick={() => setMuted(m => !m)} title="Silenciar (M)" style={{opacity: muted ? 0.5 : 1}}><Icon name="vol" size={18}/></button>
+                <span className="time">{fmtTime(currentSec)} / {fmtTime(totalSec)}</span>
               </div>
             </div>
           </>
@@ -2011,11 +2060,70 @@ function Dashboard() {
   const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
   const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
   const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
+  const [drillKpi, setDrillKpi] = useS2(null);
   const kpis = [
-    { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
-    { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
-    { label: 'Tiempo / semana', value: '3h 2m', delta: '-8m', up: false, color: 'var(--accent-glow)' },
-    { label: 'Tasa éxito tests', value: '94%', delta: '+2%', up: true, color: 'var(--bn-purple)' },
+    {
+      key:'active', label:'Usuarios activos', value:'247', delta:'+12%', up:true, color:'var(--beonit-blue)',
+      detail: {
+        title: 'Usuarios activos · últimos 30 días',
+        sub: '247 usuarios han abierto al menos un módulo en los últimos 30 días. Crecimiento del +12% vs mes anterior.',
+        breakdown: [
+          { label:'Publish Agent',   value: 89,  pct: 36 },
+          { label:'Care Agent',      value: 64,  pct: 26 },
+          { label:'Managers',        value: 32,  pct: 13 },
+          { label:'Reporting / Analytics', value: 28, pct: 11 },
+          { label:'Otros / sin rol', value: 34,  pct: 14 },
+        ],
+        timeline: [180, 195, 210, 218, 228, 235, 247],
+      }
+    },
+    {
+      key:'completion', label:'Completación media', value:'58%', delta:'+4%', up:true, color:'var(--beonit-lime)',
+      detail: {
+        title: 'Completación media de la cohorte',
+        sub: '58% del currículum completado de media (4 puntos más que el mes pasado). 41 Think Pills · 3 Talleres · 2 autodiagnósticos por usuario.',
+        breakdown: [
+          { label:'Pills 0-5 · Fundamentos',    value:'92%', pct:92 },
+          { label:'Pills 6-10 · Estructura',    value:'71%', pct:71 },
+          { label:'Pills 11-16 · Campañas',     value:'54%', pct:54 },
+          { label:'Pills 17-22 · Operativa',    value:'38%', pct:38 },
+          { label:'Pills 23-30 · Avanzado',     value:'22%', pct:22 },
+          { label:'Pills 31-41 · Especialización', value:'11%', pct:11 },
+        ],
+        timeline: [42, 46, 49, 51, 54, 56, 58],
+      }
+    },
+    {
+      key:'time', label:'Tiempo / semana', value:'3h 2m', delta:'-8m', up:false, color:'var(--accent-glow)',
+      detail: {
+        title: 'Tiempo medio por usuario · semanal',
+        sub: '3h 02m semanales de media (8 minutos menos que el pico de hace 2 semanas, normal por temporada). Distribución por día:',
+        breakdown: [
+          { label:'Lunes',    value:'46m', pct:74 },
+          { label:'Martes',   value:'52m', pct:84 },
+          { label:'Miércoles',value:'38m', pct:61 },
+          { label:'Jueves',   value:'29m', pct:47 },
+          { label:'Viernes',  value:'17m', pct:27 },
+          { label:'Fin de semana', value:'2m', pct:3 },
+        ],
+        timeline: [200, 215, 218, 222, 195, 188, 182],
+      }
+    },
+    {
+      key:'success', label:'Tasa éxito tests', value:'94%', delta:'+2%', up:true, color:'var(--bn-purple)',
+      detail: {
+        title: 'Tasa de éxito · tests y exámenes finales',
+        sub: '94% de los tests se aprueban a la primera (+2% vs mes anterior). En los exámenes finales de ruta, la tasa baja al 81% (típico).',
+        breakdown: [
+          { label:'Tests intermedios',       value:'94%', pct:94 },
+          { label:'Examen final · Fundamentals', value:'88%', pct:88 },
+          { label:'Examen final · Publish Agent', value:'81%', pct:81 },
+          { label:'Examen final · Care Agent',  value:'76%', pct:76 },
+          { label:'Entregas prácticas (vídeo)', value:'67%', pct:67 },
+        ],
+        timeline: [88, 89, 91, 91, 92, 93, 94],
+      }
+    },
   ];
 
   const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
@@ -2117,13 +2225,77 @@ function Dashboard() {
 
       <div className="dash-kpis">
         {kpis.map((k, i) => (
-          <div key={i} className="kpi-card" style={{'--kpi-color': k.color}}>
+          <button key={i} className="kpi-card" onClick={() => setDrillKpi(k)} style={{'--kpi-color': k.color, border:'1px solid var(--line)', textAlign:'left', cursor:'pointer'}}>
             <div className="kpi-label">{k.label}</div>
             <div className="kpi-value">{k.value}</div>
             <div className={`kpi-delta ${k.up ? 'up' : 'down'}`}>{k.up ? '↑' : '↓'} {k.delta} vs mes anterior</div>
-          </div>
+            <div style={{marginTop:6, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)'}}>Click · ver detalle →</div>
+          </button>
         ))}
       </div>
+
+      {drillKpi && (
+        <div onClick={() => setDrillKpi(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(620px, 96vw)', maxHeight:'90vh', overflowY:'auto', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+            <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
+              <div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:drillKpi.color, fontWeight:700, marginBottom:4}}>{drillKpi.label}</div>
+                <h2 style={{margin:0, fontSize:22, fontFamily:'var(--sans)', letterSpacing:'-0.01em'}}>{drillKpi.detail.title}</h2>
+              </div>
+              <button onClick={() => setDrillKpi(null)} style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div style={{display:'flex', alignItems:'baseline', gap:14, marginBottom:14}}>
+              <div style={{fontSize:42, fontWeight:800, color:drillKpi.color, letterSpacing:'-0.025em', lineHeight:1}}>{drillKpi.value}</div>
+              <div className={`kpi-delta ${drillKpi.up ? 'up' : 'down'}`} style={{fontSize:12}}>{drillKpi.up ? '↑' : '↓'} {drillKpi.delta} vs mes anterior</div>
+            </div>
+            <p style={{fontSize:13.5, color:'var(--ink-3)', lineHeight:1.55, marginBottom:18}}>{drillKpi.detail.sub}</p>
+
+            {/* Sparkline timeline */}
+            {drillKpi.detail.timeline && (
+              <div style={{padding:'14px 16px', background:'var(--paper-2)', borderRadius:10, marginBottom:18}}>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Evolución · últimas 7 semanas</div>
+                <svg viewBox="0 0 280 60" style={{width:'100%', height:60}}>
+                  {(() => {
+                    const tl = drillKpi.detail.timeline;
+                    const max = Math.max.apply(null, tl), min = Math.min.apply(null, tl);
+                    const range = Math.max(1, max - min);
+                    const pts = tl.map((v, i) => {
+                      const x = (i / (tl.length - 1)) * 280;
+                      const y = 56 - ((v - min) / range) * 50 - 3;
+                      return [x, y];
+                    });
+                    const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ',' + p[1]).join(' ');
+                    const area = line + ' L 280,60 L 0,60 Z';
+                    return (
+                      <>
+                        <path d={area} fill={drillKpi.color} opacity="0.16"/>
+                        <path d={line} fill="none" stroke={drillKpi.color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3" fill={drillKpi.color} stroke="var(--paper)" strokeWidth="1.5"/>)}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+            )}
+
+            {/* Breakdown */}
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Desglose</div>
+            <div style={{display:'flex', flexDirection:'column', gap:8}}>
+              {drillKpi.detail.breakdown.map((b, bi) => (
+                <div key={bi} style={{display:'grid', gridTemplateColumns:'180px 1fr 60px', gap:12, alignItems:'center'}}>
+                  <div style={{fontSize:12.5, color:'var(--ink-2)'}}>{b.label}</div>
+                  <div style={{height:8, background:'var(--paper-2)', borderRadius:4, overflow:'hidden'}}>
+                    <div style={{width:b.pct + '%', height:'100%', background:drillKpi.color, borderRadius:4, transition:'width .35s ease'}}/>
+                  </div>
+                  <div style={{fontFamily:'var(--mono)', fontSize:11.5, fontWeight:700, color:'var(--ink)', textAlign:'right'}}>{b.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeWidgets.length === 0 && (
         <div className="empty-state">
@@ -2386,8 +2558,30 @@ function Dashboard() {
 
 // ---------- Cronograma POC ----------
 function Cronograma() {
+  const [drillBar, setDrillBar] = useS2(null);
   const W = 14; // semanas S-0 … S-13
   const col = (s, e) => ({ gridColumn: `${s + 2} / ${e + 3}` }); // +2: skip label col; +1: inclusive end
+
+  // Detalles de cada barra (información que se muestra al hacer click)
+  const BAR_DETAILS = {
+    'Verificación Itinerario y Th1ngs': { phase:'Verificación', desc:'Validación del itinerario formativo y de la lista de contenidos en Th1ngs antes de empezar producción. Reuniones con stakeholders Repsol y firma de scope.', deliverables:['Itinerario aprobado por Repsol','Lista contenidos Th1ngs validada','Acta de kick-off'], owner:'Equipo BeonIt + Repsol Comunicación' },
+    'Creación de contenidos POC': { phase:'Creación', desc:'Producción de las 41 Think Pills + materiales para los 3 talleres + textos de WhatsApp. Calendario apretado pero realista con revisiones internas semanales.', deliverables:['41 Think Pills (vídeo + script + slide)','Materiales 3 talleres','Mensajes WA configurados','Tests intermedios y exámenes finales'], owner:'BeonIt · equipo formación' },
+    'Kick-off': { phase:'Arranque', desc:'Sesión presencial / virtual con la cohorte completa. Presentación de la metodología SOLID GROWTH, demo de la plataforma y respuesta a dudas.', deliverables:['Sesión grabada','Q&A documentado','Acceso provisto a 200 usuarios'], owner:'BeonIt + Repsol RRHH' },
+    'Comunicación y lanzamiento': { phase:'Arranque', desc:'Campañas de email + push interno + WA para activar a los 200 usuarios. Recordatorios escalonados durante 2 semanas.', deliverables:['Email lanzamiento','Push notification','WA bienvenida'], owner:'Repsol Comunicación interna' },
+    'Píldora bienvenida': { phase:'Arranque', desc:'Pill 0 — bienvenida + cómo usar la plataforma. Primera Think Pill que ven todos los usuarios.', deliverables:['Pill 0 publicada','Primer login medido para todos los matriculados'], owner:'BeonIt' },
+    'Bloque 1+2 · Fundamentos': { phase:'Formación', desc:'Pills 0-5 sobre fundamentos de Sprinklr en Repsol. Test intermedio al final del bloque.', deliverables:['6 pills consumidas por al menos 80% cohorte','Test intermedio aprobado por 70%+'], owner:'Cohorte · BeonIt monitoriza' },
+    'Bloque 3 · Campañas': { phase:'Formación', desc:'Pills 11-16 · gestión estructural de campañas en Social Publish. Calendario editorial, DAM, etiquetado.', deliverables:['6 pills','Test intermedio'], owner:'Cohorte' },
+    'Bloque 4 · Operativa': { phase:'Formación', desc:'Pills 17-22 · operativa editorial, control de contenidos, flujos de aprobación.', deliverables:['6 pills','Test intermedio','Examen práctico vídeo'], owner:'Cohorte + Admin BeonIt revisa entregas' },
+    'Taller 1': { phase:'Talleres', desc:'Sprinklr Fundamentals · sesión experiencial 2h. Resolución de dudas y consolidación de los fundamentos.', deliverables:['2h sesión','15-20 asistentes'], owner:'BeonIt facilita' },
+    'Taller 2': { phase:'Talleres', desc:'Rol Publish Agent · práctica con casos reales en sandbox Sprinklr.', deliverables:['2h sesión','Casos resueltos en directo'], owner:'BeonIt facilita' },
+    'Taller 3': { phase:'Talleres', desc:'Rol Care Agent · gestión de casos, SLAs, escalado a Salesforce. Última sesión presencial.', deliverables:['2h sesión','Casos rolling resueltos'], owner:'BeonIt facilita' },
+    'Certificación': { phase:'Certificación', desc:'Examen final por rol (3 preguntas) + autodiagnóstico final + emisión de certificado oficial Repsol × BeonIt.', deliverables:['Certificados emitidos a quienes superen 70%+','Reporte agregado a Repsol'], owner:'BeonIt · revisión final' },
+  };
+  function detailsFor(label) {
+    if (BAR_DETAILS[label]) return BAR_DETAILS[label];
+    // Fallback genérico
+    return { phase:'—', desc:'Hito del cronograma de la POC. Trabajamos contra calendario para llegar a la certificación oficial al final.', deliverables:[], owner:'Equipo BeonIt' };
+  }
 
   const phases = [
     {
@@ -2467,11 +2661,12 @@ function Cronograma() {
                 <div className="cron-track">
                   {Array.from({length: W}, (_, wi) => <div key={wi} className="cron-cell"/>)}
                   {row.map((bar, bi) => (
-                    <div key={bi} className="cron-bar" style={{
+                    <div key={bi} className="cron-bar" onClick={() => setDrillBar({...bar, weeks: 'S-' + bar.s + ' a S-' + bar.e})} style={{
                       left: (bar.s / (W - 1) * 100) + '%',
                       width: Math.max(((bar.e - bar.s + 1) / W * 100), 4) + '%',
                       background: bar.bg,
-                    }}>{bar.label}</div>
+                      cursor: 'pointer',
+                    }} title="Click para ver detalles">{bar.label}</div>
                   ))}
                 </div>
               </div>
@@ -2493,6 +2688,39 @@ function Cronograma() {
           </div>
         ))}
       </div>}
+
+      {drillBar && (
+        <div onClick={() => setDrillBar(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(560px, 96vw)', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+            <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14}}>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{display:'inline-flex', alignItems:'center', gap:8, padding:'4px 10px', borderRadius:999, background: drillBar.bg, color:'#fff', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', fontWeight:700, marginBottom:8}}>
+                  {detailsFor(drillBar.label).phase} · {drillBar.weeks}
+                </div>
+                <h2 style={{margin:0, fontSize:22, fontFamily:'var(--sans)', letterSpacing:'-0.01em', lineHeight:1.25}}>{drillBar.label}</h2>
+              </div>
+              <button onClick={() => setDrillBar(null)} style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <p style={{fontSize:13.5, color:'var(--ink-3)', lineHeight:1.55, margin:'0 0 18px'}}>{detailsFor(drillBar.label).desc}</p>
+
+            {detailsFor(drillBar.label).deliverables && detailsFor(drillBar.label).deliverables.length > 0 && (
+              <div style={{marginBottom:16}}>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Entregables / Resultado esperado</div>
+                <ul style={{margin:0, paddingLeft:18, fontSize:13, color:'var(--ink-2)', lineHeight:1.6}}>
+                  {detailsFor(drillBar.label).deliverables.map((d, di) => <li key={di}>{d}</li>)}
+                </ul>
+              </div>
+            )}
+
+            <div style={{padding:'10px 12px', background:'var(--paper-2)', borderRadius:8, fontSize:12.5, color:'var(--ink-3)'}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginRight:6}}>Owner</span>
+              {detailsFor(drillBar.label).owner}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
