@@ -638,16 +638,16 @@ function Onboarding({ done = () => {} }) {
   // Persistir progreso paso a paso para que el anillo del shell se vaya llenando
   useE2(() => {
     try {
-      const existing = JSON.parse(localStorage.getItem('solid-onboarding') || '{}');
+      const existing = JSON.parse(localStorage.getItem(window.userKey('solid-onboarding')) || '{}');
       if (!existing.completedAt) {
-        localStorage.setItem('solid-onboarding', JSON.stringify({ ...existing, step, totalSteps: 4 }));
+        localStorage.setItem(window.userKey('solid-onboarding'), JSON.stringify({ ...existing, step, totalSteps: 4 }));
         window.dispatchEvent(new CustomEvent('onboarding-progress', { detail: { step, totalSteps: 4 }}));
       }
     } catch(e) {}
   }, [step]);
 
   const persistOnboarding = () => {
-    localStorage.setItem('solid-onboarding', JSON.stringify({
+    localStorage.setItem(window.userKey('solid-onboarding'), JSON.stringify({
       areas: Array.from(selectedAreas),
       role,
       notifs,
@@ -823,7 +823,7 @@ function PathView({ openPlayer, setView }) {
   const goToNext = () => {
     const PILLS = window.PILLS || [];
     let completed = [];
-    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    try { completed = JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '["p0","p1","p2"]'); } catch(e) {}
     const next = PILLS.find(p => !completed.includes(p.id));
     if (next && openPlayer) openPlayer(next);
     else if (setView) setView('browse');
@@ -937,7 +937,7 @@ function PathView({ openPlayer, setView }) {
   // Calcula progreso real para el hero
   const pathProgress = (() => {
     let completed = [];
-    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    try { completed = JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '["p0","p1","p2"]'); } catch(e) {}
     const totalPills = (window.PILLS || []).length || 41;
     const pct = Math.round((completed.length / Math.max(1, totalPills)) * 100);
     const currentBlock = Math.min(8, Math.max(1, Math.ceil((completed.length / Math.max(1, totalPills)) * 8) + 1));
@@ -1086,7 +1086,7 @@ function Profile({ setView }) {
   // Calcula stats reales desde localStorage en vez de hardcodear
   const stats = (() => {
     let completed = [];
-    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    try { completed = JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '["p0","p1","p2"]'); } catch(e) {}
     const completedCount = completed.length;
     const totalPills = (window.PILLS || []).length || 27;
     const certPct = Math.min(100, Math.round((completedCount / Math.max(1, totalPills)) * 100));
@@ -1099,7 +1099,7 @@ function Profile({ setView }) {
   // Construye feed de actividad desde los pills completados (ordenados por id descendente como proxy de fecha reciente)
   const recentActivity = (() => {
     let completed = [];
-    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    try { completed = JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '["p0","p1","p2"]'); } catch(e) {}
     const allPills = window.PILLS || [];
     const labels = ['Hoy', 'Hoy', 'Ayer', 'Hace 2 días', 'Esta semana', 'Esta semana'];
     return completed.slice(0, 6).reverse().map((id, idx) => {
@@ -1544,7 +1544,7 @@ const LEARNING_PATHS = [
 function Rutas({ openPlayer }) {
   const [selected, setSelected] = useS3(null);
   const [completed, setCompleted] = useS3(() => {
-    try { return JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); }
+    try { return JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '["p0","p1","p2"]'); }
     catch { return ['p0','p1','p2']; }
   });
 
@@ -1553,7 +1553,7 @@ function Rutas({ openPlayer }) {
   const markDone = (pillId) => {
     const u = [...new Set([...completed, pillId])];
     setCompleted(u);
-    localStorage.setItem('solid-completed', JSON.stringify(u));
+    localStorage.setItem(window.userKey('solid-completed'), JSON.stringify(u));
   };
 
   if (selected) {
@@ -1977,7 +1977,7 @@ function WidgetPicker({ onAdd, onClose }) {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
-  const DASH_KEY = 'solid-dash-widgets';
+  const DASH_KEY = window.userKey ? window.userKey('solid-dash-widgets') : 'solid-dash-widgets';
   const DEFAULT_WIDGETS = ['dropoff', 'column', 'gauge', 'area', 'funnel', 'modules', 'heatmap', 'users', 'activity', 'wa'];
   const [activeWidgets, setActiveWidgets] = useS2(() => {
     try { const s = JSON.parse(localStorage.getItem(DASH_KEY) || 'null'); return Array.isArray(s) ? s : DEFAULT_WIDGETS; }

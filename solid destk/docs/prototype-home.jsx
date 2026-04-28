@@ -109,11 +109,15 @@ function CategoryBar({ active, setActive }) {
 }
 
 function Sidebar({ view, setView }) {
-  const [profile, setProfile] = useState(window.UserProfile ? window.UserProfile.get() : { name:'Amaia Ruiz', role:'Publish Agent', team:'Repsol', avatarColor:'var(--repsol-red)' });
+  const [profile, setProfile] = useState(window.UserProfile ? window.UserProfile.get() : { name:'Sin sesión', role:'—', team:'—', avatarColor:'var(--ink-3)', isAdmin:false });
   useEffect(() => {
     const h = () => setProfile(window.UserProfile.get());
     window.addEventListener('user-profile-changed', h);
-    return () => window.removeEventListener('user-profile-changed', h);
+    window.addEventListener('auth-changed', h);
+    return () => {
+      window.removeEventListener('user-profile-changed', h);
+      window.removeEventListener('auth-changed', h);
+    };
   }, []);
 
   const items = [
@@ -128,6 +132,16 @@ function Sidebar({ view, setView }) {
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
+  if (profile.isAdmin) {
+    items.push({ id: 'admin', label: 'Admin', icon: 'user', badge: 'ADMIN' });
+  }
+
+  const handleLogout = (e) => {
+    e.stopPropagation();
+    if (!confirm('¿Cerrar sesión de ' + profile.name + '?')) return;
+    if (window.Auth) window.Auth.logout();
+    if (window.Toast) window.Toast.info('Sesión cerrada · hasta pronto');
+  };
 
   const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
   const openPalette = () => window.__openPalette && window.__openPalette();
@@ -173,13 +187,26 @@ function Sidebar({ view, setView }) {
         </div>
       </div>
 
-      <button className="sb-user" onClick={() => setView('profile')} style={{border:'none', background:'transparent', textAlign:'left', cursor:'pointer', padding:0, width:'100%'}}>
-        <div className="sb-avatar" style={{background:profile.avatarColor}}>{initials}</div>
-        <div>
-          <div className="sb-user-name">{profile.name}</div>
-          <div className="sb-user-role">{profile.role} · {profile.team}</div>
-        </div>
-      </button>
+      <div style={{display:'flex', alignItems:'center', gap:6}}>
+        <button className="sb-user" onClick={() => setView('profile')} style={{border:'none', background:'transparent', textAlign:'left', cursor:'pointer', padding:0, flex:1, minWidth:0}}>
+          <div className="sb-avatar" style={{background:profile.avatarColor}}>{initials}</div>
+          <div style={{minWidth:0}}>
+            <div className="sb-user-name" style={{display:'flex', alignItems:'center', gap:5}}>
+              <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{profile.name}</span>
+              {profile.isAdmin && <span style={{fontFamily:'var(--mono)', fontSize:8, padding:'1px 5px', background:'var(--ink)', color:'#fff', borderRadius:3, letterSpacing:'0.06em', flexShrink:0}}>ADMIN</span>}
+            </div>
+            <div className="sb-user-role">{profile.role} · {profile.team}</div>
+          </div>
+        </button>
+        <button onClick={handleLogout} title="Cerrar sesión"
+          style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-3)'}}
+          onMouseEnter={e => { e.currentTarget.style.background='rgba(235,0,41,0.08)'; e.currentTarget.style.color='var(--repsol-red)'; e.currentTarget.style.borderColor='rgba(235,0,41,0.25)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='var(--paper)'; e.currentTarget.style.color='var(--ink-3)'; e.currentTarget.style.borderColor='var(--line)'; }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
     </aside>
   );
 }
