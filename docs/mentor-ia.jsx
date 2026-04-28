@@ -36,7 +36,7 @@ async function _callAI(messages) {
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427g'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427j'} alt="MENTOR-IA"/>
     </div>
   );
 }
@@ -281,53 +281,164 @@ function AISidekick({ setAIMode, aiMode, view }) {
 }
 
 // ── Coach (pantalla completa) ───────────────────────────────────────────────
+// Saludo inicial cuando se crea una nueva conversación
+const COACH_GREETING = { role: 'assistant', text: '¡Hola **Amaia**! Soy MENTOR-IA, tu asistente de formación Sprinklr.\n\nLlevas un **15% de tu certificación** — estás en el *Bloque 2*, sobre estructura y gobernanza (Pills 6-10).\n\n¿En qué te puedo ayudar hoy?' };
+
+// Agrupa chats por antigüedad ("Hoy", "Esta semana", "Anteriores")
+function groupChatsByDate(chats) {
+  const now = Date.now();
+  const dayMs = 86400000;
+  const groups = { hoy: [], semana: [], antes: [] };
+  chats.forEach(c => {
+    const age = (now - c.updatedAt) / dayMs;
+    if (age < 1) groups.hoy.push(c);
+    else if (age < 7) groups.semana.push(c);
+    else groups.antes.push(c);
+  });
+  return groups;
+}
+
+function fmtRelativeTime(ts) {
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return 'Ahora';
+  if (diff < 3600) return Math.floor(diff/60) + ' min';
+  if (diff < 86400) return Math.floor(diff/3600) + ' h';
+  if (diff < 86400*7) return Math.floor(diff/86400) + ' d';
+  const d = new Date(ts);
+  return d.getDate() + '/' + (d.getMonth()+1);
+}
+
 function Coach() {
   const [input, setInput] = useM('');
   const [loading, setLoading] = useM(false);
   const [apiStatus, setApiStatus] = useM('live');
-  const [msgs, setMsgs] = useM([
-    { role: 'assistant', text: '¡Hola **Amaia**! Soy MENTOR-IA, tu asistente de formación Sprinklr.\n\nLlevas un **15% de tu certificación** — estás en el *Bloque 2*, sobre estructura y gobernanza (Pills 6-10).\n\n¿En qué te puedo ayudar hoy?' },
-  ]);
+  const [chats, setChats] = useM(() => window.ChatHistory ? window.ChatHistory.list() : []);
+  const [activeId, setActiveIdState] = useM(() => window.ChatHistory ? window.ChatHistory.activeId() : null);
   const scrollRef = useMRef(null);
 
+  // Asegura que siempre hay un chat activo
+  useEM(() => {
+    if (!window.ChatHistory) return;
+    if (!activeId || !window.ChatHistory.get(activeId)) {
+      const c = window.ChatHistory.getOrCreate();
+      if (c.messages.length === 0) {
+        window.ChatHistory.appendMessage(c.id, COACH_GREETING);
+      }
+      setActiveIdState(c.id);
+      setChats(window.ChatHistory.list());
+    }
+  }, []);
+
+  // Reactivo a cambios externos (otra pestaña, otro componente)
+  useEM(() => {
+    if (!window.ChatHistory) return;
+    const refresh = () => {
+      setChats(window.ChatHistory.list());
+      setActiveIdState(window.ChatHistory.activeId());
+    };
+    window.addEventListener('chats-changed', refresh);
+    return () => window.removeEventListener('chats-changed', refresh);
+  }, []);
+
+  const activeChat = chats.find(c => c.id === activeId) || null;
+  const msgs = activeChat ? activeChat.messages : [];
   const quickActions = CTX_SUGGESTIONS.coach;
 
   useEM(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [msgs, loading]);
+  }, [msgs.length, loading]);
+
+  const newChat = () => {
+    if (!window.ChatHistory) return;
+    const c = window.ChatHistory.create([COACH_GREETING]);
+    setActiveIdState(c.id);
+    setChats(window.ChatHistory.list());
+    setInput('');
+  };
+
+  const switchChat = (id) => {
+    if (!window.ChatHistory) return;
+    window.ChatHistory.setActive(id);
+    setActiveIdState(id);
+  };
+
+  const deleteChat = (id, e) => {
+    e.stopPropagation();
+    if (!window.ChatHistory) return;
+    if (!confirm('¿Borrar esta conversación?')) return;
+    window.ChatHistory.remove(id);
+    const list = window.ChatHistory.list();
+    setChats(list);
+    if (id === activeId) {
+      if (list.length > 0) switchChat(list[0].id);
+      else newChat();
+    }
+  };
 
   const send = async (overrideQ) => {
     const q = (overrideQ || input).trim();
-    if (!q || loading) return;
-    const newMsgs = [...msgs, { role: 'user', text: q }];
-    setMsgs(newMsgs);
+    if (!q || loading || !activeChat || !window.ChatHistory) return;
+    const userMsg = { role: 'user', text: q };
+    window.ChatHistory.appendMessage(activeId, userMsg);
+    setChats(window.ChatHistory.list());
     setInput('');
     setLoading(true);
     try {
-      const reply = await _callAI(newMsgs);
-      setMsgs(m => [...m, { role: 'assistant', text: reply }]);
+      const updated = window.ChatHistory.get(activeId);
+      const reply = await _callAI(updated.messages);
+      window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: reply });
+      setChats(window.ChatHistory.list());
       setApiStatus('live');
     } catch (err) {
       setApiStatus('error');
-      setMsgs(m => [...m, { role: 'assistant', text: `No he podido conectar (${err.message}). Comprueba tu conexión e inténtalo de nuevo.` }]);
+      window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: `No he podido conectar (${err.message}). Comprueba tu conexión e inténtalo de nuevo.` });
+      setChats(window.ChatHistory.list());
     }
     setLoading(false);
   };
 
+  const grouped = groupChatsByDate(chats);
+  const renderChatItem = (c) => (
+    <div key={c.id} className={`coach-hist-item ${c.id === activeId ? 'active' : ''}`} onClick={() => switchChat(c.id)} style={{position:'relative', cursor:'pointer'}}>
+      <div className="t" style={{paddingRight:22, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.title}</div>
+      <div className="d">{fmtRelativeTime(c.updatedAt)} · {c.messages.length} {c.messages.length === 1 ? 'msg' : 'msgs'}</div>
+      <button onClick={e => deleteChat(c.id, e)} title="Borrar conversación"
+        style={{position:'absolute', top:8, right:6, width:20, height:20, border:'none', background:'transparent', cursor:'pointer', borderRadius:4, color:'var(--ink-4)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0.5}}
+        onMouseEnter={e => { e.currentTarget.style.opacity='1'; e.currentTarget.style.background='rgba(235,0,41,0.1)'; e.currentTarget.style.color='var(--repsol-red)'; }}
+        onMouseLeave={e => { e.currentTarget.style.opacity='0.5'; e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--ink-4)'; }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  );
+
   return (
     <div className="coach-root">
       <aside className="coach-side">
-        <div>
-          <h3>Conversaciones de hoy</h3>
-          <div className="coach-hist-item active"><div className="t">Progreso en la certificación</div><div className="d">Hace 2 min</div></div>
-          <div className="coach-hist-item"><div className="t">¿Cómo programar posts recurrentes?</div><div className="d">09:15</div></div>
-        </div>
-        <div>
-          <h3>Esta semana</h3>
-          <div className="coach-hist-item"><div className="t">Diferencia entre DAM y biblioteca</div><div className="d">Lun</div></div>
-          <div className="coach-hist-item"><div className="t">Flujo de aprobación urgente</div><div className="d">Dom</div></div>
-          <div className="coach-hist-item"><div className="t">Quiz sobre Publish Agent</div><div className="d">Sáb</div></div>
-        </div>
+        <button onClick={newChat} style={{display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'10px 14px', background:'var(--bn-blue)', color:'#fff', border:'none', borderRadius:9, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13, marginBottom:14, width:'100%'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nueva conversación
+        </button>
+        {grouped.hoy.length > 0 && (
+          <div>
+            <h3>Hoy</h3>
+            {grouped.hoy.map(renderChatItem)}
+          </div>
+        )}
+        {grouped.semana.length > 0 && (
+          <div>
+            <h3>Esta semana</h3>
+            {grouped.semana.map(renderChatItem)}
+          </div>
+        )}
+        {grouped.antes.length > 0 && (
+          <div>
+            <h3>Anteriores</h3>
+            {grouped.antes.map(renderChatItem)}
+          </div>
+        )}
+        {chats.length === 0 && (
+          <div style={{padding:'20px 12px', fontSize:12, color:'var(--ink-4)', textAlign:'center', fontStyle:'italic'}}>Aún no tienes conversaciones. Empieza una pulsando arriba.</div>
+        )}
         <div>
           <h3 style={{fontSize:11, marginBottom:8}}>Motores IA</h3>
           {[
@@ -373,6 +484,9 @@ function Coach() {
           ))}
         </div>
         <div ref={scrollRef} style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
+          {msgs.length === 0 && !loading && (
+            <div style={{padding:'24px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>Esta conversación está vacía. Pregúntame lo que quieras.</div>
+          )}
           {msgs.map((m, i) => (
             <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
               <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>

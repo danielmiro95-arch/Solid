@@ -631,6 +631,17 @@ function Onboarding({ done = () => {} }) {
   const [notifs, setNotifs] = useS2([true, true, false, false]);
   const [showMentorInfo, setShowMentorInfo] = useS2(false);
 
+  // Persistir progreso paso a paso para que el anillo del shell se vaya llenando
+  useE2(() => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('solid-onboarding') || '{}');
+      if (!existing.completedAt) {
+        localStorage.setItem('solid-onboarding', JSON.stringify({ ...existing, step, totalSteps: 4 }));
+        window.dispatchEvent(new CustomEvent('onboarding-progress', { detail: { step, totalSteps: 4 }}));
+      }
+    } catch(e) {}
+  }, [step]);
+
   const persistOnboarding = () => {
     localStorage.setItem('solid-onboarding', JSON.stringify({
       areas: Array.from(selectedAreas),

@@ -277,7 +277,7 @@ function App() {
         </button>
       )}
 
-      {/* Secondary nav: onboarding entry — disabled in production-like view */}
+      {view !== 'onboarding' && <OnboardingRing onClick={() => setView('onboarding')}/>}
 
       {tweaksOn && (
         <TweaksPanel
@@ -326,6 +326,117 @@ function SavedView({ openDetail, setView }) {
     </div>
   );
 }
+
+// ── Onboarding ring · botón flotante que se va llenando con el progreso ───
+function OnboardingRing({ onClick }) {
+  const computeProgress = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('solid-onboarding') || '{}');
+      if (raw.completedAt) return { value: 1, label: 'Completado', completed: true };
+      const total = raw.totalSteps || 4;
+      const step = Math.max(0, Math.min(total, raw.step || 0));
+      // step va de 0..3 mientras está en onboarding; 0 = sin empezar, 4 = completado
+      return { value: step / total, label: 'Onboarding · ' + step + '/' + total, completed: false };
+    } catch (e) {
+      return { value: 0, label: 'Onboarding', completed: false };
+    }
+  };
+  const [prog, setProg] = useSM(computeProgress());
+  useEM(() => {
+    const refresh = () => setProg(computeProgress());
+    window.addEventListener('onboarding-progress', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('onboarding-progress', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  const size = 44, stroke = 4, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const dash = c * prog.value;
+
+  return (
+    <button onClick={onClick} title={prog.label} aria-label={prog.label}
+      style={{position:'fixed', top:14, right:18, zIndex:500, width:size, height:size, borderRadius:'50%', border:'none',
+        background:'var(--paper)', boxShadow:'0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line)',
+        cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0,
+        transition:'transform .14s, box-shadow .14s'}}
+      onMouseEnter={e => { e.currentTarget.style.transform='scale(1.06)'; e.currentTarget.style.boxShadow='0 6px 18px rgba(0,114,190,0.25), 0 0 0 1px var(--bn-blue)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line)'; }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{position:'absolute', inset:0}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--paper-3)" strokeWidth={stroke}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none"
+          stroke={prog.completed ? 'var(--bn-lime)' : 'var(--bn-blue)'}
+          strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={`${dash} ${c - dash}`}
+          transform={`rotate(-90 ${size/2} ${size/2})`}
+          style={{transition:'stroke-dasharray .35s ease'}}/>
+      </svg>
+      {prog.completed ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bn-lime)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{position:'relative'}}>
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+      ) : (
+        <span style={{position:'relative', fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--ink)', letterSpacing:'-0.02em'}}>
+          {Math.round(prog.value * 100)}<span style={{fontSize:8, color:'var(--ink-4)'}}>%</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ── Chat history (MENTOR-IA conversaciones persistentes) ──────────────────
+const ChatHistory = (function() {
+  const KEY = 'solid-chats';
+  const ACTIVE_KEY = 'solid-active-chat';
+  function list() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function save(chats) { localStorage.setItem(KEY, JSON.stringify(chats)); window.dispatchEvent(new Event('chats-changed')); }
+  function activeId() { return localStorage.getItem(ACTIVE_KEY) || null; }
+  function setActive(id) { if (id) localStorage.setItem(ACTIVE_KEY, id); else localStorage.removeItem(ACTIVE_KEY); window.dispatchEvent(new Event('chats-changed')); }
+  function get(id) { return list().find(c => c.id === id); }
+  function create(initial) {
+    const id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    const chat = { id, title: 'Nueva conversación', createdAt: Date.now(), updatedAt: Date.now(), messages: initial || [] };
+    const chats = list();
+    chats.unshift(chat);
+    save(chats);
+    setActive(id);
+    return chat;
+  }
+  function update(id, patch) {
+    const chats = list();
+    const idx = chats.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    chats[idx] = Object.assign({}, chats[idx], patch, { updatedAt: Date.now() });
+    save(chats);
+  }
+  function appendMessage(id, msg) {
+    const chats = list();
+    const idx = chats.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    chats[idx].messages = (chats[idx].messages || []).concat([msg]);
+    chats[idx].updatedAt = Date.now();
+    // Auto-titular desde el primer mensaje del usuario
+    if (chats[idx].title === 'Nueva conversación' && msg.role === 'user') {
+      chats[idx].title = msg.text.slice(0, 50) + (msg.text.length > 50 ? '…' : '');
+    }
+    save(chats);
+  }
+  function remove(id) {
+    save(list().filter(c => c.id !== id));
+    if (activeId() === id) setActive(null);
+  }
+  function getOrCreate() {
+    const id = activeId();
+    if (id) {
+      const c = get(id);
+      if (c) return c;
+    }
+    return create();
+  }
+  return { list, get, create, update, appendMessage, remove, activeId, setActive, getOrCreate };
+})();
+window.ChatHistory = ChatHistory;
 
 function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) {
   const persist = (edits) => window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
