@@ -36,7 +36,7 @@ async function _callAI(messages) {
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427j'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427k'} alt="MENTOR-IA"/>
     </div>
   );
 }
@@ -365,7 +365,9 @@ function Coach() {
   const deleteChat = (id, e) => {
     e.stopPropagation();
     if (!window.ChatHistory) return;
-    if (!confirm('¿Borrar esta conversación?')) return;
+    const chat = window.ChatHistory.get(id);
+    const title = chat ? chat.title : 'Conversación';
+    if (!confirm('¿Borrar "' + title + '"?')) return;
     window.ChatHistory.remove(id);
     const list = window.ChatHistory.list();
     setChats(list);
@@ -373,6 +375,7 @@ function Coach() {
       if (list.length > 0) switchChat(list[0].id);
       else newChat();
     }
+    if (window.Toast) window.Toast.info('Conversación eliminada', { icon: '🗑' });
   };
 
   const send = async (overrideQ) => {
@@ -393,6 +396,7 @@ function Coach() {
       setApiStatus('error');
       window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: `No he podido conectar (${err.message}). Comprueba tu conexión e inténtalo de nuevo.` });
       setChats(window.ChatHistory.list());
+      if (window.Toast) window.Toast.error('MENTOR-IA no responde · ¿API key configurada en Vercel?');
     }
     setLoading(false);
   };
@@ -437,7 +441,11 @@ function Coach() {
           </div>
         )}
         {chats.length === 0 && (
-          <div style={{padding:'20px 12px', fontSize:12, color:'var(--ink-4)', textAlign:'center', fontStyle:'italic'}}>Aún no tienes conversaciones. Empieza una pulsando arriba.</div>
+          <div style={{padding:'24px 12px', textAlign:'center'}}>
+            <div style={{fontSize:28, marginBottom:6, opacity:0.45}}>💬</div>
+            <div style={{fontSize:13, fontWeight:600, color:'var(--ink-2)', marginBottom:4}}>Sin conversaciones aún</div>
+            <div style={{fontSize:11.5, color:'var(--ink-4)', lineHeight:1.5}}>Pulsa arriba para empezar la primera. Se guardarán automáticamente y podrás retomarlas más tarde.</div>
+          </div>
         )}
         <div>
           <h3 style={{fontSize:11, marginBottom:8}}>Motores IA</h3>
@@ -514,8 +522,15 @@ function Coach() {
           />
           <div className="coach-input-tools">
             <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.06em'}}>↵ enviar · Shift+↵ nueva línea</div>
-            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.5 : 1}}>
-              {loading ? 'Pensando…' : 'Preguntar →'}
+            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.7 : 1, display:'inline-flex', alignItems:'center', gap:6}}>
+              {loading ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:'spin .9s linear infinite'}}>
+                    <path d="M12 2a10 10 0 0 1 10 10" />
+                  </svg>
+                  Pensando…
+                </>
+              ) : 'Preguntar →'}
             </button>
           </div>
         </div>
