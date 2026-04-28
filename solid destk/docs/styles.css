@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* SOLID — Repsol × BeonIt */
+:root {
+  /* ── Superficies ─────────────────────────────── */
+  --paper:   #FFFFFF;
+  --paper-2: #F5F7FA;
+  --paper-3: #EDF0F5;
+
+  /* ── Texto ───────────────────────────────────── */
+  --ink:   #0D1117;
+  --ink-2: #1C2433;
+  --ink-3: #4A5568;
+  --ink-4: #94A3B8;
+
+  /* ── Líneas ──────────────────────────────────── */
+  --line:   rgba(13, 17, 23, 0.08);
+  --line-2: rgba(13, 17, 23, 0.04);
+
+  /* ── Marca BeonIt ────────────────────────────── */
+  --bn-orange:    #F3A525;
+  --bn-red:       #FC220D;
+  --bn-red-2:     #F45744;
+  --bn-purple:    #8A3992;
+  --bn-purple-2:  #BD2882;
+  --bn-blue:      #0072BE;
+  --bn-blue-dark: #005a96;
+  --bn-green:     #036837;
+  --bn-lime:      #BCD630;
+  --bn-lime-dark: #96a826;
+  --bn-yellow:    #FCCB00;
+  --bn-turquoise: #66C7C2;
+
+  /* ── Alias semánticos ────────────────────────── */
+  --accent-glow:  #005996;            /* BeonIt primary blue */
+  --accent-primary: var(--bn-blue);   /* acciones principales */
+  --accent-success: var(--bn-lime);   /* progreso / completado */
+
+  /* ── Repsol ──────────────────────────────────── */
+  --repsol-red:      #EB0029;
+  --repsol-red-dark: #B8001F;
+
+  /* ── Alias legacy (no romper código existente) ── */
+  --beonit-orange:  var(--bn-orange);
+  --beonit-yellow:  var(--bn-yellow);
+  --beonit-lime:    var(--bn-lime);
+  --beonit-blue:    var(--bn-blue);
+  --beonit-purple:  var(--bn-purple);
+  --accent:         var(--bn-blue);
+  --dark:           #0D1117;
+  --dark-2:         #1C2433;
+  --dark-3:         #2D3748;
+  --cream:          #F8FAFC;
+  --highlight:      #FFF8E1;
+
+  /* ── Sombras ─────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,0.09), 0 8px 20px rgba(0,0,0,0.05);
+  --shadow-blue: 0 8px 32px rgba(0,114,190,0.18), 0 2px 8px rgba(0,114,190,0.08);
+
+  /* ── Tipografía ──────────────────────────────── */
+  --sans:  "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ===== Top shell (tab bar) ===== */
+.shell-tabs {
+  position: sticky; top: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  height: 60px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.shell-wordmark {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  font-style: normal;
+}
+.shell-wordmark sup {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: super;
+  margin-left: 4px;
+  color: var(--ink-4);
+}
+.shell-tabs-list { display: flex; gap: 4px; background: var(--paper-2); border-radius: 8px; padding: 4px; }
+.shell-tab {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.shell-tab:hover { color: var(--ink); background: rgba(0,0,0,0.04); }
+.shell-tab.active { background: var(--bn-blue); color: #fff; }
+.shell-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Repsol badge in shell */
+.repsol-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 6px;
+  border: 1px solid rgba(235,0,41,0.2);
+  background: rgba(235,0,41,0.05);
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--repsol-red);
+}
+.repsol-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--repsol-red); flex-shrink: 0;
+}
+
+.shell-panel { display: none; }
+.shell-panel.active { display: block; }
+
+/* Utility */
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--sans); }
+.eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+
+/* ===== Placeholder imagery ===== */
+.ph {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 14px),
+    linear-gradient(180deg, var(--ph-b, #2d2a24), var(--ph-a, #1a1a1a));
+  color: rgba(245, 241, 232, 0.7);
+  display: flex; align-items: flex-end;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px;
+}
+.ph.warm  { --ph-a: #7a3c00; --ph-b: #a35200; }
+.ph.olive { --ph-a: #354000; --ph-b: #4d5e00; }
+.ph.plum  { --ph-a: #3a0a3e; --ph-b: #5a1560; }
+.ph.teal  { --ph-a: #003660; --ph-b: #004e8a; }
+.ph.clay  { --ph-a: #5a0800; --ph-b: #7a1000; }
+.ph.sand  { --ph-a: #e8e4da; --ph-b: #f0ece0; color: rgba(10,10,10,0.5); }
+.ph.lime  { --ph-a: #485e00; --ph-b: #6a8800; }
+.ph.noir  { --ph-a: #000000; --ph-b: #111111; }
+
+/* Coach AI spin animation */
+@keyframes spin { to { transform: rotate(360deg); } }
