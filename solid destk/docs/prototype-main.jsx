@@ -350,10 +350,15 @@ function App() {
   useEM(() => {
     Auth.seedIfEmpty();
     setAuthUser(Auth.currentUser());
-    const refresh = () => setAuthUser(Auth.currentUser());
+    const refresh = () => {
+      setAuthUser(Auth.currentUser());
+      // cuando cambia de usuario, re-sembrar el inbox del nuevo
+      if (window.Inbox) window.Inbox.seedIfEmpty();
+    };
     window.addEventListener('auth-changed', refresh);
     return () => window.removeEventListener('auth-changed', refresh);
   }, []);
+  useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser && authUser.id]);
 
   // Initialize tracker and handle tracked URL opens
   useEM(() => {
@@ -446,6 +451,7 @@ function App() {
         {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
         {view === 'saved' && <SavedView openDetail={openDetail} setView={setView}/>}
         {view === 'admin' && (Auth.isAdmin() ? <AdminPanel setView={setView}/> : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
+        {view === 'inbox' && <InboxView openDetail={openDetail} setView={setView}/>}
         {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/></div>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
@@ -454,7 +460,22 @@ function App() {
       )}
       {aiMode === 'collapsed' && view !== 'onboarding' && (
         <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir MENTOR-IA" aria-label="Abrir MENTOR-IA">
-          <img src={'mentor-ia-logo.png?v=' + (window.SOLID_VERSION || '0')} alt="MENTOR-IA"/>
+          <svg className="mentor-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="railGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FCCB00"/>
+                <stop offset="20%" stopColor="#F45744"/>
+                <stop offset="45%" stopColor="#BD2882"/>
+                <stop offset="70%" stopColor="#0072BE"/>
+                <stop offset="100%" stopColor="#BCD630"/>
+              </linearGradient>
+            </defs>
+            {/* Wave M shape — eco del logo MENTOR-IA */}
+            <path d="M 12 78 Q 16 60 24 56 Q 33 52 38 64 Q 42 74 46 50 Q 50 26 54 50 Q 58 74 62 64 Q 67 52 76 56 Q 84 60 88 78"
+              stroke="url(#railGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Punto luminoso */}
+            <circle cx="50" cy="22" r="3" fill="#BCD630"/>
+          </svg>
         </button>
       )}
 
@@ -709,6 +730,143 @@ const ChatHistory = (function() {
   return { list, get, create, update, appendMessage, remove, activeId, setActive, getOrCreate };
 })();
 window.ChatHistory = ChatHistory;
+
+// ── Inbox · 3 pestañas (DM · Notificaciones · Releases) ─────────────────────
+// Releases son globales (mismo changelog para todos), notificaciones se generan
+// del propio uso, y mensajes son por usuario (admin puede mandarlos).
+const Inbox = (function() {
+  function _userKey() { return _userScopedKey('sgson-inbox'); }
+  const RELEASES_KEY = 'sgson-releases-global'; // compartidos entre todos los usuarios
+
+  function _loadUser() {
+    try { return JSON.parse(localStorage.getItem(_userKey()) || '{"messages":[],"notifications":[]}'); }
+    catch(e) { return { messages: [], notifications: [] }; }
+  }
+  function _saveUser(data) { localStorage.setItem(_userKey(), JSON.stringify(data)); window.dispatchEvent(new Event('inbox-changed')); }
+
+  function _loadReleases() {
+    try { return JSON.parse(localStorage.getItem(RELEASES_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function _saveReleases(rs) { localStorage.setItem(RELEASES_KEY, JSON.stringify(rs)); window.dispatchEvent(new Event('inbox-changed')); }
+
+  function getAll() {
+    const u = _loadUser();
+    return {
+      messages: u.messages || [],
+      notifications: u.notifications || [],
+      releases: _loadReleases(),
+    };
+  }
+
+  function unreadCount(category) {
+    const all = getAll();
+    if (category) return (all[category] || []).filter(i => !i.read).length;
+    return (all.messages || []).filter(i => !i.read).length
+         + (all.notifications || []).filter(i => !i.read).length
+         + (all.releases || []).filter(i => !i.read).length;
+  }
+
+  function markRead(category, id) {
+    if (category === 'releases') {
+      const rs = _loadReleases();
+      const r = rs.find(x => x.id === id);
+      if (r) { r.read = true; _saveReleases(rs); }
+      return;
+    }
+    const u = _loadUser();
+    const list = u[category] || [];
+    const item = list.find(x => x.id === id);
+    if (item) { item.read = true; _saveUser(u); }
+  }
+
+  function markAllRead(category) {
+    if (category === 'releases') {
+      const rs = _loadReleases();
+      rs.forEach(r => r.read = true);
+      _saveReleases(rs);
+      return;
+    }
+    const u = _loadUser();
+    (u[category] || []).forEach(it => it.read = true);
+    _saveUser(u);
+  }
+
+  function addNotification(text, opts) {
+    opts = opts || {};
+    const u = _loadUser();
+    const n = {
+      id: 'n_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+      text, kind: opts.kind || 'info', icon: opts.icon || '🔔',
+      createdAt: Date.now(), read: false, link: opts.link || null,
+    };
+    u.notifications = [n].concat(u.notifications || []).slice(0, 50);
+    _saveUser(u);
+    return n;
+  }
+
+  function addMessage(from, subject, body, opts) {
+    opts = opts || {};
+    const u = _loadUser();
+    const m = {
+      id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+      from, subject, body,
+      createdAt: Date.now(), read: false, fromAdmin: !!opts.fromAdmin, fromAvatarColor: opts.fromAvatarColor,
+    };
+    u.messages = [m].concat(u.messages || []).slice(0, 100);
+    _saveUser(u);
+    return m;
+  }
+
+  function deleteItem(category, id) {
+    if (category === 'releases') {
+      _saveReleases(_loadReleases().filter(x => x.id !== id));
+      return;
+    }
+    const u = _loadUser();
+    u[category] = (u[category] || []).filter(x => x.id !== id);
+    _saveUser(u);
+  }
+
+  function seedIfEmpty() {
+    // Releases globales: solo se siembran una vez en toda la plataforma
+    if (_loadReleases().length === 0) {
+      const now = Date.now();
+      const d = 86400000;
+      _saveReleases([
+        { id:'r_1', version:'2.4', title:'Examen final por ruta · Genera tu certificado', body:'Ahora cada ruta de certificación termina con un examen rápido de 3 preguntas. Al superarlo, descargas tu certificado oficial Repsol × BeonIt.', createdAt: now - 1*3600000, read:false, kind:'feature' },
+        { id:'r_2', version:'2.3', title:'Bandeja de entrada unificada', body:'Mensajes directos, notificaciones de actividad y releases ahora viven en un único lugar. Marcadas como leídas, eliminables, todo persistente.', createdAt: now - 6*3600000, read:false, kind:'feature' },
+        { id:'r_3', version:'2.2', title:'MENTOR-IA con historial de chats persistente', body:'Tus conversaciones con MENTOR-IA se guardan automáticamente. Crea nuevas, retoma anteriores. Modo nocturno en el panel lateral.', createdAt: now - 2*d, read:false, kind:'feature' },
+        { id:'r_4', version:'2.1', title:'Multi-usuario y panel de administración', body:'Nuevo flujo de login/registro con rol admin. Cada usuario tiene sus propios bookmarks, chats y progreso.', createdAt: now - 4*d, read:false, kind:'feature' },
+        { id:'r_5', version:'2.0', title:'SGS|on · nuevo branding', body:'La plataforma se rebautiza como SGS|on, manteniendo la metodología SOLID GROWTH. Logos y paleta actualizados.', createdAt: now - 9*d, read:true, kind:'announcement' },
+      ]);
+    }
+
+    // Notificaciones por usuario: solo se siembran si está vacío para este usuario
+    const u = _loadUser();
+    if (!u.notifications || u.notifications.length === 0) {
+      const now = Date.now();
+      const me = window.Auth && window.Auth.currentUser();
+      u.notifications = [
+        { id:'n_1', text:'Bienvenido a SGS|on. Completa tu primer pill para empezar.', kind:'welcome', icon:'👋', createdAt: now - 5*60000, read: false },
+        { id:'n_2', text:'Tu próxima Pill recomendada: P4 · Posibilidades operativas de los canales', kind:'recommendation', icon:'💡', createdAt: now - 30*60000, read: false, link:'p4' },
+        { id:'n_3', text:'MENTOR-IA está listo para responder tus dudas', kind:'info', icon:'✦', createdAt: now - 2*3600000, read: true },
+      ];
+    }
+
+    if (!u.messages || u.messages.length === 0) {
+      const now = Date.now();
+      u.messages = [
+        { id:'m_1', from:'Equipo BeonIt', subject:'Sesión de bienvenida', body:'Hola, gracias por unirte a la formación. El próximo lunes tenemos el taller introductorio en la sala virtual. Te llegará el link 30 minutos antes. ¡Bienvenido!', createdAt: now - 24*3600000, read:false, fromAdmin:true, fromAvatarColor:'var(--bn-blue)' },
+        { id:'m_2', from:'MENTOR-IA', subject:'Tu plan personalizado', body:'He preparado tu plan de las próximas 4 semanas basado en tu rol Publish Agent. Empieza por las Pills 0-5 (Bloque 1) esta semana. Pregúntame si dudas en algún concepto.', createdAt: now - 3*3600000, read:false, fromAvatarColor:'var(--bn-purple)' },
+      ];
+    }
+    _saveUser(u);
+  }
+
+  return { getAll, unreadCount, markRead, markAllRead, addNotification, addMessage, deleteItem, seedIfEmpty };
+})();
+window.Inbox = Inbox;
 
 function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) {
   const persist = (edits) => window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
@@ -1030,6 +1188,171 @@ function AdminPanel({ setView }) {
     </div>
   );
 }
+
+// ── Inbox view · 3 pestañas ────────────────────────────────────────────────
+function InboxView({ openDetail, setView }) {
+  const [tab, setTab] = useSM('messages'); // 'messages' | 'notifications' | 'releases'
+  const [inbox, setInboxState] = useSM(Inbox.getAll());
+  const [selected, setSelected] = useSM(null);
+
+  useEM(() => {
+    const refresh = () => setInboxState(Inbox.getAll());
+    window.addEventListener('inbox-changed', refresh);
+    return () => window.removeEventListener('inbox-changed', refresh);
+  }, []);
+
+  const list = (inbox[tab] || []).slice();
+  list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const fmtRel = (ts) => {
+    if (!ts) return '—';
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60) return 'ahora';
+    if (d < 3600) return Math.floor(d/60) + ' min';
+    if (d < 86400) return Math.floor(d/3600) + ' h';
+    if (d < 86400*7) return Math.floor(d/86400) + ' d';
+    const dd = new Date(ts);
+    return dd.getDate() + '/' + (dd.getMonth()+1);
+  };
+
+  const openItem = (item) => {
+    setSelected(item);
+    if (!item.read) {
+      Inbox.markRead(tab, item.id);
+      // refrescar local sin esperar al evento
+      setInboxState(Inbox.getAll());
+    }
+  };
+
+  const tabs = [
+    { id: 'messages',      label: 'Mensajes',      icon: '✉' },
+    { id: 'notifications', label: 'Notificaciones', icon: '🔔' },
+    { id: 'releases',      label: 'Novedades',      icon: '✨' },
+  ];
+
+  const unread = (cat) => Inbox.unreadCount(cat);
+
+  return (
+    <div className="main-inner" style={{padding:'32px 32px 48px', maxWidth:'none'}}>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:24}}>
+        <div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Bandeja de entrada</div>
+          <h1 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:'clamp(28px,3vw,38px)', letterSpacing:'-0.02em', margin:'4px 0 0'}}>Tu actividad</h1>
+        </div>
+        {list.some(x => !x.read) && (
+          <button className="btn ghost" onClick={() => { Inbox.markAllRead(tab); setInboxState(Inbox.getAll()); }}>
+            Marcar todo como leído
+          </button>
+        )}
+      </div>
+
+      {/* Pestañas */}
+      <div style={{display:'flex', gap:4, marginBottom:20, padding:4, background:'var(--paper-2)', borderRadius:12, width:'fit-content', maxWidth:'100%', overflowX:'auto'}}>
+        {tabs.map(t => {
+          const u = unread(t.id);
+          return (
+            <button key={t.id} onClick={() => { setTab(t.id); setSelected(null); }}
+              style={{display:'inline-flex', alignItems:'center', gap:8, padding:'8px 14px', borderRadius:9, border:'none', cursor:'pointer',
+                background: tab === t.id ? 'var(--paper)' : 'transparent',
+                color: tab === t.id ? 'var(--ink)' : 'var(--ink-3)',
+                fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
+                boxShadow: tab === t.id ? 'var(--shadow-sm)' : 'none',
+                whiteSpace:'nowrap'}}>
+              <span style={{fontSize:14}}>{t.icon}</span>
+              {t.label}
+              {u > 0 && <span style={{fontFamily:'var(--mono)', fontSize:9.5, padding:'2px 6px', background:'var(--bn-blue)', color:'#fff', borderRadius:999, fontWeight:700}}>{u}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Lista + detalle */}
+      <div style={{display:'grid', gridTemplateColumns:'minmax(280px, 380px) 1fr', gap:20, alignItems:'flex-start'}}>
+        <div className="dash-panel" style={{padding:0, overflow:'hidden', maxHeight:'70vh', overflowY:'auto'}}>
+          {list.length === 0 ? (
+            <div style={{padding:'40px 20px', textAlign:'center'}}>
+              <div style={{fontSize:32, marginBottom:8, opacity:0.5}}>{tabs.find(t => t.id === tab).icon}</div>
+              <div style={{fontSize:14, fontWeight:600, color:'var(--ink-2)', marginBottom:4}}>Sin {tabs.find(t => t.id === tab).label.toLowerCase()}</div>
+              <div style={{fontSize:12.5, color:'var(--ink-4)'}}>No hay nada nuevo por aquí.</div>
+            </div>
+          ) : list.map(item => (
+            <button key={item.id} onClick={() => openItem(item)} style={{
+              display:'block', width:'100%', textAlign:'left', padding:'14px 16px',
+              border:'none', borderBottom:'1px solid var(--line-2)',
+              background: selected && selected.id === item.id ? 'rgba(0,114,190,0.06)' : item.read ? 'transparent' : 'rgba(0,114,190,0.025)',
+              cursor:'pointer', fontFamily:'var(--sans)',
+              borderLeft: selected && selected.id === item.id ? '3px solid var(--bn-blue)' : '3px solid transparent',
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
+                {!item.read && <span style={{width:7, height:7, borderRadius:'50%', background:'var(--bn-blue)', flexShrink:0}}/>}
+                {tab === 'messages' && (
+                  <div style={{width:24, height:24, borderRadius:'50%', background:item.fromAvatarColor || 'var(--ink)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0}}>
+                    {(item.from || '?').split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                  </div>
+                )}
+                {tab !== 'messages' && <span style={{fontSize:14, flexShrink:0}}>{item.icon || (tab === 'releases' ? '✨' : '🔔')}</span>}
+                <span style={{fontSize:12.5, fontWeight: item.read ? 500 : 700, color:'var(--ink)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  {tab === 'messages' ? item.from : tab === 'releases' ? ('v' + (item.version || '?')) : (item.kind || 'Aviso')}
+                </span>
+                <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', flexShrink:0}}>{fmtRel(item.createdAt)}</span>
+              </div>
+              <div style={{fontSize:13, fontWeight: item.read ? 400 : 600, color: item.read ? 'var(--ink-3)' : 'var(--ink)', lineHeight:1.4, paddingLeft: tab === 'messages' ? 32 : 22}}>
+                {tab === 'messages' ? item.subject : tab === 'releases' ? item.title : item.text}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Panel detalle */}
+        <div className="dash-panel" style={{padding:'24px 28px', minHeight:300}}>
+          {!selected ? (
+            <div style={{padding:'40px 20px', textAlign:'center', color:'var(--ink-4)'}}>
+              <div style={{fontSize:36, marginBottom:8, opacity:0.4}}>{tabs.find(t => t.id === tab).icon}</div>
+              <div style={{fontSize:14}}>Selecciona un elemento para verlo aquí</div>
+            </div>
+          ) : (
+            <>
+              <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14}}>
+                <div style={{flex:1, minWidth:0}}>
+                  {tab === 'releases' && <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--bn-blue)', fontWeight:700, marginBottom:4}}>VERSIÓN {selected.version}</div>}
+                  {tab === 'messages' && (
+                    <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
+                      <div style={{width:36, height:36, borderRadius:'50%', background:selected.fromAvatarColor || 'var(--ink)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
+                        {(selected.from || '?').split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{fontSize:13, fontWeight:600, color:'var(--ink)'}}>{selected.from}{selected.fromAdmin && <span style={{fontFamily:'var(--mono)', fontSize:8.5, padding:'1px 5px', background:'var(--ink)', color:'#fff', borderRadius:3, letterSpacing:'0.06em', marginLeft:6}}>ADMIN</span>}</div>
+                        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{new Date(selected.createdAt).toLocaleString('es-ES', {dateStyle:'medium', timeStyle:'short'})}</div>
+                      </div>
+                    </div>
+                  )}
+                  <h2 style={{margin:0, fontSize: tab === 'messages' ? 20 : 22, fontFamily:'var(--sans)', letterSpacing:'-0.01em', lineHeight:1.25}}>
+                    {tab === 'messages' ? selected.subject : tab === 'releases' ? selected.title : selected.text}
+                  </h2>
+                </div>
+                <button onClick={() => { Inbox.deleteItem(tab, selected.id); setSelected(null); setInboxState(Inbox.getAll()); if (window.Toast) window.Toast.info('Eliminado'); }}
+                  title="Eliminar"
+                  style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-3)'}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+                </button>
+              </div>
+              <div style={{fontSize:14, lineHeight:1.6, color:'var(--ink-2)', whiteSpace:'pre-wrap'}}>
+                {tab === 'messages' ? selected.body : tab === 'releases' ? selected.body : null}
+              </div>
+              {tab === 'notifications' && selected.link && window.PILLS && (
+                <button className="btn glow" style={{marginTop:14}} onClick={() => {
+                  const pill = window.PILLS.find(p => p.id === selected.link);
+                  if (pill && openDetail) openDetail(pill);
+                }}>Ver módulo →</button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+window.InboxView = InboxView;
 
 window.LoginScreen = LoginScreen;
 window.AdminPanel = AdminPanel;

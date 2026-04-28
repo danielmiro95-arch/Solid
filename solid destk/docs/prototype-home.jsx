@@ -110,25 +110,31 @@ function CategoryBar({ active, setActive }) {
 
 function Sidebar({ view, setView }) {
   const [profile, setProfile] = useState(window.UserProfile ? window.UserProfile.get() : { name:'Sin sesión', role:'—', team:'—', avatarColor:'var(--ink-3)', isAdmin:false });
+  const [unread, setUnread] = useState(window.Inbox ? window.Inbox.unreadCount() : 0);
   useEffect(() => {
     const h = () => setProfile(window.UserProfile.get());
+    const refreshUnread = () => setUnread(window.Inbox ? window.Inbox.unreadCount() : 0);
     window.addEventListener('user-profile-changed', h);
-    window.addEventListener('auth-changed', h);
+    window.addEventListener('auth-changed', () => { h(); refreshUnread(); });
+    window.addEventListener('inbox-changed', refreshUnread);
+    refreshUnread();
     return () => {
       window.removeEventListener('user-profile-changed', h);
       window.removeEventListener('auth-changed', h);
+      window.removeEventListener('inbox-changed', refreshUnread);
     };
   }, []);
 
   const items = [
     { id: 'home',      label: 'Inicio',      icon: 'home' },
+    { id: 'inbox',     label: 'Bandeja',     icon: 'chat', badge: unread > 0 ? String(unread) : null },
     { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
-    { id: 'rutas',     label: 'Rutas',       icon: 'compass', badge: 'NEW' },
+    { id: 'rutas',     label: 'Rutas',       icon: 'compass' },
     { id: 'dashboard', label: 'Dashboard',   icon: 'trend' },
     { id: 'coach',     label: 'MENTOR-IA',   icon: 'sparkle', badge: 'BETA' },
     { id: 'cronograma',label: 'Cronograma',  icon: 'trend' },
-    { id: 'wa',        label: 'WhatsApp',    icon: 'chat', badge: 'NEW' },
+    { id: 'wa',        label: 'WhatsApp',    icon: 'chat' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
   ];
