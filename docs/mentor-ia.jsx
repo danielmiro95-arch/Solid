@@ -36,7 +36,7 @@ async function _callAI(messages) {
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427e'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427g'} alt="MENTOR-IA"/>
     </div>
   );
 }
