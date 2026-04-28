@@ -177,7 +177,7 @@ const Auth = (function() {
         name: 'Amaia Ruiz',
         role: 'Publish Agent',
         team: 'Repsol',
-        avatarColor: 'var(--repsol-red)',
+        avatarColor: 'var(--bn-purple)',
       });
       // Vuelve a la sesión que tenía
       if (current) localStorage.setItem(SESSION_KEY, current);
@@ -453,8 +453,8 @@ function App() {
         <AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
       {aiMode === 'collapsed' && view !== 'onboarding' && (
-        <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Open coach">
-          <Icon name="sparkle" size={22}/>
+        <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir MENTOR-IA" aria-label="Abrir MENTOR-IA">
+          <img src={'mentor-ia-logo.png?v=' + (window.SOLID_VERSION || '0')} alt="MENTOR-IA"/>
         </button>
       )}
 
@@ -535,17 +535,17 @@ function OnboardingRing({ onClick }) {
     };
   }, []);
 
-  const size = 44, stroke = 4, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const size = 36, stroke = 3.5, r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const dash = c * prog.value;
 
-  return (
+  const button = (
     <button onClick={onClick} title={prog.label} aria-label={prog.label}
-      style={{position:'fixed', top:14, right:18, zIndex:500, width:size, height:size, borderRadius:'50%', border:'none',
-        background:'var(--paper)', boxShadow:'0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line)',
-        cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0,
+      style={{position:'relative', width:size, height:size, borderRadius:'50%', border:'none',
+        background:'rgba(255,255,255,0.85)', boxShadow:'0 2px 6px rgba(0,89,150,0.12), 0 0 0 1px rgba(0,114,190,0.1)',
+        cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0,
         transition:'transform .14s, box-shadow .14s'}}
-      onMouseEnter={e => { e.currentTarget.style.transform='scale(1.06)'; e.currentTarget.style.boxShadow='0 6px 18px rgba(0,114,190,0.25), 0 0 0 1px var(--bn-blue)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line)'; }}>
+      onMouseEnter={e => { e.currentTarget.style.transform='scale(1.08)'; e.currentTarget.style.boxShadow='0 4px 12px rgba(0,114,190,0.28), 0 0 0 1px var(--bn-blue)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 6px rgba(0,89,150,0.12), 0 0 0 1px rgba(0,114,190,0.1)'; }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{position:'absolute', inset:0}}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--paper-3)" strokeWidth={stroke}/>
         <circle cx={size/2} cy={size/2} r={r} fill="none"
@@ -556,16 +556,21 @@ function OnboardingRing({ onClick }) {
           style={{transition:'stroke-dasharray .35s ease'}}/>
       </svg>
       {prog.completed ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bn-lime)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{position:'relative'}}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bn-lime)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{position:'relative'}}>
           <path d="M5 13l4 4L19 7"/>
         </svg>
       ) : (
-        <span style={{position:'relative', fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--ink)', letterSpacing:'-0.02em'}}>
+        <span style={{position:'relative', fontFamily:'var(--mono)', fontSize:10, fontWeight:700, color:'var(--ink)', letterSpacing:'-0.02em'}}>
           {Math.round(prog.value * 100)}<span style={{fontSize:8, color:'var(--ink-4)'}}>%</span>
         </span>
       )}
     </button>
   );
+
+  // Portal al slot del shell-tabs si existe; si no, fallback flotante
+  const slot = typeof document !== 'undefined' ? document.getElementById('onboarding-ring-slot') : null;
+  if (slot) return ReactDOM.createPortal(button, slot);
+  return <div style={{position:'fixed', top:14, right:18, zIndex:500}}>{button}</div>;
 }
 
 // ── Toast notifications (global) ──────────────────────────────────────────
