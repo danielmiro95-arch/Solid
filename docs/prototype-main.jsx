@@ -192,6 +192,165 @@ const Auth = (function() {
 })();
 window.Auth = Auth;
 
+// ── SupabaseAuth · adapter Phase 2 ──────────────────────────────────────────
+// Cuando window.supabaseClient existe (configurado vía /api/config con env vars),
+// monkey-patcheamos los métodos de Auth para que vayan al backend real:
+//   signup → supabase.auth.signUp + insert profile (trigger)
+//   login  → supabase.auth.signInWithPassword
+//   logout → supabase.auth.signOut
+//   currentUser → lee profile de la DB cacheado en window._sbProfile
+//
+// Hasta que Supabase confirma la sesión, currentUser() devuelve null para
+// evitar que la app monte con un usuario fantasma. El LoginScreen detecta
+// el modo y pinta el form con password real.
+function _activateSupabaseAuth() {
+  if (!window.supabaseClient) return;
+  const sb = window.supabaseClient;
+
+  let cachedProfile = null;
+  let usersCache = [];
+
+  async function _loadProfile(userId) {
+    if (!userId) return null;
+    const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) { console.warn('[supa] loadProfile', error.message); return null; }
+    if (!data) return null;
+    return _mapProfileRow(data);
+  }
+
+  function _mapProfileRow(row) {
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role || 'Publish Agent',
+      team: row.team || 'Repsol',
+      avatarColor: row.avatar_color || 'var(--bn-blue)',
+      isAdmin: !!row.is_admin,
+      createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+      lastLoginAt: row.last_login_at ? new Date(row.last_login_at).getTime() : Date.now(),
+    };
+  }
+
+  async function _loadAllUsers() {
+    const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending: true });
+    if (error) { console.warn('[supa] loadAllUsers', error.message); return []; }
+    usersCache = (data || []).map(_mapProfileRow);
+    return usersCache;
+  }
+
+  // Sobreescribir métodos de Auth
+  Auth.listUsers = function() { return usersCache; };
+  Auth.currentUser = function() { return cachedProfile; };
+  Auth.currentUserId = function() { return cachedProfile ? cachedProfile.id : null; };
+  Auth.isAuthenticated = function() { return !!cachedProfile; };
+  Auth.isAdmin = function() { return !!(cachedProfile && cachedProfile.isAdmin); };
+
+  Auth.signup = async function(data) {
+    if (!data.password || data.password.length < 6) throw new Error('Password de al menos 6 caracteres');
+    const { data: authData, error } = await sb.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          role: data.role || 'Publish Agent',
+          team: data.team || 'Repsol',
+          avatar_color: data.avatarColor || 'var(--bn-blue)',
+        },
+      },
+    });
+    if (error) throw new Error(error.message);
+    // El trigger handle_new_user crea el profile automáticamente
+    if (authData.user) {
+      cachedProfile = await _loadProfile(authData.user.id);
+      await _loadAllUsers();
+      window.dispatchEvent(new Event('auth-changed'));
+      window.dispatchEvent(new Event('auth-users-changed'));
+    }
+    return cachedProfile;
+  };
+
+  Auth.login = async function(email, password) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    cachedProfile = await _loadProfile(data.user.id);
+    await sb.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', data.user.id);
+    await _loadAllUsers();
+    window.dispatchEvent(new Event('auth-changed'));
+    return cachedProfile;
+  };
+
+  Auth.logout = async function() {
+    await sb.auth.signOut();
+    cachedProfile = null;
+    window.dispatchEvent(new Event('auth-changed'));
+  };
+
+  Auth.updateUser = async function(id, patch) {
+    const dbPatch = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.role !== undefined) dbPatch.role = patch.role;
+    if (patch.team !== undefined) dbPatch.team = patch.team;
+    if (patch.avatarColor !== undefined) dbPatch.avatar_color = patch.avatarColor;
+    if (patch.email !== undefined) dbPatch.email = patch.email;
+    if (patch.isAdmin !== undefined) dbPatch.is_admin = !!patch.isAdmin;
+    const { data, error } = await sb.from('profiles').update(dbPatch).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    const mapped = _mapProfileRow(data);
+    if (cachedProfile && cachedProfile.id === id) cachedProfile = mapped;
+    await _loadAllUsers();
+    window.dispatchEvent(new Event('auth-users-changed'));
+    return mapped;
+  };
+
+  Auth.deleteUser = async function(id) {
+    // En Supabase, borrar de auth.users requiere service_role. Desde el cliente
+    // anon solo podemos borrar el profile (cascade limpia bookmarks/chats/etc).
+    const { error } = await sb.from('profiles').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    if (cachedProfile && cachedProfile.id === id) await Auth.logout();
+    await _loadAllUsers();
+    window.dispatchEvent(new Event('auth-users-changed'));
+  };
+
+  Auth.setAdmin = async function(id, value) { return Auth.updateUser(id, { isAdmin: !!value }); };
+
+  Auth.seedIfEmpty = async function() {
+    // Recupera la sesión activa de Supabase (si la hay)
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      cachedProfile = await _loadProfile(session.user.id);
+    }
+    await _loadAllUsers();
+    window.dispatchEvent(new Event('auth-changed'));
+    window.dispatchEvent(new Event('auth-users-changed'));
+
+    // Listener de cambios de sesión (login/logout/token refresh)
+    sb.auth.onAuthStateChange(async (event, sess) => {
+      if (sess && sess.user) {
+        cachedProfile = await _loadProfile(sess.user.id);
+      } else {
+        cachedProfile = null;
+      }
+      window.dispatchEvent(new Event('auth-changed'));
+    });
+  };
+
+  console.log('[SGS|on] Auth → Supabase backend activo');
+}
+
+// Activa SupabaseAuth cuando el bootstrap del HTML termina
+if (typeof window !== 'undefined') {
+  if (window.SGSON_BACKEND_READY) {
+    if (window.SGSON_BACKEND === 'supabase') _activateSupabaseAuth();
+  } else {
+    window.addEventListener('sgson-backend-ready', function(){
+      if (window.SGSON_BACKEND === 'supabase') _activateSupabaseAuth();
+    });
+  }
+}
+
 // Helper: namespacing de localStorage por usuario actual
 // Para keys que dependen del usuario (bookmarks, chats, progreso, etc.)
 function _userScopedKey(baseKey) {
@@ -1058,35 +1217,44 @@ function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) 
 
 // ── Login / Signup screen ─────────────────────────────────────────────────
 function LoginScreen() {
+  const isSupabase = (typeof window !== 'undefined' && window.SGSON_BACKEND === 'supabase');
   const [mode, setMode] = useSM('login'); // 'login' | 'signup'
   const [email, setEmail] = useSM('');
+  const [password, setPassword] = useSM('');
   const [name, setName] = useSM('');
   const [role, setRole] = useSM('Publish Agent');
   const [team, setTeam] = useSM('Repsol');
   const [error, setError] = useSM('');
   const [submitting, setSubmitting] = useSM(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e && e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
       if (mode === 'login') {
-        const u = Auth.login(email);
-        if (window.Toast) window.Toast.success('Bienvenido de vuelta, ' + u.name.split(' ')[0], { icon: '👋' });
+        const u = await Promise.resolve(Auth.login(email, password));
+        if (window.Toast && u) window.Toast.success('Bienvenido de vuelta, ' + (u.name || '').split(' ')[0], { icon: '👋' });
       } else {
-        const u = Auth.signup({ email, name, role, team });
-        if (window.Toast) window.Toast.success('Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
+        const u = await Promise.resolve(Auth.signup({ email, password, name, role, team }));
+        if (window.Toast && u) window.Toast.success('Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
       }
     } catch (err) {
-      setError(err.message);
+      setError((err && err.message) || 'Error desconocido');
     }
     setSubmitting(false);
   };
 
-  const quickLogin = (em) => { setEmail(em); setTimeout(() => { try { Auth.login(em); if (window.Toast) window.Toast.success('Sesión iniciada', { icon: '✓' }); } catch(e) { setError(e.message); } }, 50); };
+  const quickLogin = async (em) => {
+    setEmail(em);
+    setError('');
+    try {
+      const u = await Promise.resolve(Auth.login(em));
+      if (window.Toast && u) window.Toast.success('Sesión iniciada', { icon: '✓' });
+    } catch(e) { setError(e.message); }
+  };
 
-  const users = Auth.listUsers();
+  const users = Auth.listUsers ? Auth.listUsers() : [];
 
   return (
     <div style={{
@@ -1137,6 +1305,13 @@ function LoginScreen() {
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
                 style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
             </label>
+            {isSupabase && (
+              <label style={{display:'block', marginBottom:12}}>
+                <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Password</div>
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
+                  style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+              </label>
+            )}
             {mode === 'signup' && (
               <>
                 <label style={{display:'block', marginBottom:12}}>
@@ -1168,7 +1343,12 @@ function LoginScreen() {
             </button>
           </form>
 
-          {users.length > 0 && mode === 'login' && (
+          <div style={{marginTop:18, fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', display:'flex', alignItems:'center', gap:6}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? 'var(--bn-lime)' : 'var(--bn-orange)', display:'inline-block'}}/>
+            Backend: {isSupabase ? 'Supabase · Conectado' : 'Demo · LocalStorage'}
+          </div>
+
+          {!isSupabase && users.length > 0 && mode === 'login' && (
             <div style={{marginTop:28, paddingTop:20, borderTop:'1px solid var(--line)'}}>
               <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:10}}>Acceso rápido (demo)</div>
               <div style={{display:'flex', flexDirection:'column', gap:6}}>
@@ -1252,6 +1432,12 @@ function AdminPanel({ setView }) {
           <div className="lms-hero-eyebrow"><span className="repsol-dot" style={{background:'var(--ink)'}}/>Panel de administración</div>
           <h1 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:'clamp(28px,3vw,38px)', letterSpacing:'-0.02em', margin:'4px 0 0'}}>Usuarios y métricas</h1>
           <p style={{fontSize:13.5, color:'var(--ink-3)', margin:'8px 0 0', maxWidth:580}}>Gestiona los usuarios de la plataforma, sus roles y revisa métricas agregadas en tiempo real.</p>
+          <div style={{marginTop:10, display:'inline-flex', alignItems:'center', gap:8, padding:'5px 12px', borderRadius:999, background: window.SGSON_BACKEND === 'supabase' ? 'rgba(188,214,48,0.12)' : 'rgba(243,165,37,0.12)', border: '1px solid ' + (window.SGSON_BACKEND === 'supabase' ? 'rgba(188,214,48,0.4)' : 'rgba(243,165,37,0.4)')}}>
+            <span style={{width:7, height:7, borderRadius:'50%', background: window.SGSON_BACKEND === 'supabase' ? 'var(--bn-lime)' : 'var(--bn-orange)'}}/>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700, color: window.SGSON_BACKEND === 'supabase' ? 'var(--bn-lime-dark)' : '#7a4400'}}>
+              {window.SGSON_BACKEND === 'supabase' ? 'Supabase backend conectado · datos reales en DB' : 'Demo mode · datos en localStorage de este navegador'}
+            </span>
+          </div>
         </div>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="🔍 Buscar usuario, email, rol…"
           style={{padding:'10px 14px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--sans)', fontSize:13, minWidth:280, outline:'none'}}/>

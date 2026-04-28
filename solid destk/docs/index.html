@@ -8,12 +8,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260427s">
-<link rel="stylesheet" href="prototype.css?v=20260427s">
+<link rel="stylesheet" href="styles.css?v=20260427t">
+<link rel="stylesheet" href="prototype.css?v=20260427t">
 
 <script>
   (function(){
-    var V = '20260427s';
+    var V = '20260427t';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -46,7 +46,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427s" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427t" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
   <div class="shell-tabs-list" role="tablist" style="display:none">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
   </div>
@@ -57,7 +57,7 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427s</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427t</div>
 
 <!-- Prototype panel -->
 <section class="shell-panel" id="prototype-panel">
@@ -78,12 +78,42 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
+<!-- Supabase SDK · solo activa si hay env vars en Vercel (SUPABASE_URL + SUPABASE_ANON_KEY) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script>
+// Bootstrap del backend. Si /api/config devuelve keys de Supabase, activa
+// modo SaaS real. Si no, fallback a modo demo client-side con localStorage.
+(function(){
+  window.SGSON_BACKEND = 'demo'; // se cambia a 'supabase' si hay config
+  window.SGSON_BACKEND_READY = false;
+  fetch('/api/config').then(function(r){ return r.ok ? r.json() : null; }).then(function(cfg){
+    if (cfg && cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
+      window.SUPABASE_URL = cfg.supabaseUrl;
+      window.SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
+      window.supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      });
+      window.SGSON_BACKEND = 'supabase';
+      console.log('[SGS|on] Backend: Supabase ✓', cfg.supabaseUrl);
+    } else {
+      console.log('[SGS|on] Backend: demo (localStorage)');
+    }
+    window.SGSON_BACKEND_READY = true;
+    window.dispatchEvent(new Event('sgson-backend-ready'));
+  }).catch(function(e){
+    console.warn('[SGS|on] /api/config no disponible — modo demo', e && e.message);
+    window.SGSON_BACKEND_READY = true;
+    window.dispatchEvent(new Event('sgson-backend-ready'));
+  });
+})();
+</script>
+
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260427s"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260427s"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260427s"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260427s"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260427s"></script>
+<script type="text/babel" src="components.jsx?v=20260427t"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427t"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427t"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427t"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427t"></script>
 
 <!-- Boot -->
 <script type="text/babel">
