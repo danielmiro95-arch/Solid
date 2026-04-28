@@ -583,15 +583,344 @@ function _activateSupabaseAuth() {
   console.log('[SGS|on] Auth → Supabase backend activo');
 }
 
-// Activa SupabaseAuth cuando el bootstrap del HTML termina
-if (typeof window !== 'undefined') {
-  if (window.SGSON_BACKEND_READY) {
-    if (window.SGSON_BACKEND === 'supabase') _activateSupabaseAuth();
-  } else {
-    window.addEventListener('sgson-backend-ready', function(){
-      if (window.SGSON_BACKEND === 'supabase') _activateSupabaseAuth();
-    });
+// ── SupabaseData adapter Phase 2 · Bookmarks/ChatHistory/Submissions/Inbox/RouteExams ──
+// Cuando Supabase está activo, monkey-patcheamos todos los stores para que lean
+// y escriban en la DB. Mantenemos los métodos síncronos para no tocar la UI:
+// usamos un cache en memoria + sync background. Los eventos
+// (bookmarks-changed, chats-changed, etc) siguen disparándose igual.
+function _activateSupabaseData() {
+  const sb = window.supabaseClient;
+  if (!sb) return;
+  const _uid = function(){ return window.Auth && window.Auth.currentUser() ? window.Auth.currentUser().id : null; };
+
+  // ── Bookmarks ────────────────────────────────────────────
+  let bmCache = [];
+  async function _loadBookmarks() {
+    const u = _uid(); if (!u) { bmCache = []; return; }
+    const { data, error } = await sb.from('bookmarks').select('pill_id').eq('user_id', u);
+    if (error) { console.warn('[supa] bookmarks', error.message); return; }
+    bmCache = (data || []).map(r => r.pill_id);
+    window.dispatchEvent(new Event('bookmarks-changed'));
   }
+  Bookmarks.get = function() { return bmCache.slice(); };
+  Bookmarks.has = function(id) { return bmCache.indexOf(id) >= 0; };
+  Bookmarks.toggle = function(id) {
+    const u = _uid(); if (!u || !id) return false;
+    const exists = bmCache.indexOf(id) >= 0;
+    if (exists) {
+      bmCache = bmCache.filter(x => x !== id);
+      sb.from('bookmarks').delete().eq('user_id', u).eq('pill_id', id).then(()=>{});
+    } else {
+      bmCache = [id].concat(bmCache);
+      sb.from('bookmarks').insert({ user_id: u, pill_id: id }).then(()=>{});
+    }
+    window.dispatchEvent(new Event('bookmarks-changed'));
+    return !exists;
+  };
+  Bookmarks.clear = function() {
+    const u = _uid(); if (!u) return;
+    bmCache = [];
+    sb.from('bookmarks').delete().eq('user_id', u).then(()=>{});
+    window.dispatchEvent(new Event('bookmarks-changed'));
+  };
+
+  // ── RouteExams ────────────────────────────────────────────
+  let reCache = {};
+  async function _loadRouteExams() {
+    const u = _uid(); if (!u) { reCache = {}; return; }
+    const { data, error } = await sb.from('route_exams').select('*').eq('user_id', u);
+    if (error) { console.warn('[supa] route_exams', error.message); return; }
+    reCache = {};
+    (data || []).forEach(r => {
+      reCache[r.route_id] = { score: r.score, total: r.total, passed: r.passed, completedAt: new Date(r.completed_at).getTime() };
+    });
+    window.dispatchEvent(new Event('exams-changed'));
+  }
+  RouteExams.get = function(routeId) { return reCache[routeId] || null; };
+  RouteExams.getAll = function() { return Object.assign({}, reCache); };
+  RouteExams.record = function(routeId, score, total, passed) {
+    const u = _uid(); if (!u) return;
+    reCache[routeId] = { score, total, passed, completedAt: Date.now() };
+    sb.from('route_exams').upsert({ user_id: u, route_id: routeId, score, total, passed, completed_at: new Date().toISOString() }).then(()=>{});
+    window.dispatchEvent(new Event('exams-changed'));
+  };
+  RouteExams.reset = function(routeId) {
+    const u = _uid(); if (!u) return;
+    delete reCache[routeId];
+    sb.from('route_exams').delete().eq('user_id', u).eq('route_id', routeId).then(()=>{});
+    window.dispatchEvent(new Event('exams-changed'));
+  };
+
+  // ── ChatHistory ────────────────────────────────────────────
+  let chatsCache = [];
+  let activeIdCache = null;
+  async function _loadChats() {
+    const u = _uid(); if (!u) { chatsCache = []; return; }
+    const { data: convs, error } = await sb.from('conversations').select('*').eq('user_id', u).order('updated_at', { ascending: false });
+    if (error) { console.warn('[supa] conversations', error.message); return; }
+    if (!convs || convs.length === 0) { chatsCache = []; window.dispatchEvent(new Event('chats-changed')); return; }
+    // Carga mensajes de todas las conversaciones en una sola query
+    const ids = convs.map(c => c.id);
+    const { data: msgs } = await sb.from('messages').select('*').in('conversation_id', ids).order('created_at', { ascending: true });
+    const byConv = {};
+    (msgs || []).forEach(m => { (byConv[m.conversation_id] = byConv[m.conversation_id] || []).push({ role: m.role, text: m.content }); });
+    chatsCache = convs.map(c => ({
+      id: c.id, title: c.title,
+      createdAt: new Date(c.created_at).getTime(),
+      updatedAt: new Date(c.updated_at).getTime(),
+      messages: byConv[c.id] || [],
+    }));
+    window.dispatchEvent(new Event('chats-changed'));
+  }
+  ChatHistory.list = function() { return chatsCache.slice(); };
+  ChatHistory.get = function(id) { return chatsCache.find(c => c.id === id) || null; };
+  ChatHistory.activeId = function() { return activeIdCache; };
+  ChatHistory.setActive = function(id) { activeIdCache = id || null; window.dispatchEvent(new Event('chats-changed')); };
+  ChatHistory.create = function(initial) {
+    const u = _uid(); if (!u) return null;
+    const localId = 'tmp_' + Date.now().toString(36); // se reemplaza por el real
+    const chat = { id: localId, title: 'Nueva conversación', createdAt: Date.now(), updatedAt: Date.now(), messages: initial || [] };
+    chatsCache = [chat].concat(chatsCache);
+    activeIdCache = localId;
+    window.dispatchEvent(new Event('chats-changed'));
+    sb.from('conversations').insert({ user_id: u, title: 'Nueva conversación' }).select().single().then(async ({ data, error }) => {
+      if (error) { console.warn('[supa] create conv', error.message); return; }
+      const realId = data.id;
+      // mover mensajes locales si los hay
+      const idx = chatsCache.findIndex(c => c.id === localId);
+      if (idx >= 0) {
+        chatsCache[idx].id = realId;
+        chatsCache[idx].createdAt = new Date(data.created_at).getTime();
+        chatsCache[idx].updatedAt = new Date(data.updated_at).getTime();
+      }
+      if (activeIdCache === localId) activeIdCache = realId;
+      // si tenía mensajes iniciales, insertarlos
+      if (initial && initial.length > 0) {
+        await sb.from('messages').insert(initial.map(m => ({ conversation_id: realId, role: m.role, content: m.text })));
+      }
+      window.dispatchEvent(new Event('chats-changed'));
+    });
+    return chat;
+  };
+  ChatHistory.appendMessage = function(id, msg) {
+    const idx = chatsCache.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    chatsCache[idx].messages = (chatsCache[idx].messages || []).concat([msg]);
+    chatsCache[idx].updatedAt = Date.now();
+    if (chatsCache[idx].title === 'Nueva conversación' && msg.role === 'user') {
+      chatsCache[idx].title = msg.text.slice(0, 50) + (msg.text.length > 50 ? '…' : '');
+      sb.from('conversations').update({ title: chatsCache[idx].title, updated_at: new Date().toISOString() }).eq('id', id).then(()=>{});
+    } else {
+      sb.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', id).then(()=>{});
+    }
+    sb.from('messages').insert({ conversation_id: id, role: msg.role, content: msg.text }).then(()=>{});
+    window.dispatchEvent(new Event('chats-changed'));
+  };
+  ChatHistory.update = function(id, patch) {
+    const idx = chatsCache.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    chatsCache[idx] = Object.assign({}, chatsCache[idx], patch, { updatedAt: Date.now() });
+    const dbPatch = {};
+    if (patch.title) dbPatch.title = patch.title;
+    dbPatch.updated_at = new Date().toISOString();
+    sb.from('conversations').update(dbPatch).eq('id', id).then(()=>{});
+    window.dispatchEvent(new Event('chats-changed'));
+  };
+  ChatHistory.remove = function(id) {
+    chatsCache = chatsCache.filter(c => c.id !== id);
+    if (activeIdCache === id) activeIdCache = null;
+    sb.from('conversations').delete().eq('id', id).then(()=>{});
+    window.dispatchEvent(new Event('chats-changed'));
+  };
+  ChatHistory.getOrCreate = function() {
+    if (activeIdCache && chatsCache.find(c => c.id === activeIdCache)) return chatsCache.find(c => c.id === activeIdCache);
+    if (chatsCache.length > 0) { activeIdCache = chatsCache[0].id; return chatsCache[0]; }
+    return ChatHistory.create();
+  };
+
+  // ── Submissions ────────────────────────────────────────────
+  let subsCache = [];
+  async function _loadSubmissions() {
+    const u = _uid(); if (!u) { subsCache = []; return; }
+    const me = window.Auth.currentUser();
+    const isAdmin = me && me.isAdmin;
+    let q = sb.from('submissions').select('*, profiles!submissions_user_id_fkey(name, email, avatar_color)').order('submitted_at', { ascending: false });
+    if (!isAdmin) q = q.eq('user_id', u);
+    const { data, error } = await q;
+    if (error) { console.warn('[supa] submissions', error.message); return; }
+    subsCache = (data || []).map(r => ({
+      id: r.id, userId: r.user_id,
+      userName: (r.profiles && r.profiles.name) || '—',
+      userEmail: (r.profiles && r.profiles.email) || '—',
+      userAvatarColor: (r.profiles && r.profiles.avatar_color) || 'var(--ink)',
+      pillId: r.pill_id, pillTitle: r.pill_title,
+      fileName: r.file_name, fileSize: r.file_size, durationSec: r.duration_sec,
+      thumbDataUrl: r.thumb_url,
+      filePath: r.file_path,
+      status: r.status, feedback: r.feedback,
+      submittedAt: new Date(r.submitted_at).getTime(),
+      reviewedAt: r.reviewed_at ? new Date(r.reviewed_at).getTime() : null,
+      reviewedBy: r.reviewed_by ? { id: r.reviewed_by } : null,
+    }));
+    window.dispatchEvent(new Event('submissions-changed'));
+  }
+  Submissions.listAll = function() { return subsCache.slice(); };
+  Submissions.listByUser = function(uid) { return subsCache.filter(s => s.userId === uid); };
+  Submissions.listByPill = function(pid) { return subsCache.filter(s => s.pillId === pid); };
+  Submissions.listPending = function() { return subsCache.filter(s => s.status === 'pending'); };
+  Submissions.get = function(id) { return subsCache.find(s => s.id === id) || null; };
+  Submissions.getForUserAndPill = function(uid, pid) { return subsCache.find(s => s.userId === uid && s.pillId === pid) || null; };
+  Submissions.submit = async function({ pillId, pillTitle, file, durationSec, thumbDataUrl, fileName, fileSize }) {
+    const u = _uid(); if (!u) throw new Error('Necesitas iniciar sesión');
+    if (durationSec > 600) throw new Error('Vídeo demasiado largo · máx 10 min');
+    let filePath = null;
+    if (file) {
+      const ext = (fileName || file.name || 'video.mp4').split('.').pop();
+      filePath = u + '/' + pillId + '_' + Date.now() + '.' + ext;
+      const { error: upErr } = await sb.storage.from('submissions').upload(filePath, file, { upsert: true });
+      if (upErr) throw new Error('Error subiendo vídeo: ' + upErr.message);
+    }
+    const existing = subsCache.find(s => s.userId === u && s.pillId === pillId);
+    const payload = {
+      user_id: u, pill_id: pillId, pill_title: pillTitle,
+      file_path: filePath || (existing && existing.filePath) || '',
+      file_name: fileName, file_size: fileSize, duration_sec: durationSec,
+      thumb_url: thumbDataUrl,
+      status: 'pending', feedback: null, reviewed_at: null, reviewed_by: null,
+      submitted_at: new Date().toISOString(),
+    };
+    let res;
+    if (existing) res = await sb.from('submissions').update(payload).eq('id', existing.id).select().single();
+    else res = await sb.from('submissions').insert(payload).select().single();
+    if (res.error) throw new Error(res.error.message);
+    await _loadSubmissions();
+    return res.data;
+  };
+  Submissions.review = async function(id, status, feedback) {
+    const me = window.Auth.currentUser();
+    if (!me || !me.isAdmin) throw new Error('Solo admins pueden revisar');
+    const { error } = await sb.from('submissions').update({
+      status, feedback: feedback || null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: me.id,
+    }).eq('id', id);
+    if (error) throw new Error(error.message);
+    // Notificar al user
+    const sub = subsCache.find(s => s.id === id);
+    if (sub) {
+      await sb.from('inbox_notifications').insert({
+        user_id: sub.userId,
+        text: 'Tu entrega de "' + sub.pillTitle + '" ha sido ' + (status === 'approved' ? 'APROBADA ✓' : 'rechazada — revisa el feedback'),
+        kind: status, icon: status === 'approved' ? '✓' : '✗',
+      });
+    }
+    await _loadSubmissions();
+  };
+  Submissions.remove = async function(id) {
+    const sub = subsCache.find(s => s.id === id);
+    if (sub && sub.filePath) {
+      await sb.storage.from('submissions').remove([sub.filePath]).catch(()=>{});
+    }
+    await sb.from('submissions').delete().eq('id', id);
+    await _loadSubmissions();
+  };
+
+  // ── Inbox ────────────────────────────────────────────
+  let inboxCache = { messages: [], notifications: [], releases: [] };
+  async function _loadInbox() {
+    const u = _uid(); if (!u) { inboxCache = { messages:[], notifications:[], releases:[] }; return; }
+    const [msgsRes, notifsRes, releasesRes] = await Promise.all([
+      sb.from('inbox_messages').select('*').eq('user_id', u).order('created_at', { ascending: false }),
+      sb.from('inbox_notifications').select('*').eq('user_id', u).order('created_at', { ascending: false }),
+      sb.from('releases').select('*').order('created_at', { ascending: false }),
+    ]);
+    inboxCache.messages = (msgsRes.data || []).map(r => ({
+      id: r.id, from: r.from_name, subject: r.subject, body: r.body,
+      createdAt: new Date(r.created_at).getTime(), read: r.read,
+      fromAdmin: r.is_admin, fromAvatarColor: r.avatar_color,
+    }));
+    inboxCache.notifications = (notifsRes.data || []).map(r => ({
+      id: r.id, text: r.text, kind: r.kind, icon: r.icon, link: r.link,
+      createdAt: new Date(r.created_at).getTime(), read: r.read,
+    }));
+    inboxCache.releases = (releasesRes.data || []).map(r => ({
+      id: r.id, version: r.version, title: r.title, body: r.body,
+      kind: r.kind, createdAt: new Date(r.created_at).getTime(), read: false, // releases no tienen read por usuario en este modelo simple
+    }));
+    window.dispatchEvent(new Event('inbox-changed'));
+  }
+  Inbox.getAll = function() { return Object.assign({}, inboxCache); };
+  Inbox.unreadCount = function(category) {
+    if (category) return (inboxCache[category] || []).filter(i => !i.read).length;
+    return inboxCache.messages.filter(i => !i.read).length + inboxCache.notifications.filter(i => !i.read).length;
+  };
+  Inbox.markRead = function(category, id) {
+    if (category === 'releases') return; // release reads no se persisten en este modelo
+    const list = inboxCache[category] || [];
+    const item = list.find(x => x.id === id);
+    if (item) {
+      item.read = true;
+      const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+      sb.from(table).update({ read: true }).eq('id', id).then(()=>{});
+      window.dispatchEvent(new Event('inbox-changed'));
+    }
+  };
+  Inbox.markAllRead = function(category) {
+    const u = _uid(); if (!u) return;
+    if (category === 'releases') return;
+    (inboxCache[category] || []).forEach(it => it.read = true);
+    const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+    sb.from(table).update({ read: true }).eq('user_id', u).then(()=>{});
+    window.dispatchEvent(new Event('inbox-changed'));
+  };
+  Inbox.addNotification = function(text, opts) {
+    const u = _uid(); if (!u) return;
+    opts = opts || {};
+    sb.from('inbox_notifications').insert({
+      user_id: u, text, kind: opts.kind || 'info',
+      icon: opts.icon || '🔔', link: opts.link || null,
+    }).then(() => _loadInbox());
+  };
+  Inbox.addMessage = function(from, subject, body, opts) {
+    const u = _uid(); if (!u) return;
+    opts = opts || {};
+    sb.from('inbox_messages').insert({
+      user_id: u, from_name: from, subject, body,
+      is_admin: !!opts.fromAdmin, avatar_color: opts.fromAvatarColor,
+    }).then(() => _loadInbox());
+  };
+  Inbox.deleteItem = function(category, id) {
+    if (category === 'releases') return;
+    inboxCache[category] = (inboxCache[category] || []).filter(x => x.id !== id);
+    const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+    sb.from(table).delete().eq('id', id).then(()=>{});
+    window.dispatchEvent(new Event('inbox-changed'));
+  };
+  Inbox.seedIfEmpty = function() { _loadInbox(); /* el seed real viene del schema.sql */ };
+
+  // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
+  async function _syncAll() {
+    if (!_uid()) return;
+    await Promise.all([
+      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(),
+    ]);
+  }
+  window.addEventListener('auth-changed', _syncAll);
+  if (_uid()) _syncAll();
+
+  console.log('[SGS|on] Datos → Supabase backend activo');
+}
+
+// Activa adapters cuando el bootstrap del HTML termina
+if (typeof window !== 'undefined') {
+  function _activateAll() {
+    if (window.SGSON_BACKEND === 'supabase') {
+      _activateSupabaseAuth();
+      _activateSupabaseData();
+    }
+  }
+  if (window.SGSON_BACKEND_READY) _activateAll();
+  else window.addEventListener('sgson-backend-ready', _activateAll);
 }
 
 // Helper: namespacing de localStorage por usuario actual
@@ -2338,17 +2667,18 @@ function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
     };
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!file || error) return;
     setSubmitting(true);
     try {
-      const sub = Submissions.submit({
+      const sub = await Promise.resolve(Submissions.submit({
         pillId, pillTitle,
+        file, // necesario para el upload a Supabase Storage cuando está activo
         fileName: file.name,
         fileSize: file.size,
         durationSec: duration,
         thumbDataUrl: thumb,
-      });
+      }));
       setExisting(sub);
       if (window.Toast) window.Toast.success('Entrega enviada · pendiente de revisión por admin', { icon: '↑' });
       if (onClose) setTimeout(onClose, 1200);
