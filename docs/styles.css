@@ -124,19 +124,19 @@ body {
 .shell-tab.active { background: var(--bn-blue); color: #fff; }
 .shell-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-4); letter-spacing: 0.04em; text-transform: uppercase; }
 
-/* Repsol badge in shell */
+/* Marca BeonIt badge — antes era rojo Repsol */
 .repsol-badge {
   display: flex; align-items: center; gap: 6px;
   padding: 5px 12px; border-radius: 6px;
-  border: 1px solid rgba(235,0,41,0.2);
-  background: rgba(235,0,41,0.05);
+  border: 1px solid rgba(0,114,190,0.22);
+  background: rgba(0,114,190,0.06);
   font-family: var(--mono); font-size: 10px; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--repsol-red);
+  color: var(--bn-blue-dark);
 }
 .repsol-badge::before {
   content: ''; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--repsol-red); flex-shrink: 0;
+  background: linear-gradient(135deg, var(--bn-blue), var(--bn-purple)); flex-shrink: 0;
 }
 
 .shell-panel { display: none; }

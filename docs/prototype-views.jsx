@@ -1027,7 +1027,7 @@ function PathView({ openPlayer, setView }) {
           { phase:'Think Pills',      sub:'Think it',   icon:'💊', color:'var(--beonit-blue)', active:true },
           { phase:'Taller',           sub:'Explore it', icon:'👥', color:'var(--beonit-purple)' },
           { phase:'MENTOR-IA',        sub:'Do it',      icon:'✦', color:'var(--beonit-lime)' },
-          { phase:'Certificación',    sub:'Own it',     icon:'🏆', color:'var(--repsol-red)' },
+          { phase:'Certificación',    sub:'Own it',     icon:'🏆', color:'var(--bn-purple)' },
         ].map((p, i, arr) => (
           <React.Fragment key={i}>
             <div className={`sg-phase ${p.active ? 'active' : ''} ${p.done ? 'done' : ''}`} style={{'--sg-color': p.color}}>
@@ -1067,7 +1067,7 @@ function PathView({ openPlayer, setView }) {
 
 // ---------- Profile ----------
 function Profile({ setView }) {
-  const [profile, setProfileState] = useS2(window.UserProfile ? window.UserProfile.get() : { name:'Amaia Ruiz', role:'Publish Agent', team:'Repsol', avatarColor:'var(--repsol-red)', email:'amaia.ruiz@repsol.com' });
+  const [profile, setProfileState] = useS2(window.UserProfile ? window.UserProfile.get() : { name:'Amaia Ruiz', role:'Publish Agent', team:'Repsol', avatarColor:'var(--bn-purple)', email:'amaia.ruiz@repsol.com' });
   const [editing, setEditing] = useS2(false);
   const [showCert, setShowCert] = useS2(false);
   const [draft, setDraft] = useS2(profile);
@@ -1114,7 +1114,7 @@ function Profile({ setView }) {
   const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
   const firstName = profile.name.split(/\s+/)[0] || profile.name;
   const surnames = profile.name.split(/\s+/).slice(1).join(' ');
-  const avatarSwatches = ['var(--repsol-red)', 'var(--bn-blue)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--bn-purple)', 'var(--ink)'];
+  const avatarSwatches = ['var(--bn-blue)', 'var(--bn-purple)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--bn-turquoise)', 'var(--ink)'];
 
   const openEdit = () => { setDraft(profile); setEditing(true); };
   const saveEdit = () => {
@@ -1416,7 +1416,7 @@ function WhatsApp() {
               { label:'Enlaces compartidos', value: stats.totalShared, icon:'📤', color:'var(--accent-glow)' },
               { label:'Aperturas totales',   value: stats.totalOpens,  icon:'👁', color:'var(--bn-green)' },
               { label:'Aperturas / enlace',  value: stats.ctr,         icon:'📊', color:'var(--bn-orange)' },
-              { label:'Tiempo medio visto',  value: fmtSec(stats.avgWatch||0), icon:'⏱', color:'var(--repsol-red)' },
+              { label:'Tiempo medio visto',  value: fmtSec(stats.avgWatch||0), icon:'⏱', color:'var(--bn-purple)' },
             ].map((k,i) => (
               <div key={i} style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, padding:'16px 18px', boxShadow:'var(--shadow-sm)'}}>
                 <div style={{fontSize:20, marginBottom:6}}>{k.icon}</div>
@@ -1737,7 +1737,7 @@ function ColumnChart({ data, color = 'var(--accent-glow)', height = 110 }) {
 }
 
 function StackedBarChart({ series, categories, height = 140 }) {
-  const colors = ['var(--accent-glow)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--repsol-red)', 'var(--bn-purple)'];
+  const colors = ['var(--accent-glow)', 'var(--bn-lime)', 'var(--bn-orange)', 'var(--bn-purple)', 'var(--bn-turquoise)'];
   const totals = categories.map((_, ci) => series.reduce((s, sr) => s + (sr.values[ci] || 0), 0));
   const maxT = Math.max(...totals, 1);
   const barH = height / categories.length - 6;
@@ -1774,7 +1774,7 @@ function DonutChart({ segments, size = 120 }) {
   const r = 42, cx = size/2, cy = size/2, strokeW = 18;
   const circumference = 2 * Math.PI * r;
   let offset = 0;
-  const colors = ['var(--accent-glow)', 'var(--bn-orange)', 'var(--bn-lime)', 'var(--repsol-red)', 'var(--bn-purple)', 'var(--beonit-blue)'];
+  const colors = ['var(--accent-glow)', 'var(--bn-orange)', 'var(--bn-lime)', 'var(--bn-purple)', 'var(--bn-turquoise)', 'var(--beonit-blue)'];
   return (
     <div style={{display:'flex', gap:16, alignItems:'center', flexWrap:'wrap'}}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
@@ -1993,7 +1993,7 @@ function Dashboard() {
     { label: 'Usuarios activos', value: '247', delta: '+12%', up: true, color: 'var(--beonit-blue)' },
     { label: 'Completación media', value: '58%', delta: '+4%', up: true, color: 'var(--beonit-lime)' },
     { label: 'Tiempo / semana', value: '3h 2m', delta: '-8m', up: false, color: 'var(--accent-glow)' },
-    { label: 'Tasa éxito tests', value: '94%', delta: '+2%', up: true, color: 'var(--repsol-red)' },
+    { label: 'Tasa éxito tests', value: '94%', delta: '+2%', up: true, color: 'var(--bn-purple)' },
   ];
 
   const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];

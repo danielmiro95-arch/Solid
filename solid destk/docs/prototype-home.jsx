@@ -255,7 +255,7 @@ function Home({ openDetail, openPlayer, setView }) {
           { n: '3/41',  l: 'Think Pills completadas', icon: 'check', color: 'var(--beonit-lime)' },
           { n: '15%',   l: 'Progreso en tu ruta',     icon: 'trend', color: 'var(--accent-glow)' },
           { n: '22 min',l: 'Tiempo de formación',     icon: 'clock', color: 'var(--beonit-blue)' },
-          { n: '41',    l: 'Think Pills en total',    icon: 'bolt',  color: 'var(--repsol-red)' },
+          { n: '41',    l: 'Think Pills en total',    icon: 'bolt',  color: 'var(--bn-purple)' },
         ].map((s, i) => (
           <div key={i} className="stat-card">
             <div className="stat-icon" style={{background: s.color + '18', color: s.color}}>
