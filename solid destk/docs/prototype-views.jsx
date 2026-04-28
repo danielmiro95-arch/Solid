@@ -34,6 +34,10 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
     if (!item || !window.Bookmarks) return;
     const now = window.Bookmarks.toggle(item.id);
     setBookmarked(now);
+    if (window.Toast) {
+      if (now) window.Toast.success('Módulo guardado en tu biblioteca', { icon: '✓', action: { label: 'Ver', onClick: () => setView && setView('saved') }});
+      else window.Toast.info('Módulo quitado de la biblioteca', { icon: '×' });
+    }
   };
   const askMentor = () => {
     if (setAIMode) setAIMode('hero');
@@ -647,12 +651,16 @@ function Onboarding({ done = () => {} }) {
       areas: Array.from(selectedAreas),
       role,
       notifs,
+      step: 4,
+      totalSteps: 4,
       completedAt: Date.now(),
     }));
+    window.dispatchEvent(new CustomEvent('onboarding-progress', { detail: { step: 4, totalSteps: 4 }}));
     if (window.UserProfile) {
       const roleLabel = ({ publish:'Publish Agent', content:'Content Lead', analytics:'Analytics Lead', it:'IT / Integraciones', direccion:'Dirección' })[role] || 'Publish Agent';
       window.UserProfile.update({ role: roleLabel });
     }
+    if (window.Toast) window.Toast.success('Onboarding completado · Bienvenido a SGS|on', { icon: '🎉' });
     done();
   };
 
@@ -1023,6 +1031,7 @@ function Profile({ setView }) {
     if (window.UserProfile) window.UserProfile.update(draft);
     setProfileState(draft);
     setEditing(false);
+    if (window.Toast) window.Toast.success('Perfil actualizado', { icon: '✓' });
   };
 
   const downloadCert = () => {
@@ -1063,6 +1072,7 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
     a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
     setShowCert(false);
+    if (window.Toast) window.Toast.success('Certificado descargado', { icon: '↓' });
   };
 
   const shareProfile = async () => {
@@ -1070,8 +1080,14 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
     if (navigator.share) {
       try { await navigator.share({ title:`Perfil ${profile.name}`, text }); return; } catch(e) {}
     }
-    try { await navigator.clipboard.writeText(text); alert('Resumen del perfil copiado al portapapeles.'); }
-    catch(e) { alert(text); }
+    try {
+      await navigator.clipboard.writeText(text);
+      if (window.Toast) window.Toast.success('Resumen del perfil copiado al portapapeles', { icon: '📋' });
+      else alert('Resumen del perfil copiado al portapapeles.');
+    } catch(e) {
+      if (window.Toast) window.Toast.error('No se pudo copiar el perfil');
+      else alert(text);
+    }
   };
 
   return (
@@ -1994,6 +2010,15 @@ function Dashboard() {
           </div>
         ))}
       </div>
+
+      {activeWidgets.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">📊</div>
+          <h3>Tu dashboard está vacío</h3>
+          <p>Añade tus primeros widgets para empezar a ver métricas. Puedes elegir entre 12 tipos: drop-off, completación, gauge, funnel, heatmap, WhatsApp analytics y más.</p>
+          <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir mi primer widget</button>
+        </div>
+      )}
 
       {/* Dynamic widget grid */}
       <div className="dash-grid">

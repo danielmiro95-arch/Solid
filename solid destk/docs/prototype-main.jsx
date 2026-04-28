@@ -30,8 +30,9 @@ const WATracker = (function() {
     const links = getLinks();
     links.unshift({ token, pillId, pillTitle, duration: duration || '3 min', url, sharedAt: Date.now(), opens: 0, watchSeconds: 0, sharedBy: 'Amaia Ruiz' });
     save(links);
-    const msg = '📚 *SOLID · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
+    const msg = '📚 *SGS|on · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    if (window.Toast) window.Toast.success('Enlace de WhatsApp generado', { icon: '💬' });
     return token;
   }
 
@@ -287,6 +288,8 @@ function App() {
         />
       )}
 
+      <Toaster/>
+
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
@@ -382,6 +385,90 @@ function OnboardingRing({ onClick }) {
         </span>
       )}
     </button>
+  );
+}
+
+// ── Toast notifications (global) ──────────────────────────────────────────
+const Toast = (function() {
+  let listeners = [];
+  let counter = 0;
+  function show(message, opts) {
+    opts = opts || {};
+    const id = 't_' + (++counter) + '_' + Date.now().toString(36);
+    const toast = {
+      id, message,
+      type: opts.type || 'info',
+      icon: opts.icon,
+      duration: opts.duration != null ? opts.duration : 3500,
+      action: opts.action || null,
+    };
+    listeners.forEach(function(fn){ fn({ type: 'add', toast: toast }); });
+    if (toast.duration > 0) {
+      setTimeout(function(){ listeners.forEach(function(fn){ fn({ type: 'remove', id: id }); }); }, toast.duration);
+    }
+    return id;
+  }
+  return {
+    show: show,
+    dismiss: function(id){ listeners.forEach(function(fn){ fn({ type: 'remove', id: id }); }); },
+    subscribe: function(fn){
+      listeners.push(fn);
+      return function(){ listeners = listeners.filter(function(x){ return x !== fn; }); };
+    },
+    success: function(m, opts){ return show(m, Object.assign({type:'success'}, opts || {})); },
+    error:   function(m, opts){ return show(m, Object.assign({type:'error',   duration: 5000}, opts || {})); },
+    info:    function(m, opts){ return show(m, Object.assign({type:'info'},    opts || {})); },
+  };
+})();
+window.Toast = Toast;
+
+function Toaster() {
+  const [toasts, setToasts] = useSM([]);
+  useEM(function(){
+    return Toast.subscribe(function(ev){
+      if (ev.type === 'add')    setToasts(function(t){ return t.concat([ev.toast]); });
+      if (ev.type === 'remove') setToasts(function(t){ return t.filter(function(x){ return x.id !== ev.id; }); });
+    });
+  }, []);
+  return (
+    <div style={{position:'fixed', bottom:20, right:20, zIndex:700, display:'flex', flexDirection:'column', gap:8, pointerEvents:'none'}}>
+      {toasts.map(function(t){
+        const colors = {
+          success: { bg: 'var(--bn-lime)', fg: 'var(--ink)', border: 'var(--bn-lime-dark)' },
+          error:   { bg: 'var(--repsol-red)', fg: '#fff', border: 'var(--repsol-red-dark)' },
+          info:    { bg: 'var(--ink)', fg: 'var(--paper)', border: 'var(--ink-2)' },
+        }[t.type] || { bg: 'var(--ink)', fg: 'var(--paper)', border: 'var(--ink-2)' };
+        return (
+          <div key={t.id} className="toast-item" style={{
+            display:'flex', alignItems:'center', gap:10,
+            padding:'12px 16px', borderRadius:10,
+            background:colors.bg, color:colors.fg,
+            boxShadow:'0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)',
+            fontFamily:'var(--sans)', fontSize:13, fontWeight:500,
+            minWidth:240, maxWidth:380,
+            pointerEvents:'auto',
+            border:'1px solid ' + colors.border,
+          }}>
+            {t.icon && <span style={{fontSize:16, flexShrink:0}}>{t.icon}</span>}
+            <span style={{flex:1, lineHeight:1.4}}>{t.message}</span>
+            {t.action && (
+              <button onClick={function(){ t.action.onClick(); Toast.dismiss(t.id); }} style={{
+                background:'rgba(255,255,255,0.18)', color:colors.fg, border:'none',
+                padding:'5px 10px', borderRadius:6, cursor:'pointer',
+                fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:700,
+              }}>{t.action.label}</button>
+            )}
+            <button onClick={function(){ Toast.dismiss(t.id); }} title="Cerrar" style={{
+              background:'transparent', color:colors.fg, opacity:0.6, border:'none',
+              cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center',
+              width:18, height:18, flexShrink:0,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
