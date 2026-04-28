@@ -1021,6 +1021,34 @@ function Profile({ setView }) {
     return r > 0.8 ? 'l3' : r > 0.2 ? 'l2' : r > -0.4 ? 'l1' : '';
   });
 
+  // Calcula stats reales desde localStorage en vez de hardcodear
+  const stats = (() => {
+    let completed = [];
+    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    const completedCount = completed.length;
+    const totalPills = (window.PILLS || []).length || 27;
+    const certPct = Math.min(100, Math.round((completedCount / Math.max(1, totalPills)) * 100));
+    const minutesPerPill = 4; // estimación promedio
+    const totalMin = completedCount * minutesPerPill;
+    const fmtTime = totalMin >= 60 ? Math.floor(totalMin/60) + 'h' + (totalMin % 60 > 0 ? ' ' + (totalMin % 60) + 'm' : '') : totalMin + 'min';
+    return { completedCount, certPct, fmtTime };
+  })();
+
+  // Construye feed de actividad desde los pills completados (ordenados por id descendente como proxy de fecha reciente)
+  const recentActivity = (() => {
+    let completed = [];
+    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    const allPills = window.PILLS || [];
+    const labels = ['Hoy', 'Hoy', 'Ayer', 'Hace 2 días', 'Esta semana', 'Esta semana'];
+    return completed.slice(0, 6).reverse().map((id, idx) => {
+      const pill = allPills.find(p => p.id === id);
+      return {
+        t: pill ? pill.title : id,
+        d: (labels[idx] || 'Hace tiempo') + ' · ' + (pill ? pill.duration : '4 min'),
+      };
+    });
+  })();
+
   const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
   const firstName = profile.name.split(/\s+/)[0] || profile.name;
   const surnames = profile.name.split(/\s+/).slice(1).join(' ');
@@ -1100,9 +1128,9 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
           <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', letterSpacing:'0.06em', marginTop:4}}>{profile.email}</div>
         </div>
         <div className="profile-stats">
-          <div className="profile-stat"><div className="n">7</div><div className="l">Módulos completados</div></div>
-          <div className="profile-stat"><div className="n">58%</div><div className="l">Certificación</div></div>
-          <div className="profile-stat"><div className="n">3h</div><div className="l">Tiempo de formación</div></div>
+          <div className="profile-stat"><div className="n">{stats.completedCount}</div><div className="l">Módulos completados</div></div>
+          <div className="profile-stat"><div className="n">{stats.certPct}%</div><div className="l">Certificación</div></div>
+          <div className="profile-stat"><div className="n">{stats.fmtTime}</div><div className="l">Tiempo de formación</div></div>
         </div>
         <div style={{display:'flex', gap:8, flexWrap:'wrap', flexBasis:'100%'}}>
           <button className="btn ghost" onClick={openEdit}><Icon name="user" size={13}/> Editar perfil</button>
@@ -1174,21 +1202,23 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
             <span>12 ene</span><span>20 abr</span>
           </div>
           <h2 style={{marginTop:36}}>Módulos completados</h2>
-          <div style={{display:'flex', flexDirection:'column', gap:2}}>
-            {[
-              {t:'Crear y gestionar campañas en Sprinklr', d:'Hoy · 4 min'},
-              {t:'Flujo de aprobación de contenido', d:'Ayer · 3 min'},
-              {t:'Aproba un post en 30 segundos (tip)', d:'Lun · :30'},
-              {t:'Crear una cola de publicación (tip)', d:'Lun · :45'},
-              {t:'Estrategia digital Repsol 2025 (charla)', d:'Dom · 22 min'},
-            ].map((x,i) => (
-              <div key={i} className="outline-item done" style={{gridTemplateColumns:'32px 1fr auto'}}>
-                <span className="n">✓</span>
-                <div className="t">{x.t}</div>
-                <span className="d">{x.d}</span>
-              </div>
-            ))}
-          </div>
+          {recentActivity.length === 0 ? (
+            <div style={{padding:'28px 16px', textAlign:'center', border:'1px dashed var(--line)', borderRadius:12, background:'var(--paper-2)', color:'var(--ink-3)'}}>
+              <div style={{fontSize:22, marginBottom:6, opacity:0.5}}>📚</div>
+              <div style={{fontSize:13, fontWeight:600, color:'var(--ink-2)'}}>Aún no has completado módulos</div>
+              <div style={{fontSize:12, color:'var(--ink-4)', marginTop:4}}>Empieza por <em style={{fontStyle:'italic'}}>Mi ruta</em> para ver tu primer pill.</div>
+            </div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:2}}>
+              {recentActivity.map((x,i) => (
+                <div key={i} className="outline-item done" style={{gridTemplateColumns:'32px 1fr auto'}}>
+                  <span className="n">✓</span>
+                  <div className="t">{x.t}</div>
+                  <span className="d">{x.d}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         <aside className="profile-section">
           <h2>Insignias</h2>
@@ -1212,11 +1242,11 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
           </div>
           <h2 style={{marginTop:32}}>Certificación en curso</h2>
           <div style={{padding:18, border:'1px solid var(--line)', borderRadius:14, background:'var(--paper-2)'}}>
-            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Publish Agent · Repsol × BeonIt</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>{profile.role} · {profile.team} × BeonIt</div>
             <div style={{height:6, background:'var(--line)', borderRadius:3, overflow:'hidden', marginBottom:8}}>
-              <div style={{width:'58%', height:'100%', background:'var(--accent-glow)', borderRadius:3}}/>
+              <div style={{width: stats.certPct + '%', height:'100%', background:'var(--accent-glow)', borderRadius:3, transition:'width .35s ease'}}/>
             </div>
-            <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>7 de 10 módulos · 58% completado</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>{stats.completedCount} de {(window.PILLS || []).length || 27} módulos · {stats.certPct}% completado</div>
           </div>
         </aside>
       </div>

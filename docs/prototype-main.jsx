@@ -232,6 +232,9 @@ function App() {
     return () => window.removeEventListener('__tweaks', h);
   }, []);
 
+  // Mobile menu drawer
+  const [mobileMenuOpen, setMobileMenuOpen] = useSM(false);
+
   // Command palette (⌘K / Ctrl+K)
   const [paletteOpen, setPaletteOpen] = useSM(false);
   useEM(() => {
@@ -249,10 +252,21 @@ function App() {
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  const rootClass = `proto-root ai-${aiMode}`;
+  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
+
+  // Cierra el menú móvil al cambiar de vista
+  useEM(() => { setMobileMenuOpen(false); }, [view]);
 
   return (
     <div className={rootClass} data-screen-label={`Prototype · ${view}`}>
+      {view !== 'onboarding' && (
+        <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Abrir menú">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            {mobileMenuOpen ? <path d="M18 6L6 18M6 6l12 12"/> : <><path d="M3 6h18M3 12h18M3 18h18"/></>}
+          </svg>
+        </button>
+      )}
+      {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
       {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
