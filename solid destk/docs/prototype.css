@@ -1920,3 +1920,244 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   .sg-arrow { display: none; }
   .toast-item { min-width: auto !important; max-width: calc(100vw - 40px) !important; }
 }
+
+/* ===== MENTOR-IA · MODO NOCTURNO ===================================== */
+/* Variables del tema oscuro aplicadas solo dentro de .coach-root */
+.coach-root {
+  background: linear-gradient(180deg, #0D1117 0%, #131A24 100%) !important;
+  color: #E5EAF1;
+  min-height: calc(100vh - 60px);
+}
+
+.coach-root .coach-side {
+  background: rgba(13, 17, 23, 0.85);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(10px);
+}
+.coach-root .coach-side h3 {
+  color: rgba(229, 234, 241, 0.45);
+}
+.coach-root .coach-hist-item {
+  background: transparent;
+  border: 1px solid transparent;
+}
+.coach-root .coach-hist-item .t { color: rgba(229, 234, 241, 0.92); font-style: normal; font-family: var(--sans); font-weight: 500; font-size: 13px; line-height: 1.3; }
+.coach-root .coach-hist-item .d { color: rgba(229, 234, 241, 0.4); }
+.coach-root .coach-hist-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(2px);
+}
+.coach-root .coach-hist-item.active {
+  background: linear-gradient(135deg, rgba(0, 114, 190, 0.18), rgba(138, 57, 146, 0.14));
+  border-color: rgba(0, 114, 190, 0.35);
+}
+
+.coach-root .coach-main {
+  background: transparent;
+  color: #E5EAF1;
+}
+
+/* Quick action chips on dark */
+.coach-root .ai-chip,
+.coach-root .ai-chip.ctx {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(229, 234, 241, 0.85);
+}
+.coach-root .ai-chip:hover,
+.coach-root .ai-chip.ctx:hover {
+  background: linear-gradient(135deg, var(--bn-blue), var(--bn-purple));
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Action cards (atajos de la parte superior) */
+.coach-root .coach-action {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.coach-root .coach-action:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(0, 114, 190, 0.3);
+}
+.coach-root .coach-action .eyebrow { color: rgba(229, 234, 241, 0.5); }
+.coach-root .coach-action .t { color: #fff; }
+.coach-root .coach-action .d { color: rgba(229, 234, 241, 0.6); }
+
+/* Mensajes del chat — burbujas oscuras con gradiente */
+.coach-root .ai-msg .who { color: rgba(229, 234, 241, 0.45); }
+.coach-root .ai-msg.from-ai .bubble {
+  background: linear-gradient(180deg, rgba(0, 114, 190, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(0, 114, 190, 0.22);
+  color: #E5EAF1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.coach-root .ai-msg.from-me .bubble {
+  background: linear-gradient(135deg, var(--bn-blue), #0080d4);
+  color: #fff;
+  border: none;
+}
+
+/* Markdown text inside dark bubbles */
+.coach-root .md-text strong { color: #fff; }
+.coach-root .md-text code {
+  background: rgba(0, 114, 190, 0.18);
+  border-color: rgba(0, 114, 190, 0.3);
+  color: #6BBEEB;
+}
+.coach-root .md-text blockquote {
+  background: rgba(188, 214, 48, 0.08);
+  color: rgba(229, 234, 241, 0.92);
+  border-left-color: var(--bn-lime);
+}
+.coach-root .md-text h3, .coach-root .md-text h4 { color: #fff; }
+.coach-root .md-text ul li, .coach-root .md-text ol li { color: rgba(229, 234, 241, 0.92); }
+
+/* Think Pill badge sin cambios pero con sombra mayor en oscuro */
+.coach-root .tp-badge { box-shadow: 0 2px 8px rgba(0, 114, 190, 0.4); }
+
+/* Typing indicator dots más brillantes */
+.coach-root .mentor-typing span { background: var(--bn-lime); opacity: 0.7; }
+
+/* Input area */
+.coach-root .coach-input-shell {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+}
+.coach-root .coach-input-shell textarea {
+  background: transparent;
+  color: #E5EAF1;
+  border: none;
+  resize: none;
+  outline: none;
+}
+.coach-root .coach-input-shell textarea::placeholder {
+  color: rgba(229, 234, 241, 0.4);
+  font-style: italic;
+}
+.coach-root .coach-input-shell .coach-input-tools div {
+  color: rgba(229, 234, 241, 0.4) !important;
+}
+.coach-root .coach-input-shell .send {
+  background: linear-gradient(135deg, var(--bn-blue), #0080d4);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 114, 190, 0.35);
+}
+.coach-root .coach-input-shell .send:hover { box-shadow: 0 6px 20px rgba(0, 114, 190, 0.5); transform: translateY(-1px); }
+.coach-root .coach-input-shell .send:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  color: rgba(229, 234, 241, 0.5);
+}
+
+/* Scroll bar dentro del coach */
+.coach-root *::-webkit-scrollbar { width: 8px; height: 8px; }
+.coach-root *::-webkit-scrollbar-track { background: transparent; }
+.coach-root *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 4px; }
+.coach-root *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
+
+/* Empty state oscuro */
+.coach-root .coach-side > div[style*="text-align:center"] div[style*="color:var(--ink-2)"],
+.coach-root .coach-side > div[style*="text-align:center"] div[style*="color:var(--ink-4)"] {
+  color: rgba(229, 234, 241, 0.7) !important;
+}
+
+/* Avatar pulse en modo oscuro: rings más visibles */
+.coach-root .mentor-avatar { background: linear-gradient(135deg, #1A2332 0%, #0D1117 100%); }
+.coach-root .mentor-avatar::before { border-color: var(--bn-lime); }
+.coach-root .mentor-avatar::after { border-color: var(--bn-blue); }
+
+/* ===== Mi Ruta · mejor distribución =================================== */
+.path-hero {
+  background: linear-gradient(135deg, rgba(0,114,190,0.04), rgba(188,214,48,0.04) 50%, transparent);
+  border-radius: 18px;
+  padding: 36px 36px 36px;
+  border: 1px solid rgba(0, 114, 190, 0.1);
+}
+.path-hero p { max-width: 52ch; }
+.path-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 0;
+  margin-top: 18px;
+}
+.path-stat {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: border-color .14s, transform .14s;
+}
+.path-stat:hover { border-color: rgba(0,114,190,0.2); transform: translateY(-1px); }
+.path-stat .n {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.path-stat .l {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-top: 6px;
+}
+
+/* Visual del lado derecho con bordes y sombra para integrarse mejor */
+.path-visual {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 89, 150, 0.18);
+  border: 1px solid rgba(0, 114, 190, 0.2);
+  aspect-ratio: 1/1;
+}
+
+/* Strip de fases más espaciada */
+.sg-strip {
+  margin: 32px 0 28px;
+  padding: 18px;
+  background: linear-gradient(135deg, var(--paper-2), var(--paper));
+  border-radius: 16px;
+  border: 1px solid var(--line);
+}
+
+/* Mapa de la ruta — más respiración */
+.path-map {
+  padding-left: 44px;
+  margin-top: 8px;
+}
+.path-node {
+  padding: 22px 24px 22px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line-2);
+  transition: padding-left .15s ease, background .15s ease;
+  border-radius: 8px;
+}
+.path-node:hover { padding-left: 8px; background: rgba(0, 114, 190, 0.025); }
+.path-node h3 {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+@media (max-width: 900px) {
+  .path-root { padding: 24px 16px; }
+  .path-hero { grid-template-columns: 1fr !important; gap: 24px; padding: 24px; }
+  .path-stats { grid-template-columns: repeat(2, 1fr); }
+  .path-visual { aspect-ratio: 16/10; max-height: 240px; }
+  .path-map { padding-left: 28px; }
+  .path-hero h1 { font-size: clamp(32px, 6vw, 44px) !important; }
+}

@@ -934,6 +934,16 @@ function PathView({ openPlayer, setView }) {
       tag: 'Own it',
     },
   ];
+  // Calcula progreso real para el hero
+  const pathProgress = (() => {
+    let completed = [];
+    try { completed = JSON.parse(localStorage.getItem('solid-completed') || '["p0","p1","p2"]'); } catch(e) {}
+    const totalPills = (window.PILLS || []).length || 41;
+    const pct = Math.round((completed.length / Math.max(1, totalPills)) * 100);
+    const currentBlock = Math.min(8, Math.max(1, Math.ceil((completed.length / Math.max(1, totalPills)) * 8) + 1));
+    return { pct, currentBlock, completedCount: completed.length };
+  })();
+
   return (
     <div className="path-root">
       <section className="path-hero">
@@ -945,7 +955,19 @@ function PathView({ openPlayer, setView }) {
             <div className="path-stat"><div className="n">41</div><div className="l">Think Pills</div></div>
             <div className="path-stat"><div className="n">8</div><div className="l">Bloques</div></div>
             <div className="path-stat"><div className="n">3</div><div className="l">Talleres</div></div>
-            <div className="path-stat"><div className="n">15%</div><div className="l">Tu progreso</div></div>
+            <div className="path-stat" style={{position:'relative'}}>
+              <div className="n" style={{color:'var(--bn-lime)'}}>{pathProgress.pct}%</div>
+              <div className="l">Tu progreso</div>
+            </div>
+          </div>
+          <div style={{marginTop:18, padding:'14px 16px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, backdropFilter:'blur(4px)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8, fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(245,241,232,0.7)'}}>
+              <span>Bloque {pathProgress.currentBlock} / 8 · En curso</span>
+              <span>{pathProgress.completedCount} de 41 pills</span>
+            </div>
+            <div style={{height:6, background:'rgba(255,255,255,0.1)', borderRadius:3, overflow:'hidden'}}>
+              <div style={{width: pathProgress.pct + '%', height:'100%', background:'linear-gradient(90deg, var(--bn-lime), var(--bn-blue))', borderRadius:3, transition:'width .35s ease'}}/>
+            </div>
           </div>
           <div style={{display:'flex', gap:10, marginTop:20, flexWrap:'wrap'}}>
             <button className="btn glow" onClick={goToNext}><Icon name="play" size={14}/> Continuar formación →</button>
@@ -953,8 +975,48 @@ function PathView({ openPlayer, setView }) {
           </div>
         </div>
         <div className="path-visual">
-          <div className="ph teal" style={{position:'absolute',inset:0}}/>
-          <div className="path-visual-badge">En curso · Bloque 2/8</div>
+          {/* Visualización SVG del progreso de la ruta — sustituye al placeholder ph teal */}
+          <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style={{position:'absolute', inset:0, width:'100%', height:'100%'}}>
+            <defs>
+              <linearGradient id="pathBg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#003a72"/>
+                <stop offset="50%" stopColor="#0072BE"/>
+                <stop offset="100%" stopColor="#8A3992"/>
+              </linearGradient>
+              <linearGradient id="pathLine" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#BCD630"/>
+                <stop offset="100%" stopColor="#0072BE" stopOpacity="0.4"/>
+              </linearGradient>
+              <radialGradient id="pathGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#BCD630" stopOpacity="0.4"/>
+                <stop offset="100%" stopColor="#BCD630" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="400" height="400" fill="url(#pathBg)"/>
+            {/* Curva del progreso */}
+            <path d="M 40 360 Q 100 280 140 240 T 240 140 T 360 60" fill="none" stroke="url(#pathLine)" strokeWidth="3" strokeLinecap="round" opacity="0.85"/>
+            {/* Hitos en la curva */}
+            {[
+              {x:40, y:360, done:true},
+              {x:120, y:280, done:true},
+              {x:200, y:200, done:true, current:true},
+              {x:280, y:130, done:false},
+              {x:360, y:60, done:false},
+            ].map((p, i) => (
+              <g key={i}>
+                {p.current && <circle cx={p.x} cy={p.y} r="22" fill="url(#pathGlow)"/>}
+                <circle cx={p.x} cy={p.y} r="7"
+                  fill={p.done ? '#BCD630' : 'rgba(255,255,255,0.2)'}
+                  stroke={p.current ? '#BCD630' : 'rgba(255,255,255,0.3)'}
+                  strokeWidth={p.current ? 2.5 : 1.5}/>
+                {p.current && <circle cx={p.x} cy={p.y} r="4" fill="#fff"/>}
+              </g>
+            ))}
+            {/* Etiquetas decorativas mono */}
+            <text x="40" y="385" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="rgba(255,255,255,0.4)" letterSpacing="1.5">START</text>
+            <text x="332" y="40" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="rgba(188,214,48,0.7)" letterSpacing="1.5">CERT</text>
+          </svg>
+          <div className="path-visual-badge">En curso · Bloque {pathProgress.currentBlock}/8</div>
         </div>
       </section>
 

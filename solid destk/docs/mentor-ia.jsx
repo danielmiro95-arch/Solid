@@ -10,33 +10,81 @@ const MENTOR_USER_PROFILE = {
   currentPill: 4,
 };
 
+// ── Demo mode fallback ──────────────────────────────────────────────────────
+// Cuando la API real falla (sin ANTHROPIC_API_KEY en Vercel, sin red, etc.)
+// el chat sigue siendo usable con respuestas plausibles del currículum Sprinklr.
+const DEMO_RESPONSES = [
+  { match: /(siguiente|próximo|qué.*módulo|qué.*pill)/i,
+    text: 'Tu siguiente paso es la **Pill 4** sobre *qué posibilidades operativas presentan los distintos canales* dentro de Sprinklr. Te llevará unos 4 minutos. Cuando termines, pasamos a las Pills 5-7 sobre activos, módulos y submódulos.' },
+  { match: /(macro|automatiza)/i,
+    text: 'Una **macro** en Sprinklr es una acción predefinida que te permite responder, etiquetar o derivar un mensaje con un solo click. En Repsol se usan sobre todo en *Care* para respuestas frecuentes (información de gasolineras, horarios, atención al cliente). Esto lo cubre la **Pill 32**. ¿Quieres un ejemplo concreto?' },
+  { match: /(aprobaci[oó]n|workflow|flujo)/i,
+    text: 'En Repsol el flujo de aprobación de Social Publish tiene 3 estados:\n\n- **Draft** → el agente crea el contenido\n- **Pending review** → pasa a Content Lead para revisar (24h SLA)\n- **Approved / Rejected** → si aprobado, va al calendario; si rechazado, vuelve con comentarios\n\nLas urgencias tienen un *fast-track* que cubre la **Pill 20**.' },
+  { match: /(SLA|tiempo.*respuesta|care)/i,
+    text: 'En **Sprinklr Care** Repsol maneja:\n\n- **First Response** ≤ 2 h en horario laboral\n- **Resolution** ≤ 24 h para casos estándar\n- Casos críticos escalan a Salesforce vía conector nativo\n\nEsto se cubre en las Pills 33-37 (Bloque Care).' },
+  { match: /(salesforce|escalad|escala)/i,
+    text: 'Para escalar de Sprinklr a Salesforce: pulsa el icono **🔗** en el header del caso, selecciona "Crear caso en Salesforce", y los campos básicos viajan automáticamente. Repsol tiene un mapping personalizado que incluye `pdv_id`, `customer_segment` y `priority`. La **Pill 39** lo enseña paso a paso.' },
+  { match: /(quiz|test|preg[uú]nta|repaso)/i,
+    text: 'Vamos con 3 preguntas de repaso:\n\n1. ¿Cuántos módulos principales tiene Sprinklr en el despliegue Repsol?\n2. ¿Qué rol aprueba contenido antes de publicar en redes corporativas?\n3. ¿En qué módulo gestionarías un activo digital (imagen, vídeo) antes de programar un post?\n\nResponde lo que creas y te corrijo.' },
+  { match: /(progreso|llevo|certifica)/i,
+    text: 'Vas por **15% de la certificación Publish Agent**, en el *Bloque 2: Estructura, roles y gobernanza*. Has completado las Pills 0-3 (registro, fundamentos de Sprinklr, canales, posibilidades operativas). Te quedan 8 bloques con un total de 23h estimadas. Vas a buen ritmo.' },
+  { match: /(dam|biblioteca|activo)/i,
+    text: 'El **DAM (Digital Asset Management)** es donde Repsol guarda y reutiliza recursos visuales: logos, imágenes de campaña, plantillas, vídeos. Antes de programar un post, los seleccionas desde DAM en lugar de subirlos cada vez. Garantiza coherencia visual. Cubierto en **Pill 12**.' },
+  { match: /(calendario|programar|publish)/i,
+    text: 'El **calendario editorial** de Sprinklr es la vista central de todo lo planificado. Filtras por canal, campaña, equipo o territorio. Para programar: arrastras un draft al día/hora, eliges canales (puede ser multicanal con adaptaciones automáticas por red), y queda en *pending review*. Pills 11, 17, 23-24.' },
+];
+
+function findDemoResponse(question, allMessages) {
+  const lower = question.toLowerCase();
+  for (const d of DEMO_RESPONSES) {
+    if (d.match.test(lower)) return d.text;
+  }
+  // Default fallback con contexto
+  return `Buena pregunta. En el contexto de Sprinklr para Repsol, te diría que **revises los módulos del Bloque actual** (estás en el 2: Estructura y gobernanza). Específicamente, las Pills 6-10 cubren los módulos de Sprinklr, los roles (Manager/Agent/Reporting), permisos y comunicación entre módulos.\n\n*Estoy en modo demo (sin API key conectada).* Para respuestas en tiempo real con Claude, configura **\`ANTHROPIC_API_KEY\`** en Vercel → Settings → Environment Variables.\n\n¿Te interesa algo concreto: aprobaciones, macros, SLAs, escalado a Salesforce, o el flujo de publicación multicanal?`;
+}
+
 async function _callAI(messages) {
   const url = window.MENTOR_IA_API_URL || '/api/chat';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: messages.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.text || m.content || '',
-      })),
-      userProfile: MENTOR_USER_PROFILE,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text().catch(() => res.status);
-    console.error('[MENTOR-IA] error:', res.status, err);
-    throw new Error(`${res.status}`);
+  let lastQuestion = '';
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') { lastQuestion = messages[i].text || messages[i].content || ''; break; }
   }
-  const data = await res.json();
-  return data.content || '';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: messages.map(m => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.text || m.content || '',
+        })),
+        userProfile: MENTOR_USER_PROFILE,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.status);
+      console.warn('[MENTOR-IA] API failed (' + res.status + '), falling back to demo mode:', err);
+      window._mentorIaDemoMode = true;
+      // Pequeño delay para que se vea el "thinking"
+      await new Promise(r => setTimeout(r, 700));
+      return findDemoResponse(lastQuestion, messages);
+    }
+    const data = await res.json();
+    window._mentorIaDemoMode = false;
+    return data.content || findDemoResponse(lastQuestion, messages);
+  } catch (e) {
+    console.warn('[MENTOR-IA] network error, demo mode:', e.message);
+    window._mentorIaDemoMode = true;
+    await new Promise(r => setTimeout(r, 700));
+    return findDemoResponse(lastQuestion, messages);
+  }
 }
 
 // ── Avatar pulsante (logo MENTOR-IA) ────────────────────────────────────────
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427l'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427m'} alt="MENTOR-IA"/>
     </div>
   );
 }
@@ -391,7 +439,7 @@ function Coach() {
       const reply = await _callAI(updated.messages);
       window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: reply });
       setChats(window.ChatHistory.list());
-      setApiStatus('live');
+      setApiStatus(window._mentorIaDemoMode ? 'demo' : 'live');
     } catch (err) {
       setApiStatus('error');
       window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: `No he podido conectar (${err.message}). Comprueba tu conexión e inténtalo de nuevo.` });
@@ -475,9 +523,9 @@ function Coach() {
             <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
             <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
-            {apiStatus === 'live' ? 'En línea' : apiStatus === 'error' ? 'Sin conexión' : 'Conectando…'}
+          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='demo' ? '#FCCB00' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='demo' ? '#FCCB00' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
+            {apiStatus === 'live' ? 'En línea' : apiStatus === 'demo' ? 'Modo demo' : apiStatus === 'error' ? 'Sin conexión' : 'Conectando…'}
           </div>
         </div>
         <div className="coach-actions">
