@@ -34,6 +34,7 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
     if (!item || !window.Bookmarks) return;
     const now = window.Bookmarks.toggle(item.id);
     setBookmarked(now);
+    if (now && window.Activity) window.Activity.log('bookmark_add', { pillId: item.id, pillTitle: item.title });
     if (window.Toast) {
       if (now) window.Toast.success('Módulo guardado en tu biblioteca', { icon: '✓', action: { label: 'Ver', onClick: () => setView && setView('saved') }});
       else window.Toast.info('Módulo quitado de la biblioteca', { icon: '×' });
@@ -1217,6 +1218,7 @@ function Profile({ setView }) {
     if (window.UserProfile) window.UserProfile.update(draft);
     setProfileState(draft);
     setEditing(false);
+    if (window.Activity) window.Activity.log('edit_profile', { fields: Object.keys(draft) });
     if (window.Toast) window.Toast.success('Perfil actualizado', { icon: '✓' });
   };
 

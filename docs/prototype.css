@@ -2738,3 +2738,107 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   transition: background .14s, transform .14s;
 }
 .player-fullscreen-btn:hover { background: rgba(13,17,23,0.85); transform: scale(1.05); }
+
+/* ============================================================
+ * SETTINGS · panel de configuración del usuario
+ * ============================================================ */
+.settings-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 80px;
+  align-self: start;
+}
+.settings-side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  text-align: left;
+  transition: background .14s, color .14s;
+}
+.settings-side-item:hover { background: var(--paper-2); color: var(--ink); }
+.settings-side-item.active {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(13,17,23,0.18);
+}
+.settings-content {
+  max-width: 720px;
+}
+.settings-section h2 {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.settings-section-lead {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  margin: 0 0 20px;
+  line-height: 1.5;
+  max-width: 560px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line-2);
+  cursor: default;
+}
+.settings-row[onclick],
+.settings-row[onClick] {
+  cursor: pointer;
+}
+.settings-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.settings-row-desc {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-top: 3px;
+  line-height: 1.45;
+  max-width: 460px;
+}
+
+.settings-toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .18s;
+}
+.settings-toggle i {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  transition: left .18s cubic-bezier(.2,.7,.3,1);
+}
+.settings-toggle.on { background: linear-gradient(135deg, var(--bn-blue), var(--bn-purple)); }
+.settings-toggle.on i { left: 21px; }
+
+@media (max-width: 900px) {
+  .settings-content { max-width: none; }
+}
