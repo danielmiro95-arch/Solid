@@ -1,4 +1,6 @@
-// components.jsx — SOLID 2.0 · Udacity-style cards
+// components.jsx — SOLID 2.0 · cards estilo Netflix con hover preview
+
+const { useState: _useStateC, useRef: _useRefC, useEffect: _useEffectC } = React;
 
 const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
@@ -34,43 +36,97 @@ const RepsolCover = ({ pill, category }) => {
   );
 };
 
-const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => (
-  <div className="card" onClick={onClick}>
-    <div className="card-thumb">
-      {yt
-        ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title}/>
-        : <RepsolCover pill={pill} category={category}/>
-      }
-      <div className="card-hover-overlay">
-        <div className="card-play-btn"><Icon name="play" size={16}/></div>
+const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => {
+  const [hover, setHover] = _useStateC(false);
+  const [preview, setPreview] = _useStateC(false);
+  const timerRef = _useRefC(null);
+
+  const onEnter = () => {
+    setHover(true);
+    if (!yt) return;
+    // Disable autoplay on touch devices y en navegadores con ahorro de datos
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+    timerRef.current = setTimeout(() => setPreview(true), 1200);
+  };
+  const onLeave = () => {
+    setHover(false);
+    setPreview(false);
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
+  _useEffectC(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  return (
+    <div className={`card ${hover ? 'is-hover' : ''} ${preview ? 'is-preview' : ''}`}
+      onClick={onClick}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}>
+      <div className="card-thumb">
+        {yt
+          ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title}/>
+          : <RepsolCover pill={pill} category={category}/>
+        }
+        {/* Hover preview · autoplay mudo del YT cuando hover > 1.2s */}
+        {preview && yt && (
+          <iframe
+            src={`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${yt}&playsinline=1`}
+            allow="autoplay; encrypted-media"
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1, pointerEvents:'none', opacity:0, animation:'cardPreviewFadeIn .35s ease forwards'}}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        )}
+        <div className="card-hover-overlay">
+          <div className="card-play-btn"><Icon name="play" size={16}/></div>
+        </div>
+        {format && <span className="card-format-tag">{format}</span>}
+        {progress > 0 && <div className="card-progress-bar"><i style={{width: progress+'%'}}/></div>}
+        {/* Badge MUTE en esquina superior derecha cuando preview activo */}
+        {preview && (
+          <div style={{position:'absolute', top:8, right:8, zIndex:3, padding:'3px 8px', background:'rgba(13,17,23,0.7)', backdropFilter:'blur(4px)', borderRadius:6, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', display:'inline-flex', alignItems:'center', gap:4}}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
+            MUDO
+          </div>
+        )}
       </div>
-      {format && <span className="card-format-tag">{format}</span>}
-      {progress > 0 && <div className="card-progress-bar"><i style={{width: progress+'%'}}/></div>}
+      <div className="card-body">
+        {category && <span className="card-category">{category}</span>}
+        <div className="card-title">{title}</div>
+        {one && (
+          <div className="card-th1ng">
+            <span className="th1ng-label">TH1NG</span>
+            <span className="th1ng-text">{one}</span>
+          </div>
+        )}
+        <div className="card-instructor">{teacher}</div>
+        {rating && (
+          <div className="card-rating">
+            <span className="card-stars">{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>
+            <span className="card-score">{rating}</span>
+            {enrolled && <span className="card-count">({enrolled >= 1000 ? (enrolled/1000).toFixed(1)+'K' : enrolled})</span>}
+          </div>
+        )}
+        <div className="card-footer">
+          {duration && <span className="card-duration"><Icon name="clock" size={11}/> {duration}</span>}
+          {level && <span className={`card-level level-${level}`}>{LEVEL_LABELS[level]}</span>}
+        </div>
+      </div>
     </div>
+  );
+};
+
+// SkeletonCard · placeholder mientras se cargan datos async
+const SkeletonCard = () => (
+  <div className="card skel-card">
+    <div className="card-thumb skel"/>
     <div className="card-body">
-      {category && <span className="card-category">{category}</span>}
-      <div className="card-title">{title}</div>
-      {one && (
-        <div className="card-th1ng">
-          <span className="th1ng-label">TH1NG</span>
-          <span className="th1ng-text">{one}</span>
-        </div>
-      )}
-      <div className="card-instructor">{teacher}</div>
-      {rating && (
-        <div className="card-rating">
-          <span className="card-stars">{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>
-          <span className="card-score">{rating}</span>
-          {enrolled && <span className="card-count">({enrolled >= 1000 ? (enrolled/1000).toFixed(1)+'K' : enrolled})</span>}
-        </div>
-      )}
-      <div className="card-footer">
-        {duration && <span className="card-duration"><Icon name="clock" size={11}/> {duration}</span>}
-        {level && <span className={`card-level level-${level}`}>{LEVEL_LABELS[level]}</span>}
-      </div>
+      <div className="skel skel-line skel-w-50" style={{height:10, marginBottom:8}}/>
+      <div className="skel skel-line" style={{height:16, marginBottom:6}}/>
+      <div className="skel skel-line skel-w-70" style={{height:12, marginBottom:10}}/>
+      <div className="skel skel-line skel-w-30" style={{height:10}}/>
     </div>
   </div>
 );
+window.SkeletonCard = SkeletonCard;
 
 const Row = ({ title, emTitle, children, extraClass = '' }) => (
   <section className={`row ${extraClass}`}>
