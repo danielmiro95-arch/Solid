@@ -137,6 +137,7 @@ function Sidebar({ view, setView }) {
     { id: 'wa',        label: 'WhatsApp',    icon: 'chat' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
+    { id: 'settings',  label: 'Ajustes',     icon: 'compass' },
   ];
   if (profile.isAdmin) {
     items.push({ id: 'admin', label: 'Admin', icon: 'user', badge: 'ADMIN' });

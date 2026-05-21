@@ -425,6 +425,7 @@ const Invitations = (function() {
     const all = _load();
     all.unshift(inv);
     _save(all);
+    if (window.Activity) window.Activity.log('send_invite', { email: inv.email, role: inv.role });
     return inv;
   }
 
@@ -1017,6 +1018,101 @@ const UserProfile = (function() {
 })();
 window.UserProfile = UserProfile;
 
+// ── Activity log · auditoría de eventos en la plataforma ──────────────────
+// Cada acción significativa (login, complete_pill, submit_video, approve, etc)
+// dispara un evento que se guarda en localStorage. El admin ve un feed.
+// En Supabase mode esto debería ir a una tabla 'events' (próximo commit).
+const Activity = (function() {
+  const KEY = 'sgson-activity-global';
+  const MAX_ENTRIES = 500;
+
+  function _load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function _save(items) { localStorage.setItem(KEY, JSON.stringify(items.slice(0, MAX_ENTRIES))); window.dispatchEvent(new Event('activity-changed')); }
+
+  function log(type, meta) {
+    const u = window.Auth && window.Auth.currentUser();
+    const ev = {
+      id: 'e_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      type, // 'signup' | 'login' | 'logout' | 'complete_pill' | 'submit_video' | 'review_submission' | 'send_invite' | 'accept_invite' | 'bookmark_add' | 'edit_profile' | etc
+      meta: meta || {},
+      userId: u ? u.id : null,
+      userName: u ? u.name : 'anónimo',
+      userEmail: u ? u.email : null,
+      avatarColor: u ? u.avatarColor : 'var(--ink-3)',
+      createdAt: Date.now(),
+    };
+    const items = _load();
+    items.unshift(ev);
+    _save(items);
+    return ev;
+  }
+  function list(filter) {
+    let items = _load();
+    if (filter) {
+      if (filter.type) items = items.filter(i => i.type === filter.type);
+      if (filter.userId) items = items.filter(i => i.userId === filter.userId);
+      if (filter.since) items = items.filter(i => i.createdAt >= filter.since);
+    }
+    return items;
+  }
+  function clear() { _save([]); }
+  return { log, list, clear };
+})();
+window.Activity = Activity;
+
+// Hook · eventos auto-logged desde Auth (login/logout/signup)
+if (typeof window !== 'undefined') {
+  const _origSignup = Auth.signup;
+  const _origLogin = Auth.login;
+  const _origLogout = Auth.logout;
+  Auth.signup = function(data) {
+    const r = _origSignup.call(Auth, data);
+    if (r && r.id) Activity.log('signup', { role: r.role, team: r.team });
+    return r;
+  };
+  Auth.login = function(email, pw) {
+    const r = _origLogin.call(Auth, email, pw);
+    if (r && r.id) Activity.log('login', { method: 'email' });
+    return r;
+  };
+  Auth.logout = function() {
+    const u = Auth.currentUser();
+    if (u) Activity.log('logout', { userId: u.id });
+    return _origLogout.call(Auth);
+  };
+}
+
+// ── Settings · configuración del usuario ──────────────────────────────────
+const Settings = (function() {
+  const KEY_PREFIX = 'sgson-settings';
+  function _key() { return _userScopedKey(KEY_PREFIX); }
+  const DEFAULT = {
+    theme: 'auto',          // 'light' | 'dark' | 'auto'
+    language: 'es',         // 'es' | 'en'
+    dateFormat: 'dd/mm/yyyy',
+    notifyEmail: true,
+    notifyPush: false,
+    notifyWhatsApp: true,
+    notifyInbox: true,
+    weeklySummary: true,
+    digestHour: '09:00',
+    showOnboarding: true,
+  };
+  function get() {
+    try { return Object.assign({}, DEFAULT, JSON.parse(localStorage.getItem(_key()) || '{}')); }
+    catch(e) { return Object.assign({}, DEFAULT); }
+  }
+  function update(patch) {
+    const merged = Object.assign({}, get(), patch);
+    localStorage.setItem(_key(), JSON.stringify(merged));
+    window.dispatchEvent(new CustomEvent('settings-changed', { detail: merged }));
+    return merged;
+  }
+  function reset() { localStorage.removeItem(_key()); window.dispatchEvent(new Event('settings-changed')); }
+  return { get, update, reset, DEFAULT };
+})();
+window.Settings = Settings;
+
 // ── CommandPalette (global search ⌘K) ──────────────────────────────────────
 function CommandPalette({ open, onClose, onNavigate, openDetail }) {
   const [q, setQ] = useSM('');
@@ -1169,6 +1265,393 @@ function BrowseView({ openDetail, setView }) {
 }
 window.BrowseView = BrowseView;
 
+// ── SettingsView · configuración del usuario ─────────────────────────────
+function SettingsView({ setView }) {
+  const [s, setS] = useSM(Settings.get());
+  const [tab, setTab] = useSM('general');
+  const [profile, setProfile] = useSM(window.UserProfile ? window.UserProfile.get() : { name:'—', email:'—' });
+  useEM(() => {
+    const refresh = () => { setS(Settings.get()); setProfile(window.UserProfile.get()); };
+    window.addEventListener('settings-changed', refresh);
+    window.addEventListener('auth-changed', refresh);
+    return () => {
+      window.removeEventListener('settings-changed', refresh);
+      window.removeEventListener('auth-changed', refresh);
+    };
+  }, []);
+
+  const set = (patch) => { Settings.update(patch); };
+  const Toggle = ({ k, label, desc }) => (
+    <div className="settings-row" onClick={() => set({ [k]: !s[k] })}>
+      <div>
+        <div className="settings-row-label">{label}</div>
+        {desc && <div className="settings-row-desc">{desc}</div>}
+      </div>
+      <div className={`settings-toggle ${s[k] ? 'on' : ''}`}>
+        <i/>
+      </div>
+    </div>
+  );
+
+  const exportMyData = () => {
+    const u = window.Auth && window.Auth.currentUser();
+    if (!u) return;
+    const data = {
+      profile: u,
+      settings: s,
+      bookmarks: (window.Bookmarks && window.Bookmarks.get()) || [],
+      chats: (window.ChatHistory && window.ChatHistory.list()) || [],
+      completed: (() => { try { return JSON.parse(localStorage.getItem(window.userKey('solid-completed')) || '[]'); } catch(e) { return []; } })(),
+      onboarding: (() => { try { return JSON.parse(localStorage.getItem(window.userKey('solid-onboarding')) || '{}'); } catch(e) { return {}; } })(),
+      submissions: (window.Submissions && window.Submissions.listByUser(u.id)) || [],
+      inbox: (window.Inbox && window.Inbox.getAll()) || {},
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sgson-mydata-' + u.email.replace(/[@.]/g,'-') + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    if (window.Toast) window.Toast.success('Tus datos · descargados', { icon: '↓' });
+    Activity.log('export_data', {});
+  };
+
+  const deleteMyAccount = () => {
+    const u = window.Auth && window.Auth.currentUser();
+    if (!u) return;
+    if (!confirm('¿Borrar TU cuenta y todos tus datos? Esta acción es irreversible.')) return;
+    if (prompt('Para confirmar, escribe tu email exacto:') !== u.email) {
+      if (window.Toast) window.Toast.error('Email no coincide · cancelado');
+      return;
+    }
+    Activity.log('delete_account', { email: u.email });
+    window.Auth.deleteUser(u.id);
+    if (window.Toast) window.Toast.info('Cuenta eliminada · hasta pronto');
+  };
+
+  const isSupabase = window.SGSON_BACKEND === 'supabase';
+
+  return (
+    <div className="main-inner" style={{padding:'32px 32px 48px'}}>
+      <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Configuración</div>
+      <h1 style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:'clamp(28px,3vw,38px)', letterSpacing:'-0.02em', margin:'4px 0 24px'}}>Ajustes de {profile.name.split(' ')[0]}</h1>
+
+      <div style={{display:'grid', gridTemplateColumns:'220px 1fr', gap:32}}>
+        {/* Sidebar tabs */}
+        <aside className="settings-side">
+          {[
+            { id:'general',  label:'General',         icon:'⚙' },
+            { id:'notif',    label:'Notificaciones',  icon:'🔔' },
+            { id:'security', label:'Seguridad',       icon:'🔒' },
+            { id:'privacy',  label:'Privacidad',      icon:'🛡' },
+            { id:'about',    label:'Acerca de',       icon:'ⓘ' },
+          ].map(t => (
+            <button key={t.id} className={`settings-side-item ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
+              <span style={{fontSize:14, opacity:0.9}}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </aside>
+
+        <div className="settings-content">
+          {tab === 'general' && (
+            <div className="settings-section">
+              <h2>General</h2>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Tema</div>
+                  <div className="settings-row-desc">Define el aspecto visual de toda la plataforma.</div>
+                </div>
+                <div style={{display:'flex', gap:6}}>
+                  {['light','auto','dark'].map(t => (
+                    <button key={t} onClick={() => set({theme:t})}
+                      style={{padding:'6px 12px', borderRadius:7, border:'1px solid ' + (s.theme===t?'var(--ink)':'var(--line)'),
+                        background: s.theme===t ? 'var(--ink)' : 'var(--paper)', color: s.theme===t ? 'var(--paper)' : 'var(--ink)',
+                        cursor:'pointer', fontFamily:'var(--mono)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.06em'}}>
+                      {t === 'auto' ? 'Auto' : t === 'light' ? 'Claro' : 'Oscuro'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Idioma</div>
+                  <div className="settings-row-desc">Idioma de la interfaz y de MENTOR-IA.</div>
+                </div>
+                <select value={s.language} onChange={e => set({language:e.target.value})} style={{padding:'8px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:13, background:'var(--paper)'}}>
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Formato de fecha</div>
+                  <div className="settings-row-desc">Cómo se muestran las fechas en toda la plataforma.</div>
+                </div>
+                <select value={s.dateFormat} onChange={e => set({dateFormat:e.target.value})} style={{padding:'8px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:13, background:'var(--paper)'}}>
+                  <option value="dd/mm/yyyy">31/12/2026</option>
+                  <option value="yyyy-mm-dd">2026-12-31</option>
+                  <option value="dd-mm-yy">31-12-26</option>
+                </select>
+              </div>
+              <Toggle k="showOnboarding" label="Mostrar onboarding ring en la barra superior" desc="Si lo desactivas, el círculo de progreso del onboarding no aparece."/>
+            </div>
+          )}
+
+          {tab === 'notif' && (
+            <div className="settings-section">
+              <h2>Notificaciones</h2>
+              <p className="settings-section-lead">Configura cómo y cuándo te avisamos. Puedes apagar canales individuales.</p>
+              <Toggle k="notifyInbox"    label="Bandeja interna"
+                desc="Notificaciones dentro de la plataforma (insignia + lista en Bandeja)."/>
+              <Toggle k="notifyEmail"    label="Email"
+                desc="Recordatorios semanales, aprobaciones de entregas, invitaciones."/>
+              <Toggle k="notifyWhatsApp" label="WhatsApp"
+                desc="Recordatorios diarios y módulos sugeridos vía WA."/>
+              <Toggle k="notifyPush"     label="Push del navegador"
+                desc="Avisos instantáneos cuando hay actividad nueva (requiere permiso)."/>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Hora del resumen diario</div>
+                  <div className="settings-row-desc">Cuándo recibir el push/email con tu próximo módulo recomendado.</div>
+                </div>
+                <input type="time" value={s.digestHour} onChange={e => set({digestHour:e.target.value})} style={{padding:'8px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--mono)', fontSize:13, background:'var(--paper)'}}/>
+              </div>
+              <Toggle k="weeklySummary" label="Resumen semanal (viernes)" desc="Email con tu progreso y los próximos módulos de la semana."/>
+            </div>
+          )}
+
+          {tab === 'security' && (
+            <div className="settings-section">
+              <h2>Seguridad</h2>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Email</div>
+                  <div className="settings-row-desc">{profile.email}</div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Cambiar password</div>
+                  <div className="settings-row-desc">{isSupabase ? 'Cambia tu contraseña actual.' : 'Disponible solo con Supabase activo. En modo demo no hay password real.'}</div>
+                </div>
+                <button className="btn ghost" disabled={!isSupabase} style={!isSupabase ? {opacity:0.45, cursor:'not-allowed'} : {}}
+                  onClick={() => {
+                    if (!isSupabase) return;
+                    const np = prompt('Nueva password (mínimo 6 caracteres):');
+                    if (!np || np.length < 6) { if (window.Toast) window.Toast.error('Password demasiado corta'); return; }
+                    window.supabaseClient.auth.updateUser({ password: np }).then(({error}) => {
+                      if (error && window.Toast) window.Toast.error('Error: ' + error.message);
+                      else if (window.Toast) window.Toast.success('Password actualizada · vuelve a iniciar sesión');
+                    });
+                  }}>Cambiar →</button>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Cerrar sesión en este dispositivo</div>
+                  <div className="settings-row-desc">Tu sesión local se cerrará.</div>
+                </div>
+                <button className="btn ghost" onClick={() => window.Auth.logout()}>Cerrar sesión</button>
+              </div>
+              {isSupabase && (
+                <div className="settings-row">
+                  <div>
+                    <div className="settings-row-label">Cerrar sesión en todos los dispositivos</div>
+                    <div className="settings-row-desc">Revoca todos los tokens activos. Tendrás que volver a iniciar sesión.</div>
+                  </div>
+                  <button className="btn ghost" onClick={() => {
+                    window.supabaseClient.auth.signOut({ scope: 'global' }).then(() => {
+                      if (window.Toast) window.Toast.info('Sesión cerrada en todos los dispositivos');
+                    });
+                  }}>Cerrar todas →</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'privacy' && (
+            <div className="settings-section">
+              <h2>Privacidad</h2>
+              <p className="settings-section-lead">Tus datos te pertenecen. Puedes exportarlos y eliminar tu cuenta cuando quieras.</p>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Exportar mis datos</div>
+                  <div className="settings-row-desc">Descarga un JSON con tu perfil, bookmarks, conversaciones con MENTOR-IA, progreso, entregas y bandeja. Conforme GDPR.</div>
+                </div>
+                <button className="btn ghost" onClick={exportMyData}>↓ Descargar JSON</button>
+              </div>
+              <div className="settings-row" style={{borderTop:'2px solid rgba(235,0,41,0.15)', paddingTop:18, marginTop:6}}>
+                <div>
+                  <div className="settings-row-label" style={{color:'var(--repsol-red)'}}>Eliminar mi cuenta</div>
+                  <div className="settings-row-desc">Borra de forma permanente tu cuenta y todos los datos asociados (bookmarks, chats, entregas, progreso). No hay vuelta atrás.</div>
+                </div>
+                <button onClick={deleteMyAccount}
+                  style={{padding:'9px 14px', border:'1px solid var(--repsol-red)', borderRadius:8, background:'rgba(235,0,41,0.08)', color:'var(--repsol-red)', fontFamily:'var(--sans)', fontSize:13, fontWeight:600, cursor:'pointer'}}>
+                  Borrar cuenta
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === 'about' && (
+            <div className="settings-section">
+              <h2>Acerca de SGS|on</h2>
+              <p className="settings-section-lead">Plataforma de formación Sprinklr · BeonIt × Repsol</p>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Versión</div>
+                  <div className="settings-row-desc" style={{fontFamily:'var(--mono)'}}>{window.SOLID_VERSION || 'init'}</div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Backend</div>
+                  <div className="settings-row-desc">
+                    {isSupabase ? 'Supabase · conectado · datos en la nube' : 'Demo · localStorage · datos solo en este navegador'}
+                  </div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">MENTOR-IA</div>
+                  <div className="settings-row-desc">Powered by Claude (Anthropic). System prompt entrenado en el currículum Sprinklr × Repsol.</div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Diseñado y desarrollado por</div>
+                  <div className="settings-row-desc">BeonIt · para el equipo de Comunicación de Repsol · 2026</div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-label">Releases recientes</div>
+                  <div className="settings-row-desc">
+                    <button className="link-btn" onClick={() => setView && setView('inbox')}>Ver changelog completo en Bandeja → Novedades</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+window.SettingsView = SettingsView;
+
+// ── ActivityFeed · vista admin con timeline de eventos ────────────────────
+const ACTIVITY_LABELS = {
+  signup:           { icon: '🎉', verb: 'se registró',          color: 'var(--bn-lime-dark)' },
+  login:            { icon: '🔑', verb: 'inició sesión',        color: 'var(--bn-blue)' },
+  logout:           { icon: '🚪', verb: 'cerró sesión',         color: 'var(--ink-4)' },
+  complete_pill:    { icon: '✓',  verb: 'completó la pill',     color: 'var(--bn-lime-dark)' },
+  submit_video:     { icon: '🎬', verb: 'envió entrega de',     color: 'var(--bn-purple)' },
+  review_submission:{ icon: '👀', verb: 'revisó entrega de',    color: 'var(--bn-blue)' },
+  send_invite:      { icon: '✉',  verb: 'invitó a',             color: 'var(--bn-orange)' },
+  accept_invite:    { icon: '🎫', verb: 'aceptó invitación',    color: 'var(--bn-lime-dark)' },
+  bookmark_add:     { icon: '📌', verb: 'guardó',               color: 'var(--ink-3)' },
+  edit_profile:     { icon: '✏',  verb: 'editó su perfil',      color: 'var(--ink-3)' },
+  export_data:      { icon: '↓',  verb: 'exportó sus datos',    color: 'var(--ink-3)' },
+  delete_account:   { icon: '⊘',  verb: 'eliminó su cuenta',    color: 'var(--repsol-red)' },
+  pass_exam:        { icon: '🏆', verb: 'aprobó examen',        color: 'var(--bn-lime-dark)' },
+};
+
+function ActivityFeed() {
+  const [items, setItems] = useSM(Activity.list());
+  const [filterType, setFilterType] = useSM('all');
+  const [filterUser, setFilterUser] = useSM('all');
+
+  useEM(() => {
+    const refresh = () => setItems(Activity.list());
+    window.addEventListener('activity-changed', refresh);
+    return () => window.removeEventListener('activity-changed', refresh);
+  }, []);
+
+  const fmtRel = (ts) => {
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60) return 'ahora';
+    if (d < 3600) return Math.floor(d/60) + ' min';
+    if (d < 86400) return Math.floor(d/3600) + ' h';
+    if (d < 86400*7) return Math.floor(d/86400) + ' d';
+    return new Date(ts).toLocaleDateString('es-ES');
+  };
+
+  const types = Array.from(new Set(items.map(i => i.type)));
+  const usersInLog = Array.from(new Set(items.map(i => i.userId).filter(Boolean))).map(uid => {
+    const ev = items.find(i => i.userId === uid);
+    return { id: uid, name: ev ? ev.userName : uid };
+  });
+
+  const filtered = items.filter(i => {
+    if (filterType !== 'all' && i.type !== filterType) return false;
+    if (filterUser !== 'all' && i.userId !== filterUser) return false;
+    return true;
+  });
+
+  const renderMeta = (ev) => {
+    const l = ACTIVITY_LABELS[ev.type] || { icon: '·', verb: ev.type, color: 'var(--ink-4)' };
+    let extra = '';
+    if (ev.meta) {
+      if (ev.meta.pillTitle) extra = ' "' + ev.meta.pillTitle + '"';
+      else if (ev.meta.email) extra = ' a ' + ev.meta.email;
+      else if (ev.meta.status) extra = ' · ' + ev.meta.status;
+      else if (ev.meta.role) extra = ' (' + ev.meta.role + ')';
+    }
+    return { label: l.verb + extra, icon: l.icon, color: l.color };
+  };
+
+  return (
+    <div className="dash-panel" style={{padding:0, marginTop:24, overflow:'hidden'}}>
+      <div className="dash-panel-head" style={{padding:'16px 22px'}}>
+        <h3>Actividad reciente · auditoría</h3>
+        <span className="panel-sub">Últimos {items.length} eventos de la plataforma · {filtered.length} mostrados con filtros</span>
+      </div>
+      <div style={{padding:'12px 22px', borderBottom:'1px solid var(--line-2)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
+        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{padding:'6px 10px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--mono)', fontSize:11, background:'var(--paper)', textTransform:'uppercase', letterSpacing:'0.05em'}}>
+          <option value="all">TODOS LOS TIPOS</option>
+          {types.map(t => <option key={t} value={t}>{(ACTIVITY_LABELS[t] && ACTIVITY_LABELS[t].verb) || t}</option>)}
+        </select>
+        <select value={filterUser} onChange={e => setFilterUser(e.target.value)} style={{padding:'6px 10px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--mono)', fontSize:11, background:'var(--paper)', textTransform:'uppercase', letterSpacing:'0.05em'}}>
+          <option value="all">TODOS LOS USUARIOS</option>
+          {usersInLog.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+        <span style={{marginLeft:'auto', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
+          {(filterType !== 'all' || filterUser !== 'all') && (
+            <button onClick={() => { setFilterType('all'); setFilterUser('all'); }} style={{padding:'4px 10px', border:'1px solid var(--line)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>× Limpiar</button>
+          )}
+        </span>
+      </div>
+      {filtered.length === 0 ? (
+        <div style={{padding:'32px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>Sin eventos que coincidan.</div>
+      ) : (
+        <div style={{maxHeight: 460, overflowY:'auto'}}>
+          {filtered.slice(0, 100).map(ev => {
+            const meta = renderMeta(ev);
+            return (
+              <div key={ev.id} style={{display:'flex', gap:12, padding:'12px 22px', borderBottom:'1px solid var(--line-2)', alignItems:'center'}}>
+                <div style={{width:30, height:30, borderRadius:'50%', background:ev.avatarColor || 'var(--ink-3)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
+                  {(ev.userName || '?').split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
+                </div>
+                <span style={{fontSize:18, flexShrink:0}}>{meta.icon}</span>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13, color:'var(--ink-2)'}}>
+                    <strong>{ev.userName}</strong> <span style={{color: meta.color, fontWeight:600}}>{meta.label}</span>
+                  </div>
+                  {ev.userEmail && <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{ev.userEmail}</div>}
+                </div>
+                <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', flexShrink:0}}>{fmtRel(ev.createdAt)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+window.ActivityFeed = ActivityFeed;
+
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, setView] = useSM(saved.view || 'home');
@@ -1284,6 +1767,7 @@ function App() {
         {view === 'saved' && <SavedView openDetail={openDetail} setView={setView}/>}
         {view === 'admin' && (Auth.isAdmin() ? <AdminPanel setView={setView}/> : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
         {view === 'inbox' && <InboxView openDetail={openDetail} setView={setView}/>}
+        {view === 'settings' && <SettingsView setView={setView}/>}
         {view === 'browse' && <BrowseView openDetail={openDetail} setView={setView}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
@@ -1979,7 +2463,7 @@ function LoginScreen() {
         const u = await Promise.resolve(Auth.signup({ email, password, name, role, team }));
         if (invitation && window.Invitations) {
           window.Invitations.markAccepted(invitation.token);
-          // limpia el query param para no procesarlo otra vez en reloads
+          if (window.Activity) window.Activity.log('accept_invite', { token: invitation.token, role: invitation.role });
           if (window.history && window.history.replaceState) {
             window.history.replaceState({}, '', window.location.pathname);
           }
@@ -2453,6 +2937,9 @@ function AdminPanel({ setView }) {
 
       {/* Cola de revisión de entregas prácticas */}
       <AdminSubmissionsQueue/>
+
+      {/* Activity feed · auditoría en tiempo real */}
+      <ActivityFeed/>
     </div>
   );
 }
@@ -2565,6 +3052,7 @@ function AdminSubmissionsQueue() {
   const review = (status) => {
     if (!reviewing) return;
     Submissions.review(reviewing.id, status, feedback || null);
+    if (window.Activity) window.Activity.log('review_submission', { pillTitle: reviewing.pillTitle, status, targetUser: reviewing.userName, email: reviewing.userEmail });
     if (window.Toast) window.Toast.success('Entrega ' + (status === 'approved' ? 'aprobada' : 'rechazada'));
     setReviewing(null);
     setFeedback('');
@@ -2851,6 +3339,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
     setSubmitted(true);
     RouteExams.record(routeId, score, total, passed);
     if (passed) {
+      if (window.Activity) window.Activity.log('pass_exam', { routeId, routeLabel, score, total });
       if (window.Toast) window.Toast.success('¡Aprobado! Generando certificado…', { icon: '🎉' });
       if (window.Inbox) {
         window.Inbox.addNotification('Has superado el examen final de la ruta "' + (routeLabel || routeId) + '"', { kind:'achievement', icon:'🏆' });
@@ -3016,13 +3505,14 @@ function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
     try {
       const sub = await Promise.resolve(Submissions.submit({
         pillId, pillTitle,
-        file, // necesario para el upload a Supabase Storage cuando está activo
+        file,
         fileName: file.name,
         fileSize: file.size,
         durationSec: duration,
         thumbDataUrl: thumb,
       }));
       setExisting(sub);
+      if (window.Activity) window.Activity.log('submit_video', { pillId, pillTitle, durationSec: duration, fileSize: file.size });
       if (window.Toast) window.Toast.success('Entrega enviada · pendiente de revisión por admin', { icon: '↑' });
       if (onClose) setTimeout(onClose, 1200);
     } catch (err) {
