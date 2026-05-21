@@ -2644,3 +2644,97 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   max-width: 640px;
   line-height: 1.5;
 }
+
+/* ============================================================
+ * CARD PREVIEW · autoplay YT mudo al hover sostenido (Netflix-style)
+ * ============================================================ */
+@keyframes cardPreviewFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.card.is-preview { z-index: 10; }
+.card.is-preview .card-thumb { box-shadow: 0 0 0 2px var(--bn-blue), 0 12px 32px rgba(0,114,190,0.4); }
+.card.is-preview .card-hover-overlay { opacity: 0; }
+
+/* En las rows horizontales, la card en preview crece más y se eleva */
+.cine-row-scroll .card.is-preview {
+  transform: translateY(-8px) scale(1.08) !important;
+  transition-delay: 0s !important;
+  z-index: 20;
+}
+
+/* ============================================================
+ * STAGGER · cards aparecen en cascada al cargar la row
+ * ============================================================ */
+@keyframes cardStaggerIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cine-row-scroll .card,
+.cine-row-scroll .cine-card-trending,
+.cine-row-scroll .cine-path-card {
+  animation: cardStaggerIn .42s cubic-bezier(.2,.7,.3,1) backwards;
+}
+.cine-row-scroll > *:nth-child(1) { animation-delay: 0ms; }
+.cine-row-scroll > *:nth-child(2) { animation-delay: 50ms; }
+.cine-row-scroll > *:nth-child(3) { animation-delay: 100ms; }
+.cine-row-scroll > *:nth-child(4) { animation-delay: 150ms; }
+.cine-row-scroll > *:nth-child(5) { animation-delay: 200ms; }
+.cine-row-scroll > *:nth-child(6) { animation-delay: 250ms; }
+.cine-row-scroll > *:nth-child(7) { animation-delay: 300ms; }
+.cine-row-scroll > *:nth-child(8) { animation-delay: 350ms; }
+.cine-row-scroll > *:nth-child(n+9) { animation-delay: 400ms; }
+
+/* Catalog grid también con stagger */
+.catalog-grid > .card {
+  animation: cardStaggerIn .4s cubic-bezier(.2,.7,.3,1) backwards;
+}
+.catalog-grid > .card:nth-child(1) { animation-delay: 0ms; }
+.catalog-grid > .card:nth-child(2) { animation-delay: 40ms; }
+.catalog-grid > .card:nth-child(3) { animation-delay: 80ms; }
+.catalog-grid > .card:nth-child(4) { animation-delay: 120ms; }
+.catalog-grid > .card:nth-child(5) { animation-delay: 160ms; }
+.catalog-grid > .card:nth-child(6) { animation-delay: 200ms; }
+.catalog-grid > .card:nth-child(n+7) { animation-delay: 240ms; }
+
+/* ============================================================
+ * SKELETON CARDS · mientras se cargan datos async
+ * ============================================================ */
+.skel-card {
+  pointer-events: none;
+  user-select: none;
+}
+.skel-card .card-thumb {
+  aspect-ratio: 16/9;
+  position: relative;
+}
+.skel-card .card-body { padding: 12px 14px; }
+.skel-line {
+  width: 100%;
+  border-radius: 4px;
+}
+.skel-w-30 { width: 30%; }
+.skel-w-50 { width: 50%; }
+.skel-w-70 { width: 70%; }
+/* hereda animación skelShimmer ya definida en utilities */
+
+/* ============================================================
+ * PLAYER · botón fullscreen + barra de chapters acoplable
+ * ============================================================ */
+.player-fullscreen-btn {
+  position: absolute;
+  top: 18px; right: 18px;
+  z-index: 5;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(13,17,23,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: background .14s, transform .14s;
+}
+.player-fullscreen-btn:hover { background: rgba(13,17,23,0.85); transform: scale(1.05); }

@@ -229,9 +229,26 @@ function Player({ back, item }) {
   };
   const currentChapter = chapters.find(c => currentSec >= c.start && currentSec < c.end) || chapters[0];
 
+  // Fullscreen toggle nativo del navegador
+  const playerStageRef = React.useRef(null);
+  const toggleFullscreen = () => {
+    const el = playerStageRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen && document.exitFullscreen();
+    } else {
+      (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+    }
+  };
+
   return (
     <div className="player-root">
-      <div className="player-stage">
+      <div className="player-stage" ref={playerStageRef}>
+        <button onClick={toggleFullscreen} className="player-fullscreen-btn" title="Pantalla completa" aria-label="Pantalla completa">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/>
+          </svg>
+        </button>
         {hasVideo ? (
           <>
             <iframe
