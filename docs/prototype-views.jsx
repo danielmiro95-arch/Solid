@@ -62,47 +62,55 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
     ],
   };
   const chapters = chapsByFormat[it.format] || chapsByFormat['módulo'];
+  const heroBg = it.yt
+    ? `url(https://img.youtube.com/vi/${it.yt}/maxresdefault.jpg)`
+    : 'linear-gradient(135deg, #003a72 0%, #0072BE 35%, #8A3992 100%)';
   return (
     <>
-      <section className="detail-hero">
-        <div style={{position:'relative', padding:'14px 56px 8px', borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
-          <button onClick={back} style={{display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'rgba(245,241,232,0.6)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer', padding:'4px 0'}}>
-            <Icon name="back" size={11}/> Volver al catálogo
+      <section className="cine-detail-hero" style={{ backgroundImage: heroBg }}>
+        <div className="cine-detail-overlay"/>
+        <div className="cine-detail-back">
+          <button onClick={back} className="cine-back-btn">
+            <Icon name="back" size={12}/> Volver al catálogo
           </button>
         </div>
-        <div className="detail-hero-inner">
-          <div className="detail-poster">
-            {it.yt
-              ? <img src={`https://img.youtube.com/vi/${it.yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={it.title}/>
-              : <RepsolDetailCover pill={it.pill} category={it.category} title={it.title}/>
-            }
+        <div className="cine-detail-content">
+          <div className="cine-detail-eyebrow">
+            <span className="cine-dot"/>{it.format ? it.format.toUpperCase() : 'MÓDULO'} · {it.category} {it.pill != null && <>· P{it.pill}</>}
           </div>
-          <div className="detail-head">
-            <span className="eyebrow eye">{it.format} · {it.category}</span>
-            <h1>{it.title}</h1>
-            <p className="lead">Módulo diseñado para el equipo Publish Agent de Repsol. Aprende con flujos y ejemplos reales de las operaciones de comunicación de Repsol en Sprinklr.</p>
-            <div className="detail-meta-row">
-              <span>{chapters.length} LECCIONES</span><span className="sep">·</span>
-              <span>{it.duration}</span><span className="sep">·</span>
-              <span style={{textTransform:'uppercase'}}>{it.teacher}</span><span className="sep">·</span>
-              <span>★ {it.rating || '4.8'} · {it.enrolled || '220'} COMPLETADAS</span>
-            </div>
-            <div className="detail-cta-row">
-              <button className="btn glow" onClick={() => openPlayer(it)}>
-                <Icon name="play" size={14}/>
-                {it.yt ? 'Ver vídeo' : 'Empezar'} · {it.duration}
-              </button>
-              <button className="btn ghost" onClick={toggleBookmark} style={bookmarked ? {background:'var(--accent-glow)', borderColor:'var(--accent-glow)', color:'#fff'} : {}}>
-                <Icon name="bookmark" size={14}/> {bookmarked ? 'Guardado ✓' : 'Guardar'}
-              </button>
-              <button className="btn ghost" onClick={() => window.WATracker && window.WATracker.shareLink(it.id, it.title, it.duration)} style={{background:'#25D366', borderColor:'#25D366', color:'#fff'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}>
-                  <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
-                </svg>
-                Compartir por WhatsApp
-              </button>
-              <button className="btn ghost" onClick={askMentor}><Icon name="sparkle" size={14}/> Preguntar a MENTOR-IA</button>
-            </div>
+          <h1 className="cine-detail-title">{it.title}</h1>
+          {it.one && (
+            <p className="cine-detail-th1ng">
+              <span className="cine-th1ng-label">TH1NG</span> {it.one}
+            </p>
+          )}
+          <div className="cine-detail-meta">
+            <span>{chapters.length} lecciones</span>
+            <span className="dot">·</span>
+            <span>{it.duration}</span>
+            <span className="dot">·</span>
+            <span>{it.teacher}</span>
+            <span className="dot">·</span>
+            <span className="cine-rating">★ {it.rating || '4.8'} <span style={{opacity:0.6}}>({it.enrolled || '220'} alumnos)</span></span>
+          </div>
+          <p className="cine-detail-lead">Módulo diseñado para el equipo {it.role || 'Publish Agent'} de Repsol. Aprende con flujos y ejemplos reales de las operaciones de comunicación de Repsol en Sprinklr.</p>
+          <div className="cine-detail-ctas">
+            <button className="btn glow cine-cta-primary" onClick={() => openPlayer(it)}>
+              <Icon name="play" size={16}/>
+              {it.yt ? 'Ver vídeo' : 'Empezar módulo'} · {it.duration}
+            </button>
+            <button className="btn ghost cine-cta-info" onClick={toggleBookmark} style={bookmarked ? {background:'var(--bn-lime)', color:'var(--ink)', border:'none'} : {}}>
+              <Icon name="bookmark" size={14}/> {bookmarked ? 'Guardado ✓' : 'Guardar'}
+            </button>
+            <button className="btn ghost cine-cta-info" onClick={() => window.WATracker && window.WATracker.shareLink(it.id, it.title, it.duration)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}>
+                <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
+              </svg>
+              Compartir WA
+            </button>
+            <button className="btn ghost cine-cta-info" onClick={askMentor}>
+              <Icon name="sparkle" size={14}/> MENTOR-IA
+            </button>
           </div>
         </div>
       </section>

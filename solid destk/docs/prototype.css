@@ -2478,3 +2478,169 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   .cine-arrow { display: none; }
   .cine-row-scroll .card:hover { transform: none; box-shadow: var(--shadow-md); }
 }
+
+/* ============================================================
+ * DETAIL VIEW CINEMATOGRÁFICO · matching Home hero language
+ * ============================================================ */
+.cine-detail-hero {
+  position: relative;
+  min-height: 540px;
+  height: 70vh;
+  max-height: 720px;
+  margin: -28px -32px 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: #0D1117;
+}
+.cine-detail-overlay {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(13,17,23,0.94) 0%, rgba(13,17,23,0.72) 40%, rgba(13,17,23,0.35) 75%, rgba(13,17,23,0.2) 100%),
+    linear-gradient(180deg, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0) 25%, rgba(13,17,23,0) 55%, rgba(13,17,23,0.95) 100%);
+  pointer-events: none;
+}
+.cine-detail-back {
+  position: absolute;
+  top: 24px; left: 56px;
+  z-index: 3;
+}
+.cine-back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 999px;
+  transition: background .14s, border-color .14s;
+}
+.cine-back-btn:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.32); }
+.cine-detail-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 56px 56px;
+  max-width: 760px;
+  color: #fff;
+}
+.cine-detail-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15);
+  margin-bottom: 18px;
+}
+.cine-detail-title {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(38px, 5.5vw, 60px);
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  margin: 0 0 16px;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.cine-detail-th1ng {
+  margin: 0 0 16px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.95);
+  font-style: italic;
+  font-family: var(--serif);
+}
+.cine-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+}
+.cine-detail-meta .dot { color: rgba(255,255,255,0.35); }
+.cine-rating { color: var(--bn-lime); text-transform: none; letter-spacing: 0; }
+.cine-detail-lead {
+  margin: 0 0 24px;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.78);
+  max-width: 580px;
+}
+.cine-detail-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Cuerpo del detail debajo del hero · padding extra para el wrap negativo */
+.cine-detail-hero + .detail-body { padding-top: 48px; }
+
+/* Mobile · detail hero más bajo y padding reducido */
+@media (max-width: 900px) {
+  .cine-detail-hero {
+    margin: -20px -16px 0;
+    min-height: 440px;
+    height: 60vh;
+  }
+  .cine-detail-back { top: 14px; left: 16px; }
+  .cine-detail-content { padding: 0 20px 32px; }
+}
+
+/* ============================================================
+ * VIEW TRANSITION · fade suave al cambiar de vista
+ * ============================================================ */
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Aplica al inner principal cada vez que la prop view cambia */
+.proto-root .main > * {
+  animation: viewFadeIn .32s cubic-bezier(.2,.7,.3,1);
+}
+
+/* ============================================================
+ * BROWSE VIEW · catálogo masonry
+ * ============================================================ */
+.browse-root .main-inner { padding-top: 28px; }
+.browse-hero {
+  background: linear-gradient(135deg, rgba(0,114,190,0.08), rgba(188,214,48,0.08));
+  padding: 36px 36px 28px;
+  border-radius: 18px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(0,114,190,0.12);
+}
+.browse-hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bn-blue);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.browse-hero h1 {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.025em;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.browse-hero p {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}

@@ -1103,6 +1103,72 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
   );
 }
 
+// ── BrowseView · catálogo completo con búsqueda + filtros ──────────────────
+function BrowseView({ openDetail, setView }) {
+  const [search, setSearch] = useSM('');
+  const [cat, setCat] = useSM('Todo');
+  const [format, setFormat] = useSM('Todos');
+
+  const allPills = (window.PILLS || []).concat(window.SERIES || []).concat(window.PODCASTS || []).concat(window.REELS || []);
+  const cats = ['Todo'].concat(Array.from(new Set(allPills.map(p => p.category).filter(Boolean))));
+  const formats = ['Todos','módulo','serie','podcast','reel','path'];
+
+  const q = search.trim().toLowerCase();
+  const filtered = allPills.filter(p => {
+    if (cat !== 'Todo' && p.category !== cat) return false;
+    if (format !== 'Todos' && p.format !== format) return false;
+    if (q && !(p.title || '').toLowerCase().includes(q) && !(p.teacher || '').toLowerCase().includes(q) && !(p.one || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  return (
+    <div className="browse-root main-inner">
+      <section className="browse-hero">
+        <div className="browse-hero-eyebrow">Catálogo completo · {allPills.length} módulos</div>
+        <h1>Explora el currículum<br/>Sprinklr <em style={{fontStyle:'italic', color:'var(--bn-blue)'}}>en Repsol</em></h1>
+        <p>41 Think Pills + series + podcasts + microaprendizaje. Filtra por categoría, formato o busca por título / profesor / TH1NG.</p>
+        <div style={{marginTop:18, display:'flex', gap:10, flexWrap:'wrap', alignItems:'center'}}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Buscar módulo, profesor, concepto…"
+            style={{flex:'1 1 320px', padding:'12px 16px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--sans)', fontSize:14, outline:'none', background:'var(--paper)'}}/>
+          <select value={format} onChange={e => setFormat(e.target.value)} style={{padding:'12px 14px', border:'1px solid var(--line)', borderRadius:10, fontFamily:'var(--mono)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.06em', background:'var(--paper)', cursor:'pointer'}}>
+            {formats.map(f => <option key={f} value={f}>{f === 'Todos' ? 'TODOS LOS FORMATOS' : 'FORMATO: ' + f}</option>)}
+          </select>
+        </div>
+        <div style={{marginTop:12, display:'flex', gap:6, flexWrap:'wrap'}}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)}
+              style={{padding:'6px 12px', borderRadius:999, border:'1px solid ' + (cat === c ? 'var(--bn-blue)' : 'var(--line)'),
+                background: cat === c ? 'var(--bn-blue)' : 'var(--paper)',
+                color: cat === c ? '#fff' : 'var(--ink-3)',
+                cursor:'pointer', fontFamily:'var(--mono)', fontSize:10.5, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:600}}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </section>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)'}}>
+          {filtered.length} {filtered.length === 1 ? 'resultado' : 'resultados'}
+          {(q || cat !== 'Todo' || format !== 'Todos') && <button onClick={() => { setSearch(''); setCat('Todo'); setFormat('Todos'); }} style={{marginLeft:12, padding:'3px 9px', border:'1px solid var(--line)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>× Limpiar filtros</button>}
+        </div>
+      </div>
+      {filtered.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🔎</div>
+          <h3>Sin resultados</h3>
+          <p>No hay módulos que coincidan con tu búsqueda. Prueba a quitar filtros o usar otras palabras.</p>
+          <button className="btn ghost" onClick={() => { setSearch(''); setCat('Todo'); setFormat('Todos'); }}>Limpiar filtros</button>
+        </div>
+      ) : (
+        <div className="catalog-grid">
+          {filtered.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+window.BrowseView = BrowseView;
+
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, setView] = useSM(saved.view || 'home');
@@ -1218,7 +1284,7 @@ function App() {
         {view === 'saved' && <SavedView openDetail={openDetail} setView={setView}/>}
         {view === 'admin' && (Auth.isAdmin() ? <AdminPanel setView={setView}/> : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
         {view === 'inbox' && <InboxView openDetail={openDetail} setView={setView}/>}
-        {view === 'browse' && <div className="main-inner"><Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/></div>}
+        {view === 'browse' && <BrowseView openDetail={openDetail} setView={setView}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && (
