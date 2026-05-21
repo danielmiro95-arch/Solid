@@ -224,137 +224,157 @@ function Home({ openDetail, openPlayer, setView }) {
   const allContent = [...PILLS, ...SERIES, ...PODCASTS, ...PATHS];
   const filtered = activeCat === 'Todo' ? allContent : allContent.filter(c => c.category === activeCat);
 
-  return (
-    <div className="main-inner">
+  // Hero cinematográfico: rota entre el último pill en progreso o el destacado
+  const heroPill = inProgress[0] || PILLS.find(p => p.yt) || PILLS[0];
+  const heroBg = heroPill && heroPill.yt
+    ? `url(https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg)`
+    : 'linear-gradient(135deg, #003a72 0%, #0072BE 35%, #8A3992 100%)';
 
-      {/* Hero */}
-      <section className="lms-hero">
-        <div className="lms-hero-text">
-          <div className="lms-hero-eyebrow">
-            <span className="repsol-dot"/>Repsol · Formación Sprinklr
+  const profile = window.UserProfile ? window.UserProfile.get() : { name:'', role:'Publish Agent' };
+  const firstName = (profile.name || 'tú').split(' ')[0];
+
+  // Filas personalizadas por rol
+  const myPathPills = PILLS.filter(p => (p.pill || 0) <= 10); // simulado: Bloque 1+2
+  const trendingPills = PILLS.slice().sort((a, b) => (b.enrolled || 0) - (a.enrolled || 0)).slice(0, 10);
+  const shortsAndReels = PILLS.filter(p => (p.duration || '').match(/^[0-9]+\s*min/) && parseInt(p.duration) <= 3).slice(0, 10);
+  const careAndAnalytics = PILLS.filter(p => ['Care','Analytics','Integraciones'].includes(p.category)).slice(0, 10);
+
+  return (
+    <div className="main-inner home-cinema">
+
+      {/* HERO CINEMATOGRÁFICO · estilo Netflix featured */}
+      <section className="cine-hero" style={{
+        backgroundImage: heroBg,
+        backgroundSize:'cover',
+        backgroundPosition:'center',
+      }}>
+        <div className="cine-hero-overlay"/>
+        <div className="cine-hero-content">
+          <div className="cine-hero-eyebrow">
+            <span className="cine-dot"/>
+            {heroPill && heroPill.progress > 0
+              ? `Continúa donde lo dejaste · ${heroPill.progress}% completado`
+              : `Repsol · Formación Sprinklr · Hola ${firstName}`}
           </div>
-          <h1>Domina Sprinklr<br/>como <em>Publish Agent</em>.</h1>
-          <p>Aprende a gestionar campañas, aprobar contenido y publicar en todos los canales de Repsol — a tu ritmo, con soporte de IA.</p>
-          <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
-            <button className="btn glow" onClick={openPlayer}><Icon name="play" size={14}/> Continuar formación</button>
-            <button className="btn ghost hero-ghost" onClick={() => setView('path')}>Ver mi ruta →</button>
+          <h1 className="cine-hero-title">{heroPill ? heroPill.title : 'Domina Sprinklr como experto'}</h1>
+          {heroPill && heroPill.one && (
+            <p className="cine-hero-th1ng"><span className="cine-th1ng-label">TH1NG</span> {heroPill.one}</p>
+          )}
+          <p className="cine-hero-lead">
+            {heroPill && heroPill.category
+              ? `${heroPill.category} · ${heroPill.duration || '4 min'} · ${heroPill.teacher || 'BeonIt × Repsol'}`
+              : 'Plataforma de formación con MENTOR-IA, 41 Think Pills, 3 talleres y certificación oficial.'}
+          </p>
+          <div className="cine-hero-ctas">
+            <button className="btn glow cine-cta-primary" onClick={() => heroPill ? openDetail(heroPill) : openPlayer()}>
+              <Icon name="play" size={16}/> {heroPill && heroPill.progress > 0 ? 'Continuar' : 'Empezar'}
+            </button>
+            <button className="btn ghost cine-cta-info" onClick={() => heroPill && openDetail(heroPill)}>
+              <Icon name="book" size={14}/> Más información
+            </button>
+            <button className="btn ghost cine-cta-info" onClick={() => setView('coach')}>
+              <Icon name="sparkle" size={14}/> Pregúntale a MENTOR-IA
+            </button>
           </div>
-        </div>
-        <div className="lms-hero-cards">
-          {inProgress.map(p => (
-            <div key={p.id} className="hip-card" onClick={openPlayer}>
-              <div className="hip-thumb"><div className={`ph ${p.tone}`}/></div>
-              <div className="hip-body">
-                <span className="hip-cat">{p.category}</span>
-                <div className="hip-title">{p.title}</div>
-                <div className="hip-bar"><i style={{width: p.progress+'%'}}/></div>
-                <div className="hip-meta">{p.progress}% completado · {p.duration}</div>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
-      {/* Stats */}
-      <div className="lms-stats">
+      {/* STATS SLIM · estilo dashboard Sprinklr */}
+      <div className="cine-stats">
         {[
-          { n: '3/41',  l: 'Think Pills completadas', icon: 'check', color: 'var(--beonit-lime)' },
+          { n: '3/41',  l: 'Think Pills completadas', icon: 'check', color: 'var(--bn-lime)' },
           { n: '15%',   l: 'Progreso en tu ruta',     icon: 'trend', color: 'var(--accent-glow)' },
-          { n: '22 min',l: 'Tiempo de formación',     icon: 'clock', color: 'var(--beonit-blue)' },
+          { n: '22 min',l: 'Tiempo de formación',     icon: 'clock', color: 'var(--bn-blue)' },
           { n: '41',    l: 'Think Pills en total',    icon: 'bolt',  color: 'var(--bn-purple)' },
         ].map((s, i) => (
-          <div key={i} className="stat-card">
-            <div className="stat-icon" style={{background: s.color + '18', color: s.color}}>
-              <Icon name={s.icon} size={16}/>
+          <button key={i} className="cine-stat" onClick={() => setView('dashboard')}>
+            <span className="cine-stat-icon" style={{background: s.color + '18', color: s.color}}>
+              <Icon name={s.icon} size={14}/>
+            </span>
+            <div>
+              <div className="cine-stat-n">{s.n}</div>
+              <div className="cine-stat-l">{s.l}</div>
             </div>
-            <div className="stat-n">{s.n}</div>
-            <div className="stat-l">{s.l}</div>
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Continue */}
+      {/* CONTINÚA · si hay progreso */}
       {inProgress.length > 0 && (
-        <Row title="Continúa" emTitle="donde lo dejaste" extraClass="row-continue">
-          {inProgress.map(p => <Card key={p.id} {...p} onClick={openPlayer}/>)}
-        </Row>
+        <CineRow title="Continúa" emTitle={`donde lo dejaste, ${firstName}`} onSeeAll={() => setView('path')}>
+          {inProgress.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
+        </CineRow>
       )}
 
-      {/* Featured path */}
-      <div className="featured-banner" onClick={() => setView('path')}>
-        <div className="fb-content">
-          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>Ruta certificada · 4 semanas</span>
-          <h2>Rol Publish Agent<br/><em>Certificación Repsol</em>.</h2>
-          <p>27 THINK PILLS · 8 BLOQUES · 1H 50MIN · AVALADA POR REPSOL & BEONIT</p>
-          <div style={{display:'flex', gap:12}}>
-            <button className="btn glow" onClick={e => { e.stopPropagation(); setView('path'); }}>
-              <Icon name="book" size={14}/> Ver programa completo
-            </button>
-            <button className="btn ghost" style={{color:'var(--paper)', borderColor:'rgba(255,255,255,0.2)'}}>
-              Certificado al terminar
-            </button>
+      {/* RECOMENDADO PARA TI · rol del usuario */}
+      <CineRow title="Recomendado para ti" emTitle={`· ${profile.role}`} onSeeAll={() => setView('rutas')}>
+        {myPathPills.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
+      </CineRow>
+
+      {/* TRENDING ESTA SEMANA */}
+      <CineRow title="Trending" emTitle="esta semana en Repsol" onSeeAll={() => setView('browse')}>
+        {trendingPills.map((p, i) => (
+          <div key={p.id} className="cine-card-trending">
+            <span className="cine-trending-num">{i + 1}</span>
+            <Card {...p} onClick={() => openDetail(p)}/>
           </div>
-        </div>
-        <div className="fb-visual">
-          <div className="ph teal" style={{position:'absolute', inset:0}}/>
-          <div className="fb-badge">15% completado</div>
-        </div>
-      </div>
+        ))}
+      </CineRow>
 
-      {/* Rutas preview */}
-      <div style={{margin:'40px 0 0'}}>
-        <div className="row-head" style={{marginBottom:16}}>
-          <h2>Rutas de <em>aprendizaje</em></h2>
-          <button className="link-btn" onClick={() => setView('rutas')}>Ver todas →</button>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10}}>
-          {(window.LEARNING_PATHS || [
-            {id:'fundamentals', label:'Fundamentals', color:'#0072BE', bg:'linear-gradient(135deg,#0072BE,#004d8a)', icon:'🎓', pills:8},
-            {id:'publish-agent', label:'Publish Agent', color:'#EB0029', bg:'linear-gradient(135deg,#EB0029,#9b0018)', icon:'📢', pills:12},
-            {id:'care-agent', label:'Care Agent', color:'#036837', bg:'linear-gradient(135deg,#036837,#024024)', icon:'💬', pills:13},
-            {id:'managers', label:'Managers', color:'#8A3992', bg:'linear-gradient(135deg,#8A3992,#5a1f6e)', icon:'👑', pills:9},
-          ]).slice(0,4).map((p, i) => (
-            <div key={p.id||i} onClick={() => setView('rutas')} style={{
-              background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden',
-              cursor:'pointer', transition:'all .15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='var(--shadow-md)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow=''; }}>
-              <div style={{background:p.bg||'var(--paper-3)', padding:'14px 16px', color:'#fff', display:'flex', alignItems:'center', gap:10}}>
-                <span style={{fontSize:22}}>{p.icon||'📚'}</span>
-                <div style={{fontWeight:800, fontSize:14, letterSpacing:'-0.01em'}}>{p.label}</div>
-              </div>
-              <div style={{padding:'10px 16px', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>
-                {p.pills} módulos · Secuencial
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* RUTAS DE APRENDIZAJE · big colored cards */}
+      <CineRow title="Rutas" emTitle="de certificación por rol" onSeeAll={() => setView('rutas')}>
+        {(window.LEARNING_PATHS || [
+          {id:'fundamentals', label:'Fundamentals', color:'#0072BE', bg:'linear-gradient(135deg,#0072BE,#004d8a)', icon:'🎓', pills:8, desc:'Base obligatoria · 6 pills · 22 min'},
+          {id:'publish-agent', label:'Publish Agent', color:'#BD2882', bg:'linear-gradient(135deg,#BD2882,#7a1456)', icon:'📢', pills:12, desc:'Para publicación multicanal · 12 pills'},
+          {id:'care-agent', label:'Care Agent', color:'#036837', bg:'linear-gradient(135deg,#036837,#024024)', icon:'💬', pills:13, desc:'Atención y SLAs · 13 pills'},
+          {id:'managers', label:'Managers', color:'#8A3992', bg:'linear-gradient(135deg,#8A3992,#5a1f6e)', icon:'👑', pills:9, desc:'Gobernanza y aprobación · 9 pills'},
+        ]).slice(0, 6).map((p) => (
+          <div key={p.id} className="cine-path-card" onClick={() => setView('rutas')} style={{background: p.bg || 'var(--paper-3)'}}>
+            <div className="cine-path-icon">{p.icon || '📚'}</div>
+            <div className="cine-path-title">{p.label}</div>
+            <div className="cine-path-desc">{p.desc || `${p.pills} módulos`}</div>
+            <div className="cine-path-cta">Ver ruta →</div>
+          </div>
+        ))}
+      </CineRow>
 
-      {/* Catalog */}
+      {/* MICRO-PILLS · cortas */}
+      {shortsAndReels.length > 0 && (
+        <CineRow title="Micropíldoras" emTitle="bajo 3 minutos" onSeeAll={() => setView('browse')}>
+          {shortsAndReels.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
+        </CineRow>
+      )}
+
+      {/* CARE & ANALYTICS · contenido especializado */}
+      {careAndAnalytics.length > 0 && (
+        <CineRow title="Especializado" emTitle="· Care, Analytics, Integraciones" onSeeAll={() => setView('browse')}>
+          {careAndAnalytics.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
+        </CineRow>
+      )}
+
+      {/* CATÁLOGO COMPLETO con filtro categorías */}
       <div className="catalog-section">
-        <div className="row-head">
+        <div className="row-head" style={{marginBottom:14}}>
           <h2>Todos los <em>módulos</em></h2>
           <button className="link-btn" onClick={() => setView('browse')}>Ver catálogo completo →</button>
         </div>
         <CategoryBar active={activeCat} setActive={setActiveCat}/>
         <div className="catalog-grid">
-          {filtered.map(item => <Card key={item.id} {...item} onClick={() => openDetail(item)}/>)}
+          {filtered.slice(0, 12).map(item => <Card key={item.id} {...item} onClick={() => openDetail(item)}/>)}
         </div>
       </div>
 
-      {/* Pills con vídeo real */}
+      {/* PILLS CON VÍDEO REAL */}
       {PILLS.filter(p => p.yt).length > 0 && (
-        <Row title="Think Pills" emTitle="con vídeo real">
+        <CineRow title="Think Pills" emTitle="con vídeo">
           {PILLS.filter(p => p.yt).map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-        </Row>
+        </CineRow>
       )}
 
-      {/* Quick tips */}
-      <Row title="Tips rápidos" emTitle="menos de 1 minuto" extraClass="row-reels">
+      {/* Quick tips · reels < 1 min */}
+      <CineRow title="Tips rápidos" emTitle="menos de 1 minuto">
         {REELS.map(r => <Card key={r.id} {...r} onClick={openPlayer}/>)}
-      </Row>
+      </CineRow>
 
       {/* AI CTA */}
       <div className="ai-cta-banner">
@@ -385,5 +405,60 @@ function Home({ openDetail, openPlayer, setView }) {
 }
 
 window.Sidebar = Sidebar;
+// ── CineRow · fila horizontal scrolleable estilo Netflix ──────────────────
+function CineRow({ title, emTitle, children, onSeeAll, extraClass }) {
+  const scrollRef = React.useRef(null);
+  const [canL, setCanL] = useState(false);
+  const [canR, setCanR] = useState(true);
+
+  const updateArrows = React.useCallback(() => {
+    const el = scrollRef.current; if (!el) return;
+    setCanL(el.scrollLeft > 8);
+    setCanR(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }, []);
+
+  useEffect(() => {
+    updateArrows();
+    const el = scrollRef.current; if (!el) return;
+    el.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    return () => {
+      el.removeEventListener('scroll', updateArrows);
+      window.removeEventListener('resize', updateArrows);
+    };
+  }, [updateArrows]);
+
+  const scroll = (dir) => {
+    const el = scrollRef.current; if (!el) return;
+    const amt = Math.max(320, el.clientWidth * 0.85);
+    el.scrollBy({ left: dir * amt, behavior: 'smooth' });
+  };
+
+  return (
+    <section className={`cine-row ${extraClass || ''}`}>
+      <div className="row-head">
+        <h2>{title}{emTitle && <> <em>{emTitle}</em></>}</h2>
+        {onSeeAll && <button className="link-btn" onClick={onSeeAll}>Ver todo →</button>}
+      </div>
+      <div className="cine-row-wrap">
+        {canL && (
+          <button className="cine-arrow cine-arrow-l" onClick={() => scroll(-1)} aria-label="Anterior">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        )}
+        <div className="cine-row-scroll" ref={scrollRef}>
+          {children}
+        </div>
+        {canR && (
+          <button className="cine-arrow cine-arrow-r" onClick={() => scroll(1)} aria-label="Siguiente">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+window.CineRow = CineRow;
 window.Home = Home;
 window.PILLS = PILLS; window.SERIES = SERIES; window.REELS = REELS; window.PODCASTS = PODCASTS; window.PATHS = PATHS;
