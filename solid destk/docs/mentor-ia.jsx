@@ -84,7 +84,7 @@ async function _callAI(messages) {
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427af'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427ag'} alt="MENTOR-IA"/>
     </div>
   );
 }
@@ -516,70 +516,122 @@ function Coach() {
           Contexto: formación Sprinklr · Repsol
         </div>
       </aside>
-      <div className="coach-main">
-        <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:8, padding:'14px 20px', background:'linear-gradient(135deg, var(--bn-blue) 0%, #004d8a 60%, #003a72 100%)', borderRadius:14, color:'#fff', boxShadow:'0 8px 24px rgba(0,89,150,0.25)'}}>
-          <MentorAvatar size="lg"/>
-          <div style={{flex:1}}>
-            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1, marginBottom:2}}>MENTOR-IA <span style={{fontFamily:'var(--mono)', fontStyle:'normal', fontSize:9, background:'var(--bn-lime)', color:'var(--ink)', padding:'1px 6px', borderRadius:4, letterSpacing:'0.08em', textTransform:'uppercase', verticalAlign:'middle', marginLeft:4}}>BETA</span></div>
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(255,255,255,0.65)', letterSpacing:'0.1em', textTransform:'uppercase'}}>IA contextualizada · Sprinklr Repsol</div>
+      <div className="coach-main coach-v2">
+        <div className="coach-v2-header">
+          <div className="coach-v2-id">
+            <MentorAvatar size="lg"/>
+            <div>
+              <div className="coach-v2-title">MENTOR-IA <span className="beta-badge">BETA</span></div>
+              <div className="coach-v2-sub">IA contextualizada · Sprinklr × Repsol</div>
+            </div>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:9, color: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='demo' ? '#FCCB00' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background: apiStatus==='live' ? 'var(--bn-lime)' : apiStatus==='demo' ? '#FCCB00' : apiStatus==='error' ? '#ff8a80' : 'rgba(255,255,255,0.4)', display:'inline-block'}}/>
+          <div className={`coach-v2-status status-${apiStatus}`}>
+            <span/>
             {apiStatus === 'live' ? 'En línea' : apiStatus === 'demo' ? 'Modo demo' : apiStatus === 'error' ? 'Sin conexión' : 'Conectando…'}
           </div>
         </div>
-        <div className="coach-actions">
-          <div className="coach-action"><span className="eyebrow">Módulo siguiente · 5 min</span><div className="t">Programar posts y calendario</div><div className="d">Siguiente en tu ruta de certificación Repsol.</div></div>
-          <div className="coach-action"><span className="eyebrow">Serie · 22 min</span><div className="t">Sprinklr Analytics para Repsol</div><div className="d">5 lecciones para interpretar tus campañas.</div></div>
-          <div className="coach-action"><span className="eyebrow">Quiz · 90 seg</span><div className="t">Test de Publish Agent</div><div className="d">Verifica lo aprendido en los módulos 1 y 2.</div></div>
-          <div className="coach-action"><span className="eyebrow">Resumen</span><div className="t">Lo que aprendí esta semana</div><div className="d">Flujo de aprobación completado · 2 módulos terminados.</div></div>
-        </div>
-        <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12}}>
-          {quickActions.map((a, i) => (
-            <button key={i} className="ai-chip ctx" onClick={() => send(a.q)} style={{fontSize:11}}>{a.label}</button>
-          ))}
-        </div>
-        <div ref={scrollRef} style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 0 16px'}}>
-          {msgs.length === 0 && !loading && (
-            <div style={{padding:'24px', textAlign:'center', color:'var(--ink-4)', fontSize:13}}>Esta conversación está vacía. Pregúntame lo que quieras.</div>
-          )}
-          {msgs.map((m, i) => (
-            <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-              <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
-              <div className="bubble">
-                {m.role === 'assistant'
-                  ? <MarkdownText text={m.text}/>
-                  : <span style={{whiteSpace:'pre-wrap'}}>{m.text}</span>}
-              </div>
+
+        {/* Welcome state: solo si el chat solo tiene saludo */}
+        {msgs.length <= 1 && !loading && (
+          <div className="coach-v2-welcome">
+            <h2>¿En qué puedo ayudarte hoy?</h2>
+            <p>Pregúntame cualquier cosa sobre Sprinklr en el contexto Repsol — flujos, módulos, roles, casos reales.</p>
+            <div className="coach-v2-actions-grid">
+              <button className="coach-v2-action" onClick={() => send('¿Cuál es el siguiente módulo que debería hacer?')}>
+                <span className="ico">📚</span>
+                <div>
+                  <div className="t">Siguiente módulo</div>
+                  <div className="d">Tu próximo paso recomendado</div>
+                </div>
+              </button>
+              <button className="coach-v2-action" onClick={() => send('Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.')}>
+                <span className="ico">🎯</span>
+                <div>
+                  <div className="t">Quiz rápido</div>
+                  <div className="d">3 preguntas de repaso</div>
+                </div>
+              </button>
+              <button className="coach-v2-action" onClick={() => send('Explícame cómo funciona el flujo de aprobación en Social Publish.')}>
+                <span className="ico">⚡</span>
+                <div>
+                  <div className="t">Flujo de aprobación</div>
+                  <div className="d">Cómo funciona en Repsol</div>
+                </div>
+              </button>
+              <button className="coach-v2-action" onClick={() => send('¿Qué es una macro en Sprinklr y cómo se usa en Repsol?')}>
+                <span className="ico">🔧</span>
+                <div>
+                  <div className="t">Macros</div>
+                  <div className="d">Qué son y cuándo usarlas</div>
+                </div>
+              </button>
             </div>
+          </div>
+        )}
+
+        {/* Conversación */}
+        <div ref={scrollRef} className="coach-v2-thread">
+          {msgs.map((m, i) => (
+            m.role === 'assistant' ? (
+              <div key={i} className="coach-v2-msg from-ai">
+                <div className="coach-v2-msg-avatar"><MentorAvatar/></div>
+                <div className="coach-v2-msg-body">
+                  <div className="coach-v2-msg-who">MENTOR-IA</div>
+                  <div className="coach-v2-msg-content"><MarkdownText text={m.text}/></div>
+                </div>
+              </div>
+            ) : (
+              <div key={i} className="coach-v2-msg from-me">
+                <div className="coach-v2-msg-body">
+                  <div className="coach-v2-msg-bubble">{m.text}</div>
+                </div>
+              </div>
+            )
           ))}
           {loading && (
-            <div className="ai-msg from-ai">
-              <span className="who">MENTOR-IA</span>
-              <div className="bubble mentor-typing"><span/><span/><span/></div>
+            <div className="coach-v2-msg from-ai">
+              <div className="coach-v2-msg-avatar"><MentorAvatar/></div>
+              <div className="coach-v2-msg-body">
+                <div className="coach-v2-msg-who">MENTOR-IA</div>
+                <div className="coach-v2-typing"><span/><span/><span/></div>
+              </div>
             </div>
           )}
         </div>
-        <div className="coach-input-shell">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
-            placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación… (↵ enviar)"
-            disabled={loading}
-          />
-          <div className="coach-input-tools">
-            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.06em'}}>↵ enviar · Shift+↵ nueva línea</div>
-            <button className="btn sm send" onClick={send} disabled={loading} style={{opacity: loading ? 0.7 : 1, display:'inline-flex', alignItems:'center', gap:6}}>
+
+        {/* Input flotante */}
+        <div className="coach-v2-input-wrap">
+          {msgs.length > 1 && (
+            <div className="coach-v2-quick">
+              {quickActions.slice(0, 5).map((a, i) => (
+                <button key={i} onClick={() => send(a.q)}>{a.label}</button>
+              ))}
+            </div>
+          )}
+          <div className="coach-v2-input">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+              placeholder="Pregúntame lo que quieras sobre Sprinklr o tu formación…"
+              disabled={loading}
+              rows="1"
+            />
+            <button className="coach-v2-send" onClick={send} disabled={loading || !input.trim()} title={loading ? 'Pensando…' : 'Enviar (↵)'} aria-label="Enviar">
               {loading ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:'spin .9s linear infinite'}}>
-                    <path d="M12 2a10 10 0 0 1 10 10" />
-                  </svg>
-                  Pensando…
-                </>
-              ) : 'Preguntar →'}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{animation:'spin .9s linear infinite'}}>
+                  <path d="M12 2a10 10 0 0 1 10 10"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12l14-7-3 7 3 7-14-7zM5 12h11"/>
+                </svg>
+              )}
             </button>
+          </div>
+          <div className="coach-v2-foot">
+            <span>↵ enviar · ⇧↵ nueva línea</span>
+            <span>Powered by Claude · respuestas contextualizadas a tu progreso</span>
           </div>
         </div>
       </div>
