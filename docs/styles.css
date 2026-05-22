@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* SOLID — Repsol × BeonIt */
 :root {
@@ -60,9 +60,33 @@
   --shadow-blue: 0 8px 32px rgba(0,114,190,0.18), 0 2px 8px rgba(0,114,190,0.08);
 
   /* ── Tipografía ──────────────────────────────── */
-  --sans:  "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
-  --serif: "Manrope", "Avenir Next", "Avenir", "Helvetica Neue", Arial, sans-serif;
-  --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --serif:   "Instrument Serif", "Iowan Old Style", "Apple Garamond", "Baskerville", Georgia, serif;
+  --display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Inter font-features: stylistic alternates + tabular nums por defecto */
+body, .main {
+  font-feature-settings: 'cv11' on, 'ss01' on, 'ss03' on, 'calt' on;
+  letter-spacing: -0.005em;
+}
+
+/* Italics en headings y elementos editoriales → Instrument Serif italic
+ * Esto da el aire "Netflix headlines" con elegancia editorial sin perder
+ * legibilidad enterprise. Inter para todo lo demás. */
+h1 em, h2 em, h3 em,
+.cine-hero-title em,
+.cine-detail-title em,
+.lms-hero h1 em,
+.path-hero h1 em,
+.detail-head h1 em,
+.profile-head h1 em,
+.coach-main em,
+.ai-msg .bubble em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
 }
 
 * { box-sizing: border-box; }
