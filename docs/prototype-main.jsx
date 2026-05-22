@@ -1113,6 +1113,66 @@ const Settings = (function() {
 })();
 window.Settings = Settings;
 
+// ── Theme controller · aplica light/dark/auto al html en cuanto cambia ──
+(function _initThemeController(){
+  function applyTheme(theme) {
+    var html = document.documentElement;
+    if (theme === 'auto') {
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      html.setAttribute('data-theme', theme || 'light');
+    }
+  }
+  // Aplica el tema actual al arrancar y cuando cambian los settings
+  function syncTheme() {
+    var s = (typeof Settings !== 'undefined' ? Settings.get() : null);
+    applyTheme((s && s.theme) || 'light');
+  }
+  window.addEventListener('settings-changed', syncTheme);
+  window.addEventListener('auth-changed', syncTheme); // al loguear con otro user, su tema
+  // Reactivo al cambio del sistema cuando theme=auto
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', syncTheme);
+    else if (mq.addListener) mq.addListener(syncTheme);
+  }
+  // Sync inicial diferido a tras carga del DOM (Settings ya está disponible)
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncTheme);
+  else syncTheme();
+})();
+
+// ── Realtime cross-tab · BroadcastChannel para sync entre pestañas ─────────
+// Si tienes 2 pestañas abiertas como mismo usuario (o como admin viendo lo
+// que hace otro usuario en otra), los eventos se reflejan al instante sin
+// necesitar Supabase realtime. Si hay Supabase activo, este puente convive
+// con las subscriptions de DB (no se pisan, solo añaden inmediatez local).
+(function _initRealtimeBridge(){
+  if (typeof BroadcastChannel === 'undefined') return; // navegadores muy viejos
+  var ch = null;
+  try { ch = new BroadcastChannel('sgson-realtime'); }
+  catch(e) { return; }
+  window._sgsonChannel = ch;
+
+  // Lista de eventos del bus interno que se propagan cross-tab
+  var BRIDGED = ['bookmarks-changed','chats-changed','submissions-changed','inbox-changed',
+                 'invitations-changed','activity-changed','exams-changed','auth-users-changed'];
+  var inFlight = false;
+  BRIDGED.forEach(function(evName){
+    window.addEventListener(evName, function(){
+      if (inFlight) return; // evita loops
+      try { ch.postMessage({ type: 'event', name: evName }); } catch(e) {}
+    });
+  });
+  ch.onmessage = function(msg) {
+    if (!msg.data || msg.data.type !== 'event') return;
+    inFlight = true;
+    try { window.dispatchEvent(new Event(msg.data.name)); } finally {
+      setTimeout(function(){ inFlight = false; }, 0);
+    }
+  };
+})();
+
 // ── CommandPalette (global search ⌘K) ──────────────────────────────────────
 function CommandPalette({ open, onClose, onNavigate, openDetail }) {
   const [q, setQ] = useSM('');
@@ -2698,6 +2758,7 @@ function AdminPanel({ setView }) {
   const [users, setUsers] = useSM(Auth.listUsers());
   const [filter, setFilter] = useSM('');
   const [showInvite, setShowInvite] = useSM(false);
+  const [selectedIds, setSelectedIds] = useSM([]);
   const [invitations, setInvitations] = useSM(window.Invitations ? window.Invitations.list() : []);
   useEM(() => {
     const refresh = () => setInvitations(window.Invitations ? window.Invitations.list() : []);
@@ -2875,20 +2936,72 @@ function AdminPanel({ setView }) {
         ))}
       </div>
 
-      {/* Tabla de usuarios */}
-      <div className="dash-panel" style={{padding:0, overflow:'hidden'}}>
+      {/* Tabla de usuarios + bulk actions */}
+      <div className="dash-panel" style={{padding:0, overflow:'hidden', position:'relative'}}>
         <div className="dash-panel-head" style={{padding:'16px 22px'}}>
           <h3>Usuarios ({filtered.length})</h3>
-          <span className="panel-sub">Click en cualquier fila para ver acciones</span>
+          <span className="panel-sub">{selectedIds.length > 0 ? `${selectedIds.length} seleccionado${selectedIds.length === 1 ? '' : 's'}` : 'Selecciona varios usuarios para acciones en lote'}</span>
         </div>
+        {selectedIds.length > 0 && (
+          <div style={{padding:'12px 22px', background:'rgba(0,114,190,0.06)', borderBottom:'1px solid rgba(0,114,190,0.18)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--bn-blue-dark)', fontWeight:700, marginRight:8}}>
+              {selectedIds.length} · acción en lote
+            </span>
+            <button onClick={() => {
+              if (!confirm('¿Hacer admin a los ' + selectedIds.length + ' usuarios seleccionados?')) return;
+              selectedIds.forEach(id => Auth.setAdmin(id, true));
+              if (window.Toast) window.Toast.success(selectedIds.length + ' promovidos a admin');
+              setSelectedIds([]);
+            }} style={{padding:'5px 10px', border:'1px solid var(--bn-lime)', borderRadius:6, background:'rgba(188,214,48,0.12)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--bn-lime-dark)', fontWeight:700, letterSpacing:'0.06em'}}>+ admin</button>
+            <button onClick={() => {
+              if (!confirm('¿Quitar admin a los ' + selectedIds.length + ' usuarios seleccionados?')) return;
+              selectedIds.forEach(id => Auth.setAdmin(id, false));
+              if (window.Toast) window.Toast.info(selectedIds.length + ' degradados');
+              setSelectedIds([]);
+            }} style={{padding:'5px 10px', border:'1px solid var(--line)', borderRadius:6, background:'var(--paper)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', fontWeight:700, letterSpacing:'0.06em'}}>− admin</button>
+            <button onClick={() => {
+              const targets = users.filter(u => selectedIds.includes(u.id) && u.id !== Auth.currentUserId());
+              if (targets.length === 0) { if (window.Toast) window.Toast.error('No puedes borrarte a ti mismo'); return; }
+              if (!confirm('¿Borrar permanentemente ' + targets.length + ' usuarios y todos sus datos?')) return;
+              targets.forEach(u => Auth.deleteUser(u.id));
+              if (window.Toast) window.Toast.info(targets.length + ' usuarios eliminados');
+              setSelectedIds([]);
+            }} style={{padding:'5px 10px', border:'1px solid rgba(235,0,41,0.4)', borderRadius:6, background:'rgba(235,0,41,0.08)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>× borrar</button>
+            <span style={{marginLeft:'auto'}}>
+              <button onClick={() => setSelectedIds([])} style={{padding:'5px 10px', border:'1px solid var(--line)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>Limpiar</button>
+            </span>
+          </div>
+        )}
         <div style={{overflowX:'auto'}}>
           <table className="user-table" style={{width:'100%'}}>
             <thead>
-              <tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Bookmarks</th><th>Última conexión</th><th>Acciones</th></tr>
+              <tr>
+                <th style={{width:32, paddingRight:4}}>
+                  <input type="checkbox"
+                    checked={filteredMetrics.length > 0 && filteredMetrics.every(u => selectedIds.includes(u.id))}
+                    ref={el => { if (el) el.indeterminate = selectedIds.length > 0 && !filteredMetrics.every(u => selectedIds.includes(u.id)); }}
+                    onChange={e => {
+                      if (e.target.checked) setSelectedIds(filteredMetrics.map(u => u.id));
+                      else setSelectedIds([]);
+                    }}
+                    style={{cursor:'pointer', width:15, height:15, accentColor:'var(--bn-blue)'}}/>
+                </th>
+                <th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Bookmarks</th><th>Última conexión</th><th>Acciones</th>
+              </tr>
             </thead>
             <tbody>
               {filteredMetrics.map(u => (
-                <tr key={u.id}>
+                <tr key={u.id} style={selectedIds.includes(u.id) ? {background:'rgba(0,114,190,0.05)'} : {}}>
+                  <td style={{paddingRight:4}}>
+                    <input type="checkbox" checked={selectedIds.includes(u.id)}
+                      onChange={e => {
+                        e.stopPropagation();
+                        if (e.target.checked) setSelectedIds(s => s.concat([u.id]));
+                        else setSelectedIds(s => s.filter(x => x !== u.id));
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      style={{cursor:'pointer', width:15, height:15, accentColor:'var(--bn-blue)'}}/>
+                  </td>
                   <td>
                     <div style={{display:'flex', alignItems:'center', gap:10}}>
                       <div style={{width:30, height:30, borderRadius:'50%', background:u.avatarColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
