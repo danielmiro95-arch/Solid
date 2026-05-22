@@ -1227,17 +1227,17 @@ function Profile({ setView }) {
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ${profile.name}</title>
 <style>
 @page { size: A4 landscape; margin: 0; }
-body { font-family: 'Manrope', system-ui, sans-serif; margin:0; padding:60px; min-height:100vh; box-sizing:border-box;
+body { font-family: 'Inter', -apple-system, system-ui, sans-serif; margin:0; padding:60px; min-height:100vh; box-sizing:border-box;
   background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%); display:flex; flex-direction:column; }
 .frame { border:6px double #005996; padding:50px 60px; flex:1; display:flex; flex-direction:column; background:#fff; }
 .kicker { font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#94A3B8; margin-bottom:8px; }
 h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
 .lead { font-size:14px; color:#4A5568; max-width:560px; margin:0 0 36px; line-height:1.55; }
-.name { font-family:'Manrope', sans-serif; font-style:italic; font-weight:700; font-size:62px; color:#005996; margin:0 0 12px; letter-spacing:-0.025em; }
+.name { font-family:'Inter', -apple-system, sans-serif; font-style:italic; font-weight:700; font-size:62px; color:#005996; margin:0 0 12px; letter-spacing:-0.025em; }
 .role { font-size:18px; color:#0D1117; margin-bottom:36px; }
 .cert-line { height:2px; background:linear-gradient(90deg,#005996, #BCD630, #005996); margin: 28px 0; }
 .foot { display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; font-size:12px; color:#4A5568; }
-.sig { font-family:'Manrope', sans-serif; font-style:italic; font-size:20px; color:#0D1117; border-top:1px solid #ccc; padding-top:6px; margin-top:24px; }
+.sig { font-family:'Inter', -apple-system, sans-serif; font-style:italic; font-size:20px; color:#0D1117; border-top:1px solid #ccc; padding-top:6px; margin-top:24px; }
 </style></head><body><div class="frame">
 <div class="kicker">SGS|on · BeonIt × Repsol · Certificación oficial</div>
 <h1>Certificado de formación</h1>

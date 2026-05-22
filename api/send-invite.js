@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   const safeFrom = (fromName || 'Equipo BeonIt').replace(/[<>]/g, '');
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invitación a SGS|on</title></head>
-<body style="margin:0;padding:0;font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f5f8;color:#0D1117">
+<body style="margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f5f8;color:#0D1117">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:40px 0">
   <tr><td align="center">
     <table width="540" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,89,150,0.08)">
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#1C2433">${safeFrom} te ha añadido a la plataforma de formación <strong>SGS|on</strong> como <strong>${safeRole}</strong> del equipo <strong>${safeTeam}</strong>.</p>
         <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#4A5568">Vas a aprender Sprinklr con 41 Think Pills, 3 talleres prácticos y un asistente IA personal (MENTOR-IA). Al completar la ruta obtienes el certificado oficial Repsol × BeonIt.</p>
         <table cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="border-radius:10px;background:#0072BE;padding:0">
-          <a href="${inviteLink}" style="display:inline-block;padding:14px 28px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:600;color:#fff;text-decoration:none;border-radius:10px">Activar mi cuenta →</a>
+          <a href="${inviteLink}" style="display:inline-block;padding:14px 28px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#fff;text-decoration:none;border-radius:10px">Activar mi cuenta →</a>
         </td></tr></table>
         <p style="margin:24px 0 0;font-size:11px;line-height:1.6;color:#94A3B8;text-align:center">Si el botón no funciona, copia y pega este link:<br><a href="${inviteLink}" style="color:#0072BE;word-break:break-all">${inviteLink}</a></p>
       </td></tr>
