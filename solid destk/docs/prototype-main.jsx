@@ -519,6 +519,10 @@ function _activateSupabaseAuth() {
   }
 
   // Sobreescribir métodos de Auth
+  Auth.reloadUsers = async function() {
+    await _loadAllUsers();
+    window.dispatchEvent(new Event('auth-users-changed'));
+  };
   Auth.listUsers = function() { return usersCache; };
   Auth.currentUser = function() { return cachedProfile; };
   Auth.currentUserId = function() { return cachedProfile ? cachedProfile.id : null; };
@@ -938,13 +942,75 @@ function _activateSupabaseData() {
   async function _syncAll() {
     if (!_uid()) return;
     await Promise.all([
-      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(),
+      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
   if (_uid()) _syncAll();
 
-  console.log('[SGS|on] Datos → Supabase backend activo');
+  // ── Activity log persistente en tabla 'events' ──────────────────────────
+  let actCache = [];
+  async function _loadActivity() {
+    const u = window.Auth && window.Auth.currentUser();
+    if (!u) { actCache = []; return; }
+    // Admin lee todos, user lee solo los suyos (RLS lo limita en DB)
+    const { data, error } = await sb.from('events').select('*').order('created_at', { ascending: false }).limit(500);
+    if (error) { console.warn('[supa] events', error.message); return; }
+    actCache = (data || []).map(r => ({
+      id: r.id,
+      type: r.type,
+      meta: r.meta || {},
+      userId: r.user_id,
+      userName: r.user_name,
+      userEmail: r.user_email,
+      avatarColor: r.avatar_color,
+      createdAt: new Date(r.created_at).getTime(),
+    }));
+    window.dispatchEvent(new Event('activity-changed'));
+  }
+  if (window.Activity) {
+    const _origLog = window.Activity.log;
+    window.Activity.log = function(type, meta) {
+      const ev = _origLog.call(window.Activity, type, meta); // sigue guardando local también
+      const u = window.Auth && window.Auth.currentUser();
+      if (u) {
+        sb.from('events').insert({
+          user_id: u.id,
+          user_name: u.name,
+          user_email: u.email,
+          avatar_color: u.avatarColor,
+          type, meta: meta || {},
+        }).then(({ error }) => { if (error) console.warn('[supa] event insert', error.message); });
+      }
+      return ev;
+    };
+    window.Activity.list = function(filter) {
+      let items = actCache.slice();
+      if (filter) {
+        if (filter.type) items = items.filter(i => i.type === filter.type);
+        if (filter.userId) items = items.filter(i => i.userId === filter.userId);
+        if (filter.since) items = items.filter(i => i.createdAt >= filter.since);
+      }
+      return items;
+    };
+  }
+
+  // ── Realtime subscriptions · cambios en DB → eventos del bus interno ────
+  // Los componentes ya escuchan estos eventos para refrescar. Con esto, lo que
+  // cambia otro user/dispositivo lo ves en vivo sin recargar.
+  const ch = sb.channel('sgson-realtime-' + Math.random().toString(36).slice(2));
+  ch.on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => _loadSubmissions())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_notifications' }, () => _loadInbox())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => _loadInbox())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { if (window.Auth && window.Auth.reloadUsers) window.Auth.reloadUsers(); })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => _loadActivity())
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') console.log('[SGS|on] Realtime ✓ canal abierto');
+      if (status === 'CHANNEL_ERROR') console.warn('[SGS|on] Realtime · error de canal');
+    });
+  window._sgsonSbChannel = ch;
+
+  console.log('[SGS|on] Datos → Supabase backend activo · audit log + realtime activos');
 }
 
 // Activa adapters cuando el bootstrap del HTML termina
