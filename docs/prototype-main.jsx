@@ -1271,7 +1271,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     { id:'browse', label:'Catálogo' },
     { id:'rutas', label:'Rutas de certificación' },
     { id:'path', label:'Mi ruta' },
-    { id:'dashboard', label:'Dashboard' },
+    { id:'dashboard', label:'Analytics' },
     { id:'coach', label:'MENTOR-IA' },
     { id:'cronograma', label:'Cronograma' },
     { id:'wa', label:'WhatsApp' },

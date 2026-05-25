@@ -2842,3 +2842,344 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 @media (max-width: 900px) {
   .settings-content { max-width: none; }
 }
+
+/* ============================================================
+ * MENTOR-IA · Coach v2 · estilo Claude.ai / ChatGPT
+ * ============================================================ */
+.coach-v2 {
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  max-width: none !important;
+  height: 100vh;
+  height: calc(100vh - 60px);
+  min-height: 0 !important;
+  background: var(--paper);
+}
+
+.coach-v2-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  flex-shrink: 0;
+}
+.coach-v2-id { display: flex; align-items: center; gap: 12px; }
+.coach-v2-title {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.coach-v2-title .beta-badge {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  background: var(--bn-lime);
+  color: var(--ink);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.coach-v2-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-top: 3px;
+}
+.coach-v2-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+.coach-v2-status span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink-4);
+}
+.coach-v2-status.status-live   { color: var(--bn-lime-dark); border-color: rgba(188,214,48,0.4); background: rgba(188,214,48,0.08); }
+.coach-v2-status.status-live   span { background: var(--bn-lime); box-shadow: 0 0 6px rgba(188,214,48,0.6); }
+.coach-v2-status.status-demo   { color: #7a4400; border-color: rgba(243,165,37,0.4); background: rgba(243,165,37,0.08); }
+.coach-v2-status.status-demo   span { background: var(--bn-orange); }
+.coach-v2-status.status-error  { color: var(--repsol-red); border-color: rgba(235,0,41,0.3); background: rgba(235,0,41,0.06); }
+.coach-v2-status.status-error  span { background: var(--repsol-red); }
+
+/* Welcome panel · cuando aún no has charlado */
+.coach-v2-welcome {
+  flex-shrink: 0;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 28px 16px;
+  width: 100%;
+  text-align: center;
+}
+.coach-v2-welcome h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.coach-v2-welcome p {
+  font-size: 14.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  margin: 0 0 24px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.coach-v2-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  text-align: left;
+}
+.coach-v2-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  cursor: pointer;
+  font-family: var(--sans);
+  text-align: left;
+  transition: border-color .14s, transform .14s, box-shadow .14s;
+}
+.coach-v2-action:hover {
+  border-color: rgba(0, 114, 190, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 114, 190, 0.08);
+}
+.coach-v2-action .ico { font-size: 20px; flex-shrink: 0; }
+.coach-v2-action .t { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.coach-v2-action .d { font-size: 12px; color: var(--ink-4); }
+
+/* Thread · contenedor central scrollable */
+.coach-v2-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Mensaje · AI con avatar + sin burbuja (Claude.ai style) */
+.coach-v2-msg.from-ai {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.coach-v2-msg-avatar {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.coach-v2-msg-body { flex: 1; min-width: 0; }
+.coach-v2-msg-who {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 6px;
+}
+.coach-v2-msg-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.coach-v2-msg-content .md-text > *:first-child { margin-top: 0; }
+.coach-v2-msg-content .md-text > *:last-child { margin-bottom: 0; }
+
+/* Mensaje · usuario con burbuja right-aligned */
+.coach-v2-msg.from-me {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.coach-v2-msg-bubble {
+  background: linear-gradient(135deg, var(--bn-blue), #0080d4);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 18px 18px 4px 18px;
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 75%;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0, 114, 190, 0.2);
+}
+
+/* Typing indicator más elegante */
+.coach-v2-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+.coach-v2-typing span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--bn-blue);
+  opacity: 0.5;
+  animation: coachTypingDot 1.4s ease-in-out infinite;
+}
+.coach-v2-typing span:nth-child(2) { animation-delay: 0.2s; }
+.coach-v2-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes coachTypingDot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+  40%           { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Input · barra flotante con send dentro */
+.coach-v2-input-wrap {
+  flex-shrink: 0;
+  padding: 12px 28px 18px;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+.coach-v2-quick {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.coach-v2-quick::-webkit-scrollbar { display: none; }
+.coach-v2-quick button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+  transition: all .14s;
+}
+.coach-v2-quick button:hover {
+  background: var(--bn-blue);
+  color: #fff;
+  border-color: var(--bn-blue);
+}
+
+.coach-v2-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 8px 8px 18px;
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: border-color .14s, box-shadow .14s;
+}
+.coach-v2-input:focus-within {
+  border-color: var(--bn-blue);
+  box-shadow: 0 4px 24px rgba(0, 114, 190, 0.12);
+}
+.coach-v2-input textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 0;
+  background: transparent;
+  color: var(--ink);
+  max-height: 180px;
+  min-height: 24px;
+  overflow-y: auto;
+}
+.coach-v2-input textarea::placeholder { color: var(--ink-4); }
+.coach-v2-send {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: var(--bn-blue);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 4px;
+  transition: background .14s, transform .14s;
+}
+.coach-v2-send:hover:not(:disabled) { background: var(--bn-blue-dark); transform: scale(1.05); }
+.coach-v2-send:disabled { background: var(--paper-3); color: var(--ink-4); cursor: not-allowed; }
+
+.coach-v2-foot {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-top: 8px;
+  padding: 0 4px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Dark theme support para coach-v2 */
+html[data-theme="dark"] .coach-v2 { background: #0D1117; }
+html[data-theme="dark"] .coach-v2-header { background: #0D1117; border-color: rgba(255,255,255,0.06); }
+html[data-theme="dark"] .coach-v2-status { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+html[data-theme="dark"] .coach-v2-action { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+html[data-theme="dark"] .coach-v2-action:hover { background: rgba(0,114,190,0.08); border-color: rgba(77,159,224,0.4); }
+html[data-theme="dark"] .coach-v2-input-wrap { background: #0D1117; border-top-color: rgba(255,255,255,0.06); }
+html[data-theme="dark"] .coach-v2-input {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+html[data-theme="dark"] .coach-v2-input:focus-within { border-color: rgba(77,159,224,0.5); }
+html[data-theme="dark"] .coach-v2-quick button { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); color: rgba(229,234,241,0.85); }
+
+/* Mobile · stack y full-width */
+@media (max-width: 900px) {
+  .coach-v2-header { padding: 12px 16px; }
+  .coach-v2-welcome { padding: 24px 16px 12px; }
+  .coach-v2-actions-grid { grid-template-columns: 1fr; }
+  .coach-v2-thread { padding: 12px 16px 16px; }
+  .coach-v2-input-wrap { padding: 10px 14px 14px; }
+  .coach-v2-msg-bubble { max-width: 88%; }
+}

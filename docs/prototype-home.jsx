@@ -131,7 +131,7 @@ function Sidebar({ view, setView }) {
     { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
     { id: 'rutas',     label: 'Rutas',       icon: 'compass' },
-    { id: 'dashboard', label: 'Dashboard',   icon: 'trend' },
+    { id: 'dashboard', label: 'Analytics',   icon: 'trend' },
     { id: 'coach',     label: 'MENTOR-IA',   icon: 'sparkle', badge: 'BETA' },
     { id: 'cronograma',label: 'Cronograma',  icon: 'trend' },
     { id: 'wa',        label: 'WhatsApp',    icon: 'chat' },
