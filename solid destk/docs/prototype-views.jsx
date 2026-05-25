@@ -2029,6 +2029,156 @@ function FunnelChart({ stages }) {
   );
 }
 
+// Word cloud · términos dimensionados por peso
+function WordCloud({ words, palette = ['var(--bn-blue)','var(--accent-glow)','var(--bn-lime)','var(--bn-purple)','var(--bn-orange)','var(--bn-teal)'] }) {
+  const max = Math.max.apply(null, words.map(w => w.weight));
+  const min = Math.min.apply(null, words.map(w => w.weight));
+  const range = Math.max(1, max - min);
+  return (
+    <div style={{display:'flex', flexWrap:'wrap', gap:'8px 14px', padding:'12px 8px', alignItems:'center', justifyContent:'center', minHeight:130, lineHeight:1.1}}>
+      {words.map((w, i) => {
+        const norm = (w.weight - min) / range;
+        const size = 11 + norm * 22;
+        const opacity = 0.55 + norm * 0.45;
+        const color = palette[i % palette.length];
+        return (
+          <span key={i} title={w.text + ' · ' + w.weight + (w.delta ? ' (' + w.delta + ')' : '')}
+            style={{fontFamily:'var(--sans)', fontWeight: 500 + Math.round(norm * 4) * 100, fontSize:size, color, opacity, letterSpacing:'-0.01em', cursor:'default', transition:'transform .15s'}}
+            onMouseEnter={e => e.currentTarget.style.transform='scale(1.08)'}
+            onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}>
+            {w.text}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// Sentiment stacked area · positivo/neutro/negativo a lo largo del tiempo
+function SentimentTrend({ data, height = 140 }) {
+  const W = 320, H = height, pad = 22;
+  const max = 100;
+  const xs = data.map((_, i) => pad + (i / Math.max(1, data.length - 1)) * (W - pad * 2));
+  const y = (v) => H - pad - (v / max) * (H - pad * 2);
+  const pathPos = xs.map((x, i) => (i===0?'M':'L') + x + ',' + y(data[i].pos)).join(' ');
+  const pathPosNeu = xs.map((x, i) => (i===0?'M':'L') + x + ',' + y(data[i].pos + data[i].neu)).join(' ');
+  const areaPos = pathPos + ' L ' + xs[xs.length-1] + ',' + y(0) + ' L ' + xs[0] + ',' + y(0) + ' Z';
+  const areaNeu = pathPosNeu + ' L ' + xs[xs.length-1] + ',' + y(0) + ' L ' + xs[0] + ',' + y(0) + ' Z';
+  const last = data[data.length-1];
+  return (
+    <div style={{padding:'4px 10px 8px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}}>
+        <path d={`M ${pad},${y(0)} L ${pad},${y(100)} L ${W-pad},${y(100)} L ${W-pad},${y(0)} Z`} fill="var(--bn-red)" opacity="0.18"/>
+        <path d={areaNeu} fill="var(--bn-orange)" opacity="0.55"/>
+        <path d={areaPos} fill="var(--bn-green)" opacity="0.78"/>
+        <path d={pathPos} fill="none" stroke="var(--bn-green)" strokeWidth="1.5"/>
+        <path d={pathPosNeu} fill="none" stroke="var(--bn-orange)" strokeWidth="1"/>
+        {data.map((d, i) => i % Math.ceil(data.length/6) === 0 && (
+          <text key={i} x={xs[i]} y={H - 6} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--ink-4)">{d.l}</text>
+        ))}
+      </svg>
+      <div style={{display:'flex', gap:14, justifyContent:'center', marginTop:6, fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.04em'}}>
+        <span style={{color:'var(--bn-green)', fontWeight:700}}>● Positivo {last.pos}%</span>
+        <span style={{color:'var(--bn-orange)', fontWeight:700}}>● Neutro {last.neu}%</span>
+        <span style={{color:'var(--bn-red)', fontWeight:700}}>● Negativo {last.neg}%</span>
+      </div>
+    </div>
+  );
+}
+
+// NPS Scorecard · número grande + segmentos Promoters/Passives/Detractors
+function NPSScorecard({ nps, promoters, passives, detractors, total, target = 50 }) {
+  const segP = (promoters / total) * 100;
+  const segN = (passives / total) * 100;
+  const segD = (detractors / total) * 100;
+  const color = nps >= target ? 'var(--bn-green)' : nps >= 20 ? 'var(--bn-orange)' : 'var(--bn-red)';
+  return (
+    <div style={{padding:'10px 18px 16px'}}>
+      <div style={{display:'flex', alignItems:'flex-end', gap:18, marginBottom:14}}>
+        <div>
+          <div style={{fontSize:54, fontWeight:800, letterSpacing:'-0.04em', color, lineHeight:1}}>{nps > 0 ? '+' : ''}{nps}</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:2}}>NPS · {total} respuestas</div>
+        </div>
+        <div style={{flex:1, fontSize:11, color:'var(--ink-3)', lineHeight:1.5, paddingBottom:6}}>
+          {nps >= target
+            ? <>Por encima de la meta de {target}. <strong style={{color:'var(--bn-green)'}}>Excelente percepción.</strong></>
+            : nps >= 20
+              ? <>Aceptable, pero por debajo de la meta de {target}.</>
+              : <>Crítico. Revisa las quejas recientes.</>}
+        </div>
+      </div>
+      <div style={{display:'flex', height:14, borderRadius:7, overflow:'hidden', background:'var(--paper-2)'}}>
+        <div title={`Promoters: ${promoters}`} style={{width: segP + '%', background:'var(--bn-green)', transition:'width .35s'}}/>
+        <div title={`Passives: ${passives}`} style={{width: segN + '%', background:'var(--bn-orange)'}}/>
+        <div title={`Detractors: ${detractors}`} style={{width: segD + '%', background:'var(--bn-red)'}}/>
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:8, fontFamily:'var(--mono)', fontSize:10}}>
+        <div><span style={{color:'var(--bn-green)', fontWeight:700}}>● Promoters</span> {promoters} ({Math.round(segP)}%)</div>
+        <div style={{textAlign:'center'}}><span style={{color:'var(--bn-orange)', fontWeight:700}}>● Passives</span> {passives} ({Math.round(segN)}%)</div>
+        <div style={{textAlign:'right'}}><span style={{color:'var(--bn-red)', fontWeight:700}}>● Detractors</span> {detractors} ({Math.round(segD)}%)</div>
+      </div>
+    </div>
+  );
+}
+
+// Top Questions / Top Items list · ranking con bar fill
+function TopList({ items, color = 'var(--accent-glow)', unit = '' }) {
+  const max = Math.max.apply(null, items.map(i => i.value));
+  return (
+    <div style={{padding:'4px 16px 12px', display:'flex', flexDirection:'column', gap:7}}>
+      {items.map((it, i) => {
+        const pct = (it.value / max) * 100;
+        return (
+          <div key={i} style={{display:'grid', gridTemplateColumns:'16px 1fr 56px', gap:10, alignItems:'center'}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, fontWeight:700, color:'var(--ink-4)', textAlign:'right'}}>{i+1}</div>
+            <div style={{position:'relative'}}>
+              <div style={{fontSize:12.5, color:'var(--ink-2)', fontWeight:500, marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{it.text}</div>
+              <div style={{height:5, background:'var(--paper-2)', borderRadius:3, overflow:'hidden'}}>
+                <div style={{width: pct + '%', height:'100%', background: color, borderRadius:3, transition:'width .35s'}}/>
+              </div>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--ink)', textAlign:'right'}}>{it.value}{unit}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Pivot Table · cross-tab métrica × dimensión
+function PivotTable({ rows, cols, data, metric = '%' }) {
+  const flat = data.flat();
+  const max = Math.max.apply(null, flat);
+  const heat = (v) => {
+    const t = max > 0 ? v / max : 0;
+    return `rgba(0, 114, 190, ${0.08 + t * 0.55})`;
+  };
+  return (
+    <div style={{padding:'4px 12px 12px', overflowX:'auto'}}>
+      <table style={{width:'100%', borderCollapse:'collapse', fontFamily:'var(--sans)', fontSize:11.5}}>
+        <thead>
+          <tr>
+            <th style={{padding:'8px 6px', textAlign:'left', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>Dimensión ↓ / Métrica →</th>
+            {cols.map((c, i) => <th key={i} style={{padding:'8px 6px', textAlign:'center', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>{c}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, ri) => (
+            <tr key={ri}>
+              <td style={{padding:'7px 6px', fontWeight:600, color:'var(--ink-2)', borderBottom:'1px solid var(--line-2)'}}>{r}</td>
+              {cols.map((_, ci) => (
+                <td key={ci} style={{padding:'7px 6px', textAlign:'center', fontFamily:'var(--mono)', fontWeight:700, fontSize:11.5, color:'var(--ink)', borderBottom:'1px solid var(--line-2)', background: heat(data[ri][ci])}}>
+                  {data[ri][ci]}{metric}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const WIDGET_TYPES = [
   { id:'dropoff',  label:'Drop-off (línea)',   icon:'📉' },
   { id:'column',   label:'Barras verticales',  icon:'📊' },
@@ -2042,6 +2192,60 @@ const WIDGET_TYPES = [
   { id:'users',    label:'Tabla usuarios',     icon:'👤' },
   { id:'activity', label:'Actividad reciente', icon:'🔔' },
   { id:'wa',       label:'WhatsApp analytics', icon:'💬' },
+  { id:'wordcloud', label:'Word Cloud · preguntas', icon:'☁️' },
+  { id:'sentiment', label:'Sentiment trend',   icon:'🌡' },
+  { id:'nps',       label:'NPS scorecard',     icon:'🎯' },
+  { id:'topquestions', label:'Top preguntas IA', icon:'🏆' },
+  { id:'pivot',     label:'Pivot table',       icon:'🔢' },
+];
+
+// Dashboards preset · cada uno expone su widget set + meta
+const DASHBOARD_PRESETS = [
+  {
+    id: 'executive',
+    label: 'Executive',
+    icon: '🎯',
+    desc: 'KPIs de alto nivel · visión cohorte completa',
+    widgets: ['dropoff', 'column', 'gauge', 'donut', 'area', 'activity'],
+  },
+  {
+    id: 'learning',
+    label: 'Learning Performance',
+    icon: '📚',
+    desc: 'Completación, drop-off, tests y exámenes',
+    widgets: ['dropoff', 'stacked', 'funnel', 'modules', 'users', 'pivot'],
+  },
+  {
+    id: 'engagement',
+    label: 'Engagement & Adopción',
+    icon: '🔥',
+    desc: 'Actividad, retención, MENTOR-IA, WhatsApp',
+    widgets: ['heatmap', 'area', 'activity', 'wa', 'users'],
+  },
+  {
+    id: 'service',
+    label: 'Service Level (SLA)',
+    icon: '⚡',
+    desc: 'NPS, satisfacción, tiempos de respuesta',
+    widgets: ['nps', 'gauge', 'sentiment', 'topquestions', 'activity'],
+  },
+  {
+    id: 'mentor',
+    label: 'MENTOR-IA Insights',
+    icon: '🤖',
+    desc: 'Preguntas, intents, sentiment, conversaciones',
+    widgets: ['topquestions', 'wordcloud', 'sentiment', 'area', 'activity'],
+  },
+];
+
+const TEAMS = ['Todos', 'Repsol', 'BeonIt', 'Sprinklr CSM'];
+const ROLES = ['Todos', 'Publish Agent', 'Care Agent', 'Manager', 'Analyst', 'Content Lead'];
+const DATE_RANGES = [
+  { id:'7d',  label:'7 días' },
+  { id:'30d', label:'30 días' },
+  { id:'90d', label:'90 días' },
+  { id:'12m', label:'12 meses' },
+  { id:'all', label:'Todo' },
 ];
 
 function WidgetPicker({ onAdd, onClose }) {
@@ -2075,16 +2279,28 @@ function WidgetPicker({ onAdd, onClose }) {
 function Dashboard() {
   const [checks, setChecks] = useS2([true, true, false, false, false, false]);
   const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
-  const DASH_KEY = window.userKey ? window.userKey('solid-dash-widgets') : 'solid-dash-widgets';
-  const DEFAULT_WIDGETS = ['dropoff', 'column', 'gauge', 'area', 'funnel', 'modules', 'heatmap', 'users', 'activity', 'wa'];
-  const [activeWidgets, setActiveWidgets] = useS2(() => {
-    try { const s = JSON.parse(localStorage.getItem(DASH_KEY) || 'null'); return Array.isArray(s) ? s : DEFAULT_WIDGETS; }
-    catch(e) { return DEFAULT_WIDGETS; }
+  const ALL_KEY = window.userKey ? window.userKey('solid-dash-all') : 'solid-dash-all';
+  const [presetId, setPresetId] = useS2(() => localStorage.getItem('solid-dash-preset') || 'executive');
+  const [allWidgets, setAllWidgets] = useS2(() => {
+    try { return JSON.parse(localStorage.getItem(ALL_KEY) || 'null') || {}; }
+    catch(e) { return {}; }
   });
-  React.useEffect(() => { localStorage.setItem(DASH_KEY, JSON.stringify(activeWidgets)); }, [activeWidgets]);
+  const [filters, setFilters] = useS2({ range:'30d', team:'Todos', role:'Todos' });
+  const preset = DASHBOARD_PRESETS.find(p => p.id === presetId) || DASHBOARD_PRESETS[0];
+  const activeWidgets = allWidgets[presetId] || preset.widgets;
+  React.useEffect(() => { localStorage.setItem(ALL_KEY, JSON.stringify(allWidgets)); }, [allWidgets]);
+  React.useEffect(() => { localStorage.setItem('solid-dash-preset', presetId); }, [presetId]);
   const [showPicker, setShowPicker] = useS2(false);
-  const addWidget = (id) => setActiveWidgets(w => w.includes(id) ? w : [...w, id]);
-  const removeWidget = (id) => setActiveWidgets(w => w.filter(x => x !== id));
+  const addWidget = (id) => setAllWidgets(prev => {
+    const cur = prev[presetId] || preset.widgets;
+    if (cur.includes(id)) return prev;
+    return { ...prev, [presetId]: [...cur, id] };
+  });
+  const removeWidget = (id) => setAllWidgets(prev => {
+    const cur = prev[presetId] || preset.widgets;
+    return { ...prev, [presetId]: cur.filter(x => x !== id) };
+  });
+  const resetPreset = () => setAllWidgets(prev => { const n = { ...prev }; delete n[presetId]; return n; });
   const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
   const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
   const [drillKpi, setDrillKpi] = useS2(null);
@@ -2230,24 +2446,93 @@ function Dashboard() {
     { l:'Completan Bloque 4',v:142, c:'var(--bn-orange)' },
     { l:'Certificados',      v: 89, c:'var(--repsol-red)' },
   ];
+  // Datos para widgets de Service Level / MENTOR-IA Insights
+  const wordCloudData = [
+    { text:'¿cómo programar?', weight: 87 }, { text:'aprobación', weight: 74 },
+    { text:'macros', weight: 68 }, { text:'audiencia', weight: 61 },
+    { text:'inboxes', weight: 55 }, { text:'calendario editorial', weight: 49 },
+    { text:'mentions', weight: 42 }, { text:'rule engine', weight: 38 },
+    { text:'DAM', weight: 36 }, { text:'GDPR', weight: 30 },
+    { text:'permisos', weight: 28 }, { text:'reporting', weight: 25 },
+    { text:'tags', weight: 22 }, { text:'CSV bulk', weight: 19 },
+    { text:'SLA', weight: 17 }, { text:'caso', weight: 14 }, { text:'derive', weight: 11 },
+  ];
+  const sentimentData = [
+    {l:'S1', pos:62, neu:28, neg:10}, {l:'S2', pos:64, neu:26, neg:10},
+    {l:'S3', pos:68, neu:24, neg:8},  {l:'S4', pos:71, neu:21, neg:8},
+    {l:'S5', pos:69, neu:23, neg:8},  {l:'S6', pos:74, neu:19, neg:7},
+    {l:'S7', pos:77, neu:17, neg:6},
+  ];
+  const npsData = { nps: 58, promoters: 142, passives: 71, detractors: 34, total: 247 };
+  const topQuestionsData = [
+    { text:'¿Cómo programo un post multicanal?',          value: 87 },
+    { text:'¿Qué diferencia hay entre macro y rule engine?', value: 74 },
+    { text:'¿Cómo apruebo contenido sin ser admin?',       value: 68 },
+    { text:'¿Dónde se configuran las audiencias?',         value: 61 },
+    { text:'¿Qué inboxes están activos en mi equipo?',     value: 55 },
+    { text:'¿Cómo subo activos al DAM?',                   value: 49 },
+  ];
+  const pivotData = {
+    rows: ['Publish Agent', 'Care Agent', 'Manager', 'Analyst', 'Content Lead'],
+    cols: ['Completación', 'Tests', 'NPS', 'Sesión IA'],
+    data: [[62, 88, 54, 12],[48, 82, 47, 16],[78, 94, 71, 8],[55, 91, 58, 14],[70, 89, 62, 11]],
+  };
 
   return (
     <div className="dash-root">
       {showPicker && <WidgetPicker onAdd={addWidget} onClose={() => setShowPicker(false)}/>}
       <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
         <div>
-          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Dashboard de formación</div>
-          <h1>Analytics <em>Sprinklr</em></h1>
-          <div className="dash-sub">Cohorte activa · 247 usuarios · Actualizado hace 2 min</div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Analytics de formación</div>
+          <h1>Analytics <em>{preset.label}</em></h1>
+          <div className="dash-sub">{preset.desc} · Cohorte activa · 247 usuarios · {filters.team !== 'Todos' && (<>Equipo <strong>{filters.team}</strong> · </>)}{filters.role !== 'Todos' && (<>Rol <strong>{filters.role}</strong> · </>)}Rango {DATE_RANGES.find(r => r.id === filters.range)?.label} · Actualizado hace 2 min</div>
         </div>
-        <button onClick={() => setShowPicker(true)} style={{
-          display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px',
-          background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10,
-          cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13,
-          boxShadow:'0 4px 14px rgba(0,89,150,0.3)', marginTop:8,
-        }}>
-          + Añadir widget
-        </button>
+        <div style={{display:'flex', gap:8, marginTop:8, flexWrap:'wrap'}}>
+          <button onClick={resetPreset} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>↺ Restablecer</button>
+          <button onClick={() => setShowPicker(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13, boxShadow:'0 4px 14px rgba(0,89,150,0.3)'}}>+ Añadir widget</button>
+        </div>
+      </div>
+
+      {/* Dashboard preset tabs · estilo Sprinklr */}
+      <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12, padding:'6px', background:'var(--paper-2)', borderRadius:12, border:'1px solid var(--line-2)'}}>
+        {DASHBOARD_PRESETS.map(p => (
+          <button key={p.id} onClick={() => setPresetId(p.id)} style={{
+            display:'inline-flex', alignItems:'center', gap:7, padding:'8px 14px',
+            background: presetId === p.id ? 'var(--paper)' : 'transparent',
+            color: presetId === p.id ? 'var(--ink)' : 'var(--ink-3)',
+            border: presetId === p.id ? '1px solid var(--line)' : '1px solid transparent',
+            borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight: presetId === p.id ? 700 : 500, fontSize:12.5,
+            boxShadow: presetId === p.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none', transition:'all .12s',
+          }}>
+            <span style={{fontSize:14}}>{p.icon}</span>{p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filter bar · global filters aplicados a todos los widgets */}
+      <div style={{display:'flex', gap:10, flexWrap:'wrap', marginBottom:16, padding:'10px 14px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, alignItems:'center'}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>Filtros</div>
+        <div style={{display:'flex', gap:4, alignItems:'center'}}>
+          {DATE_RANGES.map(r => (
+            <button key={r.id} onClick={() => setFilters(f => ({ ...f, range: r.id }))} style={{
+              padding:'5px 10px', fontFamily:'var(--mono)', fontSize:10.5, fontWeight:600,
+              background: filters.range === r.id ? 'var(--bn-blue)' : 'var(--paper-2)',
+              color: filters.range === r.id ? '#fff' : 'var(--ink-3)',
+              border: '1px solid ' + (filters.range === r.id ? 'var(--bn-blue)' : 'var(--line)'),
+              borderRadius:6, cursor:'pointer', letterSpacing:'0.04em',
+            }}>{r.label}</button>
+          ))}
+        </div>
+        <div style={{width:1, height:20, background:'var(--line)'}}/>
+        <select value={filters.team} onChange={e => setFilters(f => ({ ...f, team: e.target.value }))} style={{padding:'6px 10px', fontFamily:'var(--sans)', fontSize:12, fontWeight:500, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6, cursor:'pointer'}}>
+          {TEAMS.map(t => <option key={t} value={t}>Equipo · {t}</option>)}
+        </select>
+        <select value={filters.role} onChange={e => setFilters(f => ({ ...f, role: e.target.value }))} style={{padding:'6px 10px', fontFamily:'var(--sans)', fontSize:12, fontWeight:500, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6, cursor:'pointer'}}>
+          {ROLES.map(r => <option key={r} value={r}>Rol · {r}</option>)}
+        </select>
+        {(filters.team !== 'Todos' || filters.role !== 'Todos' || filters.range !== '30d') && (
+          <button onClick={() => setFilters({ range:'30d', team:'Todos', role:'Todos' })} style={{marginLeft:'auto', padding:'5px 10px', fontFamily:'var(--mono)', fontSize:10, fontWeight:600, color:'var(--bn-blue)', background:'transparent', border:'1px solid var(--bn-blue)', borderRadius:6, cursor:'pointer'}}>Limpiar filtros ×</button>
+        )}
       </div>
 
       <div className="dash-kpis">
@@ -2327,9 +2612,12 @@ function Dashboard() {
       {activeWidgets.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">📊</div>
-          <h3>Tu dashboard está vacío</h3>
-          <p>Añade tus primeros widgets para empezar a ver métricas. Puedes elegir entre 12 tipos: drop-off, completación, gauge, funnel, heatmap, WhatsApp analytics y más.</p>
-          <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir mi primer widget</button>
+          <h3>Este dashboard está vacío</h3>
+          <p>El dashboard <strong>{preset.label}</strong> no tiene widgets activos. Añade widgets de la librería (17 tipos: drop-off, completación, gauge, funnel, heatmap, NPS, sentiment, word cloud, pivot, top preguntas y más) o restablece el preset por defecto.</p>
+          <div style={{display:'flex', gap:10, justifyContent:'center', marginTop:14}}>
+            <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir widget</button>
+            <button onClick={resetPreset} style={{padding:'10px 18px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:13}}>↺ Restablecer preset</button>
+          </div>
         </div>
       )}
 
@@ -2579,6 +2867,67 @@ function Dashboard() {
           </div>
         </div>
       </div>}
+
+      {activeWidgets.includes('wordcloud') && (
+        <div className="dash-panel" style={{gridColumn:'span 2'}}>
+          <div className="dash-panel-head">
+            <h3>Word Cloud · preguntas a MENTOR-IA</h3>
+            <span className="panel-sub">Top términos · últimos 30 días</span>
+            <button onClick={() => removeWidget('wordcloud')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+          </div>
+          <div className="dash-panel-body">
+            <WordCloud words={wordCloudData}/>
+          </div>
+        </div>
+      )}
+      {activeWidgets.includes('sentiment') && (
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>Sentiment trend</h3>
+            <span className="panel-sub">7 semanas · IA detecta tono en feedback</span>
+            <button onClick={() => removeWidget('sentiment')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+          </div>
+          <div className="dash-panel-body" style={{paddingTop:8}}>
+            <SentimentTrend data={sentimentData}/>
+          </div>
+        </div>
+      )}
+      {activeWidgets.includes('nps') && (
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>NPS · score formación</h3>
+            <span className="panel-sub">Q4 · {npsData.total} respuestas</span>
+            <button onClick={() => removeWidget('nps')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+          </div>
+          <div className="dash-panel-body">
+            <NPSScorecard {...npsData}/>
+          </div>
+        </div>
+      )}
+      {activeWidgets.includes('topquestions') && (
+        <div className="dash-panel">
+          <div className="dash-panel-head">
+            <h3>Top preguntas a MENTOR-IA</h3>
+            <span className="panel-sub">Ranking · últimas 4 semanas</span>
+            <button onClick={() => removeWidget('topquestions')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+          </div>
+          <div className="dash-panel-body" style={{paddingTop:8}}>
+            <TopList items={topQuestionsData} color="var(--bn-purple)"/>
+          </div>
+        </div>
+      )}
+      {activeWidgets.includes('pivot') && (
+        <div className="dash-panel" style={{gridColumn:'span 2'}}>
+          <div className="dash-panel-head">
+            <h3>Pivot · rol × métrica</h3>
+            <span className="panel-sub">Cruza rol con completación, tests, NPS y uso IA</span>
+            <button onClick={() => removeWidget('pivot')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
+          </div>
+          <div className="dash-panel-body">
+            <PivotTable {...pivotData}/>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
