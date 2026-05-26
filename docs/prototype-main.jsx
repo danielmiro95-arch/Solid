@@ -1978,7 +1978,11 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
-      <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
+      <main className="main" style={
+        view === 'onboarding' ? {gridColumn:'1 / -1'} :
+        isCinematic            ? {gridColumn:'2 / 3'} :
+                                 {}
+      }>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
         {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}
