@@ -1417,19 +1417,30 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
 // ---------- WhatsApp handoff ----------
 function WhatsApp() {
   const [tab, setTab] = useS2('notif'); // 'notif' | 'metrics'
+  const [channel, setChannel] = useS2(() => localStorage.getItem('solid-channel') || 'whatsapp'); // 'whatsapp' | 'teams'
   const [toggles, setToggles] = useS2([true, true, false, true]);
   const [links, setLinks] = useS2([]);
   const toggle = (i) => setToggles(ts => ts.map((v, idx) => idx === i ? !v : v));
 
+  useE2(() => { localStorage.setItem('solid-channel', channel); }, [channel]);
   useE2(() => {
     if (tab === 'metrics' && window.WATracker) setLinks(window.WATracker.getLinks());
   }, [tab]);
 
-  const options = [
-    { t: 'Módulo diario en WhatsApp, 9:00', d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
-    { t: 'Briefs antes de reuniones Sprinklr', d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
-    { t: 'Respuestas del agente IA por WhatsApp', d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
-    { t: 'Resumen semanal (viernes, 17:00)', d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
+  const isTeams = channel === 'teams';
+  const channelName = isTeams ? 'Teams' : 'WhatsApp';
+  const channelColor = isTeams ? '#5059C9' : '#25D366';
+
+  const options = isTeams ? [
+    { t: 'Módulo diario en Teams, 9:00',                  d: 'Cada mañana, un mensaje en tu chat de Teams con el próximo módulo de Sprinklr.' },
+    { t: 'Briefs antes de reuniones Outlook',             d: '30 min antes de cualquier reunión Sprinklr en tu calendario, te llega el módulo más relevante.' },
+    { t: 'Respuestas de MENTOR-IA en chat Teams',         d: 'Pregunta al bot directamente desde Teams. Solo responde cuando tú preguntas.' },
+    { t: 'Resumen semanal en Teams (viernes, 17:00)',     d: 'Tu progreso, qué módulos completaste y qué viene la semana siguiente — todo en un mensaje.' },
+  ] : [
+    { t: 'Módulo diario en WhatsApp, 9:00',               d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
+    { t: 'Briefs antes de reuniones Sprinklr',            d: '30 min antes de cualquier sesión del calendario relacionada con Sprinklr, te llega el módulo más relevante.' },
+    { t: 'Respuestas del agente IA por WhatsApp',         d: 'Pregunta al agente directamente desde WhatsApp. Solo responde cuando tú preguntas.' },
+    { t: 'Resumen semanal (viernes, 17:00)',              d: 'Qué módulos completaste, tu progreso en la certificación y qué viene la semana siguiente.' },
   ];
 
   const stats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0 };
@@ -1439,14 +1450,44 @@ function WhatsApp() {
   return (
     <div className="main-inner" style={{maxWidth:980}}>
       {/* Header */}
-      <div style={{marginBottom:28}}>
+      <div style={{marginBottom:24}}>
         <div className="lms-hero-eyebrow" style={{marginBottom:8}}><span className="repsol-dot"/>Repsol · Formación Sprinklr</div>
         <h1 style={{fontFamily:'var(--serif)', fontWeight:700, fontSize:'clamp(32px,4vw,52px)', letterSpacing:'-0.025em', margin:'0 0 6px'}}>
           Tu formación, <em style={{fontStyle:'italic', color:'var(--accent-glow)'}}>donde estés</em>.
         </h1>
         <p style={{fontSize:14, color:'var(--ink-3)', maxWidth:560, lineHeight:1.6}}>
-          Solid funciona en la web y en WhatsApp. Comparte módulos con un enlace rastreado y consulta cuántas personas los abrieron y cuánto tiempo vieron.
+          Solid funciona en la web y en tu canal corporativo favorito. Comparte módulos con un enlace rastreado y consulta cuántas personas los abrieron y cuánto tiempo vieron.
         </p>
+      </div>
+
+      {/* Channel selector · WhatsApp / Teams */}
+      <div style={{marginBottom:24, display:'flex', flexDirection:'column', gap:8}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>Canal de comunicación</div>
+        <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+          {[
+            { id:'whatsapp', label:'WhatsApp', color:'#25D366', desc:'Equipo Repsol y partners externos',
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/></svg> },
+            { id:'teams',    label:'Microsoft Teams', color:'#5059C9', desc:'Empleados internos Repsol',
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6.4h4.8c.66 0 1.2.54 1.2 1.2v5.7c0 2.4-1.95 4.35-4.35 4.35-2.4 0-4.35-1.95-4.35-4.35V7.6c0-.66.54-1.2 1.2-1.2h1.5zM7.2 9.6c1.32 0 2.4 1.08 2.4 2.4 0 1.32-1.08 2.4-2.4 2.4-1.32 0-2.4-1.08-2.4-2.4 0-1.32 1.08-2.4 2.4-2.4zm0 5.4c2.4 0 4.8 1.2 4.8 3.6V21H2.4v-2.4c0-2.4 2.4-3.6 4.8-3.6zM17.4 5.4c1.32 0 2.4-1.08 2.4-2.4S18.72.6 17.4.6 15 1.68 15 3s1.08 2.4 2.4 2.4z"/></svg> },
+          ].map(c => (
+            <button key={c.id} onClick={() => setChannel(c.id)} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'12px 16px',
+              background: channel === c.id ? c.color : 'var(--paper)',
+              color: channel === c.id ? '#fff' : 'var(--ink-2)',
+              border: '1px solid ' + (channel === c.id ? c.color : 'var(--line)'),
+              borderRadius:10, cursor:'pointer',
+              fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
+              boxShadow: channel === c.id ? `0 6px 18px ${c.color}40` : 'var(--shadow-sm)',
+              transition:'all .15s',
+            }}>
+              <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:24, height:24, borderRadius:'50%', background: channel === c.id ? 'rgba(255,255,255,0.2)' : c.color, color: channel === c.id ? '#fff' : '#fff'}}>{c.icon}</span>
+              <div style={{textAlign:'left'}}>
+                <div>{c.label}</div>
+                <div style={{fontSize:10.5, fontWeight:500, opacity:0.75, marginTop:1}}>{c.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1474,11 +1515,14 @@ function WhatsApp() {
               ))}
             </div>
           </div>
-          <div className="wa-phone">
+          <div className={`wa-phone ${isTeams ? 'is-teams' : ''}`}>
             <div className="wa-screen">
-              <div className="wa-bar">
-                <div className="av" style={{background:'var(--accent-glow)', color:'#fff'}}>S</div>
-                <div><div className="t">MENTOR-IA · Solid Sprinklr</div><div className="s">en línea · 9:00</div></div>
+              <div className="wa-bar" style={{background:channelColor, color:'#fff'}}>
+                <div className="av" style={{background:'rgba(255,255,255,0.2)', color:'#fff'}}>{isTeams ? 'T' : 'S'}</div>
+                <div>
+                  <div className="t" style={{color:'#fff'}}>{isTeams ? 'SGS|on bot · Teams' : 'MENTOR-IA · SGS|on'}</div>
+                  <div className="s" style={{color:'rgba(255,255,255,0.85)'}}>{isTeams ? 'Disponible · 9:00' : 'en línea · 9:00'}</div>
+                </div>
               </div>
               <div className="wa-chat">
                 <div className="wa-msg">

@@ -302,16 +302,14 @@ body.cinematic-mode { background: #0D1117 !important; }
 }
 .proto-root.sb-overlay .ai-footer-row .hint { color: rgba(255,255,255,0.4) !important; }
 
-/* En overlay mode, el hero ocupa toda la pantalla (incluso detrás del nav fixed) */
+/* En overlay mode, el hero ocupa toda la pantalla (sin restricciones del main-inner) */
 .proto-root.sb-overlay .main-inner {
-  padding-top: 0;
   padding-left: 0;
   padding-right: 0;
   max-width: none;
 }
 .proto-root.sb-overlay .cine-hero,
 .proto-root.sb-overlay .cine-hero.netflix-hero {
-  margin-top: -60px;       /* extiende detrás del shell-tabs fixed */
   margin-left: 0;
   margin-right: 0;
 }
@@ -412,7 +410,8 @@ body.cinematic-mode { background: #0D1117 !important; }
 /* --- Main column --- */
 .main {
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;     /* solo eje X · permitir scroll vertical sin clipar contenido */
+  min-width: 0;           /* prevent grid blowout */
 }
 .main-inner { padding: 40px 56px 80px; max-width: 1280px; }
 
