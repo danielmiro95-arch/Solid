@@ -2179,63 +2179,343 @@ function PivotTable({ rows, cols, data, metric = '%' }) {
   );
 }
 
-const WIDGET_TYPES = [
-  { id:'dropoff',  label:'Drop-off (línea)',   icon:'📉' },
-  { id:'column',   label:'Barras verticales',  icon:'📊' },
-  { id:'stacked',  label:'Stacked Bar',        icon:'🟦' },
-  { id:'donut',    label:'Pastel / Donut',      icon:'🥧' },
-  { id:'area',     label:'Tendencia (área)',   icon:'📈' },
-  { id:'heatmap',  label:'Heatmap actividad',  icon:'🟧' },
-  { id:'gauge',    label:'Gauge / KPI dial',   icon:'⏱' },
-  { id:'funnel',   label:'Funnel conversión',  icon:'🔻' },
-  { id:'modules',  label:'Completación',       icon:'✅' },
-  { id:'users',    label:'Tabla usuarios',     icon:'👤' },
-  { id:'activity', label:'Actividad reciente', icon:'🔔' },
-  { id:'wa',       label:'WhatsApp analytics', icon:'💬' },
-  { id:'wordcloud', label:'Word Cloud · preguntas', icon:'☁️' },
-  { id:'sentiment', label:'Sentiment trend',   icon:'🌡' },
-  { id:'nps',       label:'NPS scorecard',     icon:'🎯' },
-  { id:'topquestions', label:'Top preguntas IA', icon:'🏆' },
-  { id:'pivot',     label:'Pivot table',       icon:'🔢' },
+// Bar chart · barras horizontales (categoría → valor)
+function BarChart({ data, color = 'var(--bn-blue)', height = 160 }) {
+  const max = Math.max.apply(null, data.map(d => d.v));
+  return (
+    <div style={{padding:'8px 16px 12px', display:'flex', flexDirection:'column', gap:6, minHeight:height}}>
+      {data.map((d, i) => {
+        const pct = max > 0 ? (d.v / max) * 100 : 0;
+        return (
+          <div key={i} style={{display:'grid', gridTemplateColumns:'110px 1fr 46px', gap:10, alignItems:'center', fontSize:11.5}}>
+            <div style={{color:'var(--ink-3)', fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{d.l}</div>
+            <div style={{position:'relative', height:18, background:'var(--paper-2)', borderRadius:4, overflow:'hidden'}}>
+              <div style={{position:'absolute', left:0, top:0, height:'100%', width: pct + '%', background: color, borderRadius:4, transition:'width .35s'}}/>
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontWeight:700, color:'var(--ink)', textAlign:'right'}}>{d.v}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Line chart · puntos conectados por líneas (smooth=true para spline)
+function LineChart({ data, color = 'var(--bn-blue)', height = 140, smooth = false }) {
+  const W = 320, H = height, pad = 22;
+  const max = Math.max.apply(null, data.map(d => d.v));
+  const min = Math.min.apply(null, data.map(d => d.v));
+  const range = Math.max(1, max - min);
+  const xs = data.map((_, i) => pad + (i / Math.max(1, data.length - 1)) * (W - pad * 2));
+  const ys = data.map(d => H - pad - ((d.v - min) / range) * (H - pad * 2));
+  let path;
+  if (smooth) {
+    path = 'M ' + xs[0] + ',' + ys[0];
+    for (let i = 1; i < xs.length; i++) {
+      const cx = (xs[i-1] + xs[i]) / 2;
+      path += ' C ' + cx + ',' + ys[i-1] + ' ' + cx + ',' + ys[i] + ' ' + xs[i] + ',' + ys[i];
+    }
+  } else {
+    path = xs.map((x, i) => (i === 0 ? 'M' : 'L') + x + ',' + ys[i]).join(' ');
+  }
+  return (
+    <div style={{padding:'6px 8px 4px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}}>
+        {[0.25, 0.5, 0.75].map((p, i) => <line key={i} x1={pad} x2={W-pad} y1={pad + p*(H-pad*2)} y2={pad + p*(H-pad*2)} stroke="var(--line-2)" strokeDasharray="2,3"/>)}
+        <path d={path} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r="3" fill={color} stroke="var(--paper)" strokeWidth="1.5"/>)}
+        {data.map((d, i) => i % Math.ceil(data.length/6) === 0 && (
+          <text key={i} x={xs[i]} y={H - 4} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--ink-4)">{d.l}</text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+// Counter · KPI único con comparación período anterior
+function Counter({ label, value, prev, format = 'number', icon = '📈', color = 'var(--bn-blue)', unit = '' }) {
+  const num = typeof value === 'number' ? value : parseFloat(value);
+  const pnum = typeof prev === 'number' ? prev : parseFloat(prev);
+  const delta = pnum ? Math.round(((num - pnum) / pnum) * 100) : 0;
+  const up = delta >= 0;
+  const fmt = (v) => format === 'percent' ? v + '%' : format === 'duration' ? Math.floor(v/60) + 'h ' + (v%60) + 'm' : String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + unit;
+  return (
+    <div style={{padding:'18px 22px', background:`linear-gradient(135deg, ${color}10 0%, transparent 100%)`, borderRadius:8, height:'100%'}}>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>{label}</div>
+        <div style={{fontSize:18, opacity:0.6}}>{icon}</div>
+      </div>
+      <div style={{fontSize:36, fontWeight:800, letterSpacing:'-0.03em', color, lineHeight:1, marginBottom:6}}>{fmt(num)}</div>
+      <div style={{display:'flex', alignItems:'center', gap:8, fontFamily:'var(--mono)', fontSize:10.5}}>
+        <span style={{fontWeight:700, color: up ? 'var(--bn-green)' : 'var(--bn-red)'}}>{up ? '↑' : '↓'} {Math.abs(delta)}%</span>
+        <span style={{color:'var(--ink-4)'}}>vs período anterior ({fmt(pnum)})</span>
+      </div>
+    </div>
+  );
+}
+
+// Counter Summary · múltiples métricas con previous period
+function CounterSummary({ items }) {
+  return (
+    <div style={{display:'grid', gridTemplateColumns:`repeat(${items.length}, 1fr)`, gap:0, padding:'4px 0'}}>
+      {items.map((it, i) => {
+        const delta = it.prev ? Math.round(((it.value - it.prev) / it.prev) * 100) : 0;
+        const up = delta >= 0;
+        return (
+          <div key={i} style={{padding:'14px 18px', borderRight: i < items.length - 1 ? '1px solid var(--line-2)' : 'none'}}>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700, marginBottom:6}}>{it.label}</div>
+            <div style={{fontSize:24, fontWeight:800, letterSpacing:'-0.025em', color: it.color || 'var(--ink)', lineHeight:1, marginBottom:4}}>{it.value}{it.unit||''}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, color: up ? 'var(--bn-green)' : 'var(--bn-red)', fontWeight:700}}>{up ? '↑' : '↓'} {Math.abs(delta)}% · prev {it.prev}{it.unit||''}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Tree Map · rectángulos según valor (split horizontal/vertical alternado)
+function TreeMap({ nodes, height = 200 }) {
+  const total = nodes.reduce((s, n) => s + n.value, 0);
+  const layout = (items, x, y, w, h, horiz) => {
+    if (items.length === 0) return [];
+    if (items.length === 1) return [{ ...items[0], x, y, w, h }];
+    const sum = items.reduce((s, n) => s + n.value, 0);
+    const first = items[0];
+    const ratio = first.value / sum;
+    if (horiz) {
+      const fw = w * ratio;
+      return [{ ...first, x, y, w: fw, h }, ...layout(items.slice(1), x + fw, y, w - fw, h, !horiz)];
+    } else {
+      const fh = h * ratio;
+      return [{ ...first, x, y, w, h: fh }, ...layout(items.slice(1), x, y + fh, w, h - fh, !horiz)];
+    }
+  };
+  const sorted = [...nodes].sort((a, b) => b.value - a.value);
+  const W = 320, H = height;
+  const cells = layout(sorted, 0, 0, W, H, true);
+  const palette = ['var(--bn-blue)','var(--accent-glow)','var(--bn-lime)','var(--bn-purple)','var(--bn-orange)','var(--bn-teal)','var(--repsol-red)','var(--bn-green)'];
+  return (
+    <div style={{padding:'4px 8px 8px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}} preserveAspectRatio="none">
+        {cells.map((c, i) => {
+          const pct = Math.round((c.value / total) * 100);
+          const fontSize = Math.min(16, Math.sqrt(c.w * c.h) / 6);
+          return (
+            <g key={i}>
+              <rect x={c.x+1} y={c.y+1} width={Math.max(0, c.w-2)} height={Math.max(0, c.h-2)} fill={palette[i % palette.length]} opacity="0.85" rx="3"/>
+              {c.w > 60 && c.h > 30 && (
+                <>
+                  <text x={c.x + 8} y={c.y + 14 + fontSize/2} fontFamily="var(--sans)" fontSize={fontSize} fontWeight="700" fill="#fff" style={{textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{c.label}</text>
+                  <text x={c.x + 8} y={c.y + 14 + fontSize*1.6} fontFamily="var(--mono)" fontSize={fontSize * 0.7} fontWeight="600" fill="#fff" opacity="0.85">{c.value} · {pct}%</text>
+                </>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// Bubble chart · scatter con tamaño variable (3 variables: x, y, r)
+function BubbleChart({ points, height = 200, xLabel = 'X', yLabel = 'Y' }) {
+  const W = 320, H = height, pad = 28;
+  const maxX = Math.max.apply(null, points.map(p => p.x));
+  const maxY = Math.max.apply(null, points.map(p => p.y));
+  const maxR = Math.max.apply(null, points.map(p => p.r));
+  const palette = ['var(--bn-blue)','var(--accent-glow)','var(--bn-lime)','var(--bn-purple)','var(--bn-orange)','var(--bn-teal)'];
+  return (
+    <div style={{padding:'4px 8px 8px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}}>
+        <line x1={pad} y1={H-pad} x2={W-pad} y2={H-pad} stroke="var(--line)" strokeWidth="1"/>
+        <line x1={pad} y1={pad/2} x2={pad} y2={H-pad} stroke="var(--line)" strokeWidth="1"/>
+        {points.map((p, i) => {
+          const cx = pad + (p.x / maxX) * (W - pad * 2);
+          const cy = H - pad - (p.y / maxY) * (H - pad * 1.5);
+          const r = 4 + (p.r / maxR) * 18;
+          return (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r={r} fill={palette[i % palette.length]} opacity="0.65" stroke={palette[i % palette.length]} strokeWidth="1.5"/>
+              {p.label && r > 10 && <text x={cx} y={cy + 3} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fontWeight="700" fill="#fff">{p.label}</text>}
+            </g>
+          );
+        })}
+        <text x={W/2} y={H-4} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--ink-4)">{xLabel}</text>
+        <text x={8} y={H/2} textAnchor="middle" transform={`rotate(-90 8 ${H/2})`} fontFamily="var(--mono)" fontSize="8" fill="var(--ink-4)">{yLabel}</text>
+      </svg>
+    </div>
+  );
+}
+
+// Dual Axis · combina bar (eje izq) + línea (eje der)
+function DualAxisChart({ data, height = 180, leftLabel = 'Bar', rightLabel = 'Line', leftColor = 'var(--bn-blue)', rightColor = 'var(--bn-orange)' }) {
+  const W = 340, H = height, pad = 30;
+  const maxL = Math.max.apply(null, data.map(d => d.l));
+  const maxR = Math.max.apply(null, data.map(d => d.r));
+  const bw = (W - pad * 2) / data.length;
+  const xs = data.map((_, i) => pad + i * bw + bw / 2);
+  const ysR = data.map(d => H - pad - (d.r / maxR) * (H - pad * 1.5));
+  const linePath = xs.map((x, i) => (i === 0 ? 'M' : 'L') + x + ',' + ysR[i]).join(' ');
+  return (
+    <div style={{padding:'4px 8px 8px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}}>
+        <line x1={pad} y1={H-pad} x2={W-pad} y2={H-pad} stroke="var(--line)"/>
+        {data.map((d, i) => {
+          const bh = (d.l / maxL) * (H - pad * 1.5);
+          return <rect key={i} x={pad + i*bw + 4} y={H-pad-bh} width={bw - 8} height={bh} fill={leftColor} opacity="0.85" rx="2"/>;
+        })}
+        <path d={linePath} fill="none" stroke={rightColor} strokeWidth="2.5" strokeLinecap="round"/>
+        {xs.map((x, i) => <circle key={i} cx={x} cy={ysR[i]} r="3" fill={rightColor} stroke="var(--paper)" strokeWidth="1.2"/>)}
+        {data.map((d, i) => <text key={i} x={xs[i]} y={H - 8} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--ink-4)">{d.l_label}</text>)}
+      </svg>
+      <div style={{display:'flex', gap:14, justifyContent:'center', marginTop:4, fontFamily:'var(--mono)', fontSize:9.5}}>
+        <span><span style={{color:leftColor, fontWeight:700}}>■</span> {leftLabel}</span>
+        <span><span style={{color:rightColor, fontWeight:700}}>●</span> {rightLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+// Quadrant Matrix · scatter dividido en 4 cuadrantes con etiquetas
+function QuadrantMatrix({ points, xLabel = 'X', yLabel = 'Y', xThreshold = 50, yThreshold = 50, height = 220 }) {
+  const W = 320, H = height, pad = 30;
+  const tx = pad + (xThreshold / 100) * (W - pad * 2);
+  const ty = H - pad - (yThreshold / 100) * (H - pad * 1.5);
+  const palette = ['var(--bn-blue)','var(--accent-glow)','var(--bn-lime)','var(--bn-purple)','var(--bn-orange)','var(--bn-teal)','var(--repsol-red)'];
+  return (
+    <div style={{padding:'4px 8px 8px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height:H, display:'block'}}>
+        <rect x={pad} y={pad/2} width={tx-pad} height={ty-pad/2} fill="var(--bn-red)" opacity="0.06"/>
+        <rect x={tx} y={pad/2} width={W-pad-tx} height={ty-pad/2} fill="var(--bn-green)" opacity="0.08"/>
+        <rect x={pad} y={ty} width={tx-pad} height={H-pad-ty} fill="var(--bn-orange)" opacity="0.06"/>
+        <rect x={tx} y={ty} width={W-pad-tx} height={H-pad-ty} fill="var(--bn-purple)" opacity="0.06"/>
+        <line x1={tx} y1={pad/2} x2={tx} y2={H-pad} stroke="var(--ink-4)" strokeDasharray="3,3"/>
+        <line x1={pad} y1={ty} x2={W-pad} y2={ty} stroke="var(--ink-4)" strokeDasharray="3,3"/>
+        <text x={(pad+tx)/2} y={pad/2 + 10} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--bn-red)" fontWeight="700">Mejorar</text>
+        <text x={(tx+W-pad)/2} y={pad/2 + 10} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--bn-green)" fontWeight="700">Excelente</text>
+        <text x={(pad+tx)/2} y={H-pad-4} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--bn-orange)" fontWeight="700">Bajo riesgo</text>
+        <text x={(tx+W-pad)/2} y={H-pad-4} textAnchor="middle" fontFamily="var(--mono)" fontSize="8" fill="var(--bn-purple)" fontWeight="700">Oportunidad</text>
+        {points.map((p, i) => {
+          const cx = pad + (p.x / 100) * (W - pad * 2);
+          const cy = H - pad - (p.y / 100) * (H - pad * 1.5);
+          return (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r="6" fill={palette[i % palette.length]} opacity="0.85"/>
+              <text x={cx + 9} y={cy + 3} fontFamily="var(--sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-2)">{p.label}</text>
+            </g>
+          );
+        })}
+        <text x={W/2} y={H-4} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="var(--ink-4)" fontWeight="700">{xLabel} →</text>
+        <text x={8} y={H/2} textAnchor="middle" transform={`rotate(-90 8 ${H/2})`} fontFamily="var(--mono)" fontSize="9" fill="var(--ink-4)" fontWeight="700">{yLabel} →</text>
+      </svg>
+    </div>
+  );
+}
+
+// Summary Table · tabla con métricas vs previous period
+function SummaryTable({ rows }) {
+  return (
+    <div style={{padding:'4px 12px 12px', overflowX:'auto'}}>
+      <table style={{width:'100%', borderCollapse:'collapse', fontFamily:'var(--sans)', fontSize:12}}>
+        <thead>
+          <tr>
+            <th style={{padding:'8px 6px', textAlign:'left', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>Métrica</th>
+            <th style={{padding:'8px 6px', textAlign:'right', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>Actual</th>
+            <th style={{padding:'8px 6px', textAlign:'right', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>Anterior</th>
+            <th style={{padding:'8px 6px', textAlign:'right', fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', borderBottom:'1px solid var(--line)'}}>Δ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const delta = r.prev ? Math.round(((r.value - r.prev) / r.prev) * 100) : 0;
+            const up = delta >= 0;
+            return (
+              <tr key={i}>
+                <td style={{padding:'9px 6px', fontWeight:600, color:'var(--ink-2)', borderBottom:'1px solid var(--line-2)'}}>{r.label}</td>
+                <td style={{padding:'9px 6px', textAlign:'right', fontFamily:'var(--mono)', fontWeight:700, color:'var(--ink)', borderBottom:'1px solid var(--line-2)'}}>{r.value}{r.unit||''}</td>
+                <td style={{padding:'9px 6px', textAlign:'right', fontFamily:'var(--mono)', color:'var(--ink-4)', borderBottom:'1px solid var(--line-2)'}}>{r.prev}{r.unit||''}</td>
+                <td style={{padding:'9px 6px', textAlign:'right', fontFamily:'var(--mono)', fontWeight:700, color: up ? 'var(--bn-green)' : 'var(--bn-red)', borderBottom:'1px solid var(--line-2)'}}>{up ? '↑' : '↓'} {Math.abs(delta)}%</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Title widget · cabecera con título + subtítulo (layout)
+function TitleWidget({ title, subtitle, color = 'var(--bn-blue)' }) {
+  return (
+    <div style={{padding:'22px 26px', background:`linear-gradient(135deg, ${color}08 0%, transparent 80%)`, borderLeft:`3px solid ${color}`}}>
+      <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color, fontWeight:700, marginBottom:6}}>Section title</div>
+      <h2 style={{margin:'0 0 6px', fontSize:22, fontFamily:'var(--sans)', fontWeight:700, letterSpacing:'-0.015em', color:'var(--ink)'}}>{title}</h2>
+      {subtitle && <p style={{margin:0, fontSize:13, color:'var(--ink-3)', lineHeight:1.4}}>{subtitle}</p>}
+    </div>
+  );
+}
+
+// Text widget · texto libre customizable (layout)
+function TextWidget({ text }) {
+  return (
+    <div style={{padding:'18px 22px', fontSize:13, lineHeight:1.6, color:'var(--ink-2)', fontFamily:'var(--sans)'}}>
+      {text.split('\n').map((p, i) => <p key={i} style={{margin:'0 0 8px'}}>{p}</p>)}
+    </div>
+  );
+}
+
+// Categorías de visualización (estilo Sprinklr)
+const WIDGET_CATEGORIES = [
+  { id:'kpi',      label:'KPIs · Counters',     desc:'Métricas únicas y resúmenes numéricos' },
+  { id:'column',   label:'Column · Bar',        desc:'Comparaciones entre categorías' },
+  { id:'line',     label:'Line · Area · Spline', desc:'Tendencias temporales' },
+  { id:'distribution', label:'Distribution',    desc:'Pie, donut, tree map, heatmap, word cloud' },
+  { id:'table',    label:'Tables',              desc:'Pivot, summary, tabla 2D' },
+  { id:'funnel',   label:'Funnel · Stages',     desc:'Conversión y etapas' },
+  { id:'advanced', label:'Advanced',            desc:'Bubble, quadrant, dual axis, AI insights' },
+  { id:'layout',   label:'Layout',              desc:'Title, text — sin datos' },
 ];
 
-// Dashboards preset · cada uno expone su widget set + meta
-const DASHBOARD_PRESETS = [
-  {
-    id: 'executive',
-    label: 'Executive',
-    icon: '🎯',
-    desc: 'KPIs de alto nivel · visión cohorte completa',
-    widgets: ['dropoff', 'column', 'gauge', 'donut', 'area', 'activity'],
-  },
-  {
-    id: 'learning',
-    label: 'Learning Performance',
-    icon: '📚',
-    desc: 'Completación, drop-off, tests y exámenes',
-    widgets: ['dropoff', 'stacked', 'funnel', 'modules', 'users', 'pivot'],
-  },
-  {
-    id: 'engagement',
-    label: 'Engagement & Adopción',
-    icon: '🔥',
-    desc: 'Actividad, retención, MENTOR-IA, WhatsApp',
-    widgets: ['heatmap', 'area', 'activity', 'wa', 'users'],
-  },
-  {
-    id: 'service',
-    label: 'Service Level (SLA)',
-    icon: '⚡',
-    desc: 'NPS, satisfacción, tiempos de respuesta',
-    widgets: ['nps', 'gauge', 'sentiment', 'topquestions', 'activity'],
-  },
-  {
-    id: 'mentor',
-    label: 'MENTOR-IA Insights',
-    icon: '🤖',
-    desc: 'Preguntas, intents, sentiment, conversaciones',
-    widgets: ['topquestions', 'wordcloud', 'sentiment', 'area', 'activity'],
-  },
+// Librería completa de tipos de widget · 28 tipos
+// Cada uno: id, label, icon, cat (categoría), desc (descripción corta), defaultSpan
+const WIDGET_LIBRARY = [
+  // KPI
+  { id:'counter',         label:'Counter',          icon:'🔢', cat:'kpi',     desc:'Métrica única + previous period' },
+  { id:'counter-summary', label:'Counter Summary',  icon:'📑', cat:'kpi',     desc:'Múltiples KPIs en fila',          defaultSpan:2 },
+  { id:'gauge',           label:'Gauge / Dial',     icon:'⏱',  cat:'kpi',     desc:'Engagement vs meta' },
+  { id:'nps',             label:'NPS Scorecard',    icon:'🎯', cat:'kpi',     desc:'NPS + Promoters/Passives/Detractors' },
+  // Column / Bar
+  { id:'column',          label:'Column',           icon:'📊', cat:'column',  desc:'Barras verticales por categoría' },
+  { id:'bar',             label:'Bar',              icon:'📊', cat:'column',  desc:'Barras horizontales por categoría' },
+  { id:'stacked',         label:'Stacked Bar',      icon:'🟦', cat:'column',  desc:'Composición acumulada',           defaultSpan:2 },
+  // Line / Area
+  { id:'line',            label:'Line',             icon:'📈', cat:'line',    desc:'Serie temporal · puntos conectados' },
+  { id:'spline',          label:'Spline',           icon:'🌊', cat:'line',    desc:'Línea suavizada · curva' },
+  { id:'area',            label:'Area',             icon:'📈', cat:'line',    desc:'Área bajo la línea' },
+  { id:'dropoff',         label:'Drop-off',         icon:'📉', cat:'line',    desc:'Retención minuto a minuto' },
+  { id:'sentiment',       label:'Sentiment',        icon:'🌡',  cat:'line',    desc:'Trend stacked pos/neu/neg' },
+  // Distribution
+  { id:'donut',           label:'Donut / Pie',      icon:'🥧', cat:'distribution', desc:'Distribución porcentual' },
+  { id:'tree-map',        label:'Tree Map',         icon:'🧩', cat:'distribution', desc:'Rectángulos jerárquicos',     defaultSpan:2 },
+  { id:'heatmap',         label:'Heatmap',          icon:'🟧', cat:'distribution', desc:'Matriz de intensidad' },
+  { id:'wordcloud',       label:'Word Cloud',       icon:'☁️', cat:'distribution', desc:'Términos por peso',           defaultSpan:2 },
+  // Tables
+  { id:'pivot',           label:'Pivot Table',      icon:'🔢', cat:'table',   desc:'Cross-tab heatmap',                defaultSpan:2 },
+  { id:'summary-table',   label:'Summary Table',    icon:'📋', cat:'table',   desc:'Métrica + previous + delta' },
+  { id:'users',           label:'Tabla usuarios',   icon:'👤', cat:'table',   desc:'Listado individual',               defaultSpan:2 },
+  { id:'topquestions',    label:'Top Questions',    icon:'🏆', cat:'table',   desc:'Ranking IA con bar fill' },
+  // Funnel
+  { id:'funnel',          label:'Funnel',           icon:'🔻', cat:'funnel',  desc:'Etapas de conversión' },
+  { id:'modules',         label:'Completación',     icon:'✅', cat:'funnel',  desc:'% completado por módulo' },
+  // Advanced
+  { id:'bubble',          label:'Bubble',           icon:'⚪', cat:'advanced', desc:'Scatter 3D (x, y, tamaño)' },
+  { id:'dual-axis',       label:'Dual Axis',        icon:'⚖️', cat:'advanced', desc:'Bar + línea con 2 ejes' },
+  { id:'quadrant',        label:'Quadrant Matrix',  icon:'⊞',  cat:'advanced', desc:'Scatter dividido en 4 cuadrantes' },
+  { id:'activity',        label:'Activity feed',    icon:'🔔', cat:'advanced', desc:'Eventos recientes' },
+  { id:'wa',              label:'WhatsApp KPIs',    icon:'💬', cat:'advanced', desc:'Compartidos · aperturas · CTR' },
+  // Layout
+  { id:'title',           label:'Title',            icon:'🅰️', cat:'layout',   desc:'Título de sección',                defaultSpan:2 },
+  { id:'text',            label:'Text',             icon:'📝', cat:'layout',   desc:'Texto libre customizable' },
 ];
 
 const TEAMS = ['Todos', 'Repsol', 'BeonIt', 'Sprinklr CSM'];
@@ -2248,268 +2528,562 @@ const DATE_RANGES = [
   { id:'all', label:'Todo' },
 ];
 
-function WidgetPicker({ onAdd, onClose }) {
-  return (
-    <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center'}} onClick={onClose}>
-      <div style={{background:'var(--paper)', borderRadius:16, padding:24, width:380, boxShadow:'var(--shadow-lg)'}} onClick={e => e.stopPropagation()}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
-          <div style={{fontWeight:800, fontSize:16}}>Añadir widget</div>
-          <button onClick={onClose} style={{background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--ink-4)'}}>×</button>
+// Helper: genera un widget nuevo con id único y configuración por defecto
+function newWidget(typeId) {
+  const def = WIDGET_LIBRARY.find(w => w.id === typeId);
+  return {
+    id: 'w-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    type: typeId,
+    title: def ? def.label : typeId,
+    subtitle: def ? def.desc : '',
+    span: def && def.defaultSpan ? def.defaultSpan : 1,
+  };
+}
+
+// Dashboard ejemplo · pre-built · showcases 8+ tipos de widget mezclados
+const EXAMPLE_DASHBOARD = {
+  id: 'example-learning',
+  name: 'Demo · Learning Analytics Overview',
+  desc: 'Dashboard de ejemplo · mezcla 9 tipos de widget para inspirarte',
+  icon: '⭐',
+  color: 'var(--bn-blue)',
+  isExample: true,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  widgets: [
+    { id:'ex-1', type:'title',           title:'Learning Analytics · Q4 2026', subtitle:'Cohorte Repsol · 247 usuarios activos · datos mock para demo', span:2 },
+    { id:'ex-2', type:'counter-summary', title:'KPIs principales',             subtitle:'vs período anterior',                                   span:2 },
+    { id:'ex-3', type:'line',            title:'Sesiones diarias',             subtitle:'Últimas 4 semanas',                                     span:1 },
+    { id:'ex-4', type:'bar',             title:'Top módulos completados',      subtitle:'Conteo de usuarios que han terminado cada módulo',      span:1 },
+    { id:'ex-5', type:'donut',           title:'Distribución por rol',         subtitle:'247 usuarios',                                          span:1 },
+    { id:'ex-6', type:'tree-map',        title:'Tiempo invertido por módulo',  subtitle:'Suma de minutos · todos los usuarios',                  span:2 },
+    { id:'ex-7', type:'pivot',           title:'Rol × Métrica',                subtitle:'Cross-tab con heatmap',                                 span:2 },
+    { id:'ex-8', type:'gauge',           title:'Engagement global',            subtitle:'Meta trimestral 80%',                                   span:1 },
+    { id:'ex-9', type:'text',            title:'Notas del dashboard',          subtitle:'Insights generados automáticamente',                    span:1 },
+  ],
+};
+
+
+// ---------- Mock data registry · datos por defecto por widget type ----------
+function getMockData(type) {
+  switch (type) {
+    case 'counter':
+      return { label:'Usuarios activos', value:247, prev:215, color:'var(--bn-blue)', icon:'👥' };
+    case 'counter-summary':
+      return { items: [
+        { label:'Usuarios',   value:247,  prev:215,  color:'var(--bn-blue)' },
+        { label:'Sesiones',   value:1842, prev:1612, color:'var(--accent-glow)' },
+        { label:'Completión', value:58,   prev:54,   unit:'%', color:'var(--bn-lime)' },
+        { label:'NPS',        value:58,   prev:51,   color:'var(--bn-purple)' },
+      ]};
+    case 'gauge':
+      return { value:73, label:'Engagement global', sub:'meta trimestral 80%', target:80 };
+    case 'nps':
+      return { nps:58, promoters:142, passives:71, detractors:34, total:247 };
+    case 'column':
+      return { data:[{l:'Social P.',v:89},{l:'Aprobac.',v:76},{l:'Calendr.',v:54},{l:'Monitor.',v:38},{l:'DAM',v:22},{l:'Complian.',v:11}], color:'var(--accent-glow)', height:120 };
+    case 'bar':
+      return { data:[{l:'Crear campañas',v:218},{l:'Aprobación',v:189},{l:'Calendario',v:142},{l:'Monitorización',v:98},{l:'DAM',v:62},{l:'Compliance',v:31}], color:'var(--bn-blue)' };
+    case 'stacked':
+      return { series:[
+        {label:'Completado',   values:[89,76,54,38,22,11]},
+        {label:'En progreso',  values:[8,12,20,25,15,10]},
+        {label:'Sin iniciar',  values:[3,12,26,37,63,79]},
+      ], categories:['Social Publish','Aprobaciones','Calendario','Monitorización','DAM','Compliance'], height:160 };
+    case 'line':
+      return { data:[{l:'L 14',v:142},{l:'M 15',v:168},{l:'X 16',v:155},{l:'J 17',v:184},{l:'V 18',v:210},{l:'L 21',v:201},{l:'M 22',v:223},{l:'X 23',v:198},{l:'J 24',v:241},{l:'V 25',v:258}], color:'var(--bn-blue)', smooth:false };
+    case 'spline':
+      return { data:[{l:'L 14',v:142},{l:'M 15',v:168},{l:'X 16',v:155},{l:'J 17',v:184},{l:'V 18',v:210},{l:'L 21',v:201},{l:'M 22',v:223},{l:'X 23',v:198},{l:'J 24',v:241},{l:'V 25',v:258}], color:'var(--accent-glow)', smooth:true };
+    case 'area':
+      return { data:[142,168,155,184,210,96,78,201,223,198,241,258,112,247], color:'var(--accent-glow)', height:140 };
+    case 'dropoff':
+      return { values:[100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20] };
+    case 'sentiment':
+      return { data:[
+        {l:'S1', pos:62, neu:28, neg:10},{l:'S2', pos:64, neu:26, neg:10},
+        {l:'S3', pos:68, neu:24, neg:8}, {l:'S4', pos:71, neu:21, neg:8},
+        {l:'S5', pos:69, neu:23, neg:8}, {l:'S6', pos:74, neu:19, neg:7},
+        {l:'S7', pos:77, neu:17, neg:6},
+      ]};
+    case 'donut':
+      return { segments:[{l:'Publish Agent',v:89},{l:'Care Agent',v:64},{l:'Managers',v:32},{l:'Reporting',v:28},{l:'Sin rol',v:34}] };
+    case 'tree-map':
+      return { nodes:[
+        { label:'Social Publish', value:1820 },{ label:'Aprobaciones', value:1450 },
+        { label:'Calendario',     value:980  },{ label:'DAM',           value:720 },
+        { label:'Care',           value:610  },{ label:'Compliance',    value:430 },
+        { label:'Listening',      value:380  },{ label:'Reporting',     value:240 },
+      ]};
+    case 'heatmap':
+      return (() => {
+        const rows = ['L','M','X','J','V','S','D'];
+        const cols = Array.from({length:14}, (_,i) => i);
+        const matrix = rows.map((r, ri) => cols.map((_, ci) => {
+          const weekend = ri >= 5 ? 0.25 : 1;
+          const peak = Math.exp(-Math.pow((ci - 6.5)/4, 2));
+          const noise = 0.4 + ((ri * 7 + ci * 3) % 13) / 25;
+          return Math.round(weekend * peak * noise * 100);
+        }));
+        return { rows, cols, matrix };
+      })();
+    case 'wordcloud':
+      return { words:[
+        { text:'¿cómo programar?', weight: 87 },{ text:'aprobación', weight: 74 },
+        { text:'macros', weight: 68 },          { text:'audiencia', weight: 61 },
+        { text:'inboxes', weight: 55 },         { text:'calendario editorial', weight: 49 },
+        { text:'mentions', weight: 42 },        { text:'rule engine', weight: 38 },
+        { text:'DAM', weight: 36 },             { text:'GDPR', weight: 30 },
+        { text:'permisos', weight: 28 },        { text:'reporting', weight: 25 },
+        { text:'tags', weight: 22 },            { text:'CSV bulk', weight: 19 },
+        { text:'SLA', weight: 17 },             { text:'caso', weight: 14 },
+      ]};
+    case 'pivot':
+      return {
+        rows: ['Publish Agent', 'Care Agent', 'Manager', 'Analyst', 'Content Lead'],
+        cols: ['Completación', 'Tests', 'NPS', 'Sesión IA'],
+        data: [[62, 88, 54, 12],[48, 82, 47, 16],[78, 94, 71, 8],[55, 91, 58, 14],[70, 89, 62, 11]],
+      };
+    case 'summary-table':
+      return { rows:[
+        { label:'Usuarios activos',    value:247,  prev:215 },
+        { label:'Sesiones semanales',  value:1842, prev:1612 },
+        { label:'Completación media',  value:58,   prev:54,  unit:'%' },
+        { label:'Tasa éxito tests',    value:94,   prev:92,  unit:'%' },
+        { label:'Tiempo medio (m)',    value:182,  prev:215 },
+        { label:'NPS',                 value:58,   prev:51 },
+      ]};
+    case 'topquestions':
+      return { items:[
+        { text:'¿Cómo programo un post multicanal?',             value: 87 },
+        { text:'¿Qué diferencia hay entre macro y rule engine?', value: 74 },
+        { text:'¿Cómo apruebo contenido sin ser admin?',          value: 68 },
+        { text:'¿Dónde se configuran las audiencias?',            value: 61 },
+        { text:'¿Qué inboxes están activos en mi equipo?',        value: 55 },
+        { text:'¿Cómo subo activos al DAM?',                      value: 49 },
+      ], color:'var(--bn-purple)' };
+    case 'funnel':
+      return { stages:[
+        { l:'Matriculados',      v:247, c:'var(--bn-blue)' },
+        { l:'Iniciaron P0',       v:231, c:'var(--accent-glow)' },
+        { l:'Completan Bloque 1', v:198, c:'var(--bn-lime)' },
+        { l:'Completan Bloque 4', v:142, c:'var(--bn-orange)' },
+        { l:'Certificados',       v: 89, c:'var(--repsol-red)' },
+      ]};
+    case 'modules':
+      return { items:[
+        { name:'Crear y gestionar campañas', pct:89 },
+        { name:'Flujo de aprobación',        pct:76 },
+        { name:'Programar posts',            pct:54 },
+        { name:'Monitorización y alertas',   pct:38 },
+        { name:'Gestión de activos DAM',     pct:22 },
+        { name:'Compliance · Gobernanza',    pct:11 },
+      ]};
+    case 'bubble':
+      return { points:[
+        { x:30, y:60, r:25, label:'Pub' },{ x:55, y:75, r:40, label:'Care' },
+        { x:75, y:90, r:18, label:'Mgr' },{ x:45, y:40, r:30, label:'An' },
+        { x:65, y:55, r:22, label:'CL'  },{ x:25, y:30, r:15, label:'Vw'  },
+      ], xLabel:'Engagement →', yLabel:'NPS →' };
+    case 'dual-axis':
+      return { data:[
+        { l_label:'S1', l:120, r:62 },{ l_label:'S2', l:148, r:65 },
+        { l_label:'S3', l:165, r:68 },{ l_label:'S4', l:192, r:71 },
+        { l_label:'S5', l:185, r:74 },{ l_label:'S6', l:215, r:77 },
+      ], leftLabel:'Sesiones', rightLabel:'NPS' };
+    case 'quadrant':
+      return { points:[
+        { x:78, y:88, label:'Pub Agent' },{ x:48, y:62, label:'Care' },
+        { x:88, y:71, label:'Manager' }, { x:55, y:78, label:'Analyst' },
+        { x:65, y:38, label:'Content L' },{ x:30, y:25, label:'Viewer' },
+      ], xLabel:'Engagement', yLabel:'Completación', xThreshold:50, yThreshold:50 };
+    case 'users':
+      return { rows:[
+        { name:'Amaia Ruiz',  role:'Publish Agent',  prog:58,  mods:'7/12',  last:'Hoy, 10:42' },
+        { name:'Carlos Vega', role:'Publish Agent',  prog:100, mods:'12/12', last:'Ayer' },
+        { name:'Sara Molina', role:'Content Lead',   prog:33,  mods:'4/12',  last:'Hace 2 días' },
+        { name:'Luis Romero', role:'Analyst',        prog:75,  mods:'9/12',  last:'Hoy, 09:10' },
+        { name:'Ana García',  role:'Analytics Lead', prog:17,  mods:'2/12',  last:'Hace 4 días' },
+      ]};
+    case 'activity':
+      return { items:[
+        { color:'green',  text:'Carlos Vega completó la ruta de certificación',          time:'Hace 8 min' },
+        { color:'orange', text:'Amaia Ruiz superó el test de Publicación con 94%',       time:'Hace 22 min' },
+        { color:'',       text:'Sara Molina vio 2 módulos de Calendario',                time:'Hace 1h' },
+        { color:'red',    text:'Ana García se quedó atascada en el módulo de Analytics', time:'Hace 3h' },
+        { color:'',       text:'Luis Romero descargó el certificado de DAM',             time:'Ayer, 18:30' },
+      ]};
+    case 'wa':
+      return window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
+    case 'title':
+      return { title:'Sección del dashboard', subtitle:'Edita este título desde las opciones del widget', color:'var(--bn-blue)' };
+    case 'text':
+      return { text:'Texto libre del widget. Útil para documentar el contexto del dashboard, añadir notas o describir hallazgos.\nPuedes editar este contenido desde las opciones del widget.' };
+    default:
+      return {};
+  }
+}
+
+// ---------- Widget renderer · switch por type ----------
+function WidgetRenderer({ widget, onRemove, onEditMeta }) {
+  const def = WIDGET_LIBRARY.find(w => w.id === widget.type);
+  const data = getMockData(widget.type);
+  let body = null;
+  switch (widget.type) {
+    case 'counter':         body = <Counter {...data}/>; break;
+    case 'counter-summary': body = <CounterSummary items={data.items}/>; break;
+    case 'gauge':           body = <GaugeChart {...data}/>; break;
+    case 'nps':             body = <NPSScorecard {...data}/>; break;
+    case 'column':          body = <ColumnChart {...data}/>; break;
+    case 'bar':             body = <BarChart {...data}/>; break;
+    case 'stacked':         body = <StackedBarChart {...data}/>; break;
+    case 'line':            body = <LineChart {...data}/>; break;
+    case 'spline':          body = <LineChart {...data}/>; break;
+    case 'area':            body = <AreaChart {...data}/>; break;
+    case 'dropoff':         body = (
+      <>
+        <div className="dropoff-chart">
+          {data.values.map((v, i) => <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}%`}/>)}
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
-          {WIDGET_TYPES.map(wt => (
-            <button key={wt.id} onClick={() => { onAdd(wt.id); onClose(); }} style={{
-              display:'flex', alignItems:'center', gap:10, padding:'12px 14px',
-              background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10,
-              cursor:'pointer', fontFamily:'var(--sans)', fontSize:12, fontWeight:600, color:'var(--ink)',
-              transition:'all .12s', textAlign:'left',
-            }}
-              onMouseEnter={e => e.currentTarget.style.borderColor='var(--accent-glow)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
-              <span style={{fontSize:18}}>{wt.icon}</span>{wt.label}
-            </button>
-          ))}
+        <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
+        <div className="dropoff-legend">
+          <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
+          <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
+        </div>
+      </>
+    ); break;
+    case 'sentiment':       body = <SentimentTrend data={data.data}/>; break;
+    case 'donut':           body = <DonutChart segments={data.segments}/>; break;
+    case 'tree-map':        body = <TreeMap nodes={data.nodes}/>; break;
+    case 'heatmap':         body = <HeatmapChart {...data}/>; break;
+    case 'wordcloud':       body = <WordCloud words={data.words}/>; break;
+    case 'pivot':           body = <PivotTable {...data}/>; break;
+    case 'summary-table':   body = <SummaryTable rows={data.rows}/>; break;
+    case 'topquestions':    body = <TopList items={data.items} color={data.color}/>; break;
+    case 'funnel':          body = <FunnelChart stages={data.stages}/>; break;
+    case 'modules':         body = (
+      <div style={{padding:'12px 18px', display:'flex', flexDirection:'column', gap:10}}>
+        {data.items.map((m, i) => (
+          <div key={i} className="module-bar-row">
+            <div className="mod-name">{m.name}</div>
+            <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
+            <div className="mod-pct">{m.pct}%</div>
+          </div>
+        ))}
+      </div>
+    ); break;
+    case 'bubble':          body = <BubbleChart {...data}/>; break;
+    case 'dual-axis':       body = <DualAxisChart {...data}/>; break;
+    case 'quadrant':        body = <QuadrantMatrix {...data}/>; break;
+    case 'users':           body = (
+      <div style={{padding:'0 20px'}}>
+        <table className="user-table">
+          <thead><tr><th>Usuario</th><th>Progreso</th><th>Módulos</th><th>Última actividad</th></tr></thead>
+          <tbody>
+            {data.rows.map((u, i) => (
+              <tr key={i}>
+                <td><div className="u-name">{u.name}</div><div className="u-role">{u.role}</div></td>
+                <td><div className="prog-pill"><div className="prog-bar-sm"><i style={{width: u.prog + '%'}}/></div><span style={{fontFamily:'var(--mono)', fontSize:11}}>{u.prog}%</span></div></td>
+                <td style={{fontFamily:'var(--mono)', fontSize:12}}>{u.mods}</td>
+                <td style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{u.last}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ); break;
+    case 'activity':        body = (
+      <div className="activity-feed">
+        {data.items.map((a, i) => (
+          <div key={i} className="activity-item">
+            <div className={`activity-dot${a.color ? ' ' + a.color : ''}`}/>
+            <div className="activity-main"><div className="a-text">{a.text}</div><div className="a-time">{a.time}</div></div>
+          </div>
+        ))}
+      </div>
+    ); break;
+    case 'wa':              body = (
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, padding:'12px 20px 16px'}}>
+        {[
+          { label:'Compartidos', value: data.totalShared },{ label:'Aperturas', value: data.totalOpens },
+          { label:'Ratio',       value: data.ctr+'×' },    { label:'Tiempo medio', value: (data.avgWatch||0)+'s' },
+        ].map((k,i) => (
+          <div key={i} style={{textAlign:'center'}}>
+            <div style={{fontSize:20, fontWeight:800, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>{k.value}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:3}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+    ); break;
+    case 'title':           body = <TitleWidget title={widget.titleText || data.title} subtitle={widget.subtitleText || data.subtitle}/>; break;
+    case 'text':            body = <TextWidget text={widget.textContent || data.text}/>; break;
+    default:                body = <div style={{padding:20, color:'var(--ink-4)', fontSize:12}}>Widget type "{widget.type}" no soportado.</div>;
+  }
+  const isLayout = widget.type === 'title' || widget.type === 'text';
+  return (
+    <div className="dash-panel" style={{position:'relative'}}>
+      {!isLayout && (
+        <div className="dash-panel-head">
+          <h3>{widget.title || (def && def.label) || widget.type}</h3>
+          {widget.subtitle && <span className="panel-sub">{widget.subtitle}</span>}
+          <div style={{marginLeft:'auto', display:'flex', gap:4}}>
+            <button onClick={() => onEditMeta(widget)} title="Editar título" style={{background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px'}}>✎</button>
+            <button onClick={() => onRemove(widget.id)} title="Eliminar widget" style={{background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px'}}>×</button>
+          </div>
+        </div>
+      )}
+      {!isLayout ? <div className="dash-panel-body">{body}</div> : body}
+      {isLayout && (
+        <button onClick={() => onRemove(widget.id)} title="Eliminar" style={{position:'absolute', top:8, right:8, background:'rgba(255,255,255,0.7)', border:'1px solid var(--line-2)', cursor:'pointer', fontSize:11, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px', borderRadius:4, backdropFilter:'blur(4px)'}}>×</button>
+      )}
+    </div>
+  );
+}
+
+// ---------- Widget picker · gallery con categorías ----------
+function WidgetPicker({ onAdd, onClose }) {
+  const [activeCat, setActiveCat] = useS2('kpi');
+  const inCat = WIDGET_LIBRARY.filter(w => w.cat === activeCat);
+  return (
+    <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
+      <div style={{background:'var(--paper)', borderRadius:14, width:'min(820px, 96vw)', maxHeight:'88vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}} onClick={e => e.stopPropagation()}>
+        <div style={{padding:'22px 28px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0}}>
+          <div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700, marginBottom:4}}>Visualization library · {WIDGET_LIBRARY.length} types</div>
+            <h2 style={{margin:0, fontSize:20, fontFamily:'var(--sans)', fontWeight:700, letterSpacing:'-0.01em'}}>Añadir widget</h2>
+          </div>
+          <button onClick={onClose} style={{width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style={{display:'flex', flex:1, minHeight:0}}>
+          <div style={{width:200, borderRight:'1px solid var(--line)', padding:'14px 10px', overflow:'auto', background:'var(--paper-2)'}}>
+            {WIDGET_CATEGORIES.map(c => (
+              <button key={c.id} onClick={() => setActiveCat(c.id)} style={{
+                display:'block', width:'100%', textAlign:'left', padding:'10px 12px', marginBottom:2,
+                background: activeCat === c.id ? 'var(--paper)' : 'transparent',
+                border: activeCat === c.id ? '1px solid var(--line)' : '1px solid transparent',
+                borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontSize:12, fontWeight:600, color: activeCat === c.id ? 'var(--ink)' : 'var(--ink-3)',
+                boxShadow: activeCat === c.id ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+              }}>
+                <div style={{marginBottom:2}}>{c.label}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', fontWeight:500, lineHeight:1.3}}>{c.desc}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{flex:1, padding:'18px 22px', overflow:'auto'}}>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+              {inCat.map(wt => (
+                <button key={wt.id} onClick={() => { onAdd(wt.id); onClose(); }} style={{
+                  display:'flex', alignItems:'flex-start', gap:12, padding:'14px 16px',
+                  background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:10,
+                  cursor:'pointer', fontFamily:'var(--sans)', textAlign:'left', transition:'all .12s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor='var(--accent-glow)'; e.currentTarget.style.transform='translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor='var(--line)'; e.currentTarget.style.transform='translateY(0)'; }}>
+                  <span style={{fontSize:24, lineHeight:1, flexShrink:0}}>{wt.icon}</span>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3}}>{wt.label}</div>
+                    <div style={{fontSize:11, color:'var(--ink-4)', lineHeight:1.35}}>{wt.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ---------- Analytics Dashboard ----------
-function Dashboard() {
-  const [checks, setChecks] = useS2([true, true, false, false, false, false]);
-  const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v));
-  const ALL_KEY = window.userKey ? window.userKey('solid-dash-all') : 'solid-dash-all';
-  const [presetId, setPresetId] = useS2(() => localStorage.getItem('solid-dash-preset') || 'executive');
-  const [allWidgets, setAllWidgets] = useS2(() => {
-    try { return JSON.parse(localStorage.getItem(ALL_KEY) || 'null') || {}; }
-    catch(e) { return {}; }
-  });
-  const [filters, setFilters] = useS2({ range:'30d', team:'Todos', role:'Todos' });
-  const preset = DASHBOARD_PRESETS.find(p => p.id === presetId) || DASHBOARD_PRESETS[0];
-  const activeWidgets = allWidgets[presetId] || preset.widgets;
-  React.useEffect(() => { localStorage.setItem(ALL_KEY, JSON.stringify(allWidgets)); }, [allWidgets]);
-  React.useEffect(() => { localStorage.setItem('solid-dash-preset', presetId); }, [presetId]);
+// ---------- Modal genérico (create / rename / edit widget meta) ----------
+function PromptModal({ title, fields, initial, onSave, onClose, saveLabel = 'Guardar' }) {
+  const [vals, setVals] = useS2(() => initial || {});
+  return (
+    <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(480px, 96vw)', padding:26, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
+        <h2 style={{margin:'0 0 18px', fontSize:18, fontFamily:'var(--sans)', fontWeight:700, letterSpacing:'-0.01em'}}>{title}</h2>
+        <div style={{display:'flex', flexDirection:'column', gap:12, marginBottom:20}}>
+          {fields.map(f => (
+            <label key={f.key} style={{display:'flex', flexDirection:'column', gap:5}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>{f.label}</span>
+              {f.type === 'textarea'
+                ? <textarea value={vals[f.key] || ''} onChange={e => setVals(v => ({ ...v, [f.key]: e.target.value }))} placeholder={f.placeholder || ''} rows={f.rows || 3} style={{padding:'10px 12px', fontFamily:'var(--sans)', fontSize:13, border:'1px solid var(--line)', borderRadius:8, background:'var(--paper-2)', color:'var(--ink)', resize:'vertical'}}/>
+                : <input type="text" value={vals[f.key] || ''} onChange={e => setVals(v => ({ ...v, [f.key]: e.target.value }))} placeholder={f.placeholder || ''} style={{padding:'10px 12px', fontFamily:'var(--sans)', fontSize:13, border:'1px solid var(--line)', borderRadius:8, background:'var(--paper-2)', color:'var(--ink)'}}/>}
+            </label>
+          ))}
+        </div>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <button onClick={onClose} style={{padding:'9px 16px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>Cancelar</button>
+          <button onClick={() => { onSave(vals); onClose(); }} style={{padding:'9px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:12, boxShadow:'0 4px 14px rgba(0,89,150,0.25)'}}>{saveLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Library view · grid de dashboards ----------
+function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate }) {
+  const [showCreate, setShowCreate] = useS2(false);
+  const example = dashboards.find(d => d.isExample);
+  const custom = dashboards.filter(d => !d.isExample);
+  const palette = ['var(--bn-blue)','var(--accent-glow)','var(--bn-lime)','var(--bn-purple)','var(--bn-orange)','var(--bn-teal)','var(--repsol-red)'];
+  const icons = ['📊','📈','🎯','🔥','⚡','🤖','📚','💡','🧭','🎨'];
+  return (
+    <div className="dash-root">
+      {showCreate && (
+        <PromptModal
+          title="Crear nuevo dashboard"
+          fields={[
+            { key:'name', label:'Nombre', placeholder:'Ej: Customer Care performance' },
+            { key:'desc', label:'Descripción (opcional)', placeholder:'Describe el objetivo de este dashboard', type:'textarea', rows:2 },
+          ]}
+          initial={{ name:'', desc:'' }}
+          onSave={(vals) => {
+            if (!vals.name || !vals.name.trim()) return;
+            const d = {
+              id: 'd-' + Date.now().toString(36),
+              name: vals.name.trim(),
+              desc: (vals.desc && vals.desc.trim()) || '',
+              icon: icons[Math.floor(Math.random() * icons.length)],
+              color: palette[custom.length % palette.length],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              widgets: [],
+            };
+            onCreate(d);
+          }}
+          onClose={() => setShowCreate(false)}
+          saveLabel="Crear dashboard"
+        />
+      )}
+
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:24}}>
+        <div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Analytics</div>
+          <h1>Mis <em>dashboards</em></h1>
+          <div className="dash-sub">Crea dashboards customizados con la librería de {WIDGET_LIBRARY.length} tipos de widget. Cada dashboard se persiste en tu cuenta.</div>
+        </div>
+        <button onClick={() => setShowCreate(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'10px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13.5, boxShadow:'0 4px 14px rgba(0,89,150,0.3)', marginTop:8}}>
+          <span style={{fontSize:16, lineHeight:1}}>+</span> Crear dashboard
+        </button>
+      </div>
+
+      {example && (
+        <div style={{marginBottom:28}}>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700, marginBottom:10}}>★ Dashboard ejemplo · solo lectura</div>
+          <button onClick={() => onOpen(example.id)} style={{display:'block', width:'100%', textAlign:'left', padding:0, background:'transparent', border:'none', cursor:'pointer'}}>
+            <div style={{padding:'22px 26px', background:`linear-gradient(135deg, ${example.color}10 0%, var(--paper) 60%)`, border:`1px solid ${example.color}40`, borderRadius:14, display:'flex', alignItems:'center', gap:16, transition:'all .15s'}}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow=`0 8px 24px ${example.color}30`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none'; }}>
+              <div style={{fontSize:40, lineHeight:1}}>{example.icon}</div>
+              <div style={{flex:1}}>
+                <h3 style={{margin:'0 0 4px', fontSize:17, fontFamily:'var(--sans)', fontWeight:700, color:'var(--ink)'}}>{example.name}</h3>
+                <p style={{margin:'0 0 6px', fontSize:13, color:'var(--ink-3)', lineHeight:1.4}}>{example.desc}</p>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.06em', color:'var(--ink-4)'}}>{example.widgets.length} widgets · 9 tipos distintos · explora cómo combinar visualizaciones</div>
+              </div>
+              <div style={{fontFamily:'var(--mono)', fontSize:11, color:example.color, fontWeight:700, padding:'8px 14px', border:`1px solid ${example.color}40`, borderRadius:8}}>Abrir →</div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700, marginBottom:10}}>Tus dashboards · {custom.length}</div>
+      {custom.length === 0 ? (
+        <div style={{padding:'40px 30px', background:'var(--paper-2)', border:'1px dashed var(--line)', borderRadius:14, textAlign:'center'}}>
+          <div style={{fontSize:42, marginBottom:10, opacity:0.5}}>📁</div>
+          <h3 style={{margin:'0 0 6px', fontSize:16, fontFamily:'var(--sans)', color:'var(--ink-2)'}}>Sin dashboards aún</h3>
+          <p style={{margin:'0 0 16px', fontSize:13, color:'var(--ink-4)', lineHeight:1.5}}>Crea tu primer dashboard customizado. Empieza vacío y añade widgets desde la librería.</p>
+          <button onClick={() => setShowCreate(true)} className="btn glow">+ Crear mi primer dashboard</button>
+        </div>
+      ) : (
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14}}>
+          {custom.map(d => (
+            <div key={d.id} style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', transition:'all .15s'}}
+              onMouseEnter={e => { e.currentTarget.style.borderColor=d.color; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.08)`; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor='var(--line)'; e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none'; }}>
+              <button onClick={() => onOpen(d.id)} style={{padding:'18px 18px 14px', background:`linear-gradient(135deg, ${d.color}12 0%, transparent 100%)`, border:'none', borderBottom:'1px solid var(--line-2)', textAlign:'left', cursor:'pointer', display:'flex', alignItems:'flex-start', gap:12}}>
+                <div style={{fontSize:28, lineHeight:1}}>{d.icon}</div>
+                <div style={{flex:1, minWidth:0}}>
+                  <h3 style={{margin:'0 0 4px', fontSize:14.5, fontFamily:'var(--sans)', fontWeight:700, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{d.name}</h3>
+                  {d.desc && <p style={{margin:0, fontSize:11.5, color:'var(--ink-3)', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{d.desc}</p>}
+                </div>
+              </button>
+              <div style={{padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.06em', color:'var(--ink-4)', textTransform:'uppercase', fontWeight:600}}>{d.widgets.length} widgets · {new Date(d.updatedAt).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</div>
+                <div style={{display:'flex', gap:4}}>
+                  <button onClick={() => onDuplicate(d.id)} title="Duplicar" style={{background:'none', border:'none', cursor:'pointer', fontSize:13, padding:'4px 6px', color:'var(--ink-4)'}}>⎘</button>
+                  <button onClick={() => { if (confirm('¿Eliminar el dashboard "' + d.name + '"? Esta acción no se puede deshacer.')) onDelete(d.id); }} title="Eliminar" style={{background:'none', border:'none', cursor:'pointer', fontSize:13, padding:'4px 6px', color:'var(--ink-4)'}}>🗑</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Dashboard view · vista de un dashboard concreto ----------
+function DashboardView({ dashboard, onUpdate, onBack, onRename }) {
   const [showPicker, setShowPicker] = useS2(false);
-  const addWidget = (id) => setAllWidgets(prev => {
-    const cur = prev[presetId] || preset.widgets;
-    if (cur.includes(id)) return prev;
-    return { ...prev, [presetId]: [...cur, id] };
-  });
-  const removeWidget = (id) => setAllWidgets(prev => {
-    const cur = prev[presetId] || preset.widgets;
-    return { ...prev, [presetId]: cur.filter(x => x !== id) };
-  });
-  const resetPreset = () => setAllWidgets(prev => { const n = { ...prev }; delete n[presetId]; return n; });
-  const waStats = window.WATracker ? window.WATracker.getStats() : { totalShared:0, totalOpens:0, ctr:'0', avgWatch:0, links:[] };
-  const fmtSec = (s) => s >= 60 ? Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s' : (s||0)+'s';
-  const [drillKpi, setDrillKpi] = useS2(null);
-  const kpis = [
-    {
-      key:'active', label:'Usuarios activos', value:'247', delta:'+12%', up:true, color:'var(--beonit-blue)',
-      detail: {
-        title: 'Usuarios activos · últimos 30 días',
-        sub: '247 usuarios han abierto al menos un módulo en los últimos 30 días. Crecimiento del +12% vs mes anterior.',
-        breakdown: [
-          { label:'Publish Agent',   value: 89,  pct: 36 },
-          { label:'Care Agent',      value: 64,  pct: 26 },
-          { label:'Managers',        value: 32,  pct: 13 },
-          { label:'Reporting / Analytics', value: 28, pct: 11 },
-          { label:'Otros / sin rol', value: 34,  pct: 14 },
-        ],
-        timeline: [180, 195, 210, 218, 228, 235, 247],
-      }
-    },
-    {
-      key:'completion', label:'Completación media', value:'58%', delta:'+4%', up:true, color:'var(--beonit-lime)',
-      detail: {
-        title: 'Completación media de la cohorte',
-        sub: '58% del currículum completado de media (4 puntos más que el mes pasado). 41 Think Pills · 3 Talleres · 2 autodiagnósticos por usuario.',
-        breakdown: [
-          { label:'Pills 0-5 · Fundamentos',    value:'92%', pct:92 },
-          { label:'Pills 6-10 · Estructura',    value:'71%', pct:71 },
-          { label:'Pills 11-16 · Campañas',     value:'54%', pct:54 },
-          { label:'Pills 17-22 · Operativa',    value:'38%', pct:38 },
-          { label:'Pills 23-30 · Avanzado',     value:'22%', pct:22 },
-          { label:'Pills 31-41 · Especialización', value:'11%', pct:11 },
-        ],
-        timeline: [42, 46, 49, 51, 54, 56, 58],
-      }
-    },
-    {
-      key:'time', label:'Tiempo / semana', value:'3h 2m', delta:'-8m', up:false, color:'var(--accent-glow)',
-      detail: {
-        title: 'Tiempo medio por usuario · semanal',
-        sub: '3h 02m semanales de media (8 minutos menos que el pico de hace 2 semanas, normal por temporada). Distribución por día:',
-        breakdown: [
-          { label:'Lunes',    value:'46m', pct:74 },
-          { label:'Martes',   value:'52m', pct:84 },
-          { label:'Miércoles',value:'38m', pct:61 },
-          { label:'Jueves',   value:'29m', pct:47 },
-          { label:'Viernes',  value:'17m', pct:27 },
-          { label:'Fin de semana', value:'2m', pct:3 },
-        ],
-        timeline: [200, 215, 218, 222, 195, 188, 182],
-      }
-    },
-    {
-      key:'success', label:'Tasa éxito tests', value:'94%', delta:'+2%', up:true, color:'var(--bn-purple)',
-      detail: {
-        title: 'Tasa de éxito · tests y exámenes finales',
-        sub: '94% de los tests se aprueban a la primera (+2% vs mes anterior). En los exámenes finales de ruta, la tasa baja al 81% (típico).',
-        breakdown: [
-          { label:'Tests intermedios',       value:'94%', pct:94 },
-          { label:'Examen final · Fundamentals', value:'88%', pct:88 },
-          { label:'Examen final · Publish Agent', value:'81%', pct:81 },
-          { label:'Examen final · Care Agent',  value:'76%', pct:76 },
-          { label:'Entregas prácticas (vídeo)', value:'67%', pct:67 },
-        ],
-        timeline: [88, 89, 91, 91, 92, 93, 94],
-      }
-    },
-  ];
-
-  const dropoff = [100,98,95,90,85,78,71,65,58,50,47,41,38,35,33,30,28,27,25,24,23,22,21,20];
-
-  const users = [
-    { name: 'Amaia Ruiz',    role: 'Publish Agent',  prog: 58,  mods: '7/12',  last: 'Hoy, 10:42' },
-    { name: 'Carlos Vega',   role: 'Publish Agent',  prog: 100, mods: '12/12', last: 'Ayer' },
-    { name: 'Sara Molina',   role: 'Content Lead',   prog: 33,  mods: '4/12',  last: 'Hace 2 días' },
-    { name: 'Luis Romero',   role: 'Analyst',        prog: 75,  mods: '9/12',  last: 'Hoy, 09:10' },
-    { name: 'Ana García',    role: 'Analytics Lead', prog: 17,  mods: '2/12',  last: 'Hace 4 días' },
-  ];
-
-  const checklistItems = [
-    'Crear y gestionar campañas en Sprinklr',
-    'Flujo de aprobación de contenido',
-    'Programar posts y gestión de calendario',
-    'Monitorización y alertas en tiempo real',
-    'Gestión de activos digitales en DAM',
-    'Compliance y gobernanza de contenido',
-  ];
-
-  const modules = [
-    { name: 'Crear y gestionar campañas', pct: 89 },
-    { name: 'Flujo de aprobación', pct: 76 },
-    { name: 'Programar posts · Calendario', pct: 54 },
-    { name: 'Monitorización y alertas', pct: 38 },
-    { name: 'Gestión de activos DAM', pct: 22 },
-    { name: 'Compliance · Gobernanza', pct: 11 },
-  ];
-
-  const activity = [
-    { color: 'green',  text: 'Carlos Vega completó la ruta de certificación',           time: 'Hace 8 min' },
-    { color: 'orange', text: 'Amaia Ruiz superó el test de Publicación con 94%',        time: 'Hace 22 min' },
-    { color: '',       text: 'Sara Molina vio 2 módulos de Calendario',                 time: 'Hace 1h' },
-    { color: 'red',    text: 'Ana García se quedó atascada en el módulo de Analytics',  time: 'Hace 3h' },
-    { color: '',       text: 'Luis Romero descargó el certificado de DAM',              time: 'Ayer, 18:30' },
-  ];
-
-  const colData = [
-    {l:'Social P.',v:89},{l:'Aprobac.',v:76},{l:'Calendr.',v:54},{l:'Monitor.',v:38},{l:'DAM',v:22},{l:'Complian.',v:11},
-  ];
-  const stackData = {
-    series: [
-      {label:'Completado', values:[89,76,54,38,22,11]},
-      {label:'En progreso', values:[8,12,20,25,15,10]},
-      {label:'Sin iniciar', values:[3,12,26,37,63,79]},
-    ],
-    categories: ['Social Publish','Aprobaciones','Calendario','Monitorización','DAM','Compliance'],
+  const [editingMeta, setEditingMeta] = useS2(null);
+  const [showRename, setShowRename] = useS2(false);
+  const [filters, setFilters] = useS2({ range:'30d', team:'Todos', role:'Todos' });
+  const addWidget = (typeId) => onUpdate({ ...dashboard, widgets: [...dashboard.widgets, newWidget(typeId)], updatedAt: Date.now() });
+  const removeWidget = (id) => onUpdate({ ...dashboard, widgets: dashboard.widgets.filter(w => w.id !== id), updatedAt: Date.now() });
+  const editWidgetMeta = (w) => setEditingMeta(w);
+  const saveWidgetMeta = (vals) => {
+    onUpdate({ ...dashboard, widgets: dashboard.widgets.map(w => w.id === editingMeta.id ? { ...w, title: vals.title, subtitle: vals.subtitle } : w), updatedAt: Date.now() });
+    setEditingMeta(null);
   };
-  const donutData = [
-    {l:'Publish Agent',v:89},{l:'Care Agent',v:64},{l:'Managers',v:32},{l:'Reporting',v:28},{l:'Sin rol',v:34},
-  ];
-
-  // Datos para nuevos widgets
-  const trendData = [
-    {l:'L 14',v:142},{l:'M 15',v:168},{l:'X 16',v:155},{l:'J 17',v:184},{l:'V 18',v:210},
-    {l:'S 19',v:96},{l:'D 20',v:78},{l:'L 21',v:201},{l:'M 22',v:223},{l:'X 23',v:198},
-    {l:'J 24',v:241},{l:'V 25',v:258},{l:'S 26',v:112},{l:'D 27',v:247},
-  ];
-  const heatData = (() => {
-    const rows = ['L','M','X','J','V','S','D'];
-    const cols = Array.from({length:14}, (_,i) => i);
-    const matrix = rows.map((r, ri) => cols.map((_, ci) => {
-      // patrón realista: más actividad lunes-viernes 9-17h, menos finde
-      const weekend = ri >= 5 ? 0.25 : 1;
-      const peak = Math.exp(-Math.pow((ci - 6.5)/4, 2));
-      const noise = 0.4 + Math.random() * 0.6;
-      return Math.round(weekend * peak * noise * 100);
-    }));
-    return { rows, cols, matrix };
-  })();
-  const gaugeData = { value: 73, label:'Engagement global', sub:'meta trimestral 80%', target: 80 };
-  const funnelData = [
-    { l:'Matriculados',     v:247, c:'var(--bn-blue)' },
-    { l:'Iniciaron P0',      v:231, c:'var(--accent-glow)' },
-    { l:'Completan Bloque 1',v:198, c:'var(--bn-lime)' },
-    { l:'Completan Bloque 4',v:142, c:'var(--bn-orange)' },
-    { l:'Certificados',      v: 89, c:'var(--repsol-red)' },
-  ];
-  // Datos para widgets de Service Level / MENTOR-IA Insights
-  const wordCloudData = [
-    { text:'¿cómo programar?', weight: 87 }, { text:'aprobación', weight: 74 },
-    { text:'macros', weight: 68 }, { text:'audiencia', weight: 61 },
-    { text:'inboxes', weight: 55 }, { text:'calendario editorial', weight: 49 },
-    { text:'mentions', weight: 42 }, { text:'rule engine', weight: 38 },
-    { text:'DAM', weight: 36 }, { text:'GDPR', weight: 30 },
-    { text:'permisos', weight: 28 }, { text:'reporting', weight: 25 },
-    { text:'tags', weight: 22 }, { text:'CSV bulk', weight: 19 },
-    { text:'SLA', weight: 17 }, { text:'caso', weight: 14 }, { text:'derive', weight: 11 },
-  ];
-  const sentimentData = [
-    {l:'S1', pos:62, neu:28, neg:10}, {l:'S2', pos:64, neu:26, neg:10},
-    {l:'S3', pos:68, neu:24, neg:8},  {l:'S4', pos:71, neu:21, neg:8},
-    {l:'S5', pos:69, neu:23, neg:8},  {l:'S6', pos:74, neu:19, neg:7},
-    {l:'S7', pos:77, neu:17, neg:6},
-  ];
-  const npsData = { nps: 58, promoters: 142, passives: 71, detractors: 34, total: 247 };
-  const topQuestionsData = [
-    { text:'¿Cómo programo un post multicanal?',          value: 87 },
-    { text:'¿Qué diferencia hay entre macro y rule engine?', value: 74 },
-    { text:'¿Cómo apruebo contenido sin ser admin?',       value: 68 },
-    { text:'¿Dónde se configuran las audiencias?',         value: 61 },
-    { text:'¿Qué inboxes están activos en mi equipo?',     value: 55 },
-    { text:'¿Cómo subo activos al DAM?',                   value: 49 },
-  ];
-  const pivotData = {
-    rows: ['Publish Agent', 'Care Agent', 'Manager', 'Analyst', 'Content Lead'],
-    cols: ['Completación', 'Tests', 'NPS', 'Sesión IA'],
-    data: [[62, 88, 54, 12],[48, 82, 47, 16],[78, 94, 71, 8],[55, 91, 58, 14],[70, 89, 62, 11]],
-  };
-
   return (
     <div className="dash-root">
       {showPicker && <WidgetPicker onAdd={addWidget} onClose={() => setShowPicker(false)}/>}
-      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
-        <div>
-          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Analytics de formación</div>
-          <h1>Analytics <em>{preset.label}</em></h1>
-          <div className="dash-sub">{preset.desc} · Cohorte activa · 247 usuarios · {filters.team !== 'Todos' && (<>Equipo <strong>{filters.team}</strong> · </>)}{filters.role !== 'Todos' && (<>Rol <strong>{filters.role}</strong> · </>)}Rango {DATE_RANGES.find(r => r.id === filters.range)?.label} · Actualizado hace 2 min</div>
+      {editingMeta && (
+        <PromptModal
+          title="Editar widget"
+          fields={[
+            { key:'title', label:'Título', placeholder:'Nombre visible' },
+            { key:'subtitle', label:'Subtítulo (opcional)', placeholder:'Descripción corta' },
+          ]}
+          initial={{ title: editingMeta.title, subtitle: editingMeta.subtitle }}
+          onSave={saveWidgetMeta}
+          onClose={() => setEditingMeta(null)}
+        />
+      )}
+      {showRename && (
+        <PromptModal
+          title="Renombrar dashboard"
+          fields={[
+            { key:'name', label:'Nombre' },
+            { key:'desc', label:'Descripción', type:'textarea', rows:2 },
+          ]}
+          initial={{ name: dashboard.name, desc: dashboard.desc }}
+          onSave={(vals) => { onRename(dashboard.id, vals.name, vals.desc); setShowRename(false); }}
+          onClose={() => setShowRename(false)}
+        />
+      )}
+
+      <button onClick={onBack} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'6px 10px', background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-3)', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:600, marginBottom:8}}>
+        ← Volver a mis dashboards
+      </button>
+
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'flex-start', gap:14}}>
+          <div style={{fontSize:36, lineHeight:1, marginTop:6}}>{dashboard.icon || '📊'}</div>
+          <div>
+            <div className="lms-hero-eyebrow"><span className="repsol-dot"/>{dashboard.isExample ? 'Dashboard ejemplo' : 'Dashboard custom'}</div>
+            <h1>{dashboard.name}</h1>
+            {dashboard.desc && <div className="dash-sub">{dashboard.desc}</div>}
+            <div className="dash-sub" style={{marginTop:4, opacity:0.7}}>{dashboard.widgets.length} widgets · Rango {DATE_RANGES.find(r => r.id === filters.range)?.label} · Equipo {filters.team} · Rol {filters.role}</div>
+          </div>
         </div>
-        <div style={{display:'flex', gap:8, marginTop:8, flexWrap:'wrap'}}>
-          <button onClick={resetPreset} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>↺ Restablecer</button>
+        <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
+          {!dashboard.isExample && <button onClick={() => setShowRename(true)} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>✎ Renombrar</button>}
           <button onClick={() => setShowPicker(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13, boxShadow:'0 4px 14px rgba(0,89,150,0.3)'}}>+ Añadir widget</button>
         </div>
       </div>
 
-      {/* Dashboard preset tabs · estilo Sprinklr */}
-      <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:12, padding:'6px', background:'var(--paper-2)', borderRadius:12, border:'1px solid var(--line-2)'}}>
-        {DASHBOARD_PRESETS.map(p => (
-          <button key={p.id} onClick={() => setPresetId(p.id)} style={{
-            display:'inline-flex', alignItems:'center', gap:7, padding:'8px 14px',
-            background: presetId === p.id ? 'var(--paper)' : 'transparent',
-            color: presetId === p.id ? 'var(--ink)' : 'var(--ink-3)',
-            border: presetId === p.id ? '1px solid var(--line)' : '1px solid transparent',
-            borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight: presetId === p.id ? 700 : 500, fontSize:12.5,
-            boxShadow: presetId === p.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none', transition:'all .12s',
-          }}>
-            <span style={{fontSize:14}}>{p.icon}</span>{p.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filter bar · global filters aplicados a todos los widgets */}
       <div style={{display:'flex', gap:10, flexWrap:'wrap', marginBottom:16, padding:'10px 14px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, alignItems:'center'}}>
         <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>Filtros</div>
         <div style={{display:'flex', gap:4, alignItems:'center'}}>
@@ -2519,417 +3093,73 @@ function Dashboard() {
               background: filters.range === r.id ? 'var(--bn-blue)' : 'var(--paper-2)',
               color: filters.range === r.id ? '#fff' : 'var(--ink-3)',
               border: '1px solid ' + (filters.range === r.id ? 'var(--bn-blue)' : 'var(--line)'),
-              borderRadius:6, cursor:'pointer', letterSpacing:'0.04em',
+              borderRadius:6, cursor:'pointer',
             }}>{r.label}</button>
           ))}
         </div>
         <div style={{width:1, height:20, background:'var(--line)'}}/>
-        <select value={filters.team} onChange={e => setFilters(f => ({ ...f, team: e.target.value }))} style={{padding:'6px 10px', fontFamily:'var(--sans)', fontSize:12, fontWeight:500, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6, cursor:'pointer'}}>
+        <select value={filters.team} onChange={e => setFilters(f => ({ ...f, team: e.target.value }))} style={{padding:'6px 10px', fontSize:12, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6}}>
           {TEAMS.map(t => <option key={t} value={t}>Equipo · {t}</option>)}
         </select>
-        <select value={filters.role} onChange={e => setFilters(f => ({ ...f, role: e.target.value }))} style={{padding:'6px 10px', fontFamily:'var(--sans)', fontSize:12, fontWeight:500, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6, cursor:'pointer'}}>
+        <select value={filters.role} onChange={e => setFilters(f => ({ ...f, role: e.target.value }))} style={{padding:'6px 10px', fontSize:12, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6}}>
           {ROLES.map(r => <option key={r} value={r}>Rol · {r}</option>)}
         </select>
-        {(filters.team !== 'Todos' || filters.role !== 'Todos' || filters.range !== '30d') && (
-          <button onClick={() => setFilters({ range:'30d', team:'Todos', role:'Todos' })} style={{marginLeft:'auto', padding:'5px 10px', fontFamily:'var(--mono)', fontSize:10, fontWeight:600, color:'var(--bn-blue)', background:'transparent', border:'1px solid var(--bn-blue)', borderRadius:6, cursor:'pointer'}}>Limpiar filtros ×</button>
-        )}
       </div>
 
-      <div className="dash-kpis">
-        {kpis.map((k, i) => (
-          <button key={i} className="kpi-card" onClick={() => setDrillKpi(k)} style={{'--kpi-color': k.color, border:'1px solid var(--line)', textAlign:'left', cursor:'pointer'}}>
-            <div className="kpi-label">{k.label}</div>
-            <div className="kpi-value">{k.value}</div>
-            <div className={`kpi-delta ${k.up ? 'up' : 'down'}`}>{k.up ? '↑' : '↓'} {k.delta} vs mes anterior</div>
-            <div style={{marginTop:6, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)'}}>Click · ver detalle →</div>
-          </button>
-        ))}
-      </div>
-
-      {drillKpi && (
-        <div onClick={() => setDrillKpi(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
-          <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(620px, 96vw)', maxHeight:'90vh', overflowY:'auto', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
-            <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
-              <div>
-                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:drillKpi.color, fontWeight:700, marginBottom:4}}>{drillKpi.label}</div>
-                <h2 style={{margin:0, fontSize:22, fontFamily:'var(--sans)', letterSpacing:'-0.01em'}}>{drillKpi.detail.title}</h2>
-              </div>
-              <button onClick={() => setDrillKpi(null)} style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <div style={{display:'flex', alignItems:'baseline', gap:14, marginBottom:14}}>
-              <div style={{fontSize:42, fontWeight:800, color:drillKpi.color, letterSpacing:'-0.025em', lineHeight:1}}>{drillKpi.value}</div>
-              <div className={`kpi-delta ${drillKpi.up ? 'up' : 'down'}`} style={{fontSize:12}}>{drillKpi.up ? '↑' : '↓'} {drillKpi.delta} vs mes anterior</div>
-            </div>
-            <p style={{fontSize:13.5, color:'var(--ink-3)', lineHeight:1.55, marginBottom:18}}>{drillKpi.detail.sub}</p>
-
-            {/* Sparkline timeline */}
-            {drillKpi.detail.timeline && (
-              <div style={{padding:'14px 16px', background:'var(--paper-2)', borderRadius:10, marginBottom:18}}>
-                <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Evolución · últimas 7 semanas</div>
-                <svg viewBox="0 0 280 60" style={{width:'100%', height:60}}>
-                  {(() => {
-                    const tl = drillKpi.detail.timeline;
-                    const max = Math.max.apply(null, tl), min = Math.min.apply(null, tl);
-                    const range = Math.max(1, max - min);
-                    const pts = tl.map((v, i) => {
-                      const x = (i / (tl.length - 1)) * 280;
-                      const y = 56 - ((v - min) / range) * 50 - 3;
-                      return [x, y];
-                    });
-                    const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ',' + p[1]).join(' ');
-                    const area = line + ' L 280,60 L 0,60 Z';
-                    return (
-                      <>
-                        <path d={area} fill={drillKpi.color} opacity="0.16"/>
-                        <path d={line} fill="none" stroke={drillKpi.color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3" fill={drillKpi.color} stroke="var(--paper)" strokeWidth="1.5"/>)}
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-            )}
-
-            {/* Breakdown */}
-            <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:8}}>Desglose</div>
-            <div style={{display:'flex', flexDirection:'column', gap:8}}>
-              {drillKpi.detail.breakdown.map((b, bi) => (
-                <div key={bi} style={{display:'grid', gridTemplateColumns:'180px 1fr 60px', gap:12, alignItems:'center'}}>
-                  <div style={{fontSize:12.5, color:'var(--ink-2)'}}>{b.label}</div>
-                  <div style={{height:8, background:'var(--paper-2)', borderRadius:4, overflow:'hidden'}}>
-                    <div style={{width:b.pct + '%', height:'100%', background:drillKpi.color, borderRadius:4, transition:'width .35s ease'}}/>
-                  </div>
-                  <div style={{fontFamily:'var(--mono)', fontSize:11.5, fontWeight:700, color:'var(--ink)', textAlign:'right'}}>{b.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeWidgets.length === 0 && (
+      {dashboard.widgets.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">📊</div>
           <h3>Este dashboard está vacío</h3>
-          <p>El dashboard <strong>{preset.label}</strong> no tiene widgets activos. Añade widgets de la librería (17 tipos: drop-off, completación, gauge, funnel, heatmap, NPS, sentiment, word cloud, pivot, top preguntas y más) o restablece el preset por defecto.</p>
-          <div style={{display:'flex', gap:10, justifyContent:'center', marginTop:14}}>
-            <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir widget</button>
-            <button onClick={resetPreset} style={{padding:'10px 18px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:13}}>↺ Restablecer preset</button>
-          </div>
+          <p>Añade tu primer widget desde la librería. {WIDGET_LIBRARY.length} tipos disponibles, organizados en {WIDGET_CATEGORIES.length} categorías.</p>
+          <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir mi primer widget</button>
         </div>
       )}
 
-      {/* Dynamic widget grid */}
       <div className="dash-grid">
-        {activeWidgets.includes('dropoff') && (
-          <div className="dash-panel">
-            <div className="dash-panel-head">
-              <h3>Drop-off por minuto</h3>
-              <span className="panel-sub">Crear y gestionar campañas — 4 min</span>
-              <button onClick={() => removeWidget('dropoff')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body">
-              <div className="dropoff-chart">
-                {dropoff.map((v, i) => (
-                  <div key={i} className={`dropoff-bar${v < 40 ? ' drop' : ''}`} style={{height: v + '%'}} title={`${Math.floor(i/6)}:${String((i%6)*10).padStart(2,'0')} — ${v}%`}/>
-                ))}
-              </div>
-              <div className="dropoff-axis"><span>0:00</span><span>1:00</span><span>2:00</span><span>3:00</span><span>4:00</span></div>
-              <div className="dropoff-legend">
-                <span><i style={{background:'var(--beonit-blue)'}}/> Retención</span>
-                <span><i style={{background:'var(--repsol-red)'}}/> Drop-off (&lt;40%)</span>
-              </div>
-            </div>
+        {dashboard.widgets.map(w => (
+          <div key={w.id} style={{gridColumn: w.span > 1 ? `span ${w.span}` : undefined}}>
+            <WidgetRenderer widget={w} onRemove={removeWidget} onEditMeta={editWidgetMeta}/>
           </div>
-        )}
-        {activeWidgets.includes('column') && (
-          <div className="dash-panel">
-            <div className="dash-panel-head">
-              <h3>Completación por módulo</h3>
-              <span className="panel-sub">Barras verticales · % completado</span>
-              <button onClick={() => removeWidget('column')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:8}}>
-              <ColumnChart data={colData} color="var(--accent-glow)" height={100}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('stacked') && (
-          <div className="dash-panel" style={{gridColumn:'span 2'}}>
-            <div className="dash-panel-head">
-              <h3>Stacked Bar · Estado por módulo</h3>
-              <span className="panel-sub">Completado · En progreso · Sin iniciar</span>
-              <button onClick={() => removeWidget('stacked')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:8}}>
-              <StackedBarChart series={stackData.series} categories={stackData.categories} height={150}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('donut') && (
-          <div className="dash-panel">
-            <div className="dash-panel-head">
-              <h3>Pastel · Distribución por rol</h3>
-              <span className="panel-sub">247 usuarios activos</span>
-              <button onClick={() => removeWidget('donut')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:8, paddingBottom:12}}>
-              <DonutChart segments={donutData}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('area') && (
-          <div className="dash-panel" style={{gridColumn:'span 2'}}>
-            <div className="dash-panel-head">
-              <h3>Tendencia · Sesiones diarias</h3>
-              <span className="panel-sub">Últimas 2 semanas · MENTOR-IA + módulos</span>
-              <button onClick={() => removeWidget('area')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:8}}>
-              <AreaChart data={trendData} color="var(--accent-glow)" height={120}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('heatmap') && (
-          <div className="dash-panel" style={{gridColumn:'span 2'}}>
-            <div className="dash-panel-head">
-              <h3>Heatmap · Actividad por día y franja</h3>
-              <span className="panel-sub">Densidad de uso · 7 días × 14 franjas horarias</span>
-              <button onClick={() => removeWidget('heatmap')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:10, paddingBottom:14}}>
-              <HeatmapChart rows={heatData.rows} cols={heatData.cols} matrix={heatData.matrix} color="var(--bn-blue)"/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('gauge') && (
-          <div className="dash-panel">
-            <div className="dash-panel-head">
-              <h3>KPI · Engagement</h3>
-              <span className="panel-sub">vs meta trimestral</span>
-              <button onClick={() => removeWidget('gauge')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:6, paddingBottom:14, display:'flex', justifyContent:'center'}}>
-              <GaugeChart value={gaugeData.value} label={gaugeData.label} sub={gaugeData.sub} target={gaugeData.target}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('funnel') && (
-          <div className="dash-panel" style={{gridColumn:'span 2'}}>
-            <div className="dash-panel-head">
-              <h3>Funnel · Matriculación → Certificación</h3>
-              <span className="panel-sub">Conversión por etapa · cohorte completa</span>
-              <button onClick={() => removeWidget('funnel')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body" style={{paddingTop:10, paddingBottom:14}}>
-              <FunnelChart stages={funnelData}/>
-            </div>
-          </div>
-        )}
-        {activeWidgets.includes('modules') && (
-          <div className="dash-panel">
-            <div className="dash-panel-head">
-              <h3>Completación por módulo</h3>
-              <span className="panel-sub">% usuarios que terminaron</span>
-              <button onClick={() => removeWidget('modules')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-            </div>
-            <div className="dash-panel-body">
-              {modules.map((m, i) => (
-                <div key={i} className="module-bar-row">
-                  <div className="mod-name">{m.name}</div>
-                  <div className="module-bar-wide"><i style={{width: m.pct + '%'}}/></div>
-                  <div className="mod-pct">{m.pct}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        ))}
       </div>
-
-      <div className="dash-grid-3">
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Checklist de aprendizaje</h3>
-            <span className="panel-sub">Amaia Ruiz</span>
-            <button onClick={() => removeWidget('checklist')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body">
-            <div className="check-list">
-              {checklistItems.map((t, i) => (
-                <div key={i} className={`check-item${checks[i] ? ' done' : ''}`} onClick={() => toggleCheck(i)}>
-                  <div className="check-box">{checks[i] ? '✓' : ''}</div>
-                  {t}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {activeWidgets.includes('users') && <div className="dash-panel" style={{gridColumn:'span 2'}}>
-          <div className="dash-panel-head">
-            <h3>Usuarios activos</h3>
-            <span className="panel-sub">Progreso individual</span>
-            <button onClick={() => removeWidget('users')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body" style={{padding:'0 20px'}}>
-            <table className="user-table">
-              <thead>
-                <tr><th>Usuario</th><th>Progreso</th><th>Módulos</th><th>Última actividad</th></tr>
-              </thead>
-              <tbody>
-                {users.map((u, i) => (
-                  <tr key={i}>
-                    <td><div className="u-name">{u.name}</div><div className="u-role">{u.role}</div></td>
-                    <td>
-                      <div className="prog-pill">
-                        <div className="prog-bar-sm"><i style={{width: u.prog + '%'}}/></div>
-                        <span style={{fontFamily:'var(--mono)', fontSize:11}}>{u.prog}%</span>
-                      </div>
-                    </td>
-                    <td style={{fontFamily:'var(--mono)', fontSize:12}}>{u.mods}</td>
-                    <td style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{u.last}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>}
-      </div>
-
-      {activeWidgets.includes('activity') && <div className="dash-panel">
-        <div className="dash-panel-head">
-          <h3>Actividad reciente</h3>
-          <span className="panel-sub">Últimas 24 horas</span>
-          <button onClick={() => removeWidget('activity')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-        </div>
-        <div className="dash-panel-body">
-          <div className="activity-feed">
-            {activity.map((a, i) => (
-              <div key={i} className="activity-item">
-                <div className={`activity-dot${a.color ? ' ' + a.color : ''}`}/>
-                <div className="activity-main">
-                  <div className="a-text">{a.text}</div>
-                  <div className="a-time">{a.time}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>}
-
-      {/* WhatsApp link analytics */}
-      {activeWidgets.includes('wa') && <div className="dash-panel">
-        <div className="dash-panel-head">
-          <h3 style={{display:'flex', alignItems:'center', gap:8}}>
-            <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:22, height:22, borderRadius:'50%', background:'#25D366', flexShrink:0}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.186-.007-.397-.007-.603-.007-.21 0-.547.074-.83.375-.28.3-1.089 1.06-1.089 2.595 0 1.535 1.114 3.021 1.27 3.231.149.195 2.185 3.344 5.298 4.692.742.315 1.319.504 1.77.646.746.24 1.423.206 1.96.127.598-.089 1.84-.752 2.098-1.482.26-.72.26-1.336.18-1.466-.075-.135-.276-.21-.574-.346zM11.997 1.903c-5.569 0-10.097 4.524-10.097 10.097 0 1.782.465 3.447 1.282 4.892l-1.413 5.16 5.285-1.385a10.037 10.037 0 004.944 1.296h.004c5.57 0 10.095-4.524 10.095-10.097C22.097 6.427 17.567 1.903 11.997 1.903z"/>
-              </svg>
-            </span>
-            Analytics WhatsApp
-          </h3>
-          <span className="panel-sub">{waStats.totalShared} enlaces compartidos</span>
-        </div>
-        <div className="dash-panel-body">
-          {/* mini KPI row */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, padding:'0 20px 16px', borderBottom:'1px solid var(--line-2)'}}>
-            {[
-              { label:'Compartidos', value: waStats.totalShared },
-              { label:'Aperturas',   value: waStats.totalOpens },
-              { label:'Ratio apertura', value: waStats.ctr+'×' },
-              { label:'Tiempo medio', value: fmtSec(waStats.avgWatch||0) },
-            ].map((k,i) => (
-              <div key={i} style={{textAlign:'center'}}>
-                <div style={{fontSize:20, fontWeight:800, letterSpacing:'-0.03em', color:'var(--ink)', lineHeight:1}}>{k.value}</div>
-                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginTop:3}}>{k.label}</div>
-              </div>
-            ))}
-          </div>
-          {/* top 3 links */}
-          <div style={{padding:'12px 20px'}}>
-            {waStats.links.slice(0,3).map((l,i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'8px 0', borderBottom: i<2 ? '1px solid var(--line-2)' : 'none'}}>
-                <div style={{width:28, height:28, borderRadius:8, background:'#25D36618', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontWeight:800, fontSize:12, color:'#25D366'}}>{i+1}</div>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:12, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.pillTitle}</div>
-                  <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:1}}>por {l.sharedBy||'—'} · {fmtSec(l.watchSeconds||0)} visto</div>
-                </div>
-                <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0}}>
-                  <div style={{fontWeight:700, fontSize:14, color: l.opens>0 ? 'var(--bn-green)' : 'var(--ink-4)'}}>{l.opens||0}</div>
-                  <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.06em'}}>aperturas</div>
-                </div>
-              </div>
-            ))}
-            {waStats.links.length === 0 && (
-              <div style={{textAlign:'center', color:'var(--ink-4)', fontSize:12, padding:'12px 0'}}>Ningún enlace compartido aún.</div>
-            )}
-          </div>
-        </div>
-      </div>}
-
-      {activeWidgets.includes('wordcloud') && (
-        <div className="dash-panel" style={{gridColumn:'span 2'}}>
-          <div className="dash-panel-head">
-            <h3>Word Cloud · preguntas a MENTOR-IA</h3>
-            <span className="panel-sub">Top términos · últimos 30 días</span>
-            <button onClick={() => removeWidget('wordcloud')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body">
-            <WordCloud words={wordCloudData}/>
-          </div>
-        </div>
-      )}
-      {activeWidgets.includes('sentiment') && (
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Sentiment trend</h3>
-            <span className="panel-sub">7 semanas · IA detecta tono en feedback</span>
-            <button onClick={() => removeWidget('sentiment')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body" style={{paddingTop:8}}>
-            <SentimentTrend data={sentimentData}/>
-          </div>
-        </div>
-      )}
-      {activeWidgets.includes('nps') && (
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>NPS · score formación</h3>
-            <span className="panel-sub">Q4 · {npsData.total} respuestas</span>
-            <button onClick={() => removeWidget('nps')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body">
-            <NPSScorecard {...npsData}/>
-          </div>
-        </div>
-      )}
-      {activeWidgets.includes('topquestions') && (
-        <div className="dash-panel">
-          <div className="dash-panel-head">
-            <h3>Top preguntas a MENTOR-IA</h3>
-            <span className="panel-sub">Ranking · últimas 4 semanas</span>
-            <button onClick={() => removeWidget('topquestions')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body" style={{paddingTop:8}}>
-            <TopList items={topQuestionsData} color="var(--bn-purple)"/>
-          </div>
-        </div>
-      )}
-      {activeWidgets.includes('pivot') && (
-        <div className="dash-panel" style={{gridColumn:'span 2'}}>
-          <div className="dash-panel-head">
-            <h3>Pivot · rol × métrica</h3>
-            <span className="panel-sub">Cruza rol con completación, tests, NPS y uso IA</span>
-            <button onClick={() => removeWidget('pivot')} style={{marginLeft:'auto', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1}}>×</button>
-          </div>
-          <div className="dash-panel-body">
-            <PivotTable {...pivotData}/>
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+// ---------- Analytics Dashboard · router (library | view) ----------
+function Dashboard() {
+  const STORE_KEY = window.userKey ? window.userKey('solid-analytics-v2') : 'solid-analytics-v2';
+  const [state, setState] = useS2(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (s && Array.isArray(s.dashboards)) {
+        if (!s.dashboards.find(d => d.id === EXAMPLE_DASHBOARD.id)) s.dashboards.unshift(EXAMPLE_DASHBOARD);
+        return s;
+      }
+    } catch(e) {}
+    return { dashboards: [EXAMPLE_DASHBOARD], currentId: null };
+  });
+  React.useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }, [state]);
+
+  const current = state.currentId ? state.dashboards.find(d => d.id === state.currentId) : null;
+  const openDashboard = (id) => setState(s => ({ ...s, currentId: id }));
+  const backToLibrary = () => setState(s => ({ ...s, currentId: null }));
+  const createDashboard = (d) => setState(s => ({ ...s, dashboards: [...s.dashboards, d], currentId: d.id }));
+  const updateDashboard = (d) => setState(s => ({ ...s, dashboards: s.dashboards.map(x => x.id === d.id ? d : x) }));
+  const renameDashboard = (id, name, desc) => setState(s => ({ ...s, dashboards: s.dashboards.map(x => x.id === id ? { ...x, name: (name && name.trim()) || x.name, desc: (desc && desc.trim()) || '', updatedAt: Date.now() } : x) }));
+  const deleteDashboard = (id) => {
+    if (id === EXAMPLE_DASHBOARD.id) return;
+    setState(s => ({ ...s, dashboards: s.dashboards.filter(d => d.id !== id), currentId: s.currentId === id ? null : s.currentId }));
+  };
+  const duplicateDashboard = (id) => setState(s => {
+    const src = s.dashboards.find(d => d.id === id);
+    if (!src) return s;
+    const copy = { ...src, id:'d-'+Date.now().toString(36), name: src.name + ' (copia)', isExample:false, createdAt:Date.now(), updatedAt:Date.now(), widgets: src.widgets.map(w => ({ ...w, id:'w-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6) })) };
+    return { ...s, dashboards: [...s.dashboards, copy], currentId: copy.id };
+  });
+
+  if (!current) return <DashboardLibrary dashboards={state.dashboards} onOpen={openDashboard} onCreate={createDashboard} onDelete={deleteDashboard} onDuplicate={duplicateDashboard}/>;
+  return <DashboardView dashboard={current} onUpdate={updateDashboard} onBack={backToLibrary} onRename={renameDashboard}/>;
 }
 
 // ---------- Cronograma POC ----------
