@@ -1,1 +1,1 @@
-2026-05-26T18:15:00Z · trigger Vercel deploy desde GitHub API tras 51 min sin webhook
+2026-05-26T19:25:00Z · trigger production deploy · PRs #53 #54 no se desplegaron pese a estar en main (commits 843510f y 5c4821e). Forzar webhook.
