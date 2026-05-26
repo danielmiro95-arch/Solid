@@ -758,45 +758,66 @@ body.cinematic-mode { background: #0D1117 !important; }
 .proto-root.ai-collapsed .ai { border-left: none; }
 .ai-rail-btn {
   position: fixed; right: 22px; bottom: 22px; z-index: 300;
-  width: 64px; height: 64px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #2a3f5f 0%, #131A24 50%, #0D1117 100%);
-  display: flex; align-items: center; justify-content: center;
+  height: 64px; min-width: 64px; padding: 0 10px 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4FC3F7 0%, #3B82F6 45%, #6E50EE 100%);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   border: none;
-  padding: 0;
   cursor: pointer;
+  color: #fff;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.08) inset,
-    0 0 0 2px rgba(138, 57, 146, 0.35),
-    0 14px 36px rgba(13, 17, 23, 0.4),
-    0 4px 12px rgba(138, 57, 146, 0.2);
-  transition: transform .15s ease, box-shadow .15s ease;
-  overflow: hidden;
+    0 0 0 1px rgba(255,255,255,0.18) inset,
+    0 0 0 2px rgba(110, 80, 238, 0.35),
+    0 18px 44px rgba(13, 17, 23, 0.55),
+    0 6px 18px rgba(79, 195, 247, 0.35);
+  transition: transform .18s ease, box-shadow .18s ease, padding .18s ease;
 }
 .ai-rail-btn::before {
   /* anillo pulsante sutil */
   content: '';
   position: absolute;
   inset: -4px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(188, 214, 48, 0.6);
+  border-radius: 999px;
+  border: 1.5px solid rgba(79, 195, 247, 0.6);
   opacity: 0;
   animation: railPulse 2.4s ease-out infinite;
   pointer-events: none;
 }
 @keyframes railPulse {
-  0%   { transform: scale(0.85); opacity: 0.7; }
-  80%  { transform: scale(1.4);  opacity: 0; }
-  100% { transform: scale(1.4);  opacity: 0; }
+  0%   { transform: scale(0.92); opacity: 0.7; }
+  80%  { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
 }
 .ai-rail-btn:hover {
-  transform: translateY(-2px) scale(1.06);
+  transform: translateY(-2px) scale(1.04);
+  padding-right: 18px;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.12) inset,
-    0 0 0 2px rgba(138, 57, 146, 0.55),
-    0 18px 44px rgba(13, 17, 23, 0.5),
-    0 6px 16px rgba(138, 57, 146, 0.35);
+    0 0 0 1px rgba(255,255,255,0.28) inset,
+    0 0 0 2px rgba(110, 80, 238, 0.55),
+    0 22px 56px rgba(13, 17, 23, 0.6),
+    0 8px 22px rgba(110, 80, 238, 0.45);
 }
-.ai-rail-btn svg.mentor-mark { width: 56%; height: 56%; }
+.ai-rail-btn .bai {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+}
+.ai-rail-badge {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--sans, 'Inter', system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: max-width .25s ease, opacity .2s ease, transform .25s ease;
+}
+.ai-rail-btn:hover .ai-rail-badge {
+  max-width: 100px;
+  opacity: 1;
+  transform: translateX(0);
+}
 
 /* ===== Detail view ===== */
 .detail-hero {
@@ -1871,7 +1892,7 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 .ai-input .send { background: var(--bn-blue); }
 .ai-input .send:hover { background: var(--bn-orange); color: #fff; }
 .ai-chip:hover { background: var(--bn-blue); color: #fff; border-color: var(--bn-blue); }
-.ai-rail-btn { background: var(--bn-blue); border-color: var(--bn-orange); }
+/* ai-rail-btn: gradient cyan→violet definido en sección AI (no sobreescribir aquí) */
 
 
 /* ── 12. COACH / MENTOR-IA FULLSCREEN ──────────────────────── */
@@ -2250,9 +2271,10 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   .ai-rail-btn {
     bottom: 18px !important;
     right: 18px !important;
-    width: 52px; height: 52px;
-    box-shadow: 0 10px 24px rgba(0,89,150,0.35);
+    height: 56px; min-width: 56px;
+    box-shadow: 0 14px 32px rgba(110, 80, 238, 0.4);
   }
+  .ai-rail-btn .ai-rail-badge { display: none; }
 
   /* Main content adjustments */
   .main-inner { padding: 20px 16px; }
