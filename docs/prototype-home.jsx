@@ -217,269 +217,335 @@ function Sidebar({ view, setView }) {
   );
 }
 
-// ── Home ──────────────────────────────────────────────────────────────────
-function Home({ openDetail, openPlayer, setView }) {
-  const [activeCat, setActiveCat] = useState('Todo');
-  const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 100);
-  const allContent = [...PILLS, ...SERIES, ...PODCASTS, ...PATHS];
-  const filtered = activeCat === 'Todo' ? allContent : allContent.filter(c => c.category === activeCat);
+// ── Color por categoría · usado en hero y cards ──────────────────────────
+const CAT_HEX = {
+  'Fundamentos':    '#0072BE',
+  'Estructura':     '#005a96',
+  'Gobernanza':     '#3d31cc',
+  'Social Publish': '#E50914',
+  'Activos':        '#036837',
+  'Aprobaciones':   '#8A3992',
+  'Compliance':     '#1f2937',
+  'Calendario':     '#0072BE',
+  'Analytics':      '#004d8a',
+  'Care':           '#B8001F',
+  'Integraciones':  '#3d31cc',
+};
 
-  // HERO NETFLIX-STYLE · rotación cada 9.5s entre 4 featured pills con vídeo
-  const FEATURED_PILLS = React.useMemo(() => {
+// ── NetflixCard · card autocontenida con cover colorida + hover preview ──
+function NetflixCard({ pill, onClick, number, wide }) {
+  const [hover, setHover] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const timerRef = React.useRef(null);
+
+  const onEnter = () => {
+    setHover(true);
+    if (pill.yt && !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) {
+      timerRef.current = setTimeout(() => setPreview(true), 1100);
+    }
+  };
+  const onLeave = () => {
+    setHover(false);
+    setPreview(false);
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const accent = CAT_HEX[pill.category] || '#0072BE';
+  const accentLight = accent + 'aa';
+
+  return (
+    <div onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{
+      position:'relative',
+      flexShrink: 0,
+      width: number ? 340 : (wide ? 320 : 260),
+      cursor:'pointer',
+      transition: 'transform .25s cubic-bezier(.2,.7,.3,1)',
+      transform: hover ? 'scale(1.07) translateY(-6px)' : 'scale(1)',
+      zIndex: hover ? 5 : 1,
+      scrollSnapAlign: 'start',
+    }}>
+      {number && (
+        <div aria-hidden="true" style={{
+          position:'absolute', left:-14, bottom:6,
+          fontSize: 140, fontWeight: 900, fontFamily: 'Inter, sans-serif',
+          color: '#0D1117',
+          WebkitTextStroke: '3px #BCD630',
+          lineHeight: 0.85, letterSpacing: '-0.08em',
+          zIndex: 0, pointerEvents: 'none', userSelect: 'none',
+        }}>{number}</div>
+      )}
+
+      <div style={{
+        position: 'relative',
+        marginLeft: number ? 60 : 0,
+        aspectRatio: '16/9',
+        borderRadius: 6,
+        overflow: 'hidden',
+        background: `linear-gradient(135deg, ${accent} 0%, ${accentLight} 45%, #0D1117 100%)`,
+        boxShadow: hover ? '0 22px 50px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.35)',
+        transition: 'box-shadow .25s',
+      }}>
+        <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 22px)', mixBlendMode:'overlay', pointerEvents:'none'}}/>
+        <div style={{position:'absolute', top:-40, right:-30, width:140, height:140, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(2px)', pointerEvents:'none'}}/>
+        {pill.pill != null && (
+          <div aria-hidden="true" style={{position:'absolute', right:6, bottom:-12, fontSize:88, fontWeight:900, fontFamily:'Inter, sans-serif', color:'rgba(255,255,255,0.16)', lineHeight:1, letterSpacing:'-0.06em', pointerEvents:'none'}}>
+            {String(pill.pill).padStart(2,'0')}
+          </div>
+        )}
+        {pill.yt && (
+          <img
+            src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
+            alt={pill.title}
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity: hover ? 0.95 : 1, transition:'opacity .25s'}}
+            onError={e => { e.currentTarget.style.display = 'none'; }}
+          />
+        )}
+        {preview && pill.yt && (
+          <iframe
+            src={`https://www.youtube.com/embed/${pill.yt}?autoplay=1&mute=1&controls=0&loop=1&playlist=${pill.yt}&modestbranding=1&playsinline=1&start=2&rel=0&iv_load_policy=3`}
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.05)', zIndex:1}}
+            allow="autoplay; encrypted-media"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        )}
+        <div style={{position:'absolute', inset:0, background:'linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.85) 100%)', pointerEvents:'none', zIndex:2}}/>
+        <div style={{position:'absolute', top:10, left:10, fontFamily:'JetBrains Mono, monospace', fontSize:9.5, fontWeight:700, color:'#fff', letterSpacing:'0.12em', textTransform:'uppercase', padding:'3px 8px', background:'rgba(0,0,0,0.4)', backdropFilter:'blur(6px)', borderRadius:4, zIndex:3}}>
+          {pill.category || 'Módulo'}
+        </div>
+        {hover && !preview && (
+          <div aria-hidden="true" style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:54, height:54, borderRadius:'50%', background:'rgba(255,255,255,0.95)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 18px rgba(0,0,0,0.4)', zIndex:3}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#0D1117" style={{marginLeft:3}}><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        )}
+        <div style={{position:'absolute', left:12, right:12, bottom:10, color:'#fff', zIndex:3}}>
+          <div style={{fontSize:14, fontWeight:700, lineHeight:1.25, marginBottom:4, textShadow:'0 1px 4px rgba(0,0,0,0.7)', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
+            {pill.title}
+          </div>
+          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:10, color:'rgba(255,255,255,0.7)', letterSpacing:'0.06em', textTransform:'uppercase'}}>
+            {pill.duration || '4 min'} · {pill.level || 'Principiante'}
+          </div>
+        </div>
+        {pill.progress > 0 && pill.progress < 100 && (
+          <div style={{position:'absolute', left:0, right:0, bottom:0, height:3, background:'rgba(255,255,255,0.15)', zIndex:4}}>
+            <div style={{height:'100%', width: pill.progress + '%', background:'#E50914'}}/>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── NetflixRow · fila horizontal scrolleable ─────────────────────────────
+function NetflixRow({ title, sub, items, openDetail, numbered, wide }) {
+  if (!items || items.length === 0) return null;
+  const scrollRef = React.useRef(null);
+  const [canL, setCanL] = useState(false);
+  const [canR, setCanR] = useState(true);
+  const updateArrows = () => {
+    const el = scrollRef.current; if (!el) return;
+    setCanL(el.scrollLeft > 10);
+    setCanR(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  };
+  useEffect(() => {
+    updateArrows();
+    const el = scrollRef.current; if (!el) return;
+    el.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    return () => { el.removeEventListener('scroll', updateArrows); window.removeEventListener('resize', updateArrows); };
+  }, [items.length]);
+  const scroll = dir => { const el = scrollRef.current; if (!el) return; el.scrollBy({ left: dir * Math.max(420, el.clientWidth * 0.8), behavior: 'smooth' }); };
+  return (
+    <section style={{margin:'0 0 8px'}}>
+      <h2 style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:22, color:'#fff', margin:'0 0 14px', padding:'0 64px', letterSpacing:'-0.015em'}}>
+        {title}
+        {sub && <span style={{marginLeft:10, fontStyle:'italic', fontWeight:400, fontSize:18, color:'rgba(255,255,255,0.55)'}}>{sub}</span>}
+      </h2>
+      <div style={{position:'relative'}}>
+        {canL && (
+          <button onClick={() => scroll(-1)} aria-label="Anterior" style={{position:'absolute', left:0, top:'50%', transform:'translateY(-50%)', zIndex:6, width:54, height:'70%', background:'linear-gradient(90deg, rgba(13,17,23,0.85) 0%, transparent 100%)', border:'none', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', paddingLeft:14}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        )}
+        {canR && (
+          <button onClick={() => scroll(1)} aria-label="Siguiente" style={{position:'absolute', right:0, top:'50%', transform:'translateY(-50%)', zIndex:6, width:54, height:'70%', background:'linear-gradient(270deg, rgba(13,17,23,0.85) 0%, transparent 100%)', border:'none', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:14}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        )}
+        <div ref={scrollRef} style={{display:'flex', gap:14, overflowX:'auto', overflowY:'visible', padding:'10px 64px 40px', scrollSnapType:'x mandatory', scrollPaddingLeft:64, scrollbarWidth:'none', msOverflowStyle:'none'}}>
+          {items.map((p, i) => (
+            <NetflixCard key={p.id} pill={p} onClick={() => openDetail(p)} number={numbered ? i + 1 : null} wide={wide}/>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Home · Netflix-style · BULLETPROOF, inline-styled ────────────────────
+function Home({ openDetail, openPlayer, setView }) {
+  const featuredPills = React.useMemo(() => {
     const withVideo = PILLS.filter(p => p.yt);
-    // Si el usuario tiene algo en progreso con vídeo, va primero
-    const ip = inProgress.find(p => p.yt);
-    const rest = withVideo.filter(p => !ip || p.id !== ip.id).slice(0, 3);
-    return ip ? [ip, ...rest] : withVideo.slice(0, 4);
-  }, [inProgress.length]);
+    return withVideo.length > 0 ? withVideo.slice(0, 4) : PILLS.slice(0, 4);
+  }, []);
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
   useEffect(() => {
-    if (FEATURED_PILLS.length <= 1 || heroPaused) return;
-    const t = setInterval(() => setHeroIdx(i => (i + 1) % FEATURED_PILLS.length), 9500);
+    if (featuredPills.length <= 1 || heroPaused) return;
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % featuredPills.length), 12000);
     return () => clearInterval(t);
-  }, [FEATURED_PILLS.length, heroPaused]);
-  const heroPill = FEATURED_PILLS[heroIdx] || PILLS[0];
-  // Color base de la categoría para gradient siempre visible (aunque YouTube falle)
-  const CAT_HEX = {
-    'Fundamentos': '#0072BE', 'Estructura': '#005a96', 'Gobernanza': '#3d31cc',
-    'Social Publish': '#EB0029', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
-    'Compliance': '#1a1a2e', 'Calendario': '#0072BE', 'Analytics': '#004d8a',
-    'Care': '#B8001F', 'Integraciones': '#3d31cc',
-  };
-  const heroAccent = (heroPill && CAT_HEX[heroPill.category]) || '#0072BE';
-  // Gradient fallback que SIEMPRE se ve (no depende de YouTube)
-  const heroGradient = `linear-gradient(135deg, ${heroAccent} 0%, #1a2940 55%, #0D1117 100%)`;
-  const heroThumbUrl = heroPill && heroPill.yt
-    ? `https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg`
-    : null;
-
-  const profile = window.UserProfile ? window.UserProfile.get() : { name:'', role:'Publish Agent' };
+  }, [featuredPills.length, heroPaused]);
+  const heroPill = featuredPills[heroIdx] || PILLS[0] || { title:'Sprinklr', category:'Fundamentos', duration:'4 min' };
+  const heroAccent = CAT_HEX[heroPill.category] || '#0072BE';
+  const profile = (window.UserProfile && window.UserProfile.get()) || { name:'tú', role:'Publish Agent' };
   const firstName = (profile.name || 'tú').split(' ')[0];
 
-  // Filas personalizadas por rol
-  const myPathPills = PILLS.filter(p => (p.pill || 0) <= 10); // simulado: Bloque 1+2
-  const trendingPills = PILLS.slice().sort((a, b) => (b.enrolled || 0) - (a.enrolled || 0)).slice(0, 10);
-  const shortsAndReels = PILLS.filter(p => (p.duration || '').match(/^[0-9]+\s*min/) && parseInt(p.duration) <= 3).slice(0, 10);
-  const careAndAnalytics = PILLS.filter(p => ['Care','Analytics','Integraciones'].includes(p.category)).slice(0, 10);
+  const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 100);
+  const recommendedRow = PILLS.slice(0, 14);
+  const trendingRow = PILLS.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).slice(0, 10);
+  const careRow = PILLS.filter(p => p.category === 'Care').slice(0, 10);
+  const analyticsRow = PILLS.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').slice(0, 10);
+  const newPillsRow = PILLS.slice(-12).reverse();
+  const withVideoRow = PILLS.filter(p => p.yt);
 
   return (
-    <div className="main-inner home-cinema">
-
-      {/* HERO CINEMATOGRÁFICO NETFLIX · gradient siempre visible + thumb + iframe video
-          Capas (de abajo a arriba): gradient colorido por categoría → thumb img → iframe video → overlay → content
-          Si YouTube está bloqueado, sigue viéndose el gradient + título + decoración */}
-      <section className="cine-hero netflix-hero"
+    <div className="main-inner home-cinema" style={{
+      padding: 0, maxWidth: 'none', background: '#0D1117', color: '#fff', minHeight: '100vh',
+    }}>
+      {/* ============ HERO ============ */}
+      <section
         onMouseEnter={() => setHeroPaused(true)}
         onMouseLeave={() => setHeroPaused(false)}
-        style={{ background: heroGradient }}>
-
-        {/* Capa 1 · thumb estático YouTube (si yt y carga bien) */}
-        {heroThumbUrl && (
+        style={{
+          position:'relative', minHeight:560, height:'78vh', maxHeight:880,
+          background: `linear-gradient(135deg, ${heroAccent} 0%, #1a2940 50%, #0D1117 100%)`,
+          overflow:'hidden', display:'flex', alignItems:'flex-end',
+        }}
+      >
+        {heroPill.yt && (
           <img
             key={'thumb-'+heroPill.id}
-            src={heroThumbUrl}
+            src={`https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg`}
             alt=""
-            className="cine-hero-thumb"
             aria-hidden="true"
-            onError={(e) => { e.currentTarget.style.display='none'; }}
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
+            onError={e => {
+              if (!e.currentTarget.dataset.fallback) {
+                e.currentTarget.dataset.fallback = '1';
+                e.currentTarget.src = `https://img.youtube.com/vi/${heroPill.yt}/hqdefault.jpg`;
+              } else { e.currentTarget.style.display = 'none'; }
+            }}
           />
         )}
-
-        {/* Capa 2 · iframe video (si yt y autoplay permitido) */}
-        {heroPill && heroPill.yt && (
+        {heroPill.yt && (
           <iframe
             key={'video-'+heroPill.id}
-            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=3&iv_load_policy=3&disablekb=1`}
-            className="cine-hero-video"
+            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=2&iv_load_policy=3&disablekb=1`}
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
             allow="autoplay; encrypted-media"
             aria-hidden="true"
             tabIndex={-1}
             title=""
           />
         )}
-
-        {/* Capa 3 · decoraciones SVG que siempre se ven (blobs + grid pattern) */}
-        <div className="cine-hero-decor" aria-hidden="true">
-          <div className="cine-hero-blob1" style={{background: `radial-gradient(circle, ${heroAccent}66 0%, transparent 70%)`}}/>
-          <div className="cine-hero-blob2"/>
-        </div>
-
-        <div className="cine-hero-overlay"/>
-        <div className="cine-hero-content" key={heroPill?.id}>
-          <div className="cine-hero-eyebrow">
-            <span className="cine-dot"/>
-            {heroPill && heroPill.progress > 0
-              ? `Continúa donde lo dejaste · ${heroPill.progress}% completado`
-              : `Repsol · Formación Sprinklr · Hola ${firstName}`}
+        <div style={{position:'absolute', inset:0, background:'linear-gradient(90deg, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.6) 35%, rgba(13,17,23,0.25) 65%, rgba(13,17,23,0.05) 100%), linear-gradient(180deg, rgba(13,17,23,0.4) 0%, transparent 30%, transparent 50%, #0D1117 100%)', pointerEvents:'none', zIndex:2}}/>
+        <div key={heroPill.id} style={{
+          position:'relative', zIndex:3, padding:'0 64px 90px', maxWidth:720, color:'#fff',
+        }}>
+          <div style={{display:'inline-flex', alignItems:'center', gap:8, fontFamily:'JetBrains Mono, monospace', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.85)', marginBottom:16, padding:'5px 12px', background:'rgba(255,255,255,0.1)', backdropFilter:'blur(8px)', borderRadius:999, border:'1px solid rgba(255,255,255,0.15)'}}>
+            <span style={{width:7, height:7, borderRadius:'50%', background:'linear-gradient(135deg, #BCD630, #0072BE)', boxShadow:'0 0 8px rgba(188,214,48,0.6)'}}/>
+            ★ Destacado · Hola {firstName}
           </div>
-          <h1 className="cine-hero-title">{heroPill ? heroPill.title : 'Domina Sprinklr como experto'}</h1>
-          {heroPill && heroPill.one && (
-            <p className="cine-hero-th1ng"><span className="cine-th1ng-label">TH1NG</span> {heroPill.one}</p>
+          <h1 style={{fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:'clamp(40px, 5.5vw, 64px)', letterSpacing:'-0.025em', lineHeight:1.05, margin:'0 0 16px', textShadow:'0 4px 24px rgba(0,0,0,0.5)'}}>
+            {heroPill.title}
+          </h1>
+          {heroPill.one && (
+            <p style={{fontFamily:'Instrument Serif, serif', fontStyle:'italic', fontSize:19, color:'rgba(255,255,255,0.93)', margin:'0 0 18px', lineHeight:1.45, textShadow:'0 2px 8px rgba(0,0,0,0.5)'}}>"{heroPill.one}"</p>
           )}
-          <p className="cine-hero-lead">
-            {heroPill && heroPill.category
-              ? `${heroPill.category} · ${heroPill.duration || '4 min'} · ${heroPill.teacher || 'BeonIt × Repsol'}`
-              : 'Plataforma de formación con MENTOR-IA, 41 Think Pills, 3 talleres y certificación oficial.'}
+          <p style={{fontFamily:'JetBrains Mono, monospace', fontSize:11.5, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.7)', margin:'0 0 24px'}}>
+            {heroPill.category || 'Sprinklr'} · {heroPill.duration || '4 min'} · {heroPill.teacher || 'BeonIt × Repsol'}
           </p>
-          <div className="cine-hero-ctas">
-            <button className="btn glow cine-cta-primary" onClick={() => heroPill ? openDetail(heroPill) : openPlayer()}>
-              <Icon name="play" size={16}/> {heroPill && heroPill.progress > 0 ? 'Continuar' : 'Reproducir'}
+          <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+            <button onClick={() => openDetail(heroPill)} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 28px', background:'#fff', color:'#0D1117', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:15, boxShadow:'0 8px 24px rgba(0,0,0,0.35)'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              Reproducir
             </button>
-            <button className="btn ghost cine-cta-info" onClick={() => heroPill && openDetail(heroPill)}>
-              <Icon name="book" size={14}/> Más información
+            <button onClick={() => openDetail(heroPill)} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 24px', background:'rgba(110,110,110,0.6)', color:'#fff', border:'1px solid rgba(255,255,255,0.15)', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:600, fontSize:14, backdropFilter:'blur(8px)'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              Más información
             </button>
-            <button className="btn ghost cine-cta-info" onClick={() => setView('coach')}>
-              <Icon name="sparkle" size={14}/> Pregúntale a MENTOR-IA
+            <button onClick={() => setView('coach')} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 20px', background:'transparent', color:'rgba(255,255,255,0.85)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:13}}>
+              ★ Pregúntale a MENTOR-IA
             </button>
           </div>
         </div>
 
-        {/* Rotation indicator · dots clickables */}
-        {FEATURED_PILLS.length > 1 && (
-          <div className="cine-hero-dots">
-            {FEATURED_PILLS.map((p, i) => (
-              <button key={p.id} className={`cine-hero-dot ${i === heroIdx ? 'is-active' : ''}`} onClick={() => setHeroIdx(i)} aria-label={`Ver ${p.title}`}/>
+        {featuredPills.length > 1 && (
+          <div style={{position:'absolute', bottom:36, right:64, display:'flex', gap:6, zIndex:4}}>
+            {featuredPills.map((p, i) => (
+              <button key={p.id} onClick={() => setHeroIdx(i)} aria-label={`Ver ${p.title}`} style={{
+                width: i === heroIdx ? 38 : 18, height:3, border:'none',
+                background: i === heroIdx ? '#BCD630' : 'rgba(255,255,255,0.32)',
+                borderRadius:2, cursor:'pointer', padding:0, transition:'all .3s',
+              }}/>
             ))}
           </div>
         )}
 
-        {/* Badge categoría · esquina superior derecha */}
-        {heroPill && heroPill.category && (
-          <div className="cine-hero-badge">
-            <span className="cine-hero-badge-tag">SGS|on TOP</span>
-            <span className="cine-hero-badge-cat">{heroPill.category}</span>
+        <div style={{position:'absolute', top:30, right:64, zIndex:4, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6}}>
+          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:800, letterSpacing:'0.16em', textTransform:'uppercase', color:'#fff', background:'linear-gradient(135deg, #E50914, #B8001F)', padding:'5px 11px', borderRadius:4, boxShadow:'0 4px 12px rgba(229,9,20,0.4)'}}>
+            SGS|on TOP
           </div>
-        )}
+          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:9.5, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.75)', background:'rgba(13,17,23,0.6)', backdropFilter:'blur(6px)', padding:'3px 9px', borderRadius:3, border:'1px solid rgba(255,255,255,0.1)'}}>
+            {heroPill.category || ''}
+          </div>
+        </div>
       </section>
 
-      {/* STATS SLIM · estilo dashboard Sprinklr */}
-      <div className="cine-stats">
-        {[
-          { n: '3/41',  l: 'Think Pills completadas', icon: 'check', color: 'var(--bn-lime)' },
-          { n: '15%',   l: 'Progreso en tu ruta',     icon: 'trend', color: 'var(--accent-glow)' },
-          { n: '22 min',l: 'Tiempo de formación',     icon: 'clock', color: 'var(--bn-blue)' },
-          { n: '41',    l: 'Think Pills en total',    icon: 'bolt',  color: 'var(--bn-purple)' },
-        ].map((s, i) => (
-          <button key={i} className="cine-stat" onClick={() => setView('dashboard')}>
-            <span className="cine-stat-icon" style={{background: s.color + '18', color: s.color}}>
-              <Icon name={s.icon} size={14}/>
-            </span>
-            <div>
-              <div className="cine-stat-n">{s.n}</div>
-              <div className="cine-stat-l">{s.l}</div>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* ============ ROWS ============ */}
+      <div style={{padding:'24px 0 64px', background:'#0D1117'}}>
+        {inProgress.length > 0 && (
+          <NetflixRow title={`Continúa, ${firstName}`} sub="donde lo dejaste" items={inProgress} openDetail={openDetail}/>
+        )}
+        {withVideoRow.length > 0 && (
+          <NetflixRow title="Vídeos disponibles ahora" sub="reproducir directamente" items={withVideoRow} openDetail={openDetail} wide/>
+        )}
+        <NetflixRow title="Rutas recomendadas para ti" sub={`para ${profile.role}`} items={recommendedRow} openDetail={openDetail}/>
+        <NetflixRow title="Tendencia esta semana" sub="en Repsol" items={trendingRow} openDetail={openDetail} numbered/>
+        {careRow.length > 0 && (
+          <NetflixRow title="Care · atención al cliente" items={careRow} openDetail={openDetail}/>
+        )}
+        {analyticsRow.length > 0 && (
+          <NetflixRow title="Analytics & Integraciones" items={analyticsRow} openDetail={openDetail}/>
+        )}
+        <NetflixRow title="Nuevo en SGS|on" items={newPillsRow} openDetail={openDetail}/>
 
-      {/* CONTINÚA · si hay progreso */}
-      {inProgress.length > 0 && (
-        <CineRow title="Continúa" emTitle={`donde lo dejaste, ${firstName}`} onSeeAll={() => setView('path')}>
-          {inProgress.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-        </CineRow>
-      )}
-
-      {/* RECOMENDADO PARA TI · rol del usuario */}
-      <CineRow title="Recomendado para ti" emTitle={`· ${profile.role}`} onSeeAll={() => setView('rutas')}>
-        {myPathPills.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-      </CineRow>
-
-      {/* TRENDING ESTA SEMANA */}
-      <CineRow title="Trending" emTitle="esta semana en Repsol" onSeeAll={() => setView('browse')}>
-        {trendingPills.map((p, i) => (
-          <div key={p.id} className="cine-card-trending">
-            <span className="cine-trending-num">{i + 1}</span>
-            <Card {...p} onClick={() => openDetail(p)}/>
+        <div style={{margin:'24px 64px 0', padding:'32px', background:'linear-gradient(135deg, #1a2940 0%, #2a1f4d 100%)', borderRadius:14, border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', gap:24, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:280}}>
+            <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#4D9FE0', fontWeight:700, marginBottom:8}}>★ MENTOR-IA · BETA</div>
+            <h2 style={{fontFamily:'Inter, sans-serif', fontSize:24, fontWeight:700, color:'#fff', margin:'0 0 8px', letterSpacing:'-0.015em'}}>
+              ¿Dudas sobre Sprinklr? Tu asistente IA conoce el contexto Repsol.
+            </h2>
+            <p style={{fontSize:13.5, color:'rgba(255,255,255,0.7)', margin:0, lineHeight:1.6}}>
+              Pregúntale sobre flujos, atajos, mejores prácticas. Te responde en español adaptado a tu rol.
+            </p>
           </div>
-        ))}
-      </CineRow>
-
-      {/* RUTAS DE APRENDIZAJE · big colored cards */}
-      <CineRow title="Rutas" emTitle="de certificación por rol" onSeeAll={() => setView('rutas')}>
-        {(window.LEARNING_PATHS || [
-          {id:'fundamentals', label:'Fundamentals', color:'#0072BE', bg:'linear-gradient(135deg,#0072BE,#004d8a)', icon:'🎓', pills:8, desc:'Base obligatoria · 6 pills · 22 min'},
-          {id:'publish-agent', label:'Publish Agent', color:'#BD2882', bg:'linear-gradient(135deg,#BD2882,#7a1456)', icon:'📢', pills:12, desc:'Para publicación multicanal · 12 pills'},
-          {id:'care-agent', label:'Care Agent', color:'#036837', bg:'linear-gradient(135deg,#036837,#024024)', icon:'💬', pills:13, desc:'Atención y SLAs · 13 pills'},
-          {id:'managers', label:'Managers', color:'#8A3992', bg:'linear-gradient(135deg,#8A3992,#5a1f6e)', icon:'👑', pills:9, desc:'Gobernanza y aprobación · 9 pills'},
-        ]).slice(0, 6).map((p) => (
-          <div key={p.id} className="cine-path-card" onClick={() => setView('rutas')} style={{background: p.bg || 'var(--paper-3)'}}>
-            <div className="cine-path-icon">{p.icon || '📚'}</div>
-            <div className="cine-path-title">{p.label}</div>
-            <div className="cine-path-desc">{p.desc || `${p.pills} módulos`}</div>
-            <div className="cine-path-cta">Ver ruta →</div>
-          </div>
-        ))}
-      </CineRow>
-
-      {/* MICRO-PILLS · cortas */}
-      {shortsAndReels.length > 0 && (
-        <CineRow title="Micropíldoras" emTitle="bajo 3 minutos" onSeeAll={() => setView('browse')}>
-          {shortsAndReels.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-        </CineRow>
-      )}
-
-      {/* CARE & ANALYTICS · contenido especializado */}
-      {careAndAnalytics.length > 0 && (
-        <CineRow title="Especializado" emTitle="· Care, Analytics, Integraciones" onSeeAll={() => setView('browse')}>
-          {careAndAnalytics.map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-        </CineRow>
-      )}
-
-      {/* CATÁLOGO COMPLETO con filtro categorías */}
-      <div className="catalog-section">
-        <div className="row-head" style={{marginBottom:14}}>
-          <h2>Todos los <em>módulos</em></h2>
-          <button className="link-btn" onClick={() => setView('browse')}>Ver catálogo completo →</button>
-        </div>
-        <CategoryBar active={activeCat} setActive={setActiveCat}/>
-        <div className="catalog-grid">
-          {filtered.slice(0, 12).map(item => <Card key={item.id} {...item} onClick={() => openDetail(item)}/>)}
-        </div>
-      </div>
-
-      {/* PILLS CON VÍDEO REAL */}
-      {PILLS.filter(p => p.yt).length > 0 && (
-        <CineRow title="Think Pills" emTitle="con vídeo">
-          {PILLS.filter(p => p.yt).map(p => <Card key={p.id} {...p} onClick={() => openDetail(p)}/>)}
-        </CineRow>
-      )}
-
-      {/* Quick tips · reels < 1 min */}
-      <CineRow title="Tips rápidos" emTitle="menos de 1 minuto">
-        {REELS.map(r => <Card key={r.id} {...r} onClick={openPlayer}/>)}
-      </CineRow>
-
-      {/* AI CTA */}
-      <div className="ai-cta-banner">
-        <div className="ai-cta-orb"/>
-        <div className="ai-cta-content">
-          <span className="eyebrow" style={{color:'var(--accent-glow)'}}>MENTOR-IA <span className="beta-badge" style={{background:'var(--beonit-lime)',color:'var(--ink)'}}>BETA</span> · IA contextualizada · Sprinklr</span>
-          <h2>"¿Cómo apruebo un post urgente fuera del horario habitual?"</h2>
-          <p>MENTOR-IA conoce los flujos de Repsol, tu perfil competencial y las guías de Sprinklr. Respuestas contextualizadas y transferibles al puesto.</p>
-          <button className="btn glow" onClick={() => setView('coach')}>
-            <Icon name="sparkle" size={14}/> Abrir MENTOR-IA
+          <button onClick={() => setView('coach')} style={{padding:'14px 24px', background:'#4D9FE0', color:'#0D1117', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:14, boxShadow:'0 4px 14px rgba(77,159,224,0.4)'}}>
+            Abrir MENTOR-IA →
           </button>
         </div>
-        <div className="ai-cta-visual">
-          <div className="ai-cta-chat">
-            {[
-              { role: 'ai', text: '¡Hola Amaia! Llevas un 58% de tu certificación. ¿Seguimos con el módulo de calendario hoy?' },
-              { role: 'user', text: '¿Cuánto me falta para terminar?' },
-              { role: 'ai', text: 'Te quedan 5 módulos: Calendario, Analytics, Activos, Compliance y el test final. Unos 90 min en total.' },
-            ].map((m, i) => (
-              <div key={i} className={`ai-cta-msg ${m.role}`}>{m.text}</div>
-            ))}
-          </div>
-        </div>
       </div>
-
     </div>
   );
 }
 
 window.Sidebar = Sidebar;
-// ── CineRow · fila horizontal scrolleable estilo Netflix ──────────────────
+window.NetflixCard = NetflixCard;
+window.NetflixRow = NetflixRow;
+window.Home = Home;
+
+// ── CineRow · fila horizontal scrolleable (legacy, usado por otras vistas) ──
 function CineRow({ title, emTitle, children, onSeeAll, extraClass }) {
   const scrollRef = React.useRef(null);
   const [canL, setCanL] = useState(false);
@@ -534,5 +600,4 @@ function CineRow({ title, emTitle, children, onSeeAll, extraClass }) {
 }
 
 window.CineRow = CineRow;
-window.Home = Home;
 window.PILLS = PILLS; window.SERIES = SERIES; window.REELS = REELS; window.PODCASTS = PODCASTS; window.PATHS = PATHS;
