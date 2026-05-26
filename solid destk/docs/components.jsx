@@ -36,15 +36,24 @@ const RepsolCover = ({ pill, category }) => {
   );
 };
 
-const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt }) => {
+const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0, onClick, format, level, rating, enrolled, category, yt, id }) => {
   const [hover, setHover] = _useStateC(false);
   const [preview, setPreview] = _useStateC(false);
+  const [bookmarked, setBookmarked] = _useStateC(false);
   const timerRef = _useRefC(null);
+  const itemId = id || `pill-${pill}`;
+
+  _useEffectC(() => {
+    if (!window.Bookmarks) return;
+    setBookmarked(window.Bookmarks.has(itemId));
+    const refresh = () => setBookmarked(window.Bookmarks.has(itemId));
+    window.addEventListener('bookmarks-changed', refresh);
+    return () => window.removeEventListener('bookmarks-changed', refresh);
+  }, [itemId]);
 
   const onEnter = () => {
     setHover(true);
     if (!yt) return;
-    // Disable autoplay on touch devices y en navegadores con ahorro de datos
     if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
     timerRef.current = setTimeout(() => setPreview(true), 1200);
   };
@@ -53,7 +62,17 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
     setPreview(false);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
   };
+  const toggleBookmark = (e) => {
+    e.stopPropagation();
+    if (window.Bookmarks) {
+      window.Bookmarks.toggle(itemId);
+      setBookmarked(window.Bookmarks.has(itemId));
+      window.dispatchEvent(new Event('bookmarks-changed'));
+    }
+  };
   _useEffectC(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const matchPct = rating ? Math.round(rating * 18 + 10) : null; // sintético tipo "97% match"
 
   return (
     <div className={`card ${hover ? 'is-hover' : ''} ${preview ? 'is-preview' : ''}`}
@@ -76,13 +95,28 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
           />
         )}
         <div className="card-hover-overlay">
-          <div className="card-play-btn"><Icon name="play" size={16}/></div>
+          <div className="card-play-btn"><Icon name="play" size={18}/></div>
+        </div>
+        {/* Action bar Netflix-style · aparece on hover/preview */}
+        <div className="card-actions-bar" onClick={e => e.stopPropagation()}>
+          <button className="card-action-btn primary" onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} title="Reproducir">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button className={`card-action-btn ${bookmarked ? 'is-active' : ''}`} onClick={toggleBookmark} title={bookmarked ? 'Quitar de Mi Lista' : 'Añadir a Mi Lista'}>
+            {bookmarked
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12l4 4L19 6"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>}
+          </button>
+          <button className="card-action-btn" onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} title="Más información">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div style={{flex:1}}/>
+          {matchPct && <span className="card-match">{matchPct}% match</span>}
         </div>
         {format && <span className="card-format-tag">{format}</span>}
         {progress > 0 && <div className="card-progress-bar"><i style={{width: progress+'%'}}/></div>}
-        {/* Badge MUTE en esquina superior derecha cuando preview activo */}
         {preview && (
-          <div style={{position:'absolute', top:8, right:8, zIndex:3, padding:'3px 8px', background:'rgba(13,17,23,0.7)', backdropFilter:'blur(4px)', borderRadius:6, fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', display:'inline-flex', alignItems:'center', gap:4}}>
+          <div className="card-mute-badge">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
             MUDO
           </div>

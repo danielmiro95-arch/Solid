@@ -225,8 +225,22 @@ function Home({ openDetail, openPlayer, setView }) {
   const allContent = [...PILLS, ...SERIES, ...PODCASTS, ...PATHS];
   const filtered = activeCat === 'Todo' ? allContent : allContent.filter(c => c.category === activeCat);
 
-  // Hero cinematográfico: rota entre el último pill en progreso o el destacado
-  const heroPill = inProgress[0] || PILLS.find(p => p.yt) || PILLS[0];
+  // HERO NETFLIX-STYLE · rotación cada 9.5s entre 4 featured pills con vídeo
+  const FEATURED_PILLS = React.useMemo(() => {
+    const withVideo = PILLS.filter(p => p.yt);
+    // Si el usuario tiene algo en progreso con vídeo, va primero
+    const ip = inProgress.find(p => p.yt);
+    const rest = withVideo.filter(p => !ip || p.id !== ip.id).slice(0, 3);
+    return ip ? [ip, ...rest] : withVideo.slice(0, 4);
+  }, [inProgress.length]);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+  useEffect(() => {
+    if (FEATURED_PILLS.length <= 1 || heroPaused) return;
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % FEATURED_PILLS.length), 9500);
+    return () => clearInterval(t);
+  }, [FEATURED_PILLS.length, heroPaused]);
+  const heroPill = FEATURED_PILLS[heroIdx] || PILLS[0];
   const heroBg = heroPill && heroPill.yt
     ? `url(https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg)`
     : 'linear-gradient(135deg, #003a72 0%, #0072BE 35%, #8A3992 100%)';
@@ -243,14 +257,26 @@ function Home({ openDetail, openPlayer, setView }) {
   return (
     <div className="main-inner home-cinema">
 
-      {/* HERO CINEMATOGRÁFICO · estilo Netflix featured */}
-      <section className="cine-hero" style={{
-        backgroundImage: heroBg,
-        backgroundSize:'cover',
-        backgroundPosition:'center',
-      }}>
+      {/* HERO CINEMATOGRÁFICO NETFLIX · autoplay video + rotación cada 9.5s */}
+      <section className="cine-hero netflix-hero"
+        onMouseEnter={() => setHeroPaused(true)}
+        onMouseLeave={() => setHeroPaused(false)}
+        style={{ backgroundImage: heroBg, backgroundSize:'cover', backgroundPosition:'center' }}>
+
+        {heroPill && heroPill.yt && (
+          <iframe
+            key={heroPill.id}
+            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=3&iv_load_policy=3&disablekb=1`}
+            className="cine-hero-video"
+            allow="autoplay; encrypted-media"
+            aria-hidden="true"
+            tabIndex={-1}
+            title=""
+          />
+        )}
+
         <div className="cine-hero-overlay"/>
-        <div className="cine-hero-content">
+        <div className="cine-hero-content" key={heroPill?.id}>
           <div className="cine-hero-eyebrow">
             <span className="cine-dot"/>
             {heroPill && heroPill.progress > 0
@@ -268,7 +294,7 @@ function Home({ openDetail, openPlayer, setView }) {
           </p>
           <div className="cine-hero-ctas">
             <button className="btn glow cine-cta-primary" onClick={() => heroPill ? openDetail(heroPill) : openPlayer()}>
-              <Icon name="play" size={16}/> {heroPill && heroPill.progress > 0 ? 'Continuar' : 'Empezar'}
+              <Icon name="play" size={16}/> {heroPill && heroPill.progress > 0 ? 'Continuar' : 'Reproducir'}
             </button>
             <button className="btn ghost cine-cta-info" onClick={() => heroPill && openDetail(heroPill)}>
               <Icon name="book" size={14}/> Más información
@@ -278,6 +304,23 @@ function Home({ openDetail, openPlayer, setView }) {
             </button>
           </div>
         </div>
+
+        {/* Rotation indicator · dots clickables */}
+        {FEATURED_PILLS.length > 1 && (
+          <div className="cine-hero-dots">
+            {FEATURED_PILLS.map((p, i) => (
+              <button key={p.id} className={`cine-hero-dot ${i === heroIdx ? 'is-active' : ''}`} onClick={() => setHeroIdx(i)} aria-label={`Ver ${p.title}`}/>
+            ))}
+          </div>
+        )}
+
+        {/* Badge categoría · esquina superior derecha */}
+        {heroPill && heroPill.category && (
+          <div className="cine-hero-badge">
+            <span className="cine-hero-badge-tag">SGS|on TOP</span>
+            <span className="cine-hero-badge-cat">{heroPill.category}</span>
+          </div>
+        )}
       </section>
 
       {/* STATS SLIM · estilo dashboard Sprinklr */}

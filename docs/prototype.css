@@ -2194,9 +2194,9 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 /* HERO CINEMATOGRÁFICO · full-bleed con gradient + text */
 .cine-hero {
   position: relative;
-  min-height: 480px;
-  height: 60vh;
-  max-height: 620px;
+  min-height: 580px;
+  height: 82vh;
+  max-height: 880px;
   margin: -28px -32px 24px;
   display: flex;
   align-items: flex-end;
@@ -2205,19 +2205,111 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   background-position: center;
   background-color: #0D1117;
 }
+/* Hero Netflix · taller + más cinematográfico */
+.cine-hero.netflix-hero {
+  min-height: 640px;
+  height: 85vh;
+  max-height: 920px;
+}
+/* Vídeo de fondo (iframe YouTube · autoplay mute) */
+.cine-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none;
+  z-index: 0;
+  /* Zoom para cubrir aspect ratio · esconder los bordes negros del embed */
+  transform: scale(1.35);
+  transform-origin: center;
+  animation: heroVideoFade 1.2s ease;
+}
+@keyframes heroVideoFade {
+  from { opacity: 0; transform: scale(1.45); }
+  to { opacity: 1; transform: scale(1.35); }
+}
 .cine-hero-overlay {
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.72) 35%, rgba(13,17,23,0.4) 65%, rgba(13,17,23,0.2) 100%),
-    linear-gradient(180deg, rgba(13,17,23,0.5) 0%, rgba(13,17,23,0) 25%, rgba(13,17,23,0) 60%, rgba(13,17,23,0.88) 100%);
+    linear-gradient(90deg, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.78) 32%, rgba(13,17,23,0.45) 60%, rgba(13,17,23,0.15) 100%),
+    linear-gradient(180deg, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0) 28%, rgba(13,17,23,0) 50%, rgba(13,17,23,0.96) 100%);
   pointer-events: none;
+  z-index: 1;
+}
+/* Indicador de rotación · dots tipo Netflix */
+.cine-hero-dots {
+  position: absolute;
+  bottom: 36px;
+  right: 56px;
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+.cine-hero-dot {
+  width: 22px;
+  height: 3px;
+  border: none;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+  transition: background .25s, width .25s;
+}
+.cine-hero-dot.is-active {
+  background: var(--bn-lime);
+  width: 40px;
+  box-shadow: 0 0 14px rgba(188,214,48,0.6);
+}
+.cine-hero-dot:hover { background: rgba(255,255,255,0.6); }
+/* Badge SGS|on TOP estilo "TOP 10 en…" de Netflix */
+.cine-hero-badge {
+  position: absolute;
+  top: 32px;
+  right: 56px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.cine-hero-badge-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--repsol-red), #B8001F);
+  padding: 5px 11px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(235,0,41,0.4);
+}
+.cine-hero-badge-cat {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  background: rgba(13,17,23,0.55);
+  backdrop-filter: blur(8px);
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.12);
 }
 .cine-hero-content {
   position: relative;
-  padding: 0 56px 56px;
+  padding: 0 56px 72px;
   max-width: 720px;
   color: #fff;
   z-index: 2;
+  animation: heroContentFade .65s cubic-bezier(.2,.7,.3,1);
+}
+@keyframes heroContentFade {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .cine-hero-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
@@ -2446,25 +2538,132 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 .cine-arrow:hover { background: var(--ink); transform: translateY(-50%) scale(1.08); }
 
 /* CARD HOVER · estilo Netflix (lift + glow al pasar el mouse en la row) */
+.cine-row-scroll {
+  padding-top: 22px !important;
+  padding-bottom: 36px !important;
+}
 .cine-row-scroll .card {
-  transition: transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s, z-index 0s linear .22s;
+  transition: transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s, z-index 0s linear .25s;
   position: relative;
 }
 .cine-row-scroll .card:hover {
-  transform: translateY(-6px) scale(1.045);
-  box-shadow: 0 18px 38px rgba(0, 89, 150, 0.22), 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-8px) scale(1.06);
+  box-shadow: 0 22px 44px rgba(0,0,0,0.32), 0 6px 14px rgba(0,0,0,0.16);
   z-index: 5;
   transition-delay: 0s;
+}
+.cine-row-scroll .card.is-preview {
+  transform: translateY(-12px) scale(1.10);
+  box-shadow: 0 30px 64px rgba(0,0,0,0.5), 0 10px 22px rgba(0,0,0,0.24);
+  z-index: 50;
+  transition-delay: 0s;
+}
+
+/* Action bar Netflix-style · esconde acciones hasta hover */
+.card-actions-bar {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  background: linear-gradient(180deg, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.92) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .22s, transform .22s;
+  z-index: 4;
+  pointer-events: none;
+}
+.card.is-hover .card-actions-bar,
+.card.is-preview .card-actions-bar {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: .12s;
+  pointer-events: auto;
+}
+.card-action-btn {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.42);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  padding: 0;
+}
+.card-action-btn:hover {
+  background: #fff;
+  color: var(--ink);
+  border-color: #fff;
+  transform: scale(1.12);
+}
+.card-action-btn.primary {
+  background: #fff;
+  color: var(--ink);
+  border-color: #fff;
+}
+.card-action-btn.primary:hover {
+  background: var(--bn-lime);
+  border-color: var(--bn-lime);
+  color: var(--ink);
+}
+.card-action-btn.is-active {
+  background: var(--bn-lime);
+  border-color: var(--bn-lime);
+  color: var(--ink);
+}
+.card-match {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--bn-lime);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+/* Mute badge cuando preview iframe activo */
+.card-mute-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 4px 9px;
+  background: rgba(13,17,23,0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255,255,255,0.18);
 }
 
 /* Mobile responsive */
 @media (max-width: 900px) {
-  .cine-hero {
+  .cine-hero,
+  .cine-hero.netflix-hero {
     margin: -20px -16px 24px;
-    min-height: 380px;
-    height: 50vh;
+    min-height: 440px;
+    height: 68vh;
+    max-height: 620px;
   }
-  .cine-hero-content { padding: 0 24px 32px; }
+  /* No autoplay en touch: ahorra batería + datos */
+  .cine-hero-video { display: none; }
+  .cine-hero-content { padding: 0 24px 48px; }
+  .cine-hero-dots { bottom: 22px; right: 24px; }
+  .cine-hero-badge { top: 18px; right: 18px; }
+  .cine-hero-badge-tag { font-size: 9px; padding: 4px 9px; }
   .cine-stats {
     grid-template-columns: repeat(2, 1fr);
     padding: 0 16px;
@@ -2477,6 +2676,9 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   .cine-path-card { width: 240px; }
   .cine-arrow { display: none; }
   .cine-row-scroll .card:hover { transform: none; box-shadow: var(--shadow-md); }
+  .cine-row-scroll .card.is-preview { transform: none; }
+  /* En móvil escondemos la action bar (no hay hover) */
+  .card-actions-bar { display: none; }
 }
 
 /* ============================================================
