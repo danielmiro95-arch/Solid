@@ -560,8 +560,27 @@ function AISidekick({ setAIMode, aiMode, view }) {
             style={{flex:1, background:'transparent', border:'none', outline:'none', color:'var(--fg, #F5F4F1)', fontFamily:'var(--font-sans, Inter)', fontSize:13.5}}
           />
           <button onClick={() => sendMsg()} disabled={!input.trim() || loading}
-            style={{width:30, height:30, borderRadius:'50%', background: input.trim() && !loading ? 'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))' : 'rgba(255,255,255,0.08)', border:'none', color:'#fff', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s'}}>
-            <Icon name="send" size={13}/>
+            title={loading ? 'BeonAI pensando…' : 'Enviar a BeonAI'}
+            aria-label="Enviar a BeonAI"
+            className="bai-send"
+            style={{
+              width:38, height:38, borderRadius:'50%',
+              padding:0, border:'none',
+              background: input.trim() && !loading
+                ? 'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))'
+                : 'rgba(255,255,255,0.06)',
+              cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              flexShrink:0,
+              opacity: input.trim() && !loading ? 1 : 0.55,
+              boxShadow: input.trim() && !loading
+                ? '0 4px 14px rgba(110, 80, 238, 0.45), 0 0 0 1px rgba(255,255,255,0.15) inset'
+                : 'none',
+              transition:'all .15s',
+            }}>
+            {window.BeonAIChar
+              ? <BeonAIChar size={30} mood={loading ? 'thinking' : (input.trim() ? 'happy' : 'neutral')} interactive={false}/>
+              : <Icon name="send" size={13}/>}
           </button>
         </div>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8, fontFamily:'var(--font-mono, monospace)', fontSize:9, letterSpacing:'0.06em', color:'var(--fg-dim, #6F6D67)', textTransform:'uppercase'}}>
