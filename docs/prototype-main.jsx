@@ -62,6 +62,113 @@ const WATracker = (function() {
 })();
 window.WATracker = WATracker;
 
+// ── Ratings · puntuación de vídeos (1-5 estrellas) ─────────────────────────
+// Cada usuario puede puntuar cada pill. Estructura:
+//   { userId: { pillId: { stars: 1-5, ts: number } } }
+const Ratings = (function() {
+  const KEY = 'solid-ratings';
+
+  function getAll() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function save(all) { localStorage.setItem(KEY, JSON.stringify(all)); }
+
+  function _currentUserId() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      return (u && u.email) || 'guest';
+    } catch(e) { return 'guest'; }
+  }
+
+  function set(pillId, stars) {
+    if (!pillId) return;
+    const s = Math.max(0, Math.min(5, Math.round(stars)));
+    const all = getAll();
+    const uid = _currentUserId();
+    if (!all[uid]) all[uid] = {};
+    if (s === 0) {
+      delete all[uid][pillId];
+    } else {
+      all[uid][pillId] = { stars: s, ts: Date.now() };
+    }
+    save(all);
+    window.dispatchEvent(new CustomEvent('ratings-changed', { detail: { pillId, stars: s } }));
+    if (window.Toast) {
+      if (s === 0) window.Toast.info('Puntuación eliminada');
+      else window.Toast.success('¡Gracias por tu puntuación: ' + s + ' estrella' + (s>1?'s':'') + '!', { icon: '★' });
+    }
+  }
+
+  function get(pillId) {
+    const all = getAll();
+    const uid = _currentUserId();
+    const r = all[uid] && all[uid][pillId];
+    return r ? r.stars : 0;
+  }
+
+  // Aggregado: por pill, average + count + distribución [n1,n2,n3,n4,n5]
+  function aggregateForPill(pillId) {
+    const all = getAll();
+    const stars = [];
+    Object.keys(all).forEach(uid => {
+      const r = all[uid][pillId];
+      if (r && r.stars) stars.push(r.stars);
+    });
+    if (stars.length === 0) return { avg: 0, count: 0, dist:[0,0,0,0,0] };
+    const sum = stars.reduce((a, b) => a + b, 0);
+    const dist = [0,0,0,0,0];
+    stars.forEach(s => dist[s-1]++);
+    return { avg: +(sum / stars.length).toFixed(2), count: stars.length, dist };
+  }
+
+  // Aggregado global: promedio sobre todas las pills puntuadas + distribución total
+  function globalStats() {
+    const all = getAll();
+    let total = 0, count = 0;
+    const dist = [0,0,0,0,0];
+    const byPill = {};
+    Object.keys(all).forEach(uid => {
+      Object.keys(all[uid]).forEach(pillId => {
+        const s = all[uid][pillId].stars;
+        if (!s) return;
+        total += s; count++;
+        dist[s-1]++;
+        if (!byPill[pillId]) byPill[pillId] = { sum:0, count:0 };
+        byPill[pillId].sum += s;
+        byPill[pillId].count += 1;
+      });
+    });
+    const top = Object.keys(byPill)
+      .map(pid => ({ pillId: pid, avg: +(byPill[pid].sum / byPill[pid].count).toFixed(2), count: byPill[pid].count }))
+      .sort((a, b) => b.avg - a.avg);
+    return {
+      avg: count > 0 ? +(total / count).toFixed(2) : 0,
+      count,
+      dist,
+      top,
+    };
+  }
+
+  // Seed · puntuaciones demo para que el dashboard tenga datos
+  function seedIfEmpty() {
+    const all = getAll();
+    if (Object.keys(all).length > 0) return;
+    const now = Date.now();
+    save({
+      'demo1@solid.app': { p0:{stars:5,ts:now}, p3:{stars:4,ts:now}, p17:{stars:5,ts:now}, p20:{stars:5,ts:now}, p31:{stars:3,ts:now}, p41:{stars:4,ts:now} },
+      'demo2@solid.app': { p0:{stars:4,ts:now}, p3:{stars:5,ts:now}, p17:{stars:4,ts:now}, p41:{stars:5,ts:now} },
+      'demo3@solid.app': { p0:{stars:5,ts:now}, p20:{stars:4,ts:now}, p41:{stars:5,ts:now}, p13:{stars:2,ts:now}, p25:{stars:3,ts:now} },
+      'demo4@solid.app': { p3:{stars:5,ts:now}, p17:{stars:5,ts:now}, p31:{stars:4,ts:now}, p25:{stars:1,ts:now} },
+      'demo5@solid.app': { p0:{stars:3,ts:now}, p17:{stars:4,ts:now}, p41:{stars:5,ts:now}, p13:{stars:3,ts:now} },
+    });
+  }
+
+  return { get, set, getAll, aggregateForPill, globalStats, seedIfEmpty };
+})();
+window.Ratings = Ratings;
+// Inicializa puntuaciones demo
+try { Ratings.seedIfEmpty(); } catch(e) {}
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy

@@ -175,6 +175,82 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
 }
 
 // ---------- Player ----------
+// ---------- StarRating · puntuar de 1 a 5 estrellas ----------
+function StarRating({ pillId, size = 28, showCount = true, label = '¿Qué tal este vídeo?' }) {
+  const initial = (window.Ratings && pillId) ? window.Ratings.get(pillId) : 0;
+  const [stars, setStars] = useS2(initial);
+  const [hover, setHover] = useS2(0);
+  const agg = (window.Ratings && pillId) ? window.Ratings.aggregateForPill(pillId) : { avg:0, count:0 };
+  const [aggState, setAggState] = useS2(agg);
+
+  // Refresca aggregado cuando hay cambios externos
+  useE2(() => {
+    const onChange = () => {
+      if (window.Ratings) setAggState(window.Ratings.aggregateForPill(pillId));
+    };
+    window.addEventListener('ratings-changed', onChange);
+    return () => window.removeEventListener('ratings-changed', onChange);
+  }, [pillId]);
+
+  const pick = (n) => {
+    const next = stars === n ? 0 : n; // click en la misma → desmarca
+    setStars(next);
+    if (window.Ratings && pillId) window.Ratings.set(pillId, next);
+    if (window.Ratings && pillId) setAggState(window.Ratings.aggregateForPill(pillId));
+  };
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:8}}>
+      {label && (
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>
+          ★ {label}
+        </div>
+      )}
+      <div style={{display:'flex', alignItems:'center', gap:14}}>
+        <div style={{display:'flex', gap:4}} onMouseLeave={() => setHover(0)}>
+          {[1,2,3,4,5].map(n => {
+            const filled = (hover || stars) >= n;
+            return (
+              <button key={n}
+                onClick={() => pick(n)}
+                onMouseEnter={() => setHover(n)}
+                aria-label={`Puntuar con ${n} estrella${n>1?'s':''}`}
+                style={{
+                  background:'transparent', border:'none', cursor:'pointer', padding:2,
+                  color: filled ? '#F4B740' : 'rgba(15,23,42,0.18)',
+                  fontSize: size, lineHeight:1,
+                  transition:'transform .12s, color .12s',
+                  transform: hover === n ? 'scale(1.15)' : 'scale(1)',
+                }}>
+                {filled ? '★' : '☆'}
+              </button>
+            );
+          })}
+        </div>
+        {showCount && (
+          <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', display:'flex', gap:8, alignItems:'center'}}>
+            {aggState.count > 0 ? (
+              <>
+                <span><strong style={{color:'var(--ink)'}}>{aggState.avg}</strong> / 5</span>
+                <span>·</span>
+                <span>{aggState.count} puntuaci{aggState.count===1?'ón':'ones'}</span>
+              </>
+            ) : (
+              <span>Sé el primero en puntuar</span>
+            )}
+            {stars > 0 && (
+              <>
+                <span>·</span>
+                <span style={{color:'var(--ok)'}}>Tu voto: {stars}★</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Player({ back, item }) {
   const [playing, setPlaying] = useS2(true);
   const [currentSec, setCurrentSec] = useS2(0);
@@ -313,6 +389,14 @@ function Player({ back, item }) {
             </div>
           </>
         )}
+      </div>
+
+      {/* Rating · puntuar de 1 a 5 estrellas */}
+      <div style={{padding:'14px 24px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, marginTop:16, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap'}}>
+        <StarRating pillId={it.id} label="¿Te ha gustado este vídeo?"/>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--ink-4)', maxWidth:300, lineHeight:1.5}}>
+          Tu puntuación ayuda a otros agentes a descubrir el mejor contenido.
+        </div>
       </div>
 
       {/* Below video: pill info + related */}
@@ -2108,6 +2192,83 @@ function ClusterChart({ groups, series, height = 200 }) {
   );
 }
 
+// Ratings Overview · KPI grande con ★ media + count
+function RatingsOverviewWidget({ avg, count }) {
+  const stars = Math.round((avg || 0) * 2) / 2; // medio paso
+  return (
+    <div style={{padding:'18px 22px', display:'flex', alignItems:'center', gap:18}}>
+      <div style={{fontSize:42, fontFamily:'var(--sans)', fontWeight:800, color:'#F4B740', letterSpacing:'-0.02em', lineHeight:1}}>
+        {(avg || 0).toFixed(1)}
+        <span style={{fontSize:18, color:'var(--ink-4)', fontWeight:600, marginLeft:4}}>/ 5</span>
+      </div>
+      <div style={{flex:1}}>
+        <div style={{display:'flex', gap:2, fontSize:22, lineHeight:1, color:'#F4B740'}}>
+          {[1,2,3,4,5].map(n => <span key={n}>{n <= stars ? '★' : (n - 0.5 === stars ? '⯨' : '☆')}</span>)}
+        </div>
+        <div style={{fontFamily:'var(--mono)', fontSize:10.5, letterSpacing:'0.06em', color:'var(--ink-4)', marginTop:5, textTransform:'uppercase'}}>{count || 0} puntuaciones · {count > 0 ? 'datos reales' : 'todavía sin votos'}</div>
+      </div>
+    </div>
+  );
+}
+
+// Ratings Distribution · barras horizontales 1-5★ con count
+function RatingsDistWidget({ dist, count, avg }) {
+  const max = Math.max(...(dist || [0,0,0,0,0]), 1);
+  return (
+    <div style={{padding:'12px 22px 18px'}}>
+      <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--ink-4)', textTransform:'uppercase', marginBottom:10}}>
+        Media: <strong style={{color:'#F4B740'}}>{(avg||0).toFixed(2)}★</strong> · {count||0} votos
+      </div>
+      {[5,4,3,2,1].map(stars => {
+        const n = (dist || [0,0,0,0,0])[stars-1] || 0;
+        const pct = count > 0 ? (n / count) * 100 : 0;
+        return (
+          <div key={stars} style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
+            <div style={{width:46, display:'flex', alignItems:'center', gap:2, fontSize:13, color:'#F4B740'}}>
+              {stars} <span style={{fontSize:14}}>★</span>
+            </div>
+            <div style={{flex:1, height:14, background:'var(--paper-2)', borderRadius:7, overflow:'hidden', position:'relative'}}>
+              <div style={{width: (n/max*100) + '%', height:'100%', background:'linear-gradient(90deg, #F4B740, #E89B0F)', borderRadius:7, transition:'width .3s'}}/>
+            </div>
+            <div style={{minWidth:50, textAlign:'right', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>
+              {n} <span style={{color:'var(--ink-4)'}}>({Math.round(pct)}%)</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Ratings Top · tabla de pills mejor puntuadas
+function RatingsTopWidget({ rows }) {
+  if (!rows || rows.length === 0) {
+    return <div style={{padding:'22px 22px', textAlign:'center', color:'var(--ink-4)', fontSize:12}}>Todavía no hay puntuaciones. Anima a tu equipo a votar los vídeos.</div>;
+  }
+  return (
+    <div style={{padding:'4px 16px 14px'}}>
+      <table style={{width:'100%', borderCollapse:'collapse', fontSize:12.5}}>
+        <thead>
+          <tr style={{borderBottom:'1px solid var(--line)'}}>
+            <th style={{textAlign:'left', padding:'8px 6px', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:700}}>Pill</th>
+            <th style={{textAlign:'right', padding:'8px 6px', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:700}}>★ media</th>
+            <th style={{textAlign:'right', padding:'8px 6px', fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:700}}>Votos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.pillId} style={{borderBottom: i === rows.length-1 ? 'none' : '1px solid var(--line-2)'}}>
+              <td style={{padding:'8px 6px', color:'var(--ink-2)', maxWidth:280, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}} title={r.title}>{r.title}</td>
+              <td style={{padding:'8px 6px', textAlign:'right', fontFamily:'var(--mono)', fontWeight:700, color:'#F4B740'}}>{r.avg.toFixed(2)} ★</td>
+              <td style={{padding:'8px 6px', textAlign:'right', fontFamily:'var(--mono)', color:'var(--ink-4)'}}>{r.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // AI Insight · texto generado por BeonAI sobre una métrica
 function AIInsightWidget({ insight, tags, widget }) {
   return (
@@ -2799,6 +2960,8 @@ const METRICS = [
   { id:'time_invested',    label:'Tiempo invertido',        unit:'horas',      color:'var(--bn-blue)' },
   { id:'modules_started',  label:'Módulos iniciados',       unit:'módulos',    color:'var(--bn-purple-2)' },
   { id:'cert_progress',    label:'Progreso certificación',  unit:'%',          color:'var(--ok)' },
+  { id:'rating_avg',       label:'Rating medio (★)',        unit:'estrellas',  color:'#F4B740' },
+  { id:'rating_count',     label:'Nº puntuaciones',         unit:'votos',      color:'#F4B740' },
 ];
 
 // Catálogo de DIMENSIONES · cómo se agrupa (eje x / categoría)
@@ -2851,6 +3014,10 @@ const WIDGET_LIBRARY = [
   // Funnel
   { id:'funnel',          label:'Funnel',           icon:'🔻', cat:'funnel',  desc:'Etapas de conversión' },
   { id:'modules',         label:'Completación',     icon:'✅', cat:'funnel',  desc:'% completado por módulo' },
+  // Ratings · puntuaciones de usuarios
+  { id:'ratings-overview', label:'Rating overview', icon:'★',  cat:'kpi',     desc:'★ medio global + nº de votos · datos reales' },
+  { id:'ratings-dist',     label:'Rating distribution', icon:'⭐', cat:'distribution', desc:'Distribución 1-5★ sobre todas las pills', defaultSpan:2 },
+  { id:'ratings-top',      label:'Top pills · rating',  icon:'🏆', cat:'table', desc:'Pills mejor puntuadas',                       defaultSpan:2 },
   // AI (cluster / insights generados con IA)
   { id:'ia-insight',      label:'AI Insight',       icon:'✨', cat:'ai',      desc:'Insight generado por BeonAI sobre la métrica', defaultSpan:2 },
   { id:'ia-cluster',      label:'AI Cluster',       icon:'🤖', cat:'ai',      desc:'Agrupación automática de usuarios por comportamiento', defaultSpan:2 },
@@ -2917,6 +3084,9 @@ const EXAMPLE_DASHBOARD = {
     { id:'ex-7', type:'pivot',           title:'Rol × Métrica',                subtitle:'Cross-tab con heatmap',                                 span:2 },
     { id:'ex-8', type:'gauge',           title:'Engagement global',            subtitle:'Meta trimestral 80%',                                   span:1 },
     { id:'ex-9', type:'text',            title:'Notas del dashboard',          subtitle:'Insights generados automáticamente',                    span:1 },
+    { id:'ex-10', type:'ratings-overview', title:'Rating medio (★)',           subtitle:'Puntuación media de los vídeos · datos reales',         span:1 },
+    { id:'ex-11', type:'ratings-dist',     title:'Distribución de ★',          subtitle:'Cuántos votos de 1 a 5 estrellas',                      span:2 },
+    { id:'ex-12', type:'ratings-top',      title:'Pills mejor puntuadas',      subtitle:'Top ★ media · datos reales del store de Ratings',       span:2 },
   ],
 };
 
@@ -3128,6 +3298,29 @@ function getMockData(type) {
       return { title:'Sección del dashboard', subtitle:'Edita este título desde las opciones del widget', color:'var(--bn-blue)' };
     case 'text':
       return { text:'Texto libre del widget. Útil para documentar el contexto del dashboard, añadir notas o describir hallazgos.\nPuedes editar este contenido desde las opciones del widget.' };
+    case 'ratings-overview': {
+      const s = window.Ratings ? window.Ratings.globalStats() : { avg:0, count:0 };
+      return { avg: s.avg, count: s.count };
+    }
+    case 'ratings-dist': {
+      const s = window.Ratings ? window.Ratings.globalStats() : { avg:0, count:0, dist:[0,0,0,0,0] };
+      return { dist: s.dist, count: s.count, avg: s.avg };
+    }
+    case 'ratings-top': {
+      const s = window.Ratings ? window.Ratings.globalStats() : { top:[] };
+      const all = (window.PILLS || []);
+      const findTitle = (pid) => {
+        const p = all.find(x => x.id === pid);
+        return p ? (p.title || ('Pill ' + pid)) : ('Pill ' + pid);
+      };
+      const rows = (s.top || []).slice(0, 8).map(t => ({
+        pillId: t.pillId,
+        title: findTitle(t.pillId),
+        avg: t.avg,
+        count: t.count,
+      }));
+      return { rows };
+    }
     case 'ia-insight':
       return { insight:'**Engagement** cae un 14% los viernes en *Care*. Posible causa: rotación de turno y solapamiento con otros equipos. Sugerencia: revisar horarios de la pill 13.', tags:['care','engagement','semanal'] };
     case 'ia-cluster':
@@ -3159,6 +3352,9 @@ function WidgetRenderer({ widget, onRemove, onEditMeta }) {
     case 'stacked':         body = <StackedBarChart {...data}/>; break;
     case 'stacked-column':  body = <StackedColumnChart {...data}/>; break;
     case 'cluster':         body = <ClusterChart {...data}/>; break;
+    case 'ratings-overview': body = <RatingsOverviewWidget {...data}/>; break;
+    case 'ratings-dist':     body = <RatingsDistWidget {...data}/>; break;
+    case 'ratings-top':      body = <RatingsTopWidget {...data}/>; break;
     case 'ia-insight':      body = <AIInsightWidget {...data} widget={widget}/>; break;
     case 'ia-cluster':      body = <AIClusterWidget {...data} widget={widget}/>; break;
     case 'ia-anomaly':      body = <AIAnomalyWidget {...data} widget={widget}/>; break;
@@ -3824,7 +4020,9 @@ function Dashboard() {
     try {
       const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
       if (s && Array.isArray(s.dashboards)) {
-        if (!s.dashboards.find(d => d.id === EXAMPLE_DASHBOARD.id)) s.dashboards.unshift(EXAMPLE_DASHBOARD);
+        // Reemplaza siempre el example por la versión actual (incluye widgets nuevos)
+        s.dashboards = s.dashboards.filter(d => d.id !== EXAMPLE_DASHBOARD.id);
+        s.dashboards.unshift(EXAMPLE_DASHBOARD);
         return s;
       }
     } catch(e) {}
@@ -4035,4 +4233,4 @@ function Cronograma() {
   );
 }
 
-Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart, AreaChart, HeatmapChart, GaugeChart, FunnelChart });
+Object.assign(window, { Detail, Player, AISidekick, Coach, Onboarding, PathView, Profile, WhatsApp, Dashboard, Cronograma, Rutas, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart, AreaChart, HeatmapChart, GaugeChart, FunnelChart, StarRating });
