@@ -1,5 +1,5 @@
 /* ============================================================
-   SGS|on · Redesign Sidebar overlay + Detail modal
+   SolidStream · Redesign Sidebar overlay + Detail modal
    Wrapper de los componentes del mockup adaptado al SaaS actual.
    Datos vía window.SGS_DATA (alimentado por sgson-adapter.jsx).
    ============================================================ */
@@ -38,7 +38,7 @@ function SidebarOverlay({ open, onClose, view, onView }) {
       <div className="sb-backdrop" onClick={onClose}/>
       <aside className="sb-overlay" data-screen-label="Sidebar overlay">
         <div className="sb-head">
-          {window.Wordmark ? <Wordmark variant="v1"/> : <span className="wordmark v1"><span className="sgs">SGS</span><span className="pipe">|</span><span className="on">on</span></span>}
+          {window.Wordmark ? <Wordmark variant="v1"/> : <span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:20, color:'#F5F4F1'}}>SolidStream</span>}
           <button className="sb-close" onClick={onClose} aria-label="Cerrar"><Ico name="close" size={16}/></button>
         </div>
 
@@ -184,7 +184,7 @@ function DetailModal({ pill, onClose, openPlayer }) {
 }
 
 /* ============================================================
-   Coach view (MENTOR-IA) · usa callMentorAPI real
+   Coach view (BeonAI) · usa callMentorAPI real
    ============================================================ */
 const SUGG = [
   { ico:'spark',  t:'Resume las 3 pills más críticas para mi rol esta semana', s:'Curado por rol y nivel actual', q:'¿Cuáles son las 3 pills más importantes que debería hacer esta semana para mi rol?' },
@@ -232,7 +232,7 @@ function CoachView() {
     try {
       const reply = await (typeof callMentorAPI === 'function'
         ? callMentorAPI([...msgs, userMsg])
-        : Promise.resolve('MENTOR-IA no disponible · revisa la conexión.'));
+        : Promise.resolve('BeonAI no disponible · revisa la conexión.'));
       setMsgs(m => [...m, { role: 'assistant', text: reply }]);
     } catch (e) {
       setMsgs(m => [...m, { role: 'assistant', text: 'No he podido procesar la consulta. Inténtalo de nuevo en unos segundos.' }]);
@@ -244,7 +244,7 @@ function CoachView() {
   const reset = () => { setHasConv(false); setMsgs([]); };
 
   return (
-    <div className="coach" data-screen-label="Coach · MENTOR-IA">
+    <div className="coach" data-screen-label="Coach · BeonAI">
       <aside className="coach-sidebar">
         <button className="coach-new" onClick={reset}>
           Nueva conversación <Ico name="plus" size={14}/>
@@ -261,9 +261,9 @@ function CoachView() {
 
       <main className="coach-main">
         <header className="coach-header">
-          <div className="avatar-lg">M</div>
+          {window.BeonAIChar ? <BeonAIChar size={42} mood={loading ? 'thinking' : 'neutral'} float interactive={false}/> : <div className="avatar-lg">B</div>}
           <div>
-            <div className="title">MENTOR-IA</div>
+            <div className="title">BeonAI</div>
             <div className="status">en línea · Claude 4.5 · contexto Repsol</div>
           </div>
           <div className="header-actions">
@@ -276,7 +276,12 @@ function CoachView() {
           {!hasConv ? (
             <React.Fragment>
               <div className="coach-welcome">
-                <div className="eyebrow"><span className="dot"/>Mentor para tu rol de {userRole}</div>
+                {window.BeonAIChar && (
+                  <div style={{display:'flex', justifyContent:'center', marginBottom:24}}>
+                    <BeonAIChar size={140} mood="happy" float interactive={false}/>
+                  </div>
+                )}
+                <div className="eyebrow"><span className="dot"/>BeonAI · mentor para tu rol de {userRole}</div>
                 <h1>Hola, {firstName}. <span className="you">¿qué quieres dominar hoy?</span></h1>
                 <p>Pregunta sobre Sprinklr, tu ruta, métricas de Care, flujos de aprobación o cualquier pill. Cito siempre la fuente.</p>
               </div>
@@ -298,7 +303,7 @@ function CoachView() {
                   <div key={i} className="msg-user">{m.text}</div>
                 ) : (
                   <div key={i} className="msg-ai">
-                    <div className="ai-mark">M</div>
+                    {window.BeonAIChar ? <div className="ai-mark" style={{padding:0, background:'transparent', boxShadow:'none'}}><BeonAIChar size={32} interactive={false}/></div> : <div className="ai-mark">B</div>}
                     <div className="body">
                       {String(m.text).split('\n\n').map((p, j) => (
                         <p key={j} style={{margin: j===0 ? '0 0 8px' : '8px 0'}}>{p}</p>
@@ -309,7 +314,7 @@ function CoachView() {
               ))}
               {loading && (
                 <div className="msg-ai">
-                  <div className="ai-mark">M</div>
+                  {window.BeonAIChar ? <div className="ai-mark" style={{padding:0, background:'transparent', boxShadow:'none'}}><BeonAIChar size={32} mood="thinking" interactive={false}/></div> : <div className="ai-mark">B</div>}
                   <div className="body" style={{display:'flex', gap:6, alignItems:'center', padding:'4px 0'}}>
                     <span style={{width:6, height:6, borderRadius:'50%', background:'var(--fg-muted)', animation:'mentorDot 1.4s ease-in-out infinite both'}}/>
                     <span style={{width:6, height:6, borderRadius:'50%', background:'var(--fg-muted)', animation:'mentorDot 1.4s ease-in-out .15s infinite both'}}/>
@@ -328,14 +333,14 @@ function CoachView() {
               <button className="coach-chip" onClick={() => send('Cita la fuente exacta de tu última respuesta.')}>Citar fuente</button>
               <button className="coach-chip" onClick={() => send('Convierte tu respuesta en un plan en pasos numerados.')}>Plan en pasos</button>
               <button className="coach-chip" onClick={() => send('Genera el layout de un dashboard sobre el tema.')}>Generar dashboard</button>
-              <button className="coach-chip" onClick={() => send('Resume mi semana de aprendizaje en SGS|on.')}>Resumir mi semana</button>
+              <button className="coach-chip" onClick={() => send('Resume mi semana de aprendizaje en SolidStream.')}>Resumir mi semana</button>
             </div>
             <div className="coach-input">
               <input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Pregunta a MENTOR-IA…"
+                placeholder="Pregunta a BeonAI…"
               />
               <button className="icon-btn" aria-label="Adjuntar"><Ico name="attach" size={16}/></button>
               <button className="coach-send" aria-label="Enviar" onClick={() => send()} disabled={!input.trim() || loading}><Ico name="send" size={14}/></button>

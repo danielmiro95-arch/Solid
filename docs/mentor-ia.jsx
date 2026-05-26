@@ -1,4 +1,4 @@
-// mentor-ia.jsx — MENTOR-IA standalone (polish pack v2)
+// mentor-ia.jsx — BeonAI standalone (polish pack v2)
 // Llama a la serverless function /api/chat en Vercel (api/chat.js).
 
 const { useState: useM, useEffect: useEM, useRef: useMRef } = React;
@@ -63,7 +63,7 @@ async function _callAI(messages) {
     });
     if (!res.ok) {
       const err = await res.text().catch(() => res.status);
-      console.warn('[MENTOR-IA] API failed (' + res.status + '), falling back to demo mode:', err);
+      console.warn('[BeonAI] API failed (' + res.status + '), falling back to demo mode:', err);
       window._mentorIaDemoMode = true;
       // Pequeño delay para que se vea el "thinking"
       await new Promise(r => setTimeout(r, 700));
@@ -73,18 +73,18 @@ async function _callAI(messages) {
     window._mentorIaDemoMode = false;
     return data.content || findDemoResponse(lastQuestion, messages);
   } catch (e) {
-    console.warn('[MENTOR-IA] network error, demo mode:', e.message);
+    console.warn('[BeonAI] network error, demo mode:', e.message);
     window._mentorIaDemoMode = true;
     await new Promise(r => setTimeout(r, 700));
     return findDemoResponse(lastQuestion, messages);
   }
 }
 
-// ── Avatar pulsante (logo MENTOR-IA) ────────────────────────────────────────
+// ── Avatar pulsante (logo BeonAI) ────────────────────────────────────────
 function MentorAvatar({ size = 'sm' }) {
   return (
     <div className={`mentor-avatar${size === 'lg' ? ' lg' : ''}`} aria-hidden="true">
-      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427be'} alt="MENTOR-IA"/>
+      <img src={(window.MENTOR_IA_LOGO_URL || 'mentor-ia-logo.png') + '?v=20260427bf'} alt="BeonAI"/>
     </div>
   );
 }
@@ -231,7 +231,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     detail: 'Detalle de módulo',
     path: 'Tu ruta de certificación',
     dashboard: 'Analytics · visión admin',
-    coach: 'MENTOR-IA · modo completo',
+    coach: 'BeonAI · modo completo',
   }[view] || 'Plataforma Sprinklr';
 
   const QUICK = CTX_SUGGESTIONS[view] || CTX_SUGGESTIONS.home;
@@ -262,7 +262,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         <div className="ai-head-left">
           <MentorAvatar/>
           <div>
-            <div className="title">MENTOR-IA <span className="beta-badge">BETA</span></div>
+            <div className="title">BeonAI <span className="beta-badge">BETA</span></div>
             <div className="sub">{contextLabel}</div>
           </div>
         </div>
@@ -282,7 +282,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">MENTOR-IA</span>
+          <span className="who">BeonAI</span>
           <div className="bubble">
             <MarkdownText text={`¡Hola Amaia! Llevas un **58% de tu certificación**. El siguiente módulo es *Programar posts* (cubierto en Pill 17). ¿Seguimos?`}/>
           </div>
@@ -294,7 +294,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         </div>
         {msgs.map((m, i) => (
           <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-            <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+            <span className="who">{m.role === 'assistant' ? 'BeonAI' : 'Tú'}</span>
             <div className="bubble">
               {m.role === 'assistant'
                 ? <MarkdownText text={m.text}/>
@@ -304,7 +304,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         ))}
         {loading && (
           <div className="ai-msg from-ai">
-            <span className="who">MENTOR-IA</span>
+            <span className="who">BeonAI</span>
             <div className="bubble mentor-typing"><span/><span/><span/></div>
           </div>
         )}
@@ -330,7 +330,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
 
 // ── Coach (pantalla completa) ───────────────────────────────────────────────
 // Saludo inicial cuando se crea una nueva conversación
-const COACH_GREETING = { role: 'assistant', text: '¡Hola **Amaia**! Soy MENTOR-IA, tu asistente de formación Sprinklr.\n\nLlevas un **15% de tu certificación** — estás en el *Bloque 2*, sobre estructura y gobernanza (Pills 6-10).\n\n¿En qué te puedo ayudar hoy?' };
+const COACH_GREETING = { role: 'assistant', text: '¡Hola **Amaia**! Soy BeonAI, tu asistente de formación Sprinklr.\n\nLlevas un **15% de tu certificación** — estás en el *Bloque 2*, sobre estructura y gobernanza (Pills 6-10).\n\n¿En qué te puedo ayudar hoy?' };
 
 // Agrupa chats por antigüedad ("Hoy", "Esta semana", "Anteriores")
 function groupChatsByDate(chats) {
@@ -444,7 +444,7 @@ function Coach() {
       setApiStatus('error');
       window.ChatHistory.appendMessage(activeId, { role: 'assistant', text: `No he podido conectar (${err.message}). Comprueba tu conexión e inténtalo de nuevo.` });
       setChats(window.ChatHistory.list());
-      if (window.Toast) window.Toast.error('MENTOR-IA no responde · ¿API key configurada en Vercel?');
+      if (window.Toast) window.Toast.error('BeonAI no responde · ¿API key configurada en Vercel?');
     }
     setLoading(false);
   };
@@ -521,7 +521,7 @@ function Coach() {
           <div className="coach-v2-id">
             <MentorAvatar size="lg"/>
             <div>
-              <div className="coach-v2-title">MENTOR-IA <span className="beta-badge">BETA</span></div>
+              <div className="coach-v2-title">BeonAI <span className="beta-badge">BETA</span></div>
               <div className="coach-v2-sub">IA contextualizada · Sprinklr × Repsol</div>
             </div>
           </div>
@@ -576,7 +576,7 @@ function Coach() {
               <div key={i} className="coach-v2-msg from-ai">
                 <div className="coach-v2-msg-avatar"><MentorAvatar/></div>
                 <div className="coach-v2-msg-body">
-                  <div className="coach-v2-msg-who">MENTOR-IA</div>
+                  <div className="coach-v2-msg-who">BeonAI</div>
                   <div className="coach-v2-msg-content"><MarkdownText text={m.text}/></div>
                 </div>
               </div>
@@ -592,7 +592,7 @@ function Coach() {
             <div className="coach-v2-msg from-ai">
               <div className="coach-v2-msg-avatar"><MentorAvatar/></div>
               <div className="coach-v2-msg-body">
-                <div className="coach-v2-msg-who">MENTOR-IA</div>
+                <div className="coach-v2-msg-who">BeonAI</div>
                 <div className="coach-v2-typing"><span/><span/><span/></div>
               </div>
             </div>
@@ -641,4 +641,4 @@ function Coach() {
 
 // Sobreescribir los componentes en window (después de prototype-views.jsx)
 Object.assign(window, { AISidekick, Coach, MentorAvatar, MarkdownText });
-console.log('[MENTOR-IA v3] polish pack cargado · markdown + Think Pill badges + sugerencias contextuales');
+console.log('[BeonAI v3] polish pack cargado · markdown + Think Pill badges + sugerencias contextuales');

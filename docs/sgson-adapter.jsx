@@ -1,5 +1,5 @@
 /* ============================================================
-   SGS|on · Redesign adapter
+   SolidStream · Redesign adapter
    Convierte la data EXISTENTE (PILLS, LEARNING_PATHS, USER profile)
    al formato que espera el rediseño (window.SGS_DATA).
    Se ejecuta después de que prototype-home.jsx haya expuesto window.PILLS.
@@ -88,7 +88,7 @@
     if (analyticsIds.length > 0) {
       ROWS.push({ key:'analytics', title:'Analytics & Integraciones', sub:'medir, integrar, mejorar', pillIds: analyticsIds });
     }
-    ROWS.push({ key:'new', title:'Nuevo en SGS|on', sub:'recién publicado en BeonIt × Repsol', pillIds: newIds, newRow: true });
+    ROWS.push({ key:'new', title:'Nuevo en SolidStream', sub:'recién publicado en BeonIt × Repsol', pillIds: newIds, newRow: true });
 
     // ── LEARNING_PATHS · convertir tu data al shape esperado ──
     const SRC_PATHS = window.LEARNING_PATHS || [];
@@ -130,7 +130,7 @@
       { key:'path',      label:'Mi ruta',    icon:'route' },
       { key:'rutas',     label:'Rutas',      icon:'compass' },
       { key:'dashboard', label:'Analytics',  icon:'chart' },
-      { key:'coach',     label:'MENTOR-IA',  icon:'spark' },
+      { key:'coach',     label:'BeonAI',  icon:'spark' },
       { key:'wa',        label:'Channels',   icon:'broadcast' },
       { key:'saved',     label:'Guardado',   icon:'bookmark' },
       { key:'profile',   label:'Mi perfil',  icon:'user' },

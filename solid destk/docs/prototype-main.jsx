@@ -30,7 +30,7 @@ const WATracker = (function() {
     const links = getLinks();
     links.unshift({ token, pillId, pillTitle, duration: duration || '3 min', url, sharedAt: Date.now(), opens: 0, watchSeconds: 0, sharedBy: 'Amaia Ruiz' });
     save(links);
-    const msg = '📚 *SGS|on · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
+    const msg = '📚 *SolidStream · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     if (window.Toast) window.Toast.success('Enlace de WhatsApp generado', { icon: '💬' });
     return token;
@@ -620,7 +620,7 @@ function _activateSupabaseAuth() {
     });
   };
 
-  console.log('[SGS|on] Auth → Supabase backend activo');
+  console.log('[SolidStream] Auth → Supabase backend activo');
 }
 
 // ── SupabaseData adapter Phase 2 · Bookmarks/ChatHistory/Submissions/Inbox/RouteExams ──
@@ -1005,12 +1005,12 @@ function _activateSupabaseData() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { if (window.Auth && window.Auth.reloadUsers) window.Auth.reloadUsers(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => _loadActivity())
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') console.log('[SGS|on] Realtime ✓ canal abierto');
-      if (status === 'CHANNEL_ERROR') console.warn('[SGS|on] Realtime · error de canal');
+      if (status === 'SUBSCRIBED') console.log('[SolidStream] Realtime ✓ canal abierto');
+      if (status === 'CHANNEL_ERROR') console.warn('[SolidStream] Realtime · error de canal');
     });
   window._sgsonSbChannel = ch;
 
-  console.log('[SGS|on] Datos → Supabase backend activo · audit log + realtime activos');
+  console.log('[SolidStream] Datos → Supabase backend activo · audit log + realtime activos');
 }
 
 // Activa adapters cuando el bootstrap del HTML termina
@@ -1272,7 +1272,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     { id:'rutas', label:'Rutas de certificación' },
     { id:'path', label:'Mi ruta' },
     { id:'dashboard', label:'Analytics' },
-    { id:'coach', label:'MENTOR-IA' },
+    { id:'coach', label:'BeonAI' },
     { id:'wa', label:'Channels' },
     { id:'saved', label:'Guardados' },
     { id:'profile', label:'Mi perfil' },
@@ -1502,7 +1502,7 @@ function SettingsView({ setView }) {
               <div className="settings-row">
                 <div>
                   <div className="settings-row-label">Idioma</div>
-                  <div className="settings-row-desc">Idioma de la interfaz y de MENTOR-IA.</div>
+                  <div className="settings-row-desc">Idioma de la interfaz y de BeonAI.</div>
                 </div>
                 <select value={s.language} onChange={e => set({language:e.target.value})} style={{padding:'8px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:13, background:'var(--paper)'}}>
                   <option value="es">Español</option>
@@ -1602,7 +1602,7 @@ function SettingsView({ setView }) {
               <div className="settings-row">
                 <div>
                   <div className="settings-row-label">Exportar mis datos</div>
-                  <div className="settings-row-desc">Descarga un JSON con tu perfil, bookmarks, conversaciones con MENTOR-IA, progreso, entregas y bandeja. Conforme GDPR.</div>
+                  <div className="settings-row-desc">Descarga un JSON con tu perfil, bookmarks, conversaciones con BeonAI, progreso, entregas y bandeja. Conforme GDPR.</div>
                 </div>
                 <button className="btn ghost" onClick={exportMyData}>↓ Descargar JSON</button>
               </div>
@@ -1621,7 +1621,7 @@ function SettingsView({ setView }) {
 
           {tab === 'about' && (
             <div className="settings-section">
-              <h2>Acerca de SGS|on</h2>
+              <h2>Acerca de SolidStream</h2>
               <p className="settings-section-lead">Plataforma de formación Sprinklr · BeonIt × Repsol</p>
               <div className="settings-row">
                 <div>
@@ -1639,7 +1639,7 @@ function SettingsView({ setView }) {
               </div>
               <div className="settings-row">
                 <div>
-                  <div className="settings-row-label">MENTOR-IA</div>
+                  <div className="settings-row-label">BeonAI</div>
                   <div className="settings-row-desc">Powered by Claude (Anthropic). System prompt entrenado en el currículum Sprinklr × Repsol.</div>
                 </div>
               </div>
@@ -1989,7 +1989,7 @@ function App() {
         <AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
       {aiMode === 'collapsed' && view !== 'onboarding' && (
-        <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir MENTOR-IA" aria-label="Abrir MENTOR-IA">
+        <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir BeonAI" aria-label="Abrir BeonAI">
           <svg className="mentor-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="railGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -2000,7 +2000,7 @@ function App() {
                 <stop offset="100%" stopColor="#BCD630"/>
               </linearGradient>
             </defs>
-            {/* Wave M shape — eco del logo MENTOR-IA */}
+            {/* Wave M shape — eco del logo BeonAI */}
             <path d="M 12 78 Q 16 60 24 56 Q 33 52 38 64 Q 42 74 46 50 Q 50 26 54 50 Q 58 74 62 64 Q 67 52 76 56 Q 84 60 88 78"
               stroke="url(#railGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
             {/* Punto luminoso */}
@@ -2106,7 +2106,7 @@ function InstallBanner() {
       <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
         <span style={{fontSize:22, flexShrink:0, marginTop:-2}}>📱</span>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:13, fontWeight:700, marginBottom:3}}>Instala SGS|on</div>
+          <div style={{fontSize:13, fontWeight:700, marginBottom:3}}>Instala SolidStream</div>
           <div style={{fontSize:11.5, color:'rgba(255,255,255,0.75)', lineHeight:1.45, marginBottom:10}}>
             Acceso rápido desde tu home screen y notificaciones de progreso.
           </div>
@@ -2266,7 +2266,7 @@ function Toaster() {
   );
 }
 
-// ── Chat history (MENTOR-IA conversaciones persistentes) ──────────────────
+// ── Chat history (BeonAI conversaciones persistentes) ──────────────────
 const ChatHistory = (function() {
   function _key() { return _userScopedKey('solid-chats'); }
   function _activeKey() { return _userScopedKey('solid-active-chat'); }
@@ -2424,9 +2424,9 @@ const Inbox = (function() {
       _saveReleases([
         { id:'r_1', version:'2.4', title:'Examen final por ruta · Genera tu certificado', body:'Ahora cada ruta de certificación termina con un examen rápido de 3 preguntas. Al superarlo, descargas tu certificado oficial Repsol × BeonIt.', createdAt: now - 1*3600000, read:false, kind:'feature' },
         { id:'r_2', version:'2.3', title:'Bandeja de entrada unificada', body:'Mensajes directos, notificaciones de actividad y releases ahora viven en un único lugar. Marcadas como leídas, eliminables, todo persistente.', createdAt: now - 6*3600000, read:false, kind:'feature' },
-        { id:'r_3', version:'2.2', title:'MENTOR-IA con historial de chats persistente', body:'Tus conversaciones con MENTOR-IA se guardan automáticamente. Crea nuevas, retoma anteriores. Modo nocturno en el panel lateral.', createdAt: now - 2*d, read:false, kind:'feature' },
+        { id:'r_3', version:'2.2', title:'BeonAI con historial de chats persistente', body:'Tus conversaciones con BeonAI se guardan automáticamente. Crea nuevas, retoma anteriores. Modo nocturno en el panel lateral.', createdAt: now - 2*d, read:false, kind:'feature' },
         { id:'r_4', version:'2.1', title:'Multi-usuario y panel de administración', body:'Nuevo flujo de login/registro con rol admin. Cada usuario tiene sus propios bookmarks, chats y progreso.', createdAt: now - 4*d, read:false, kind:'feature' },
-        { id:'r_5', version:'2.0', title:'SGS|on · nuevo branding', body:'La plataforma se rebautiza como SGS|on, manteniendo la metodología SOLID GROWTH. Logos y paleta actualizados.', createdAt: now - 9*d, read:true, kind:'announcement' },
+        { id:'r_5', version:'2.0', title:'SolidStream · nuevo branding', body:'La plataforma se rebautiza como SolidStream, manteniendo la metodología SOLID GROWTH. Logos y paleta actualizados.', createdAt: now - 9*d, read:true, kind:'announcement' },
       ]);
     }
 
@@ -2436,9 +2436,9 @@ const Inbox = (function() {
       const now = Date.now();
       const me = window.Auth && window.Auth.currentUser();
       u.notifications = [
-        { id:'n_1', text:'Bienvenido a SGS|on. Completa tu primer pill para empezar.', kind:'welcome', icon:'👋', createdAt: now - 5*60000, read: false },
+        { id:'n_1', text:'Bienvenido a SolidStream. Completa tu primer pill para empezar.', kind:'welcome', icon:'👋', createdAt: now - 5*60000, read: false },
         { id:'n_2', text:'Tu próxima Pill recomendada: P4 · Posibilidades operativas de los canales', kind:'recommendation', icon:'💡', createdAt: now - 30*60000, read: false, link:'p4' },
-        { id:'n_3', text:'MENTOR-IA está listo para responder tus dudas', kind:'info', icon:'✦', createdAt: now - 2*3600000, read: true },
+        { id:'n_3', text:'BeonAI está listo para responder tus dudas', kind:'info', icon:'✦', createdAt: now - 2*3600000, read: true },
       ];
     }
 
@@ -2446,7 +2446,7 @@ const Inbox = (function() {
       const now = Date.now();
       u.messages = [
         { id:'m_1', from:'Equipo BeonIt', subject:'Sesión de bienvenida', body:'Hola, gracias por unirte a la formación. El próximo lunes tenemos el taller introductorio en la sala virtual. Te llegará el link 30 minutos antes. ¡Bienvenido!', createdAt: now - 24*3600000, read:false, fromAdmin:true, fromAvatarColor:'var(--bn-blue)' },
-        { id:'m_2', from:'MENTOR-IA', subject:'Tu plan personalizado', body:'He preparado tu plan de las próximas 4 semanas basado en tu rol Publish Agent. Empieza por las Pills 0-5 (Bloque 1) esta semana. Pregúntame si dudas en algún concepto.', createdAt: now - 3*3600000, read:false, fromAvatarColor:'var(--bn-purple)' },
+        { id:'m_2', from:'BeonAI', subject:'Tu plan personalizado', body:'He preparado tu plan de las próximas 4 semanas basado en tu rol Publish Agent. Empieza por las Pills 0-5 (Bloque 1) esta semana. Pregúntame si dudas en algún concepto.', createdAt: now - 3*3600000, read:false, fromAvatarColor:'var(--bn-purple)' },
       ];
     }
     _saveUser(u);
@@ -2682,7 +2682,7 @@ function LoginScreen() {
             window.history.replaceState({}, '', window.location.pathname);
           }
         }
-        if (window.Toast && u) window.Toast.success(invitation ? 'Bienvenido · invitación aceptada' : 'Cuenta creada · Bienvenido a SGS|on', { icon: '✓' });
+        if (window.Toast && u) window.Toast.success(invitation ? 'Bienvenido · invitación aceptada' : 'Cuenta creada · Bienvenido a SolidStream', { icon: '✓' });
       }
     } catch (err) {
       setError((err && err.message) || 'Error desconocido');
@@ -2733,10 +2733,9 @@ function LoginScreen() {
       {/* Lado visual izquierdo */}
       <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#F5F4F1', minWidth:0}}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
-          <span className="wordmark v1" style={{fontSize:24}}>
-            <span className="sgs" style={{fontFamily:'var(--font-sans, Inter)', fontWeight:800, color:'#F5F4F1'}}>SGS</span>
-            <span className="pipe" style={{color:'#EC1C24', margin:'0 2px'}}>|</span>
-            <span className="on" style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#F5F4F1'}}>on</span>
+          <img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="BeonIt" style={{height:42, width:'auto', flexShrink:0}}/>
+          <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#F5F4F1'}}>
+            Solid<span style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400}}>Stream</span>
           </span>
         </div>
         <div>
@@ -2745,10 +2744,10 @@ function LoginScreen() {
             Domina<br/>Sprinklr<br/>como <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#EC1C24'}}>experto</em>.
           </h1>
           <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(245,244,241,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
-            41 Think Pills · 3 talleres · MENTOR-IA con contexto Repsol · certificado oficial al completar tu ruta.
+            41 Think Pills · 3 talleres · BeonAI con contexto Repsol · certificado oficial al completar tu ruta.
           </p>
           <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
-            {['41 Think Pills', '3 Talleres', 'MENTOR-IA · Claude 4.5', 'Certificado Repsol'].map(t => (
+            {['41 Think Pills', '3 Talleres', 'BeonAI · Claude 4.5', 'Certificado Repsol'].map(t => (
               <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.14)', borderRadius:999, color:'rgba(245,244,241,0.75)', background:'rgba(255,255,255,0.03)'}}>{t}</span>
             ))}
           </div>
@@ -2773,7 +2772,7 @@ function LoginScreen() {
           {invitation && (
             <div style={{padding:'16px 18px', background:'rgba(236,28,36,0.08)', border:'1px solid rgba(236,28,36,0.3)', borderRadius:10, marginBottom:24}}>
               <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#EC1C24', fontWeight:700, marginBottom:5}}>✉ Invitación recibida</div>
-              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>Hola <strong style={{color:'#fff'}}>{invitation.name}</strong>, te han invitado a SGS|on como <strong style={{color:'#fff'}}>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
+              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>Hola <strong style={{color:'#fff'}}>{invitation.name}</strong>, te han invitado a SolidStream como <strong style={{color:'#fff'}}>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
             </div>
           )}
           <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
@@ -3017,11 +3016,11 @@ function AdminPanel({ setView }) {
     }).join('');
     const subsByStatus = { pending:0, approved:0, rejected:0 };
     subs.forEach(s => subsByStatus[s.status] = (subsByStatus[s.status] || 0) + 1);
-    const html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de cohorte · SGS|on · ' + today + '</title>' +
+    const html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de cohorte · SolidStream · ' + today + '</title>' +
 '<style>@page{size:A4;margin:18mm}body{font-family:Inter,-apple-system,system-ui,sans-serif;color:#0D1117;margin:0;padding:0;line-height:1.5}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94A3B8;margin-bottom:6px}h1{font-size:32px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid #EDF0F5;padding-bottom:6px}.subtitle{color:#4A5568;margin:0 0 28px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.kpi{padding:14px;border:1px solid #EDF0F5;border-radius:10px}.kpi-label{font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94A3B8;margin-bottom:4px}.kpi-value{font-size:24px;font-weight:800;letter-spacing:-.02em}table{width:100%;border-collapse:collapse;font-size:12px}thead th{text-align:left;padding:8px 10px;background:#F5F7FA;font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#4A5568;border-bottom:1px solid #EDF0F5}tbody td{padding:10px;border-bottom:1px solid #EDF0F5;vertical-align:top}.foot{margin-top:36px;padding-top:18px;border-top:2px solid #0072BE;font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}.brand{background:linear-gradient(135deg,#BCD630,#0072BE,#8A3992);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}</style>' +
 '</head><body>' +
-'<div class="kicker">SGS|on · BeonIt × Repsol · Reporte de cohorte</div>' +
-'<h1>Cohorte SGS|on · <span class="brand">snapshot</span> ' + today + '</h1>' +
+'<div class="kicker">SolidStream · BeonIt × Repsol · Reporte de cohorte</div>' +
+'<h1>Cohorte SolidStream · <span class="brand">snapshot</span> ' + today + '</h1>' +
 '<p class="subtitle">Reporte agregado de progreso, exámenes y entregas prácticas de los ' + totalUsers + ' usuarios de la plataforma. Generado el ' + today + '.</p>' +
 '<div class="kpis">' +
 '<div class="kpi"><div class="kpi-label">Usuarios</div><div class="kpi-value">' + totalUsers + '</div></div>' +
@@ -3034,7 +3033,7 @@ function AdminPanel({ setView }) {
 '<p style="font-size:13px;color:#4A5568">Pendientes <strong>' + (subsByStatus.pending || 0) + '</strong> · Aprobadas <strong>' + (subsByStatus.approved || 0) + '</strong> · Rechazadas <strong>' + (subsByStatus.rejected || 0) + '</strong>. Tasa aprobación: <strong>' + (subs.length > 0 ? Math.round((subsByStatus.approved / subs.length) * 100) : 0) + '%</strong>.</p>' +
 '<h2>Tabla de usuarios · ordenados por progreso</h2>' +
 '<table><thead><tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Guardados</th><th>Última conexión</th></tr></thead><tbody>' + usersHtml + '</tbody></table>' +
-'<div class="foot"><span>SGS|on · BeonIt × Repsol</span><span>Reporte generado · ' + today + '</span></div>' +
+'<div class="foot"><span>SolidStream · BeonIt × Repsol</span><span>Reporte generado · ' + today + '</span></div>' +
 '</body></html>';
     _download('sgson-cohort-report-' + new Date().toISOString().slice(0,10) + '.html', html, 'text/html');
     if (window.Toast) window.Toast.success('Reporte generado · imprimible como PDF', { icon: '📄' });
@@ -3109,7 +3108,7 @@ function AdminPanel({ setView }) {
           { label:'Usuarios totales', value: totalUsers, color:'var(--bn-blue)' },
           { label:'Activos últimos 7d', value: totalActive7d, color:'var(--bn-lime)' },
           { label:'Administradores', value: totalAdmins, color:'var(--ink)' },
-          { label:'Conversaciones MENTOR-IA', value: totalChats, color:'var(--bn-purple)' },
+          { label:'Conversaciones BeonAI', value: totalChats, color:'var(--bn-purple)' },
           { label:'Módulos completados', value: totalCompletions, color:'var(--bn-orange)' },
         ].map((k, i) => (
           <div key={i} className="kpi-card" style={{'--kpi-color': k.color}}>
@@ -3651,7 +3650,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
     const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
 '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
-'<div class="frame"><div class="kicker">SGS|on · BeonIt × Repsol · Certificación oficial</div>' +
+'<div class="frame"><div class="kicker">SolidStream · BeonIt × Repsol · Certificación oficial</div>' +
 '<h1>Certificado de ruta · ' + (routeLabel || routeId) + '</h1>' +
 '<div class="lead">Por la presente certificamos que la persona reseñada ha completado y aprobado el examen final de esta ruta dentro de la formación oficial Sprinklr del programa SOLID GROWTH para Repsol.</div>' +
 '<div class="name">' + u.name + '</div>' +

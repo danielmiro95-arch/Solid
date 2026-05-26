@@ -1,0 +1,132 @@
+/* ============================================================
+   beonAI · Character mark · CSS-only + React component
+   Lift this directly into the SaaS. No SVG file needed.
+   ============================================================ */
+
+/* ── CSS tokens · paleta beonAI ────────────────────── */
+
+:root {
+  --bai-cyan:   #4FC3F7;
+  --bai-blue:   #3B82F6;
+  --bai-violet: #6E50EE;
+  --bai-lav:    #9C7CFF;
+  --bai-deep:   #2A1B6E;
+  --bai-pale:   #C4B5FD;
+  --bai-glow:   rgba(110, 80, 238, 0.45);
+}
+
+/* ── Base character (CSS-only, no SVG) ─────────────── */
+
+.bai {
+  width: var(--bai-size, 64px);
+  height: var(--bai-size, 64px);
+  border-radius: calc(var(--bai-size, 64px) * 0.32);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), transparent 45%),
+    linear-gradient(135deg,
+      var(--bai-cyan) 0%,
+      var(--bai-blue) 30%,
+      var(--bai-violet) 65%,
+      var(--bai-lav) 100%);
+  box-shadow:
+    0 calc(var(--bai-size, 64px) * 0.18) calc(var(--bai-size, 64px) * 0.56) var(--bai-glow),
+    0 2px 8px rgba(0,0,0,0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 300ms cubic-bezier(.2,.7,.2,1);
+}
+
+.bai-eyes { display: flex; gap: calc(var(--bai-size, 64px) * 0.15); align-items: center; }
+.bai-eye {
+  width: calc(var(--bai-size, 64px) * 0.19);
+  height: calc(var(--bai-size, 64px) * 0.19);
+  background: #fff;
+  border-radius: 50%;
+  position: relative;
+  transform-origin: center;
+}
+.bai-eye::after {
+  content: '';
+  position: absolute;
+  width: 40%; height: 40%;
+  background: var(--bai-deep);
+  border-radius: 50%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.bai-eye.r { width: calc(var(--bai-size, 64px) * 0.17); height: calc(var(--bai-size, 64px) * 0.17); }
+
+/* ── Interactivity ─────────────────────────────────── */
+
+.bai:hover { transform: translateY(-3px) rotate(-2deg) scale(1.04); cursor: pointer; }
+.bai:hover .bai-eye { animation: bai-blink 600ms ease both; }
+@keyframes bai-blink {
+  0%, 100% { transform: scaleY(1); }
+  45%, 55% { transform: scaleY(0.1); }
+}
+
+.bai.float { animation: bai-float 6s ease-in-out infinite; }
+@keyframes bai-float {
+  0%, 100% { transform: translateY(0)    rotate(-1deg); }
+  50%      { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* ── Expressions · state classes ───────────────────── */
+
+/* neutral · default · two open eyes */
+
+.bai[data-mood="thinking"] .bai-eye:nth-child(2) {
+  background: transparent;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+}
+.bai[data-mood="thinking"] .bai-eye:nth-child(2)::after { display: none; }
+
+.bai[data-mood="happy"]    .bai-eye {
+  height: calc(var(--bai-size, 64px) * 0.06);
+  background: #fff; border-radius: calc(var(--bai-size, 64px) * 0.06);
+}
+.bai[data-mood="happy"]    .bai-eye::after { display: none; }
+
+.bai[data-mood="idle"]     .bai-eye {
+  width: calc(var(--bai-size, 64px) * 0.22);
+  height: calc(var(--bai-size, 64px) * 0.04);
+  background: #fff;
+  border-radius: calc(var(--bai-size, 64px) * 0.04);
+}
+.bai[data-mood="idle"]     .bai-eye::after { display: none; }
+
+.bai[data-mood="curious"]  .bai-eye    { width: calc(var(--bai-size, 64px) * 0.22); height: calc(var(--bai-size, 64px) * 0.22); }
+.bai[data-mood="curious"]  .bai-eye.r  { width: calc(var(--bai-size, 64px) * 0.16); height: calc(var(--bai-size, 64px) * 0.16); }
+
+/* ── Wordmark · "beonAI" ──────────────────────────── */
+
+.wm-bai {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: #F5F4F1; /* on dark; for light bg use #0B0B0E */
+}
+.wm-bai .ai {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  margin-left: 4px;
+  background: linear-gradient(135deg, var(--bai-cyan), var(--bai-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.5px var(--bai-violet);
+}
+
+/* sizes — match font-size of .wm-bai to the parent's font-size,
+   and the .ai sub-size is ~9% larger */
+.wm-bai-46 { font-size: 46px; } .wm-bai-46 .ai { font-size: 50px; }
+.wm-bai-30 { font-size: 30px; } .wm-bai-30 .ai { font-size: 32px; }
+.wm-bai-18 { font-size: 18px; } .wm-bai-18 .ai { font-size: 20px; }

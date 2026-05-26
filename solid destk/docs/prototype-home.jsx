@@ -132,7 +132,7 @@ function Sidebar({ view, setView }) {
     { id: 'path',      label: 'Mi ruta',     icon: 'book' },
     { id: 'rutas',     label: 'Rutas',       icon: 'compass' },
     { id: 'dashboard', label: 'Analytics',   icon: 'trend' },
-    { id: 'coach',     label: 'MENTOR-IA',   icon: 'sparkle', badge: 'BETA' },
+    { id: 'coach',     label: 'BeonAI',   icon: 'sparkle', badge: 'BETA' },
     { id: 'wa',        label: 'Channels',    icon: 'chat' },
     { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
     { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
@@ -155,7 +155,7 @@ function Sidebar({ view, setView }) {
   return (
     <aside className="sb">
       <div className="sb-brand" style={{alignItems:'center'}}>
-        <img src="sgs-on-logo.png?v=20260427e" style={{height:30, width:'auto', flexShrink:0}} alt="SGS|on"/>
+        <img src="sgs-on-logo.png?v=20260427e" style={{height:30, width:'auto', flexShrink:0}} alt="SolidStream"/>
       </div>
 
       <div className="sb-org">
@@ -245,7 +245,7 @@ function TopNav({ onBurger, view, onView, onSearch }) {
     { k:'rutas',     label:'Rutas' },
     { k:'path',      label:'Mi ruta' },
     { k:'dashboard', label:'Analytics' },
-    { k:'coach',     label:'MENTOR-IA' },
+    { k:'coach',     label:'BeonAI' },
   ];
 
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
@@ -260,7 +260,7 @@ function TopNav({ onBurger, view, onView, onSearch }) {
         </button>
         {window.Wordmark
           ? <Wordmark variant="v1"/>
-          : <span className="wordmark v1"><span className="sgs">SGS</span><span className="pipe">|</span><span className="on">on</span></span>
+          : <span style={{display:'inline-flex', alignItems:'center', gap:8}}><img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="" style={{height:32}}/><span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:18, letterSpacing:'-0.02em'}}>SolidStream</span></span>
         }
       </div>
 
@@ -567,7 +567,7 @@ function Home({ openDetail, openPlayer, setView }) {
   if (!D || !D.ROWS) {
     return (
       <div style={{padding:'120px 64px', color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-sans, Inter)', textAlign:'center'}}>
-        <div style={{fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--fg-dim, #6F6D67)', marginBottom:12}}>SGS|on · cargando data del catálogo</div>
+        <div style={{fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--fg-dim, #6F6D67)', marginBottom:12}}>SolidStream · cargando data del catálogo</div>
         <div style={{fontSize:14}}>Preparando Think Pills…</div>
       </div>
     );
@@ -585,7 +585,7 @@ function Home({ openDetail, openPlayer, setView }) {
       </div>
       <footer className="footer-strip">
         <div className="cobranding">
-          <span><b>SGS|on</b></span>
+          <span><b>SolidStream</b></span>
           <span>·</span>
           <span>BeonIt × Repsol</span>
           <span>·</span>

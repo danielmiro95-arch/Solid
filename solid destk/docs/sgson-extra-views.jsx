@@ -1,5 +1,5 @@
 /* ============================================================
-   SGS|on · Vistas adicionales rediseñadas
+   SolidStream · Vistas adicionales rediseñadas
    BrowseView, RutasView, MyPathView, ChannelsView, ProfileView,
    SettingsView, AdminView, InboxView, SavedView · todas con tokens
    del rediseño cinematic (sgson.css)
@@ -276,12 +276,12 @@ function ChannelsView() {
   const opts = isTeams ? [
     { t: 'Módulo diario en Teams · 9:00', d: 'Cada mañana, un mensaje en Teams con tu próximo módulo de Sprinklr.' },
     { t: 'Briefs antes de reuniones', d: '30 min antes de cualquier reunión Sprinklr en tu calendario.' },
-    { t: 'Respuestas de MENTOR-IA en Teams', d: 'Pregunta al bot directamente desde Teams.' },
+    { t: 'Respuestas de BeonAI en Teams', d: 'Pregunta al bot directamente desde Teams.' },
     { t: 'Resumen semanal · viernes 17:00', d: 'Tu progreso de la semana, en un mensaje.' },
   ] : [
     { t: 'Módulo diario en WhatsApp · 9:00', d: 'Un mensaje cada mañana con tu próximo módulo.' },
     { t: 'Briefs antes de reuniones', d: '30 min antes de cualquier sesión relacionada con Sprinklr.' },
-    { t: 'Respuestas de MENTOR-IA por WhatsApp', d: 'Pregunta al agente directamente.' },
+    { t: 'Respuestas de BeonAI por WhatsApp', d: 'Pregunta al agente directamente.' },
     { t: 'Resumen semanal · viernes 17:00', d: 'Lo completado, tu progreso y qué viene la semana siguiente.' },
   ];
 
@@ -289,7 +289,7 @@ function ChannelsView() {
     <PageShell
       eyebrow="Canales de comunicación"
       title={<>Tu formación, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>donde estés</em></>}
-      sub="SGS|on llega a ti por el canal corporativo que prefieras">
+      sub="SolidStream llega a ti por el canal corporativo que prefieras">
 
       {/* Selector */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 40, flexWrap: 'wrap' }}>
@@ -340,7 +340,7 @@ function ChannelsView() {
         {/* Phone preview */}
         <div style={{ background: '#000', border: '1px solid var(--line)', borderRadius: 24, padding: 12, height: 480 }}>
           <div style={{ background: channelColor, padding: 12, borderRadius: 12, color: '#fff', marginBottom: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{isTeams ? 'SGS|on bot · Teams' : 'MENTOR-IA · SGS|on'}</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{isTeams ? 'SolidStream bot · Teams' : 'BeonAI · SolidStream'}</div>
             <div style={{ fontSize: 11, opacity: 0.85 }}>{isTeams ? 'Disponible · 9:00' : 'en línea · 9:00'}</div>
           </div>
           <div style={{ padding: 12, background: 'var(--bg-canvas)', borderRadius: 8, color: 'var(--fg)', fontSize: 12.5, lineHeight: 1.5 }}>
@@ -550,7 +550,7 @@ function SettingsView({ setView }) {
     <PageShell
       eyebrow="Preferencias"
       title={<>Ajustes <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>de tu cuenta</em></>}
-      sub="Personaliza cómo se comporta SGS|on para ti"
+      sub="Personaliza cómo se comporta SolidStream para ti"
       narrow>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -572,7 +572,7 @@ function SettingsView({ setView }) {
         {/* Idioma */}
         <section style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: 'var(--fg)', marginBottom: 6, marginTop: 0 }}>Idioma de interfaz</h2>
-          <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: '0 0 14px' }}>Idioma para textos, notificaciones y MENTOR-IA.</p>
+          <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: '0 0 14px' }}>Idioma para textos, notificaciones y BeonAI.</p>
           <select value={lang} onChange={e => { setLang(e.target.value); save('lang', e.target.value); }} style={{
             padding: '10px 14px', fontFamily: 'var(--font-sans)', fontSize: 13,
             background: 'var(--bg-elevated)', color: 'var(--fg)', border: '1px solid var(--line)',
