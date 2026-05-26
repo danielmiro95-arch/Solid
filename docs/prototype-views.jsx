@@ -3506,14 +3506,14 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
         />
       )}
 
-      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:24}}>
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:18}}>
         <div>
-          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Repsol · Analytics</div>
+          <div className="lms-hero-eyebrow"><span className="repsol-dot"/>Analytics · Repositorio</div>
           <h1>Mis <em>dashboards</em></h1>
-          <div className="dash-sub">Crea dashboards customizados con la librería de {WIDGET_LIBRARY.length} tipos de widget. Cada dashboard se persiste en tu cuenta.</div>
+          <div className="dash-sub">Repositorio de dashboards personalizados. Crea desde cero, organiza con pestañas y combina {WIDGET_LIBRARY.length} tipos de widget.</div>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'10px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13.5, boxShadow:'0 4px 14px rgba(0,89,150,0.3)', marginTop:8}}>
-          <span style={{fontSize:16, lineHeight:1}}>+</span> Crear dashboard
+        <button onClick={() => setShowCreate(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'10px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13.5, boxShadow:'0 4px 14px rgba(0,89,150,0.25)', marginTop:8}}>
+          <span style={{fontSize:16, lineHeight:1}}>+</span> Crear dashboard desde cero
         </button>
       </div>
 
@@ -3537,15 +3537,22 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
       )}
 
       <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700, marginBottom:10}}>Tus dashboards · {custom.length}</div>
-      {custom.length === 0 ? (
-        <div style={{padding:'40px 30px', background:'var(--paper-2)', border:'1px dashed var(--line)', borderRadius:14, textAlign:'center'}}>
-          <div style={{fontSize:42, marginBottom:10, opacity:0.5}}>📁</div>
-          <h3 style={{margin:'0 0 6px', fontSize:16, fontFamily:'var(--sans)', color:'var(--ink-2)'}}>Sin dashboards aún</h3>
-          <p style={{margin:'0 0 16px', fontSize:13, color:'var(--ink-4)', lineHeight:1.5}}>Crea tu primer dashboard customizado. Empieza vacío y añade widgets desde la librería.</p>
-          <button onClick={() => setShowCreate(true)} className="btn glow">+ Crear mi primer dashboard</button>
-        </div>
-      ) : (
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14}}>
+          {/* Tile · crear dashboard desde cero (siempre primero) */}
+          <button onClick={() => setShowCreate(true)}
+            style={{padding:'24px 18px', background:'linear-gradient(135deg, rgba(0,89,150,0.04) 0%, rgba(110,80,238,0.04) 100%)', border:'1.5px dashed var(--line-2)', borderRadius:12, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, minHeight:140, transition:'all .15s', color:'var(--ink-3)', fontFamily:'var(--sans)'}}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='var(--bn-blue)'; e.currentTarget.style.background='linear-gradient(135deg, rgba(0,89,150,0.08) 0%, rgba(110,80,238,0.08) 100%)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='var(--line-2)'; e.currentTarget.style.background='linear-gradient(135deg, rgba(0,89,150,0.04) 0%, rgba(110,80,238,0.04) 100%)'; e.currentTarget.style.transform='translateY(0)'; }}>
+            <div style={{width:42, height:42, borderRadius:'50%', background:'var(--accent-glow)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:22, lineHeight:1, fontWeight:300, boxShadow:'0 4px 12px rgba(0,89,150,0.2)'}}>+</div>
+            <div style={{fontSize:13, fontWeight:700, color:'var(--ink-2)'}}>Crear dashboard</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.04em', textAlign:'center', lineHeight:1.4}}>desde cero · pestañas + widgets</div>
+          </button>
+          {custom.length === 0 && (
+            <div style={{gridColumn:'span 2', padding:'24px 20px', background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:12, fontSize:12.5, color:'var(--ink-4)', display:'flex', alignItems:'center', gap:14}}>
+              <span style={{fontSize:28, opacity:0.5}}>📁</span>
+              <span>Sin dashboards aún. Empieza creando uno desde cero o duplica el ejemplo de arriba.</span>
+            </div>
+          )}
           {custom.map(d => (
             <div key={d.id} style={{background:'var(--paper)', border:'1px solid var(--line)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', transition:'all .15s'}}
               onMouseEnter={e => { e.currentTarget.style.borderColor=d.color; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.08)`; }}
@@ -3566,8 +3573,7 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
               </div>
             </div>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -3857,7 +3863,7 @@ function Dashboard() {
   });
 
   if (!current) return <DashboardLibrary dashboards={state.dashboards} onOpen={openDashboard} onCreate={createDashboard} onDelete={deleteDashboard} onDuplicate={duplicateDashboard}/>;
-  return <DashboardView dashboard={current} onUpdate={updateDashboard} onBack={backToLibrary} onRename={renameDashboard}/>;
+  return <DashboardView key={current.id} dashboard={current} onUpdate={updateDashboard} onBack={backToLibrary} onRename={renameDashboard}/>;
 }
 
 // ---------- Cronograma POC ----------
