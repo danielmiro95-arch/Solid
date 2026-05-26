@@ -1781,7 +1781,8 @@ window.ActivityFeed = ActivityFeed;
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, setView] = useSM(saved.view || 'home');
-  const [aiMode, setAIMode] = useSM(saved.aiMode || 'companion'); // hero | companion | collapsed
+  // AI oculta por defecto · entra como overlay solo cuando el usuario pulsa la rail-btn
+  const [aiMode, setAIMode] = useSM(saved.aiMode || 'collapsed'); // hero | companion | collapsed
   const [shape, setShape] = useSM(saved.shape || 'mixed');
   const [accent, setAccent] = useSM(saved.accent || '#F3A524');
   const [detailItem, setDetailItem] = useSM(null);
