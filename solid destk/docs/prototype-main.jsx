@@ -1970,16 +1970,19 @@ function App() {
         {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
         {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
         {view === 'dashboard-legacy' && <Dashboard/>}
-        {view === 'rutas' && <Rutas openPlayer={openPlayer}/>}
-        {view === 'path' && <PathView openPlayer={openPlayer} setView={setView}/>}
-        {view === 'profile' && <Profile setView={setView}/>}
-        {view === 'wa' && <WhatsApp/>}
+        {view === 'rutas' && (window.RutasView_New ? <RutasView_New openDetail={openDetail} setView={setView}/> : <Rutas openPlayer={openPlayer}/>)}
+        {view === 'path' && (window.MyPathView_New ? <MyPathView_New openDetail={openDetail} setView={setView}/> : <PathView openPlayer={openPlayer} setView={setView}/>)}
+        {view === 'profile' && (window.ProfileView_New ? <ProfileView_New setView={setView}/> : <Profile setView={setView}/>)}
+        {view === 'wa' && (window.ChannelsView_New ? <ChannelsView_New/> : <WhatsApp/>)}
         {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
-        {view === 'saved' && <SavedView openDetail={openDetail} setView={setView}/>}
-        {view === 'admin' && (Auth.isAdmin() ? <AdminPanel setView={setView}/> : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
-        {view === 'inbox' && <InboxView openDetail={openDetail} setView={setView}/>}
-        {view === 'settings' && <SettingsView setView={setView}/>}
-        {view === 'browse' && <BrowseView openDetail={openDetail} setView={setView}/>}
+        {view === 'saved' && (window.SavedView_New ? <SavedView_New openDetail={openDetail}/> : <SavedView openDetail={openDetail} setView={setView}/>)}
+        {view === 'admin' && (Auth.isAdmin()
+          ? (window.AdminView_New ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/> : <AdminPanel setView={setView}/>)
+          : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
+        {view === 'admin-legacy' && Auth.isAdmin() && <AdminPanel setView={setView}/>}
+        {view === 'inbox' && (window.InboxView_New ? <InboxView_New openDetail={openDetail}/> : <InboxView openDetail={openDetail} setView={setView}/>)}
+        {view === 'settings' && (window.SettingsView_New ? <SettingsView_New setView={setView}/> : <SettingsView setView={setView}/>)}
+        {view === 'browse' && (window.BrowseView_New ? <BrowseView_New openDetail={openDetail}/> : <BrowseView openDetail={openDetail} setView={setView}/>)}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && (
