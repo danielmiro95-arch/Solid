@@ -303,7 +303,7 @@ function NetflixCard({ pill, onClick, number, wide }) {
         )}
         {preview && pill.yt && (
           <iframe
-            src={`https://www.youtube.com/embed/${pill.yt}?autoplay=1&mute=1&controls=0&loop=1&playlist=${pill.yt}&modestbranding=1&playsinline=1&start=2&rel=0&iv_load_policy=3`}
+            src={`https://www.youtube.com/embed/${pill.yt}?autoplay=1&mute=1&controls=0&loop=1&playlist=${pill.yt}&modestbranding=1&playsinline=1&start=45&rel=0&iv_load_policy=3`}
             style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.05)', zIndex:1}}
             allow="autoplay; encrypted-media"
             tabIndex={-1}
@@ -441,7 +441,7 @@ function Home({ openDetail, openPlayer, setView }) {
         {heroPill.yt && (
           <iframe
             key={'video-'+heroPill.id}
-            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=2&iv_load_policy=3&disablekb=1`}
+            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
             style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
             allow="autoplay; encrypted-media"
             aria-hidden="true"

@@ -125,7 +125,7 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
         {/* Hover preview · autoplay mudo del YT cuando hover > 1.2s */}
         {preview && yt && (
           <iframe
-            src={`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${yt}&playsinline=1`}
+            src={`https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${yt}&playsinline=1&start=45`}
             allow="autoplay; encrypted-media"
             style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1, pointerEvents:'none', opacity:0, animation:'cardPreviewFadeIn .35s ease forwards'}}
             tabIndex={-1}
