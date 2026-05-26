@@ -1871,8 +1871,9 @@ function App() {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
-  const openDetail = (it) => { setDetailItem(it); setView('detail'); };
-  const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
+  // openDetail abre MODAL (Netflix-style overlay). Antes navegaba a vista 'detail'.
+  const openDetail = (it) => { setDetailItem(it); };
+  const openPlayer = (it) => { if (it) setDetailItem(it); setDetailItem(null); setView('player'); };
 
   // SIDEBAR NETFLIX-STYLE:
   // - En vistas cinematográficas (home, detail, player, browse, rutas): sidebar
@@ -1898,91 +1899,57 @@ function App() {
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
 
+  // Marca body con sgs-redesign · oculta shell-tabs legacy y aplica padding-top 0
+  useEM(() => {
+    if (view !== 'onboarding') document.body.classList.add('sgs-redesign');
+    else document.body.classList.remove('sgs-redesign');
+    return () => document.body.classList.remove('sgs-redesign');
+  }, [view]);
+
+  // openDetail · ahora abre MODAL (no navega a vista 'detail')
+  const openDetailModal = (it) => { setDetailItem(it); };
+  const closeDetailModal = () => { setDetailItem(null); };
+  const openPlayerFromModal = (it) => { if (it) setDetailItem(it); setDetailItem(null); setView('player'); };
+
   if (!authUser) return <LoginScreen/>;
 
   return (
     <div className={rootClass} style={rootStyle} data-screen-label={`Prototype · ${view}`}>
-      {/* HAMBURGUESA · solo en cinematic · arriba izquierda · siempre visible */}
-      {view !== 'onboarding' && isCinematic && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Abrir menú"
-          style={{
-            position:'fixed', top:78, left:18, zIndex:497,
-            width:40, height:40, borderRadius:'50%',
-            background:'rgba(13,17,23,0.78)', backdropFilter:'blur(10px)',
-            border:'1px solid rgba(255,255,255,0.18)',
-            color:'#fff', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
-            transition:'transform .12s, background .12s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.95)'; e.currentTarget.style.transform='scale(1.08)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.78)'; e.currentTarget.style.transform='scale(1)'; }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M3 6h18M3 12h18M3 18h18"/>
-          </svg>
-        </button>
+      {/* TOP NAV NETFLIX · siempre visible en todas las vistas (no onboarding) */}
+      {view !== 'onboarding' && window.TopNav && (
+        <TopNav
+          onBurger={() => setSidebarOpen(true)}
+          view={view}
+          onView={(v) => { if (v === 'wa') setView('wa'); else setView(v); }}
+          onSearch={() => window.__openPalette && window.__openPalette()}
+        />
       )}
 
-      {/* SIDEBAR OVERLAY · solo cuando user lo abre · backdrop dim + sidebar fixed */}
-      {view !== 'onboarding' && isCinematic && sidebarOpen && (
-        <>
-          <div
-            onClick={() => setSidebarOpen(false)}
-            aria-hidden="true"
-            style={{
-              position:'fixed', inset:0, zIndex:998,
-              background:'rgba(0,0,0,0.5)',
-              backdropFilter:'blur(3px)',
-              animation:'fadeIn .2s ease',
-            }}
-          />
-          <div
-            style={{
-              position:'fixed', top:0, left:0, bottom:0, width:280,
-              zIndex:999,
-              background:'linear-gradient(180deg, rgba(13,17,23,0.97) 0%, rgba(22,27,34,0.98) 100%)',
-              backdropFilter:'blur(22px) saturate(140%)',
-              WebkitBackdropFilter:'blur(22px) saturate(140%)',
-              borderRight:'1px solid rgba(255,255,255,0.1)',
-              boxShadow:'12px 0 40px rgba(0,0,0,0.55)',
-              color:'rgba(255,255,255,0.88)',
-              overflowY:'auto',
-              animation:'sbSlideIn .26s cubic-bezier(.2,.7,.3,1)',
-            }}
-          >
-            {/* Botón X arriba derecha del sidebar */}
-            <button
-              onClick={() => setSidebarOpen(false)}
-              aria-label="Cerrar menú"
-              style={{
-                position:'absolute', top:12, right:12, zIndex:1,
-                width:32, height:32, borderRadius:'50%',
-                background:'rgba(255,255,255,0.08)',
-                border:'1px solid rgba(255,255,255,0.12)',
-                color:'rgba(255,255,255,0.85)', cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.15)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-            <Sidebar view={view} setView={(v) => { setSidebarOpen(false); setView(v); if (v === 'wa') setView('wa'); }}/>
-          </div>
-        </>
+      {/* SIDEBAR OVERLAY · cuando user abre desde TopNav burger */}
+      {view !== 'onboarding' && sidebarOpen && window.SidebarOverlay && (
+        <SidebarOverlay
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          view={view}
+          onView={(v) => { setSidebarOpen(false); if (v === 'wa') setView('wa'); else setView(v); }}
+        />
       )}
 
-      {/* SIDEBAR NORMAL · en vistas no cinematic · ocupa columna del grid */}
+      {/* DETAIL MODAL · slide-up cinematográfico · cualquier vista excepto player */}
+      {detailItem && view !== 'player' && view !== 'detail' && window.DetailModal && (
+        <DetailModal
+          pill={detailItem}
+          onClose={closeDetailModal}
+          openPlayer={openPlayerFromModal}
+        />
+      )}
+
+      {/* SIDEBAR LEGACY · vistas no cinematic (Coach/Analytics/Settings/Profile) */}
       {view !== 'onboarding' && !isCinematic && (
         <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
       )}
 
-      {/* MOBILE MENU · solo si la viewport es móvil (sigue funcionando como antes) */}
+      {/* MOBILE MENU · sigue funcionando */}
       {view !== 'onboarding' && !isCinematic && (
         <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Abrir menú">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -1991,6 +1958,7 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
+
       <main className="main" style={
         view === 'onboarding' ? {gridColumn:'1 / -1'} :
         isCinematic            ? {gridColumn:'2 / 3'} :

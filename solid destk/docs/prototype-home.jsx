@@ -217,231 +217,130 @@ function Sidebar({ view, setView }) {
   );
 }
 
-// ── Color por categoría · usado en hero y cards ──────────────────────────
-const CAT_HEX = {
-  'Fundamentos':    '#0072BE',
-  'Estructura':     '#005a96',
-  'Gobernanza':     '#3d31cc',
-  'Social Publish': '#E50914',
-  'Activos':        '#036837',
-  'Aprobaciones':   '#8A3992',
-  'Compliance':     '#1f2937',
-  'Calendario':     '#0072BE',
-  'Analytics':      '#004d8a',
-  'Care':           '#B8001F',
-  'Integraciones':  '#3d31cc',
+// ============================================================
+// REDESIGN · TopNav · Hero · Card · PathCard · Row · HomeView
+// Adaptación del mockup `redesign/sgson-home.jsx` al SaaS actual.
+// Usa window.SGS_DATA (alimentado por sgson-adapter.jsx).
+// ============================================================
+
+const _catSlugFix = (s) => {
+  const x = String(s || '').toLowerCase().replace(/\s+/g, '-');
+  if (x === 'analytics') return 'analytics-real';
+  if (x === 'care') return 'care-real';
+  return x;
 };
 
-// ── NetflixCard · card autocontenida con cover colorida + hover preview ──
-function NetflixCard({ pill, onClick, number, wide }) {
-  const [hover, setHover] = useState(false);
-  const [preview, setPreview] = useState(false);
-  const timerRef = React.useRef(null);
-
-  const onEnter = () => {
-    setHover(true);
-    if (pill.yt && !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) {
-      timerRef.current = setTimeout(() => setPreview(true), 1100);
-    }
-  };
-  const onLeave = () => {
-    setHover(false);
-    setPreview(false);
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-  };
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
-  const accent = CAT_HEX[pill.category] || '#0072BE';
-  const accentLight = accent + 'aa';
-
-  return (
-    <div onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{
-      position:'relative',
-      flexShrink: 0,
-      width: number ? 340 : (wide ? 320 : 260),
-      cursor:'pointer',
-      transition: 'transform .25s cubic-bezier(.2,.7,.3,1)',
-      transform: hover ? 'scale(1.07) translateY(-6px)' : 'scale(1)',
-      zIndex: hover ? 5 : 1,
-      scrollSnapAlign: 'start',
-    }}>
-      {number && (
-        <div aria-hidden="true" style={{
-          position:'absolute', left:-14, bottom:6,
-          fontSize: 140, fontWeight: 900, fontFamily: 'Inter, sans-serif',
-          color: '#0D1117',
-          WebkitTextStroke: '3px #BCD630',
-          lineHeight: 0.85, letterSpacing: '-0.08em',
-          zIndex: 0, pointerEvents: 'none', userSelect: 'none',
-        }}>{number}</div>
-      )}
-
-      <div style={{
-        position: 'relative',
-        marginLeft: number ? 60 : 0,
-        aspectRatio: '16/9',
-        borderRadius: 6,
-        overflow: 'hidden',
-        background: `linear-gradient(135deg, ${accent} 0%, ${accentLight} 45%, #0D1117 100%)`,
-        boxShadow: hover ? '0 22px 50px rgba(0,0,0,0.65), 0 4px 12px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.35)',
-        transition: 'box-shadow .25s',
-      }}>
-        <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 22px)', mixBlendMode:'overlay', pointerEvents:'none'}}/>
-        <div style={{position:'absolute', top:-40, right:-30, width:140, height:140, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(2px)', pointerEvents:'none'}}/>
-        {pill.pill != null && (
-          <div aria-hidden="true" style={{position:'absolute', right:6, bottom:-12, fontSize:88, fontWeight:900, fontFamily:'Inter, sans-serif', color:'rgba(255,255,255,0.16)', lineHeight:1, letterSpacing:'-0.06em', pointerEvents:'none'}}>
-            {String(pill.pill).padStart(2,'0')}
-          </div>
-        )}
-        {pill.yt && (
-          <img
-            src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
-            alt={pill.title}
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity: hover ? 0.95 : 1, transition:'opacity .25s'}}
-            onError={e => { e.currentTarget.style.display = 'none'; }}
-          />
-        )}
-        {preview && pill.yt && (
-          <iframe
-            src={`https://www.youtube.com/embed/${pill.yt}?autoplay=1&mute=1&controls=0&loop=1&playlist=${pill.yt}&modestbranding=1&playsinline=1&start=2&rel=0&iv_load_policy=3`}
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.05)', zIndex:1}}
-            allow="autoplay; encrypted-media"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-        )}
-        <div style={{position:'absolute', inset:0, background:'linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.85) 100%)', pointerEvents:'none', zIndex:2}}/>
-        <div style={{position:'absolute', top:10, left:10, fontFamily:'JetBrains Mono, monospace', fontSize:9.5, fontWeight:700, color:'#fff', letterSpacing:'0.12em', textTransform:'uppercase', padding:'3px 8px', background:'rgba(0,0,0,0.4)', backdropFilter:'blur(6px)', borderRadius:4, zIndex:3}}>
-          {pill.category || 'Módulo'}
-        </div>
-        {hover && !preview && (
-          <div aria-hidden="true" style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:54, height:54, borderRadius:'50%', background:'rgba(255,255,255,0.95)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 18px rgba(0,0,0,0.4)', zIndex:3}}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#0D1117" style={{marginLeft:3}}><path d="M8 5v14l11-7z"/></svg>
-          </div>
-        )}
-        <div style={{position:'absolute', left:12, right:12, bottom:10, color:'#fff', zIndex:3}}>
-          <div style={{fontSize:14, fontWeight:700, lineHeight:1.25, marginBottom:4, textShadow:'0 1px 4px rgba(0,0,0,0.7)', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
-            {pill.title}
-          </div>
-          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:10, color:'rgba(255,255,255,0.7)', letterSpacing:'0.06em', textTransform:'uppercase'}}>
-            {pill.duration || '4 min'} · {pill.level || 'Principiante'}
-          </div>
-        </div>
-        {pill.progress > 0 && pill.progress < 100 && (
-          <div style={{position:'absolute', left:0, right:0, bottom:0, height:3, background:'rgba(255,255,255,0.15)', zIndex:4}}>
-            <div style={{height:'100%', width: pill.progress + '%', background:'#E50914'}}/>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── NetflixRow · fila horizontal scrolleable ─────────────────────────────
-function NetflixRow({ title, sub, items, openDetail, numbered, wide }) {
-  if (!items || items.length === 0) return null;
-  const scrollRef = React.useRef(null);
-  const [canL, setCanL] = useState(false);
-  const [canR, setCanR] = useState(true);
-  const updateArrows = () => {
-    const el = scrollRef.current; if (!el) return;
-    setCanL(el.scrollLeft > 10);
-    setCanR(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
-  };
+function TopNav({ onBurger, view, onView, onSearch }) {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    updateArrows();
-    const el = scrollRef.current; if (!el) return;
-    el.addEventListener('scroll', updateArrows, { passive: true });
-    window.addEventListener('resize', updateArrows);
-    return () => { el.removeEventListener('scroll', updateArrows); window.removeEventListener('resize', updateArrows); };
-  }, [items.length]);
-  const scroll = dir => { const el = scrollRef.current; if (!el) return; el.scrollBy({ left: dir * Math.max(420, el.clientWidth * 0.8), behavior: 'smooth' }); };
-  return (
-    <section style={{margin:'0 0 8px'}}>
-      <h2 style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:22, color:'#fff', margin:'0 0 14px', padding:'0 64px', letterSpacing:'-0.015em'}}>
-        {title}
-        {sub && <span style={{marginLeft:10, fontStyle:'italic', fontWeight:400, fontSize:18, color:'rgba(255,255,255,0.55)'}}>{sub}</span>}
-      </h2>
-      <div style={{position:'relative'}}>
-        {canL && (
-          <button onClick={() => scroll(-1)} aria-label="Anterior" style={{position:'absolute', left:0, top:'50%', transform:'translateY(-50%)', zIndex:6, width:54, height:'70%', background:'linear-gradient(90deg, rgba(13,17,23,0.85) 0%, transparent 100%)', border:'none', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', paddingLeft:14}}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-        )}
-        {canR && (
-          <button onClick={() => scroll(1)} aria-label="Siguiente" style={{position:'absolute', right:0, top:'50%', transform:'translateY(-50%)', zIndex:6, width:54, height:'70%', background:'linear-gradient(270deg, rgba(13,17,23,0.85) 0%, transparent 100%)', border:'none', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:14}}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 6l6 6-6 6"/></svg>
-          </button>
-        )}
-        <div ref={scrollRef} style={{display:'flex', gap:14, overflowX:'auto', overflowY:'visible', padding:'10px 64px 40px', scrollSnapType:'x mandatory', scrollPaddingLeft:64, scrollbarWidth:'none', msOverflowStyle:'none'}}>
-          {items.map((p, i) => (
-            <NetflixCard key={p.id} pill={p} onClick={() => openDetail(p)} number={numbered ? i + 1 : null} wide={wide}/>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── Home · Netflix-style · BULLETPROOF, inline-styled ────────────────────
-function Home({ openDetail, openPlayer, setView }) {
-  const featuredPills = React.useMemo(() => {
-    const withVideo = PILLS.filter(p => p.yt);
-    return withVideo.length > 0 ? withVideo.slice(0, 4) : PILLS.slice(0, 4);
+    const onScroll = () => setScrolled(window.scrollY > 30);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
-  useEffect(() => {
-    if (featuredPills.length <= 1 || heroPaused) return;
-    const t = setInterval(() => setHeroIdx(i => (i + 1) % featuredPills.length), 12000);
-    return () => clearInterval(t);
-  }, [featuredPills.length, heroPaused]);
-  const heroPill = featuredPills[heroIdx] || PILLS[0] || { title:'Sprinklr', category:'Fundamentos', duration:'4 min' };
-  const heroAccent = CAT_HEX[heroPill.category] || '#0072BE';
-  const profile = (window.UserProfile && window.UserProfile.get()) || { name:'tú', role:'Publish Agent' };
-  const firstName = (profile.name || 'tú').split(' ')[0];
 
-  const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 100);
-  const recommendedRow = PILLS.slice(0, 14);
-  const trendingRow = PILLS.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).slice(0, 10);
-  const careRow = PILLS.filter(p => p.category === 'Care').slice(0, 10);
-  const analyticsRow = PILLS.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').slice(0, 10);
-  const newPillsRow = PILLS.slice(-12).reverse();
-  const withVideoRow = PILLS.filter(p => p.yt);
+  const items = [
+    { k:'home',      label:'Inicio' },
+    { k:'browse',    label:'Catálogo' },
+    { k:'rutas',     label:'Rutas' },
+    { k:'path',      label:'Mi ruta' },
+    { k:'dashboard', label:'Analytics' },
+    { k:'coach',     label:'MENTOR-IA' },
+  ];
+
+  const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
+  const initials = (D && D.USER && D.USER.initials) || 'U';
+  const inboxCount = D && D.SIDEBAR_LINKS ? (D.SIDEBAR_LINKS.find(l => l.key === 'inbox') || {}).count : null;
 
   return (
-    <div className="main-inner home-cinema" style={{
-      padding: 0, maxWidth: 'none', background: '#0D1117', color: '#fff', minHeight: '100vh',
-    }}>
-      {/* ============ HERO ============ */}
-      <section
-        onMouseEnter={() => setHeroPaused(true)}
-        onMouseLeave={() => setHeroPaused(false)}
-        style={{
-          position:'relative', minHeight:560, height:'78vh', maxHeight:880,
-          background: `linear-gradient(135deg, ${heroAccent} 0%, #1a2940 50%, #0D1117 100%)`,
-          overflow:'hidden', display:'flex', alignItems:'flex-end',
-        }}
-      >
-        {heroPill.yt && (
+    <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>
+      <div className="topnav-left">
+        <button className="topnav-burger" onClick={onBurger} aria-label="Menú">
+          <Ico name="menu" size={18}/>
+        </button>
+        {window.Wordmark
+          ? <Wordmark variant="v1"/>
+          : <span className="wordmark v1"><span className="sgs">SGS</span><span className="pipe">|</span><span className="on">on</span></span>
+        }
+      </div>
+
+      <div className="topnav-center">
+        {items.map(it => (
+          <button
+            key={it.k}
+            className={`nav-item ${view === it.k ? 'active' : ''}`}
+            onClick={() => onView(it.k)}>
+            {it.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="topnav-right">
+        <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
+        <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
+          <Ico name="bell" size={18}/>
+          {inboxCount ? <span className="badge">{inboxCount}</span> : null}
+        </button>
+        <button className="avatar" aria-label="Tu perfil" onClick={() => onView('profile')}>{initials}</button>
+      </div>
+    </nav>
+  );
+}
+
+function HomeHero({ onPlay, onMore }) {
+  const D = window.SGS_DATA;
+  const PILLS = (D && D.PILLS) || [];
+
+  const featured = React.useMemo(() => {
+    const withVid = PILLS.filter(p => p.yt);
+    if (withVid.length >= 4) return withVid.slice(0, 4);
+    const fill = PILLS.slice().sort((a,b) => (b.enrolled||0)-(a.enrolled||0));
+    const ids = new Set(withVid.map(p => p.id));
+    for (const p of fill) {
+      if (!ids.has(p.id)) { withVid.push(p); ids.add(p.id); }
+      if (withVid.length >= 4) break;
+    }
+    return withVid.slice(0, 4);
+  }, [PILLS.length]);
+
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (featured.length <= 1 || paused) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % featured.length), 12000);
+    return () => clearInterval(t);
+  }, [featured.length, paused]);
+
+  const p = featured[idx];
+  if (!p) return null;
+
+  const slug = _catSlugFix(p.category);
+  const cat = (D && D.CATS && (D.CATS[p.category] || D.CATS[slug])) || { label: p.category };
+
+  return (
+    <section className="hero"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      data-screen-label="Hero">
+      <div className="hero-media">
+        <div className={`hero-media-placeholder cover-${slug}`}/>
+        {p.yt && (
           <img
-            key={'thumb-'+heroPill.id}
-            src={`https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg`}
+            key={'thumb-'+p.id}
+            src={`https://img.youtube.com/vi/${p.yt}/maxresdefault.jpg`}
             alt=""
             aria-hidden="true"
             style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
             onError={e => {
-              if (!e.currentTarget.dataset.fallback) {
-                e.currentTarget.dataset.fallback = '1';
-                e.currentTarget.src = `https://img.youtube.com/vi/${heroPill.yt}/hqdefault.jpg`;
-              } else { e.currentTarget.style.display = 'none'; }
+              if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb='1'; e.currentTarget.src = `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`; }
+              else { e.currentTarget.style.display = 'none'; }
             }}
           />
         )}
-        {heroPill.yt && (
+        {p.yt && (
           <iframe
-            key={'video-'+heroPill.id}
-            src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=2&iv_load_policy=3&disablekb=1`}
+            key={'video-'+p.id}
+            src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
             style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
             allow="autoplay; encrypted-media"
             aria-hidden="true"
@@ -449,100 +348,260 @@ function Home({ openDetail, openPlayer, setView }) {
             title=""
           />
         )}
-        <div style={{position:'absolute', inset:0, background:'linear-gradient(90deg, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.6) 35%, rgba(13,17,23,0.25) 65%, rgba(13,17,23,0.05) 100%), linear-gradient(180deg, rgba(13,17,23,0.4) 0%, transparent 30%, transparent 50%, #0D1117 100%)', pointerEvents:'none', zIndex:2}}/>
-        <div key={heroPill.id} style={{
-          position:'relative', zIndex:3, padding:'0 64px 90px', maxWidth:720, color:'#fff',
-        }}>
-          <div style={{display:'inline-flex', alignItems:'center', gap:8, fontFamily:'JetBrains Mono, monospace', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.85)', marginBottom:16, padding:'5px 12px', background:'rgba(255,255,255,0.1)', backdropFilter:'blur(8px)', borderRadius:999, border:'1px solid rgba(255,255,255,0.15)'}}>
-            <span style={{width:7, height:7, borderRadius:'50%', background:'linear-gradient(135deg, #BCD630, #0072BE)', boxShadow:'0 0 8px rgba(188,214,48,0.6)'}}/>
-            ★ Destacado · Hola {firstName}
-          </div>
-          <h1 style={{fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:'clamp(40px, 5.5vw, 64px)', letterSpacing:'-0.025em', lineHeight:1.05, margin:'0 0 16px', textShadow:'0 4px 24px rgba(0,0,0,0.5)'}}>
-            {heroPill.title}
-          </h1>
-          {heroPill.one && (
-            <p style={{fontFamily:'Instrument Serif, serif', fontStyle:'italic', fontSize:19, color:'rgba(255,255,255,0.93)', margin:'0 0 18px', lineHeight:1.45, textShadow:'0 2px 8px rgba(0,0,0,0.5)'}}>"{heroPill.one}"</p>
-          )}
-          <p style={{fontFamily:'JetBrains Mono, monospace', fontSize:11.5, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.7)', margin:'0 0 24px'}}>
-            {heroPill.category || 'Sprinklr'} · {heroPill.duration || '4 min'} · {heroPill.teacher || 'BeonIt × Repsol'}
-          </p>
-          <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
-            <button onClick={() => openDetail(heroPill)} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 28px', background:'#fff', color:'#0D1117', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:15, boxShadow:'0 8px 24px rgba(0,0,0,0.35)'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              Reproducir
-            </button>
-            <button onClick={() => openDetail(heroPill)} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 24px', background:'rgba(110,110,110,0.6)', color:'#fff', border:'1px solid rgba(255,255,255,0.15)', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:600, fontSize:14, backdropFilter:'blur(8px)'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-              Más información
-            </button>
-            <button onClick={() => setView('coach')} style={{display:'inline-flex', alignItems:'center', gap:8, padding:'13px 20px', background:'transparent', color:'rgba(255,255,255,0.85)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:13}}>
-              ★ Pregúntale a MENTOR-IA
-            </button>
-          </div>
+      </div>
+      <div className="hero-overlay"/>
+
+      <div className="hero-badge">
+        <span className="label">Top esta semana</span>
+        <span className="value">en Repsol</span>
+        <span className="stroke"/>
+      </div>
+
+      <div className="hero-content" key={p.id}>
+        <div className="hero-eyebrow">
+          <span className="pillmark">Think Pill · {p.pill}</span>
+          <span className="sep"/>
+          <span className="meta">{cat.label}</span>
         </div>
 
-        {featuredPills.length > 1 && (
-          <div style={{position:'absolute', bottom:36, right:64, display:'flex', gap:6, zIndex:4}}>
-            {featuredPills.map((p, i) => (
-              <button key={p.id} onClick={() => setHeroIdx(i)} aria-label={`Ver ${p.title}`} style={{
-                width: i === heroIdx ? 38 : 18, height:3, border:'none',
-                background: i === heroIdx ? '#BCD630' : 'rgba(255,255,255,0.32)',
-                borderRadius:2, cursor:'pointer', padding:0, transition:'all .3s',
-              }}/>
-            ))}
-          </div>
-        )}
+        <h1 className="hero-title">{p.title}</h1>
+        {p.one && p.one !== p.title && <p className="hero-quote">"{p.one}."</p>}
 
-        <div style={{position:'absolute', top:30, right:64, zIndex:4, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6}}>
-          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:800, letterSpacing:'0.16em', textTransform:'uppercase', color:'#fff', background:'linear-gradient(135deg, #E50914, #B8001F)', padding:'5px 11px', borderRadius:4, boxShadow:'0 4px 12px rgba(229,9,20,0.4)'}}>
-            SGS|on TOP
-          </div>
-          <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:9.5, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.75)', background:'rgba(13,17,23,0.6)', backdropFilter:'blur(6px)', padding:'3px 9px', borderRadius:3, border:'1px solid rgba(255,255,255,0.1)'}}>
-            {heroPill.category || ''}
-          </div>
+        <div className="hero-meta">
+          <span className="tag">{p.level}</span>
+          <span className="sep">/</span>
+          <span>{p.duration}</span>
+          <span className="sep">/</span>
+          <span>{p.teacher}</span>
+          {p.rating ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>) : null}
         </div>
-      </section>
 
-      {/* ============ ROWS ============ */}
-      <div style={{padding:'24px 0 64px', background:'#0D1117'}}>
-        {inProgress.length > 0 && (
-          <NetflixRow title={`Continúa, ${firstName}`} sub="donde lo dejaste" items={inProgress} openDetail={openDetail}/>
-        )}
-        {withVideoRow.length > 0 && (
-          <NetflixRow title="Vídeos disponibles ahora" sub="reproducir directamente" items={withVideoRow} openDetail={openDetail} wide/>
-        )}
-        <NetflixRow title="Rutas recomendadas para ti" sub={`para ${profile.role}`} items={recommendedRow} openDetail={openDetail}/>
-        <NetflixRow title="Tendencia esta semana" sub="en Repsol" items={trendingRow} openDetail={openDetail} numbered/>
-        {careRow.length > 0 && (
-          <NetflixRow title="Care · atención al cliente" items={careRow} openDetail={openDetail}/>
-        )}
-        {analyticsRow.length > 0 && (
-          <NetflixRow title="Analytics & Integraciones" items={analyticsRow} openDetail={openDetail}/>
-        )}
-        <NetflixRow title="Nuevo en SGS|on" items={newPillsRow} openDetail={openDetail}/>
-
-        <div style={{margin:'24px 64px 0', padding:'32px', background:'linear-gradient(135deg, #1a2940 0%, #2a1f4d 100%)', borderRadius:14, border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', gap:24, flexWrap:'wrap'}}>
-          <div style={{flex:1, minWidth:280}}>
-            <div style={{fontFamily:'JetBrains Mono, monospace', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#4D9FE0', fontWeight:700, marginBottom:8}}>★ MENTOR-IA · BETA</div>
-            <h2 style={{fontFamily:'Inter, sans-serif', fontSize:24, fontWeight:700, color:'#fff', margin:'0 0 8px', letterSpacing:'-0.015em'}}>
-              ¿Dudas sobre Sprinklr? Tu asistente IA conoce el contexto Repsol.
-            </h2>
-            <p style={{fontSize:13.5, color:'rgba(255,255,255,0.7)', margin:0, lineHeight:1.6}}>
-              Pregúntale sobre flujos, atajos, mejores prácticas. Te responde en español adaptado a tu rol.
-            </p>
-          </div>
-          <button onClick={() => setView('coach')} style={{padding:'14px 24px', background:'#4D9FE0', color:'#0D1117', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:14, boxShadow:'0 4px 14px rgba(77,159,224,0.4)'}}>
-            Abrir MENTOR-IA →
+        <div className="hero-actions">
+          <button className="btn btn-primary" onClick={() => onPlay(p)}>
+            <Ico name="play" size={16}/> Reproducir
+          </button>
+          <button className="btn btn-secondary" onClick={() => onMore(p)}>
+            <Ico name="info" size={16}/> Más información
+          </button>
+          <button className="btn btn-icon btn-ghost" aria-label="Sonido">
+            <Ico name="mute" size={16}/>
           </button>
         </div>
       </div>
+
+      <div className="hero-dots">
+        {featured.map((_, i) => (
+          <span key={i} className={`hero-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} style={{cursor:'pointer'}}/>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NxCard({ pill, onOpen, showProgress, newBadge }) {
+  const D = window.SGS_DATA;
+  const cat = (D && D.CATS && (D.CATS[pill.category] || D.CATS[_catSlugFix(pill.category)])) || { label: pill.category || 'Módulo' };
+  const slug = _catSlugFix(pill.category);
+
+  return (
+    <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
+      <div className={`card-cover cat-${slug}`}/>
+      {pill.yt && (
+        <img
+          src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
+          alt=""
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          onError={e => { e.currentTarget.style.display='none'; }}
+        />
+      )}
+      <div className="card-grad"/>
+
+      <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
+      {(newBadge || pill.newBadge) && <span className="card-badge">Nuevo</span>}
+
+      <div className="card-body">
+        <h3 className="card-title">{pill.title}</h3>
+        <div className="card-meta">
+          <span>{pill.duration}</span>
+          <span className="sep">·</span>
+          <span>{pill.level}</span>
+        </div>
+      </div>
+
+      <div className="card-actions">
+        <button className="card-action primary" aria-label="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+          <Ico name="play" size={12}/>
+        </button>
+        <button className="card-action" aria-label="Añadir a mi lista" onClick={(e) => e.stopPropagation()}>
+          <Ico name="plus" size={14}/>
+        </button>
+        <button className="card-action" aria-label="Me gusta" onClick={(e) => e.stopPropagation()}>
+          <Ico name="thumb" size={13}/>
+        </button>
+        <button className="card-action" aria-label="Más info" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+          <Ico name="chev-down" size={14}/>
+        </button>
+        <span className="card-match">{Math.round(78 + (pill.id * 17) % 22)}% match</span>
+      </div>
+
+      {showProgress && pill.progress > 0 && (
+        <div className="card-progress">
+          <div className="fill" style={{ width: `${Math.round(pill.progress * 100)}%` }}/>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function NxPathCard({ path, onOpen }) {
+  return (
+    <article className="card" onClick={() => onOpen && onOpen(path)}>
+      <div className={`card-cover ${path.accent || 'cat-publish'}`}/>
+      <div className="card-grad"/>
+      <span className="card-pill-num">RUTA · {path.pills} pills</span>
+      <div className="card-body" style={{ left: 16, right: 16 }}>
+        <h3 className="card-title" style={{ fontSize: 17, fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>
+          {path.title}
+        </h3>
+        <div className="card-meta">
+          <span>{path.hours}</span>
+          <span className="sep">·</span>
+          <span>{(path.desc || '').slice(0, 38)}…</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function NxRow({ row, onOpen, onOpenPath }) {
+  const railRef = React.useRef(null);
+  const D = window.SGS_DATA;
+
+  const scroll = (dir) => {
+    const el = railRef.current; if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: 'smooth' });
+  };
+
+  if (row.isPaths) {
+    const paths = (D && D.LEARNING_PATHS) || [];
+    if (paths.length === 0) return null;
+    return (
+      <section className="row" data-screen-label={`Row · ${row.key}`}>
+        <header className="row-header">
+          <h2 className="row-title">{row.title}</h2>
+          <span className="row-sub">— {row.sub}</span>
+          <button className="row-explore" onClick={() => onOpenPath && onOpenPath()}>Explorar todas <Ico name="chev-right" size={12}/></button>
+        </header>
+        <div className="rail no-scrollbar" ref={railRef}>
+          <div className="rail-track">
+            {paths.map(p => <NxPathCard key={p.id} path={p} onOpen={() => onOpenPath && onOpenPath(p)}/>)}
+          </div>
+        </div>
+        <button className="rail-arrow left" onClick={() => scroll(-1)}><Ico name="chev-left" size={28}/></button>
+        <button className="rail-arrow right" onClick={() => scroll(1)}><Ico name="chev-right" size={28}/></button>
+      </section>
+    );
+  }
+
+  const pillById = (id) => (D && D.pillById && D.pillById(id)) || null;
+
+  if (row.trending) {
+    return (
+      <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
+        <header className="row-header">
+          <h2 className="row-title">{row.title}</h2>
+          <span className="row-sub">— {row.sub}</span>
+          <button className="row-explore">Ranking completo <Ico name="chev-right" size={12}/></button>
+        </header>
+        <div className="rail no-scrollbar" ref={railRef}>
+          <div className="rail-track">
+            {row.pillIds.map((id, i) => {
+              const p = pillById(id);
+              if (!p) return null;
+              return (
+                <div className="trending-cell" key={id}>
+                  <span className="trending-num">{String(i+1).padStart(2,'0')}</span>
+                  <NxCard pill={p} onOpen={onOpen}/>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <button className="rail-arrow left" onClick={() => scroll(-1)}><Ico name="chev-left" size={28}/></button>
+        <button className="rail-arrow right" onClick={() => scroll(1)}><Ico name="chev-right" size={28}/></button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="row" data-screen-label={`Row · ${row.key}`}>
+      <header className="row-header">
+        <h2 className="row-title">{row.title}</h2>
+        <span className="row-sub">— {row.sub}</span>
+        <button className="row-explore">Ver todo <Ico name="chev-right" size={12}/></button>
+      </header>
+      <div className="rail no-scrollbar" ref={railRef}>
+        <div className="rail-track">
+          {row.pillIds.map(id => {
+            const p = pillById(id);
+            if (!p) return null;
+            return <NxCard key={id} pill={p} onOpen={onOpen} showProgress={row.showProgress} newBadge={row.newRow}/>;
+          })}
+        </div>
+      </div>
+      <button className="rail-arrow left" onClick={() => scroll(-1)}><Ico name="chev-left" size={28}/></button>
+      <button className="rail-arrow right" onClick={() => scroll(1)}><Ico name="chev-right" size={28}/></button>
+    </section>
+  );
+}
+
+function Home({ openDetail, openPlayer, setView }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const refresh = () => force(x => x + 1);
+    window.addEventListener('sgs-data-ready', refresh);
+    return () => window.removeEventListener('sgs-data-ready', refresh);
+  }, []);
+
+  const D = window.SGS_DATA;
+  if (!D || !D.ROWS) {
+    return (
+      <div style={{padding:'120px 64px', color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-sans, Inter)', textAlign:'center'}}>
+        <div style={{fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--fg-dim, #6F6D67)', marginBottom:12}}>SGS|on · cargando data del catálogo</div>
+        <div style={{fontSize:14}}>Preparando Think Pills…</div>
+      </div>
+    );
+  }
+
+  const onOpenPath = () => setView('rutas');
+
+  return (
+    <div data-screen-label="Home">
+      <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
+      <div className="rows">
+        {D.ROWS.map(row => (
+          <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath}/>
+        ))}
+      </div>
+      <footer className="footer-strip">
+        <div className="cobranding">
+          <span><b>SGS|on</b></span>
+          <span>·</span>
+          <span>BeonIt × Repsol</span>
+          <span>·</span>
+          <span>Sprinklr Internal Learning</span>
+        </div>
+        <div>v 2.0 · MAY 2026</div>
+      </footer>
     </div>
   );
 }
 
-window.Sidebar = Sidebar;
-window.NetflixCard = NetflixCard;
-window.NetflixRow = NetflixRow;
+window.TopNav = TopNav;
+window.HomeHero = HomeHero;
+window.NxCard = NxCard;
+window.NxPathCard = NxPathCard;
+window.NxRow = NxRow;
 window.Home = Home;
 
 // ── CineRow · fila horizontal scrolleable (legacy, usado por otras vistas) ──
