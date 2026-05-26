@@ -2727,134 +2727,163 @@ function LoginScreen() {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:1000, display:'flex',
-      background:'linear-gradient(135deg, #0D1117 0%, #1a2940 50%, #2a1f4d 100%)',
-      overflow:'auto',
+      background:'radial-gradient(circle at 20% 30%, rgba(236,28,36,0.18), transparent 50%), radial-gradient(circle at 80% 70%, rgba(91,141,239,0.15), transparent 50%), linear-gradient(135deg, #08080B 0%, #0E0E12 50%, #16161C 100%)',
+      overflow:'auto', color:'#F5F4F1',
     }}>
       {/* Lado visual izquierdo */}
-      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#fff', minWidth:0}}>
-        <div style={{display:'flex', alignItems:'center', gap:10}}>
-          <img src={"sgs-on-logo.png?v=" + (window.SOLID_VERSION || 'init')} style={{height:36, filter:'brightness(1.6) saturate(1.2)'}} alt="SGS|on"/>
+      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#F5F4F1', minWidth:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:14}}>
+          <span className="wordmark v1" style={{fontSize:24}}>
+            <span className="sgs" style={{fontFamily:'var(--font-sans, Inter)', fontWeight:800, color:'#F5F4F1'}}>SGS</span>
+            <span className="pipe" style={{color:'#EC1C24', margin:'0 2px'}}>|</span>
+            <span className="on" style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#F5F4F1'}}>on</span>
+          </span>
         </div>
         <div>
-          <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:18}}>Plataforma de formación · 2026</div>
-          <h1 style={{fontFamily:'var(--sans)', fontSize:'clamp(40px, 5.5vw, 68px)', fontWeight:300, lineHeight:1.05, letterSpacing:'-0.02em', margin:0}}>
-            Domina<br/>Sprinklr<br/>como <em style={{fontStyle:'italic', fontWeight:600, background:'linear-gradient(135deg, #BCD630, #66C7C2)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>experto</em>.
+          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:24}}>★ Plataforma de formación cinematográfica · 2026</div>
+          <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#F5F4F1'}}>
+            Domina<br/>Sprinklr<br/>como <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#EC1C24'}}>experto</em>.
           </h1>
-          <div style={{marginTop:32, display:'flex', gap:10, flexWrap:'wrap'}}>
-            {['41 Think Pills', '3 Talleres', 'MENTOR-IA', 'Certificado Repsol'].map(t => (
-              <span key={t} style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', padding:'5px 11px', border:'1px solid rgba(255,255,255,0.2)', borderRadius:999, color:'rgba(255,255,255,0.75)'}}>{t}</span>
+          <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(245,244,241,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
+            41 Think Pills · 3 talleres · MENTOR-IA con contexto Repsol · certificado oficial al completar tu ruta.
+          </p>
+          <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
+            {['41 Think Pills', '3 Talleres', 'MENTOR-IA · Claude 4.5', 'Certificado Repsol'].map(t => (
+              <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.14)', borderRadius:999, color:'rgba(245,244,241,0.75)', background:'rgba(255,255,255,0.03)'}}>{t}</span>
             ))}
           </div>
         </div>
-        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>
-          BeonIt × Repsol · Powered by Claude
+        <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(245,244,241,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
+          <span>BeonIt × Repsol</span>
+          <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
+          <span>Powered by Claude</span>
+          <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
+          <span>v 2.0</span>
         </div>
       </div>
 
-      {/* Form lado derecho */}
-      <div style={{flex:'0 0 460px', maxWidth:'100%', background:'var(--paper)', padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'}}>
+      {/* Form lado derecho · dark glass */}
+      <div style={{
+        flex:'0 0 480px', maxWidth:'100%',
+        background:'rgba(14,14,18,0.85)', backdropFilter:'blur(24px) saturate(140%)', WebkitBackdropFilter:'blur(24px) saturate(140%)',
+        borderLeft:'1px solid rgba(255,255,255,0.08)',
+        padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'
+      }}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
-            <div style={{padding:'14px 16px', background:'rgba(188,214,48,0.1)', border:'1px solid rgba(188,214,48,0.4)', borderRadius:10, marginBottom:20}}>
-              <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--bn-lime-dark)', fontWeight:700, marginBottom:4}}>✉ Invitación recibida</div>
-              <div style={{fontSize:13, color:'var(--ink-2)', lineHeight:1.5}}>Hola <strong>{invitation.name}</strong>, te han invitado a SGS|on como <strong>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
+            <div style={{padding:'16px 18px', background:'rgba(236,28,36,0.08)', border:'1px solid rgba(236,28,36,0.3)', borderRadius:10, marginBottom:24}}>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#EC1C24', fontWeight:700, marginBottom:5}}>✉ Invitación recibida</div>
+              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>Hola <strong style={{color:'#fff'}}>{invitation.name}</strong>, te han invitado a SGS|on como <strong style={{color:'#fff'}}>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
             </div>
           )}
-          <div style={{display:'flex', gap:6, marginBottom:32, padding:4, background:'var(--paper-2)', borderRadius:10, width:'fit-content'}}>
+          <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
             <button onClick={() => { setMode('login'); setError(''); }}
-              style={{padding:'7px 18px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
-                background: mode==='login' ? 'var(--paper)' : 'transparent', color: mode==='login' ? 'var(--ink)' : 'var(--ink-3)',
-                boxShadow: mode==='login' ? 'var(--shadow-sm)' : 'none'}}>Iniciar sesión</button>
+              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                transition:'all .12s'}}>Iniciar sesión</button>
             <button onClick={() => { setMode('signup'); setError(''); }}
-              style={{padding:'7px 18px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600,
-                background: mode==='signup' ? 'var(--paper)' : 'transparent', color: mode==='signup' ? 'var(--ink)' : 'var(--ink-3)',
-                boxShadow: mode==='signup' ? 'var(--shadow-sm)' : 'none'}}>Crear cuenta</button>
+              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                transition:'all .12s'}}>Crear cuenta</button>
           </div>
-          <h2 style={{margin:'0 0 8px', fontSize:24, letterSpacing:'-0.01em'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
-          <p style={{fontSize:13.5, color:'var(--ink-3)', marginBottom:24, lineHeight:1.5}}>{mode === 'login' ? 'Introduce el email con el que te registraste.' : 'Te llevará 30 segundos. Sin password — versión demo.'}</p>
+          <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#F5F4F1', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
+          <p style={{fontSize:14, color:'rgba(245,244,241,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
           <form onSubmit={submit}>
-            <label style={{display:'block', marginBottom:12}}>
-              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email</div>
+            <label style={{display:'block', marginBottom:14}}>
+              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Email</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
-                style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
+                onFocus={e => e.target.style.borderColor='#EC1C24'}
+                onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
             </label>
             {isSupabase && (
-              <label style={{display:'block', marginBottom:12}}>
-                <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Password</div>
+              <label style={{display:'block', marginBottom:14}}>
+                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Password</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
-                  style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
+                  onFocus={e => e.target.style.borderColor='#EC1C24'}
+                  onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
               </label>
             )}
             {mode === 'signup' && (
               <>
-                <label style={{display:'block', marginBottom:12}}>
-                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Nombre completo</div>
+                <label style={{display:'block', marginBottom:14}}>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Nombre completo</div>
                   <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
-                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
+                    onFocus={e => e.target.style.borderColor='#EC1C24'}
+                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
                 </label>
-                <label style={{display:'block', marginBottom:12}}>
-                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+                <label style={{display:'block', marginBottom:14}}>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Rol</div>
                   <select value={role} onChange={e => setRole(e.target.value)}
-                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)', boxSizing:'border-box'}}>
-                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r}>{r}</option>)}
+                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, background:'rgba(255,255,255,0.04)', color:'#F5F4F1', boxSizing:'border-box', cursor:'pointer'}}>
+                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
                   </select>
                 </label>
-                <label style={{display:'block', marginBottom:12}}>
-                  <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Equipo</div>
+                <label style={{display:'block', marginBottom:14}}>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Equipo</div>
                   <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
-                    style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
+                    onFocus={e => e.target.style.borderColor='#EC1C24'}
+                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
                 </label>
               </>
             )}
             {error && (
-              <div style={{padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5, marginBottom:12}}>
+              <div style={{padding:'10px 14px', background:'rgba(236,28,36,0.1)', border:'1px solid rgba(236,28,36,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
               </div>
             )}
-            <button type="submit" disabled={submitting} className="btn glow" style={{width:'100%', justifyContent:'center', marginTop:6, opacity: submitting ? 0.6 : 1}}>
-              {submitting ? 'Cargando…' : mode === 'login' ? 'Entrar →' : 'Crear cuenta →'}
+            <button type="submit" disabled={submitting}
+              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(236,28,36,0.5)' : '#EC1C24', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
+              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#FF3037'; }}
+              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#EC1C24'; }}>
+              {submitting ? 'Cargando…' : (mode === 'login' ? 'Entrar →' : 'Crear cuenta →')}
             </button>
           </form>
 
           {isSupabase && (
             <>
-              <div style={{display:'flex', alignItems:'center', gap:10, margin:'18px 0', color:'var(--ink-4)', fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase'}}>
-                <div style={{flex:1, height:1, background:'var(--line)'}}/>
+              <div style={{display:'flex', alignItems:'center', gap:10, margin:'20px 0', color:'rgba(245,244,241,0.4)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase'}}>
+                <div style={{flex:1, height:1, background:'rgba(255,255,255,0.1)'}}/>
                 <span>o</span>
-                <div style={{flex:1, height:1, background:'var(--line)'}}/>
+                <div style={{flex:1, height:1, background:'rgba(255,255,255,0.1)'}}/>
               </div>
               <button type="button" onClick={ssoLogin} disabled={submitting}
-                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'11px 16px', border:'1px solid var(--line)', borderRadius:10, background:'#fff', cursor:'pointer', fontFamily:'var(--sans)', fontSize:14, fontWeight:600, color:'var(--ink-2)', transition:'border-color .14s, box-shadow .14s'}}
-                onMouseEnter={e => e.currentTarget.style.borderColor='var(--ink-3)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor='var(--line)'}>
+                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 16px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, background:'rgba(255,255,255,0.04)', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:600, color:'#F5F4F1', transition:'all .15s'}}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'; }}>
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
                 Continuar con Microsoft
               </button>
-              <div style={{marginTop:6, fontSize:11, color:'var(--ink-4)', textAlign:'center'}}>SSO corporativo · usa tu cuenta @repsol.com</div>
+              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta @repsol.com</div>
             </>
           )}
 
-          <div style={{marginTop:18, fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', display:'flex', alignItems:'center', gap:6}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? 'var(--bn-lime)' : 'var(--bn-orange)', display:'inline-block'}}/>
-            Backend: {isSupabase ? 'Supabase · Conectado' : 'Demo · LocalStorage'}
+          <div style={{marginTop:20, fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', display:'flex', alignItems:'center', gap:8}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? '#4ADE80' : '#F4B740', display:'inline-block', boxShadow:`0 0 8px ${isSupabase ? '#4ADE80' : '#F4B740'}`}}/>
+            Backend · {isSupabase ? 'Supabase · Conectado' : 'Demo · LocalStorage'}
           </div>
 
           {!isSupabase && users.length > 0 && mode === 'login' && (
-            <div style={{marginTop:28, paddingTop:20, borderTop:'1px solid var(--line)'}}>
-              <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:10}}>Acceso rápido (demo)</div>
-              <div style={{display:'flex', flexDirection:'column', gap:6}}>
+            <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>Acceso rápido · demo</div>
+              <div style={{display:'flex', flexDirection:'column', gap:8}}>
                 {users.slice(0, 4).map(u => (
                   <button key={u.id} onClick={() => quickLogin(u.email)} type="button"
-                    style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', border:'1px solid var(--line)', borderRadius:8, background:'var(--paper)', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)'}}>
-                    <div style={{width:28, height:28, borderRadius:'50%', background:u.avatarColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0}}>
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, background:'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; }}>
+                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#EC1C24', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
                       {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:13, fontWeight:500, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
-                      <div style={{fontSize:10.5, color:'var(--ink-4)', fontFamily:'var(--mono)'}}>{u.email}</div>
+                      <div style={{fontSize:13.5, fontWeight:600, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
+                      <div style={{fontSize:10.5, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
                     </div>
-                    {u.isAdmin && <span style={{fontFamily:'var(--mono)', fontSize:9, padding:'2px 6px', background:'var(--ink)', color:'#fff', borderRadius:4, letterSpacing:'0.06em'}}>ADMIN</span>}
+                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#EC1C24', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
                   </button>
                 ))}
               </div>

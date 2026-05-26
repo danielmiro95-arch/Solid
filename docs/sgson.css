@@ -2011,3 +2011,240 @@ body.sgs-redesign .saved-root { background: var(--bg-canvas); color: var(--fg); 
 
 /* TWEAKS panel · esquina inferior */
 body.sgs-redesign .tweaks-panel { background: var(--bg-surface); border-color: var(--line); color: var(--fg); }
+
+/* ============================================================
+   PLAYER VIEW · cinematic dark
+   ============================================================ */
+body.sgs-redesign .player-root { background: var(--bg-deep); color: var(--fg); }
+body.sgs-redesign .player-stage {
+  background: var(--bg-deep);
+  border-radius: 0;
+}
+body.sgs-redesign .player-fullscreen-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--fg);
+  backdrop-filter: blur(10px);
+}
+body.sgs-redesign .player-overlay-top,
+body.sgs-redesign .player-overlay-bottom {
+  background: linear-gradient(180deg, rgba(8,8,11,0.8), transparent);
+}
+body.sgs-redesign .player-overlay-bottom {
+  background: linear-gradient(0deg, rgba(8,8,11,0.92), transparent);
+}
+body.sgs-redesign .player-overlay-top .back,
+body.sgs-redesign .player-overlay-bottom .back {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--fg);
+  backdrop-filter: blur(8px);
+}
+body.sgs-redesign .player-overlay-bottom .title-row .t-eyebrow { color: var(--fg-dim); font-family: var(--font-mono); }
+body.sgs-redesign .player-overlay-bottom .title-row .title { color: var(--fg); font-family: var(--font-sans); font-weight: 700; }
+body.sgs-redesign .player-overlay-bottom .title-row .sub { color: var(--fg-muted); font-family: var(--font-mono); }
+body.sgs-redesign .player-controls .play {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(236,28,36,0.4);
+}
+body.sgs-redesign .player-controls .play:hover { background: var(--accent-hover); }
+body.sgs-redesign .pill-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--fg);
+}
+body.sgs-redesign .pill-btn:hover { background: rgba(255,255,255,0.16); }
+body.sgs-redesign .scrubber {
+  background: rgba(255,255,255,0.1);
+}
+body.sgs-redesign .scrubber > .fill,
+body.sgs-redesign .scrubber > i { background: var(--accent) !important; }
+
+/* Chapters list / lateral del player */
+body.sgs-redesign .player-side,
+body.sgs-redesign .chapters-list {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+body.sgs-redesign .chapter-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+body.sgs-redesign .chapter-item.active { background: var(--bg-elevated); border-color: var(--accent); }
+body.sgs-redesign .chapter-item:hover { background: rgba(255,255,255,0.06); }
+
+/* ============================================================
+   ONBOARDING · cinematic dark
+   ============================================================ */
+body.sgs-redesign .onboarding-root,
+body.sgs-redesign .onboard-root {
+  background: radial-gradient(circle at 30% 20%, rgba(236,28,36,0.12), transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(91,141,239,0.1), transparent 50%),
+              var(--bg-canvas);
+  color: var(--fg);
+}
+body.sgs-redesign .onboarding-card,
+body.sgs-redesign .onboard-card {
+  background: rgba(14,14,18,0.85);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(20px);
+  color: var(--fg);
+}
+body.sgs-redesign .onboarding-step,
+body.sgs-redesign .onboard-step { color: var(--fg-muted); }
+body.sgs-redesign .onboarding-step.active,
+body.sgs-redesign .onboard-step.active { color: var(--fg); }
+body.sgs-redesign .onboarding-progress { background: rgba(255,255,255,0.08); }
+body.sgs-redesign .onboarding-progress > i { background: var(--accent); }
+
+/* ============================================================
+   COMMAND PALETTE · si lo abren con ⌘K
+   ============================================================ */
+body.sgs-redesign .palette-backdrop { background: rgba(8,8,11,0.7); backdrop-filter: blur(8px); }
+body.sgs-redesign .palette-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+}
+body.sgs-redesign .palette-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+body.sgs-redesign .palette-item:hover { background: var(--bg-elevated); }
+body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); border-left: 2px solid var(--accent); }
+
+/* ============================================================
+   MOBILE RESPONSIVE · breakpoints 1024 / 768 / 480
+   El rediseño es desktop-first; aquí lo adaptamos a tablet/phone
+   ============================================================ */
+
+/* ─── 1024px y abajo (tablet) ─── */
+@media (max-width: 1024px) {
+  /* TopNav · compacta */
+  .topnav { padding: 0 20px; }
+  .topnav-center { gap: 4px; }
+  .topnav-center .nav-item { padding: 6px 10px; font-size: 12.5px; }
+  .topnav-right .badge { font-size: 9px; }
+
+  /* Hero · menos espacio */
+  .hero { min-height: 520px; height: 80vh; }
+  .hero-content { padding: 0 32px 60px; max-width: 100%; }
+  .hero-title { font-size: clamp(34px, 6vw, 52px); }
+  .hero-quote { font-size: 17px; }
+
+  /* Rows · padding reducido */
+  .row { padding-left: 32px; padding-right: 32px; }
+  .row-header { padding: 0 32px; }
+  .rail-track { padding: 12px 32px 32px; }
+
+  /* PageShell de vistas extra · reduce padding */
+  .ssg-page { padding: 80px 32px 60px !important; }
+
+  /* Coach / Analytics · sidebar más estrecha */
+  .coach-sidebar, .analytics-sidebar { width: 240px; padding: 16px; }
+  .coach-main, .analytics-main { padding: 24px; }
+
+  /* Cards rows · ajusta width */
+  .rail-track .card { width: 220px; min-width: 220px; }
+}
+
+/* ─── 768px y abajo (tablet portrait + phone landscape) ─── */
+@media (max-width: 768px) {
+  /* TopNav · oculta items del centro, solo hamburguesa + logo + avatar */
+  .topnav { padding: 0 16px; height: 56px; }
+  .topnav-center { display: none; }
+  .topnav-right { gap: 8px; }
+  .topnav-right .icon-btn { width: 36px; height: 36px; }
+  .topnav-right .avatar { width: 32px; height: 32px; font-size: 12px; }
+
+  /* Hero · más compacto */
+  .hero { min-height: 440px; height: 70vh; }
+  .hero-content { padding: 0 20px 40px; }
+  .hero-title { font-size: clamp(28px, 7vw, 44px); }
+  .hero-quote { font-size: 15px; }
+  .hero-meta { font-size: 11px; gap: 6px; }
+  .hero-actions { gap: 8px; flex-wrap: wrap; }
+  .hero-actions .btn { padding: 10px 18px; font-size: 13px; }
+  .hero-badge { top: 16px; right: 16px; }
+  .hero-dots { bottom: 20px; right: 20px; }
+
+  /* Rows · padding lateral pequeño */
+  .row { padding-left: 16px; padding-right: 16px; margin-bottom: 32px; }
+  .row-header { padding: 0 16px; margin-bottom: 8px; }
+  .row-header .row-title { font-size: 16px; }
+  .row-header .row-sub { font-size: 14px; }
+  .rail-track { padding: 10px 16px 24px; gap: 10px; }
+  .rail-arrow { display: none; }
+
+  /* Cards más pequeñas */
+  .rail-track .card { width: 180px; min-width: 180px; }
+  .card-title { font-size: 13px; }
+  .card-meta { font-size: 10.5px; }
+  .card-pill-num { font-size: 9px; padding: 3px 7px; }
+  .card-actions { padding: 6px 8px; gap: 4px; }
+  .card-action { width: 24px; height: 24px; }
+  .card-match { font-size: 9.5px; }
+
+  /* Trending · números más pequeños */
+  .trending-num { font-size: 80px !important; left: -10px !important; }
+
+  /* PageShell vistas extra */
+  .ssg-page { padding: 70px 16px 40px !important; }
+  .ssg-page h1 { font-size: clamp(26px, 6vw, 36px) !important; }
+
+  /* Coach · stack vertical */
+  .coach { flex-direction: column !important; height: auto !important; }
+  .coach-sidebar { width: 100% !important; max-height: 200px; border-right: none !important; border-bottom: 1px solid var(--line); }
+  .coach-main { padding: 16px !important; }
+  .coach-welcome h1 { font-size: 32px !important; }
+
+  /* Analytics · stack vertical */
+  .analytics { flex-direction: column !important; }
+  .analytics-sidebar { width: 100% !important; max-height: 240px; overflow-y: auto; border-right: none !important; border-bottom: 1px solid var(--line); }
+  .analytics-main { padding: 20px !important; }
+  .an-grid { grid-template-columns: 1fr !important; }
+  .widget.kpi { padding: 16px !important; }
+  .widget.line, .widget.bar, .widget.table, .widget.heatmap { grid-column: 1 / -1 !important; }
+
+  /* Detail modal · fullscreen en móvil */
+  .modal { width: 100% !important; max-width: 100% !important; height: 100vh !important; border-radius: 0 !important; }
+  .modal-body { padding: 24px 18px !important; flex-direction: column !important; }
+  .modal-side { margin-top: 24px; }
+  .modal-media .h { font-size: 24px !important; }
+
+  /* Sidebar overlay · ancho completo en móvil */
+  .sb-overlay { width: 100% !important; max-width: 320px; }
+
+  /* Channels · stack */
+  .ssg-page > div[style*="grid-template-columns: 1fr 360px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ─── 480px y abajo (phone portrait) ─── */
+@media (max-width: 480px) {
+  /* Hero · más pequeño aún */
+  .hero { min-height: 380px; height: 60vh; }
+  .hero-title { font-size: clamp(24px, 8vw, 34px); }
+  .hero-actions .btn { padding: 8px 14px; font-size: 12px; }
+  .hero-actions .btn-icon { padding: 8px; }
+
+  /* Top nav muy compacto */
+  .topnav { padding: 0 12px; height: 52px; }
+  .topnav-right { gap: 6px; }
+  .topnav-right .icon-btn { width: 32px; height: 32px; }
+
+  /* Cards más pequeñas */
+  .rail-track .card { width: 160px; min-width: 160px; }
+
+  /* Login · stack vertical en móvil */
+  body div[style*="position:fixed"][style*="z-index:1000"] { flex-direction: column !important; }
+  body div[style*="position:fixed"][style*="z-index:1000"] > div:first-child { padding: 24px 20px !important; flex: 0 0 auto !important; }
+  body div[style*="position:fixed"][style*="z-index:1000"] > div:last-child { flex: 1 !important; max-width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.08); padding: 32px 20px !important; }
+}
