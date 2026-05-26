@@ -18,19 +18,57 @@ const CATEGORY_COLORS = {
   'Integraciones':  '#3d31cc',
 };
 
-const RepsolCover = ({ pill, category }) => {
-  const accent = CATEGORY_COLORS[category] || '#0D1117';
+// Genera un color más claro (lerp con blanco) para gradientes
+const _lighten = (hex, pct) => {
+  const c = hex.replace('#','');
+  const r = parseInt(c.substring(0,2), 16);
+  const g = parseInt(c.substring(2,4), 16);
+  const b = parseInt(c.substring(4,6), 16);
+  const lr = Math.round(r + (255 - r) * pct);
+  const lg = Math.round(g + (255 - g) * pct);
+  const lb = Math.round(b + (255 - b) * pct);
+  return '#' + lr.toString(16).padStart(2,'0') + lg.toString(16).padStart(2,'0') + lb.toString(16).padStart(2,'0');
+};
+
+// CategoryCover · portada Netflix-style colorida por categoría
+// Reemplaza la antigua RepsolCover (que era muy oscura y plana)
+const RepsolCover = ({ pill, category, title }) => {
+  const accent = CATEGORY_COLORS[category] || '#0072BE';
+  const accent2 = _lighten(accent, 0.35);
+  const accentDark = accent;
   return (
-    <div style={{position:'absolute', inset:0, background:'#080e1a', overflow:'hidden'}}>
-      <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:'#EB0029'}}/>
-      <div style={{position:'absolute', top:3, left:0, bottom:0, width:3, background:accent, opacity:0.7}}/>
-      <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px)'}}/>
-      <div style={{position:'absolute', right:-6, bottom:-10, fontSize:76, fontWeight:800, fontFamily:'var(--mono)', color:'rgba(235,0,41,0.06)', lineHeight:1, letterSpacing:'-0.05em', userSelect:'none', pointerEvents:'none'}}>
-        {pill != null ? String(pill).padStart(2,'0') : ''}
+    <div style={{position:'absolute', inset:0, background: `linear-gradient(135deg, ${accent2} 0%, ${accentDark} 55%, #1a1f2e 100%)`, overflow:'hidden'}}>
+      {/* Decorative blob top-right */}
+      <div style={{position:'absolute', top:-40, right:-40, width:160, height:160, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(2px)'}}/>
+      {/* Decorative blob bottom-left */}
+      <div style={{position:'absolute', bottom:-60, left:-40, width:200, height:200, borderRadius:'50%', background:'rgba(0,0,0,0.2)', filter:'blur(4px)'}}/>
+      {/* Diagonal pattern overlay */}
+      <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 18px)', mixBlendMode:'overlay'}}/>
+      {/* Big pill number (faded, decorative) */}
+      {pill != null && (
+        <div style={{position:'absolute', right:10, bottom:-8, fontSize:78, fontWeight:900, fontFamily:'var(--sans)', color:'rgba(255,255,255,0.18)', lineHeight:1, letterSpacing:'-0.06em', userSelect:'none', pointerEvents:'none'}}>
+          {String(pill).padStart(2,'0')}
+        </div>
+      )}
+      {/* Category pill (top-left) */}
+      {category && (
+        <div style={{position:'absolute', top:10, left:12, fontFamily:'var(--mono)', fontSize:9, fontWeight:700, color:'#fff', letterSpacing:'0.14em', textTransform:'uppercase', padding:'3px 8px', background:'rgba(0,0,0,0.32)', backdropFilter:'blur(6px)', borderRadius:4, textShadow:'0 1px 2px rgba(0,0,0,0.4)'}}>
+          {category}
+        </div>
+      )}
+      {/* Play icon centered (subtle) */}
+      <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:46, height:46, borderRadius:'50%', background:'rgba(255,255,255,0.16)', backdropFilter:'blur(10px)', border:'2px solid rgba(255,255,255,0.45)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 18px rgba(0,0,0,0.3)'}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" style={{marginLeft:2}}><path d="M8 5v14l11-7z"/></svg>
       </div>
-      <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:'10px 12px', gap:2}}>
-        <div style={{fontFamily:'var(--mono)', fontSize:7.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.3)'}}>Repsol × Sprinklr</div>
-        {category && <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:accent === '#EB0029' || accent === '#B8001F' ? '#ff6b6b' : '#6C8EFF', fontWeight:700}}>{category}</div>}
+      {/* Title preview (bottom-left, 2 lines max) */}
+      {title && (
+        <div style={{position:'absolute', bottom:10, left:12, right:62, fontFamily:'var(--sans)', fontSize:12.5, fontWeight:700, color:'#fff', lineHeight:1.2, textShadow:'0 1px 4px rgba(0,0,0,0.5)', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
+          {title}
+        </div>
+      )}
+      {/* Repsol×Sprinklr branding (very subtle, bottom-right corner) */}
+      <div style={{position:'absolute', right:8, top:8, fontFamily:'var(--mono)', fontSize:7, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', fontWeight:600}}>
+        Repsol×Sprinklr
       </div>
     </div>
   );
@@ -81,8 +119,8 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
       onMouseLeave={onLeave}>
       <div className="card-thumb">
         {yt
-          ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title}/>
-          : <RepsolCover pill={pill} category={category}/>
+          ? <img src={`https://img.youtube.com/vi/${yt}/hqdefault.jpg`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={title} onError={(e) => { e.currentTarget.style.display='none'; }}/>
+          : <RepsolCover pill={pill} category={category} title={title}/>
         }
         {/* Hover preview · autoplay mudo del YT cuando hover > 1.2s */}
         {preview && yt && (
