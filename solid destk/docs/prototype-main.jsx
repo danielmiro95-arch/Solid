@@ -1882,19 +1882,14 @@ function App() {
   //   en backdrop, en un item o en X cierra.
   // - En vistas de utilidad (analytics, settings, profile, admin, coach, channels):
   //   sidebar SIEMPRE visible en su columna del grid, para navegación rápida.
-  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas'];
+  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas','dashboard','coach','wa','path','saved','inbox','profile','settings','admin'];
   const isCinematic = CINEMATIC_VIEWS.includes(view);
-  const [sidebarOpen, setSidebarOpen] = useSM(false);
-
-  // Si cambias a vista no cinematic, no necesitas overlay → reset state
-  useEM(() => { if (!isCinematic) setSidebarOpen(false); }, [view]);
 
   const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
 
-  // En cinematic, colapsa la columna del sidebar a 0 para que main ocupe todo el ancho
-  const rootStyle = isCinematic
-    ? { gridTemplateColumns: '0 1fr var(--aiw, 380px)' }
-    : undefined;
+  // Sin sidebar fijo · main siempre ocupa toda la columna 2 (1fr)
+  // Col 1 colapsa a 0 · Col 3 reserva espacio para AI panel (companion/hero)
+  const rootStyle = { gridTemplateColumns: '0 1fr var(--aiw, 0px)' };
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
@@ -1915,23 +1910,13 @@ function App() {
 
   return (
     <div className={rootClass} style={rootStyle} data-screen-label={`Prototype · ${view}`}>
-      {/* TOP NAV NETFLIX · siempre visible en todas las vistas (no onboarding) */}
+      {/* TOP NAV NETFLIX · siempre visible · contiene también el dropdown del avatar */}
       {view !== 'onboarding' && window.TopNav && (
         <TopNav
-          onBurger={() => setSidebarOpen(true)}
           view={view}
           onView={(v) => { if (v === 'wa') setView('wa'); else setView(v); }}
           onSearch={() => window.__openPalette && window.__openPalette()}
-        />
-      )}
-
-      {/* SIDEBAR OVERLAY · cuando user abre desde TopNav burger */}
-      {view !== 'onboarding' && sidebarOpen && window.SidebarOverlay && (
-        <SidebarOverlay
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          view={view}
-          onView={(v) => { setSidebarOpen(false); if (v === 'wa') setView('wa'); else setView(v); }}
+          onLogout={() => { if (window.Auth && window.Auth.logout) window.Auth.logout(); }}
         />
       )}
 
@@ -1944,26 +1929,11 @@ function App() {
         />
       )}
 
-      {/* SIDEBAR LEGACY · vistas no cinematic (Coach/Analytics/Settings/Profile) */}
-      {view !== 'onboarding' && !isCinematic && (
-        <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
-      )}
-
-      {/* MOBILE MENU · sigue funcionando */}
-      {view !== 'onboarding' && !isCinematic && (
-        <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Abrir menú">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            {mobileMenuOpen ? <path d="M18 6L6 18M6 6l12 12"/> : <><path d="M3 6h18M3 12h18M3 18h18"/></>}
-          </svg>
-        </button>
-      )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
 
-      <main className="main" style={
-        view === 'onboarding' ? {gridColumn:'1 / -1'} :
-        isCinematic            ? {gridColumn:'2 / 3'} :
-                                 {}
-      }>
+      <main className="main" style={{
+        gridColumn: view === 'onboarding' ? '1 / -1' : '2 / 3',
+      }}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
         {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}

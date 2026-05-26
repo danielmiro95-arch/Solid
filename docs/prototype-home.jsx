@@ -230,14 +230,23 @@ const _catSlugFix = (s) => {
   return x;
 };
 
-function TopNav({ onBurger, view, onView, onSearch }) {
+function TopNav({ view, onView, onSearch, onLogout }) {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = React.useRef(null);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+  // Click fuera cierra el dropdown
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOut = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [menuOpen]);
 
   const items = [
     { k:'home',      label:'Inicio' },
@@ -250,14 +259,24 @@ function TopNav({ onBurger, view, onView, onSearch }) {
 
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
   const initials = (D && D.USER && D.USER.initials) || 'U';
+  const userName = (D && D.USER && D.USER.name) || 'Usuario';
+  const userRole = (D && D.USER && D.USER.role) || '';
+  const isAdmin = !!(D && D.USER && D.USER.isAdmin);
   const inboxCount = D && D.SIDEBAR_LINKS ? (D.SIDEBAR_LINKS.find(l => l.key === 'inbox') || {}).count : null;
+
+  // Items del dropdown del avatar · ANTES estaban en la sidebar
+  const menuItems = [
+    { k:'profile',  label:'Mi perfil',     icon:'user' },
+    { k:'saved',    label:'Mi lista',      icon:'bookmark' },
+    { k:'wa',       label:'Channels',      icon:'broadcast' },
+    { k:'inbox',    label:'Bandeja',       icon:'inbox', badge: inboxCount },
+    { k:'settings', label:'Ajustes',       icon:'gear' },
+  ];
+  if (isAdmin) menuItems.push({ k:'admin', label:'Admin', icon:'shield' });
 
   return (
     <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>
       <div className="topnav-left">
-        <button className="topnav-burger" onClick={onBurger} aria-label="Menú">
-          <Ico name="menu" size={18}/>
-        </button>
         {window.Wordmark
           ? <Wordmark variant="v1"/>
           : <span style={{display:'inline-flex', alignItems:'center', gap:8}}><img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="" style={{height:32}}/><span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:18, letterSpacing:'-0.02em'}}>SolidStream</span></span>
@@ -275,13 +294,82 @@ function TopNav({ onBurger, view, onView, onSearch }) {
         ))}
       </div>
 
-      <div className="topnav-right">
+      <div className="topnav-right" ref={menuRef} style={{position:'relative'}}>
         <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
         <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
           <Ico name="bell" size={18}/>
           {inboxCount ? <span className="badge">{inboxCount}</span> : null}
         </button>
-        <button className="avatar" aria-label="Tu perfil" onClick={() => onView('profile')}>{initials}</button>
+        <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}>{initials}</button>
+
+        {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
+        {menuOpen && (
+          <div style={{
+            position:'absolute', top:'calc(100% + 12px)', right:0, zIndex:1100,
+            minWidth:280,
+            background:'rgba(14,14,18,0.96)',
+            backdropFilter:'blur(20px) saturate(140%)',
+            WebkitBackdropFilter:'blur(20px) saturate(140%)',
+            border:'1px solid rgba(255,255,255,0.1)',
+            borderRadius:12,
+            boxShadow:'0 20px 60px rgba(0,0,0,0.6)',
+            padding:8,
+            animation:'fadeIn .15s ease',
+          }}>
+            {/* Header con usuario */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:12, padding:'12px 14px 14px',
+              borderBottom:'1px solid rgba(255,255,255,0.08)', marginBottom:6,
+            }}>
+              <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #EC1C24), var(--accent-deep, #B30A11))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:14, fontWeight:700, color:'var(--fg, #F5F4F1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
+                {userRole && <div style={{fontSize:11, color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}
+              </div>
+            </div>
+
+            {/* Items */}
+            {menuItems.map(item => (
+              <button key={item.k}
+                onClick={() => { setMenuOpen(false); onView(item.k); }}
+                style={{
+                  display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 14px',
+                  background: view === item.k ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  border:'none', borderRadius:8, cursor:'pointer',
+                  color:'var(--fg, #F5F4F1)', textAlign:'left',
+                  fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:500,
+                  transition:'background .12s',
+                }}
+                onMouseEnter={e => { if (view !== item.k) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+                onMouseLeave={e => { if (view !== item.k) e.currentTarget.style.background='transparent'; }}>
+                <span style={{display:'flex', alignItems:'center', justifyContent:'center', width:18, color:'var(--fg-muted, #A8A6A0)'}}>
+                  <Ico name={item.icon} size={16}/>
+                </span>
+                <span style={{flex:1}}>{item.label}</span>
+                {item.badge ? <span style={{padding:'2px 7px', fontSize:10, fontWeight:700, background:'var(--accent, #EC1C24)', color:'#fff', borderRadius:999, fontFamily:'var(--font-mono, monospace)'}}>{item.badge}</span> : null}
+              </button>
+            ))}
+
+            {/* Separador */}
+            <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
+
+            {/* Logout */}
+            <button onClick={() => { setMenuOpen(false); onLogout && onLogout(); }}
+              style={{
+                display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 14px',
+                background:'transparent', border:'none', borderRadius:8, cursor:'pointer',
+                color:'var(--accent, #EC1C24)', textAlign:'left',
+                fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+              }}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(236,28,36,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+              <span style={{display:'flex', alignItems:'center', justifyContent:'center', width:18}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+              </span>
+              <span style={{flex:1}}>Cerrar sesión</span>
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
