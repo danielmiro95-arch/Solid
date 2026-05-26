@@ -1967,8 +1967,9 @@ function App() {
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
         {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}
-        {view === 'coach' && <Coach/>}
-        {view === 'dashboard' && <Dashboard/>}
+        {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
+        {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
+        {view === 'dashboard-legacy' && <Dashboard/>}
         {view === 'rutas' && <Rutas openPlayer={openPlayer}/>}
         {view === 'path' && <PathView openPlayer={openPlayer} setView={setView}/>}
         {view === 'profile' && <Profile setView={setView}/>}
