@@ -18,12 +18,12 @@
 <link rel="icon" type="image/png" href="/mentor-ia-logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260427aq">
-<link rel="stylesheet" href="prototype.css?v=20260427aq">
+<link rel="stylesheet" href="styles.css?v=20260427ar">
+<link rel="stylesheet" href="prototype.css?v=20260427ar">
 
 <script>
   (function(){
-    var V = '20260427aq';
+    var V = '20260427ar';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -56,7 +56,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427aq" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427ar" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
   <div class="shell-tabs-list" role="tablist" style="display:none">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
   </div>
@@ -67,7 +67,131 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427aq</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427ar</div>
+
+<!-- ============================================================
+     PANEL DIAGNÓSTICO FLOTANTE · vanilla JS (no necesita React/Babel)
+     Si la app falla a cargar, el usuario VE en pantalla qué pasó.
+     Si todo carga bien, el panel desaparece tras 2 segundos.
+     ============================================================ -->
+<div id="boot-diag" style="position:fixed;top:8px;right:8px;z-index:9999;max-width:380px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;background:rgba(13,17,23,0.92);color:#E5EAF1;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+  <div style="font-weight:700;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#BCD630;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+    <span>SGS|on · Boot diagnostic</span>
+    <button onclick="document.getElementById('boot-diag').remove()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;padding:0 4px">×</button>
+  </div>
+  <div id="boot-diag-list">
+    <div data-step="version">⏳ Versión: <span id="diag-version">comprobando...</span></div>
+    <div data-step="react">⏳ React + ReactDOM CDN</div>
+    <div data-step="babel">⏳ Babel standalone CDN</div>
+    <div data-step="supabase">⏳ Supabase SDK CDN</div>
+    <div data-step="scripts">⏳ Scripts JSX cargados</div>
+    <div data-step="proto">⏳ PrototypeApp definido</div>
+    <div data-step="mount">⏳ React monta árbol</div>
+    <div data-step="render">⏳ Renderizado visible</div>
+  </div>
+  <div id="boot-diag-error" style="display:none;margin-top:8px;padding:8px;background:rgba(229,9,20,0.15);border:1px solid rgba(229,9,20,0.4);border-radius:4px;color:#ffd5d8;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto"></div>
+</div>
+
+<!-- Vanilla JS diagnostic · corre ANTES de Babel · captura cualquier error -->
+<script>
+(function(){
+  var DIAG = document.getElementById('boot-diag');
+  var ERR_PANEL = document.getElementById('boot-diag-error');
+  var diagList = document.getElementById('boot-diag-list');
+  function setStep(step, status, detail) {
+    if (!diagList) return;
+    var el = diagList.querySelector('[data-step="'+step+'"]');
+    if (!el) return;
+    var icon = status === 'ok' ? '✅' : (status === 'err' ? '❌' : '⏳');
+    el.innerHTML = icon + ' ' + (el.dataset.label || el.textContent.replace(/^[⏳✅❌]\s*/, '')) + (detail ? ' <span style="color:#94A3B8">'+detail+'</span>' : '');
+    if (!el.dataset.label) el.dataset.label = el.textContent.replace(/^[⏳✅❌]\s*/, '').replace(/\s*<.*/, '');
+  }
+  function showError(msg) {
+    if (!ERR_PANEL) return;
+    ERR_PANEL.style.display = 'block';
+    ERR_PANEL.textContent = String(msg).slice(0, 1500);
+    if (DIAG) DIAG.style.borderColor = 'rgba(229,9,20,0.6)';
+  }
+  // Versión cargada
+  var v = (document.querySelector('link[href*="prototype.css"]') || {}).href || '';
+  var ver = (v.match(/v=([^"'&]+)/) || [])[1] || 'desconocida';
+  var verEl = document.getElementById('diag-version');
+  if (verEl) verEl.textContent = ver;
+  setStep('version', 'ok');
+
+  // Captura cualquier error global (vanilla, antes de Babel)
+  window.addEventListener('error', function(ev){
+    var src = ev.filename || 'unknown';
+    var msg = ev.message || 'Error sin mensaje';
+    var line = ev.lineno || '?';
+    var col = ev.colno || '?';
+    var stack = (ev.error && ev.error.stack) || '';
+    showError('Error global: ' + msg + '\nFichero: ' + src + ':' + line + ':' + col + (stack ? '\n\n' + stack : ''));
+    // Marca el step relevante como fallido
+    if (src.indexOf('react') >= 0) setStep('react', 'err');
+    else if (src.indexOf('babel') >= 0) setStep('babel', 'err');
+    else if (src.indexOf('supabase') >= 0) setStep('supabase', 'err');
+    else if (src.indexOf('.jsx') >= 0) setStep('scripts', 'err', src.split('/').pop());
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    showError('Promise rechazada: ' + (ev.reason && ev.reason.message || ev.reason));
+  });
+
+  // Poll CDN status
+  var pollCount = 0;
+  var pollInterval = setInterval(function(){
+    pollCount++;
+    if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') setStep('react', 'ok', 'v' + React.version);
+    if (typeof Babel !== 'undefined') setStep('babel', 'ok');
+    if (typeof supabase !== 'undefined') setStep('supabase', 'ok');
+    if (typeof PrototypeApp !== 'undefined') setStep('proto', 'ok');
+
+    // Check si todos los scripts JSX han disparado (Babel los compila uno a uno)
+    var jsxScripts = document.querySelectorAll('script[type="text/babel"][src*=".jsx"]');
+    var done = Array.from(jsxScripts).every(function(s){ return s.dataset.babelCompiled === '1' || s.dataset.babelError === '1'; });
+    if (done) setStep('scripts', 'ok', jsxScripts.length + ' archivos');
+
+    if (pollCount > 60) clearInterval(pollInterval); // 30 segundos máximo
+  }, 500);
+
+  // Marca compilación de scripts JSX
+  document.querySelectorAll('script[type="text/babel"][src*=".jsx"]').forEach(function(s){
+    s.addEventListener('load', function(){ s.dataset.babelLoaded = '1'; });
+    s.addEventListener('error', function(){ s.dataset.babelError = '1'; setStep('scripts', 'err', s.src.split('/').pop() + ' no cargó'); });
+  });
+
+  // Después de que React monte, observa cuando proto-root tiene contenido visible
+  var mountWaiter = setInterval(function(){
+    var pr = document.getElementById('proto-root');
+    if (!pr) return;
+    var hasReal = pr.children.length > 0 && !pr.querySelector('#boot-error');
+    if (hasReal) {
+      setStep('mount', 'ok');
+      setStep('render', 'ok');
+      clearInterval(mountWaiter);
+      // Auto-hide tras 3s si todo OK
+      setTimeout(function(){
+        if (DIAG && !ERR_PANEL.style.display.match(/block/)) {
+          DIAG.style.opacity = '0';
+          DIAG.style.transition = 'opacity .4s';
+          setTimeout(function(){ if (DIAG) DIAG.remove(); }, 500);
+        }
+      }, 3000);
+    }
+  }, 300);
+  setTimeout(function(){ clearInterval(mountWaiter); }, 30000);
+
+  // Si hay un boot-error fallback en proto-root tras 10s, algo falló sin throw
+  setTimeout(function(){
+    var pr = document.getElementById('proto-root');
+    if (pr && pr.querySelector('#boot-error')) {
+      setStep('mount', 'err');
+      setStep('render', 'err');
+      showError('La app no montó tras 10s. PrototypeApp puede no estar definido o ReactDOM.render falló silenciosamente. Mira la consola (F12) para más detalle.');
+    }
+  }, 10000);
+})();
+</script>
 
 <!-- Prototype panel -->
 <section class="shell-panel" id="prototype-panel">
@@ -143,11 +267,11 @@ window.addEventListener('appinstalled', function() {
 </script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260427aq"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260427aq"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260427aq"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260427aq"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260427aq"></script>
+<script type="text/babel" src="components.jsx?v=20260427ar"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427ar"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427ar"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427ar"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427ar"></script>
 
 <!-- Boot -->
 <script type="text/babel">
