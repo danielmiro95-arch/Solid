@@ -1785,7 +1785,6 @@ function App() {
   const [shape, setShape] = useSM(saved.shape || 'mixed');
   const [accent, setAccent] = useSM(saved.accent || '#F3A524');
   const [detailItem, setDetailItem] = useSM(null);
-  const [sidebarHover, setSidebarHover] = useSM(false); // overlay mode
 
   // Auth state — re-render cuando cambia el usuario
   const [authUser, setAuthUser] = useSM(() => Auth.currentUser());
@@ -1862,13 +1861,10 @@ function App() {
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  // Layout: sidebar overlay flotante en vistas cinematográficas (home, detail,
-  // player, browse, rutas). Aparece al hover en el borde izquierdo (sb-trigger).
-  // En vistas de utilidad (analytics, settings, admin, perfil, coach), el
-  // sidebar se mantiene fijo para no obstaculizar la navegación entre datos.
-  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas'];
-  const isCinematic = CINEMATIC_VIEWS.includes(view);
-  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}${isCinematic ? ' sb-overlay' : ''}`;
+  // Layout simple: sidebar fija a la izquierda en TODAS las vistas (como Netflix
+  // después de logueado). Sin tricks de overlay. El Home es Netflix-style en
+  // su contenido vía inline styles, no necesita ocultar el sidebar para verse bien.
+  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
@@ -1885,58 +1881,7 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
-
-      {/* Sidebar overlay control · inline-styled · sin depender de CSS cascade.
-          En cinematic views, el sidebar se oculta con transform translateX(-100%)
-          y aparece sliding-in al hover sobre la zona trigger o el sidebar mismo.
-          En vistas de utilidad (analytics, settings...), el sidebar se mantiene
-          en su columna fija normal sin overrides. */}
-      {view !== 'onboarding' && isCinematic && (
-        <div
-          aria-hidden="true"
-          onMouseEnter={() => setSidebarHover(true)}
-          style={{
-            position:'fixed', top:60, left:0, bottom:0, width:18, zIndex:198,
-            background:'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, transparent 100%)',
-            cursor:'e-resize',
-          }}
-        >
-          {/* hint visual lime→azul */}
-          <div style={{
-            position:'absolute', left:4, top:'50%', transform:'translateY(-50%)',
-            width:3, height:60,
-            background:'linear-gradient(180deg, #BCD630 0%, #0072BE 100%)',
-            borderRadius:'0 3px 3px 0', opacity:0.7,
-            boxShadow:'0 0 12px rgba(188,214,48,0.4)',
-          }}/>
-        </div>
-      )}
-
-      {/* Sidebar EN CINEMATIC: solo se renderiza si sidebarHover=true (no truco CSS).
-          Esto garantiza que es FÍSICAMENTE imposible verlo si no haces hover. */}
-      {view !== 'onboarding' && isCinematic && sidebarHover && (
-        <div
-          onMouseLeave={() => setSidebarHover(false)}
-          style={{
-            position:'fixed', top:60, left:0, bottom:0, width:260,
-            height:'calc(100vh - 60px)', zIndex:1000,
-            background:'linear-gradient(180deg, rgba(13,17,23,0.96) 0%, rgba(13,17,23,0.98) 100%)',
-            backdropFilter:'blur(22px) saturate(140%)',
-            WebkitBackdropFilter:'blur(22px) saturate(140%)',
-            borderRight:'1px solid rgba(255,255,255,0.08)',
-            boxShadow:'12px 0 40px rgba(0,0,0,0.5)',
-            color:'rgba(255,255,255,0.85)',
-            overflowY:'auto',
-            animation:'sbSlideIn .28s cubic-bezier(.2,.7,.3,1)',
-          }}
-        >
-          <Sidebar view={view} setView={(v) => { setSidebarHover(false); setView(v); if (v === 'wa') setView('wa'); }}/>
-        </div>
-      )}
-      {/* Sidebar en vistas no cinematic: render normal en columna del grid */}
-      {view !== 'onboarding' && !isCinematic && (
-        <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
-      )}
+      {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
