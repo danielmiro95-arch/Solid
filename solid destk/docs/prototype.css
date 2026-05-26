@@ -10,13 +10,100 @@
 .proto-root.ai-hero { --aiw: 520px; }
 
 /* ============================================================
- * SIDEBAR OVERLAY MODE · Netflix-style · hidden hasta hover
- * Aplicado en vistas cinematográficas (home, detail, player, browse, rutas)
- * El sidebar se vuelve overlay flotante con dark glass + backdrop-blur
+ * NETFLIX DARK MODE · vistas cinematográficas (home, detail, player, browse, rutas)
+ *
+ * En estas vistas TODO se vuelve Netflix-dark:
+ * - Background general #0D1117
+ * - CSS vars override (paper, ink, line) a sus equivalentes oscuros
+ * - Sidebar overlay con dark-glass
+ * - AI panel overlay con dark-glass
+ * - Cards, rows, stats todos con bg oscuro automáticamente vía vars
+ *
+ * El body también recibe .cinematic-mode (toggleado por JS) para que el
+ * padding-top:60 detrás del nav fixed también sea oscuro (evitando white-flash).
  * ============================================================ */
+body.cinematic-mode { background: #0D1117 !important; }
 .proto-root.sb-overlay {
+  /* Override completo de los CSS vars al equivalente del dark theme */
+  --paper:   #0D1117;
+  --paper-2: #161B22;
+  --paper-3: #1F2630;
+  --ink:     #E5EAF1;
+  --ink-2:   #C9D3DF;
+  --ink-3:   #94A3B8;
+  --ink-4:   #6B7689;
+  --line:    rgba(255, 255, 255, 0.08);
+  --line-2:  rgba(255, 255, 255, 0.04);
+  --accent-glow: #4D9FE0;
+  background: #0D1117 !important;
+  color: #E5EAF1;
   grid-template-columns: 0 1fr var(--aiw, 380px);
 }
+/* Force backgrounds en contenedores clave que no usan vars */
+.proto-root.sb-overlay .main { background: #0D1117 !important; }
+.proto-root.sb-overlay .main-inner { background: transparent; color: #E5EAF1; }
+/* Cards en cinematic mode · estilo Netflix tile */
+.proto-root.sb-overlay .card {
+  background: #161B22 !important;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.proto-root.sb-overlay .card:hover { border-color: rgba(77,159,224,0.3); }
+.proto-root.sb-overlay .card-body { background: transparent !important; }
+.proto-root.sb-overlay .card-title { color: #fff !important; }
+.proto-root.sb-overlay .card-th1ng,
+.proto-root.sb-overlay .card-instructor,
+.proto-root.sb-overlay .card-category,
+.proto-root.sb-overlay .card-duration,
+.proto-root.sb-overlay .card-footer { color: rgba(255,255,255,0.6) !important; }
+/* Cine-stats (KPIs bajo el hero) */
+.proto-root.sb-overlay .cine-stat {
+  background: #161B22 !important;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #E5EAF1;
+}
+.proto-root.sb-overlay .cine-stat:hover { border-color: rgba(77,159,224,0.3); }
+.proto-root.sb-overlay .cine-stat-n { color: #fff !important; }
+.proto-root.sb-overlay .cine-stat-l { color: rgba(255,255,255,0.55) !important; }
+/* Cine-row headings */
+.proto-root.sb-overlay .row-head h2 { color: #fff !important; }
+.proto-root.sb-overlay .row-head h2 em { color: rgba(255,255,255,0.55) !important; }
+.proto-root.sb-overlay .link-btn { color: #4D9FE0 !important; }
+/* Cine-arrow buttons (flechas laterales en rows) */
+.proto-root.sb-overlay .cine-arrow {
+  background: rgba(13,17,23,0.85) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.proto-root.sb-overlay .cine-arrow:hover { background: rgba(255,255,255,0.15) !important; }
+/* AI CTA banner (bottom CTA) */
+.proto-root.sb-overlay .ai-cta-banner {
+  background: linear-gradient(135deg, #1a2940 0%, #2a1f4d 100%) !important;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.proto-root.sb-overlay .ai-cta-banner h2 { color: #fff !important; }
+.proto-root.sb-overlay .ai-cta-banner p { color: rgba(255,255,255,0.75) !important; }
+.proto-root.sb-overlay .ai-cta-chat { background: rgba(13,17,23,0.5) !important; border-color: rgba(255,255,255,0.1) !important; }
+.proto-root.sb-overlay .ai-cta-msg.ai { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+.proto-root.sb-overlay .ai-cta-msg.user { background: var(--bn-blue) !important; color: #fff !important; }
+/* Catalog grid + category bar */
+.proto-root.sb-overlay .catalog-section h2 { color: #fff !important; }
+.proto-root.sb-overlay .catalog-section h2 em { color: rgba(255,255,255,0.6) !important; }
+.proto-root.sb-overlay .cat-bar { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.08) !important; }
+.proto-root.sb-overlay .cat-bar button { color: rgba(255,255,255,0.65) !important; }
+.proto-root.sb-overlay .cat-bar button:hover { color: #fff !important; background: rgba(255,255,255,0.08) !important; }
+.proto-root.sb-overlay .cat-bar button.active { background: #fff !important; color: #0D1117 !important; }
+/* Trending #1-10 numbers */
+.proto-root.sb-overlay .cine-trending-num {
+  color: rgba(255,255,255,0.08) !important;
+  -webkit-text-stroke: 2px rgba(255,255,255,0.55);
+}
+/* Detail view se hereda automáticamente vía vars */
+.proto-root.sb-overlay .detail-hero,
+.proto-root.sb-overlay .detail-body { background: #0D1117 !important; color: #E5EAF1; }
+/* Player */
+.proto-root.sb-overlay .player-root { background: #0D1117 !important; color: #E5EAF1; }
+/* Skeleton */
+.proto-root.sb-overlay .skel { background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%) !important; }
 .proto-root.sb-overlay .sb {
   position: fixed !important;
   top: 60px;
