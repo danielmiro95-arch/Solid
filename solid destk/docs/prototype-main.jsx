@@ -1273,8 +1273,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     { id:'path', label:'Mi ruta' },
     { id:'dashboard', label:'Analytics' },
     { id:'coach', label:'MENTOR-IA' },
-    { id:'cronograma', label:'Cronograma' },
-    { id:'wa', label:'WhatsApp' },
+    { id:'wa', label:'Channels' },
     { id:'saved', label:'Guardados' },
     { id:'profile', label:'Mi perfil' },
   ].filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
