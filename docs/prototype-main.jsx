@@ -1861,10 +1861,26 @@ function App() {
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  // Layout simple: sidebar fija a la izquierda en TODAS las vistas (como Netflix
-  // después de logueado). Sin tricks de overlay. El Home es Netflix-style en
-  // su contenido vía inline styles, no necesita ocultar el sidebar para verse bien.
+  // SIDEBAR NETFLIX-STYLE:
+  // - En vistas cinematográficas (home, detail, player, browse, rutas): sidebar
+  //   OCULTO por defecto. El usuario pulsa el botón hamburguesa arriba-izq para
+  //   abrirlo. Sidebar aparece como overlay dark-glass con backdrop dim. Click
+  //   en backdrop, en un item o en X cierra.
+  // - En vistas de utilidad (analytics, settings, profile, admin, coach, channels):
+  //   sidebar SIEMPRE visible en su columna del grid, para navegación rápida.
+  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas'];
+  const isCinematic = CINEMATIC_VIEWS.includes(view);
+  const [sidebarOpen, setSidebarOpen] = useSM(false);
+
+  // Si cambias a vista no cinematic, no necesitas overlay → reset state
+  useEM(() => { if (!isCinematic) setSidebarOpen(false); }, [view]);
+
   const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
+
+  // En cinematic, colapsa la columna del sidebar a 0 para que main ocupe todo el ancho
+  const rootStyle = isCinematic
+    ? { gridTemplateColumns: '0 1fr var(--aiw, 380px)' }
+    : undefined;
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
@@ -1872,8 +1888,89 @@ function App() {
   if (!authUser) return <LoginScreen/>;
 
   return (
-    <div className={rootClass} data-screen-label={`Prototype · ${view}`}>
-      {view !== 'onboarding' && (
+    <div className={rootClass} style={rootStyle} data-screen-label={`Prototype · ${view}`}>
+      {/* HAMBURGUESA · solo en cinematic · arriba izquierda · siempre visible */}
+      {view !== 'onboarding' && isCinematic && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Abrir menú"
+          style={{
+            position:'fixed', top:14, left:14, zIndex:1001,
+            width:40, height:40, borderRadius:'50%',
+            background:'rgba(13,17,23,0.78)', backdropFilter:'blur(10px)',
+            border:'1px solid rgba(255,255,255,0.18)',
+            color:'#fff', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 4px 14px rgba(0,0,0,0.3)',
+            transition:'transform .12s, background .12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.95)'; e.currentTarget.style.transform='scale(1.08)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.78)'; e.currentTarget.style.transform='scale(1)'; }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </button>
+      )}
+
+      {/* SIDEBAR OVERLAY · solo cuando user lo abre · backdrop dim + sidebar fixed */}
+      {view !== 'onboarding' && isCinematic && sidebarOpen && (
+        <>
+          <div
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+            style={{
+              position:'fixed', inset:0, zIndex:998,
+              background:'rgba(0,0,0,0.5)',
+              backdropFilter:'blur(3px)',
+              animation:'fadeIn .2s ease',
+            }}
+          />
+          <div
+            style={{
+              position:'fixed', top:0, left:0, bottom:0, width:280,
+              zIndex:999,
+              background:'linear-gradient(180deg, rgba(13,17,23,0.97) 0%, rgba(22,27,34,0.98) 100%)',
+              backdropFilter:'blur(22px) saturate(140%)',
+              WebkitBackdropFilter:'blur(22px) saturate(140%)',
+              borderRight:'1px solid rgba(255,255,255,0.1)',
+              boxShadow:'12px 0 40px rgba(0,0,0,0.55)',
+              color:'rgba(255,255,255,0.88)',
+              overflowY:'auto',
+              animation:'sbSlideIn .26s cubic-bezier(.2,.7,.3,1)',
+            }}
+          >
+            {/* Botón X arriba derecha del sidebar */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Cerrar menú"
+              style={{
+                position:'absolute', top:12, right:12, zIndex:1,
+                width:32, height:32, borderRadius:'50%',
+                background:'rgba(255,255,255,0.08)',
+                border:'1px solid rgba(255,255,255,0.12)',
+                color:'rgba(255,255,255,0.85)', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.15)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+            <Sidebar view={view} setView={(v) => { setSidebarOpen(false); setView(v); if (v === 'wa') setView('wa'); }}/>
+          </div>
+        </>
+      )}
+
+      {/* SIDEBAR NORMAL · en vistas no cinematic · ocupa columna del grid */}
+      {view !== 'onboarding' && !isCinematic && (
+        <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
+      )}
+
+      {/* MOBILE MENU · solo si la viewport es móvil (sigue funcionando como antes) */}
+      {view !== 'onboarding' && !isCinematic && (
         <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Abrir menú">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             {mobileMenuOpen ? <path d="M18 6L6 18M6 6l12 12"/> : <><path d="M3 6h18M3 12h18M3 18h18"/></>}
@@ -1881,7 +1978,6 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
-      {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}

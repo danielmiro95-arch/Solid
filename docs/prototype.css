@@ -27,6 +27,10 @@ body.cinematic-mode { background: #0D1117 !important; }
   from { transform: translateX(-100%); opacity: 0; }
   to   { transform: translateX(0); opacity: 1; }
 }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 .proto-root.sb-overlay {
   /* Override completo de los CSS vars al equivalente del dark theme */
   --paper:   #0D1117;
