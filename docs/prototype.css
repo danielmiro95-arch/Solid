@@ -1415,6 +1415,15 @@ body.cinematic-mode { background: #0D1117 !important; }
 .dash-panel-head .panel-sub { font-family: var(--mono); font-size: 10px; color: var(--ink-4); letter-spacing: 0.06em; }
 .dash-panel-body { padding: 18px 20px; }
 
+/* Bajar tono · widgets en dashboards · saturación reducida y suavizado */
+.dash-panel svg { filter: saturate(0.72) brightness(1.02); }
+.dash-panel svg rect,
+.dash-panel svg circle,
+.dash-panel svg path { opacity: 0.94; }
+.dash-panel .module-bar-wide i,
+.dash-panel .prog-bar-sm i,
+.dash-panel .activity-dot { filter: saturate(0.72); }
+
 .dropoff-chart { position: relative; height: 110px; display: flex; align-items: flex-end; gap: 2px; }
 .dropoff-bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--beonit-blue); opacity: 0.7; cursor: pointer; }
 .dropoff-bar:hover { opacity: 1; }
