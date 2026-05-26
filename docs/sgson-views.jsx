@@ -450,6 +450,16 @@ const _Heatmap = ({ rows = 7, cols = 24 }) => {
 };
 
 function AnalyticsView({ openLegacyDashboard }) {
+  // Analytics ahora renderiza directamente el Dashboard creator.
+  // El usuario puede crear dashboards, pestañas dentro de cada dashboard, y widgets dentro de cada pestaña.
+  if (window.Dashboard) {
+    return (
+      <div className="main-inner" data-screen-label="Analytics" style={{padding:'24px 32px'}}>
+        <window.Dashboard/>
+      </div>
+    );
+  }
+  // Fallback · demo estática si Dashboard no está cargado
   const [active, setActive] = useSV('global');
   const dashboards = [
     { id:'global',  name:'Sprinklr Adoption · Global' },

@@ -2045,6 +2045,137 @@ function StackedBarChart({ series, categories, height = 140 }) {
   );
 }
 
+// Stacked Column · barras verticales acumuladas
+function StackedColumnChart({ series, categories, height = 200 }) {
+  const defaultColors = ['var(--ok)', 'var(--accent-glow)', 'var(--ink-4)', 'var(--bn-purple)', 'var(--bn-turquoise)'];
+  const totals = categories.map((_, ci) => series.reduce((s, sr) => s + (sr.values[ci] || 0), 0));
+  const maxT = Math.max(...totals, 1);
+  const W = 320, H = height;
+  const barW = W / categories.length - 8;
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 36}`} style={{width:'100%', overflow:'visible'}}>
+      {categories.map((cat, ci) => {
+        let y = H;
+        const total = totals[ci];
+        return (
+          <g key={ci} transform={`translate(${ci*(barW+8)+4},0)`}>
+            {series.map((sr, si) => {
+              const segH = total > 0 ? (sr.values[ci] / maxT) * (H - 10) : 0;
+              y -= segH;
+              return <rect key={si} x={0} y={y} width={barW} height={segH} rx={si===series.length-1?3:0} fill={sr.color || defaultColors[si%defaultColors.length]} opacity="0.92"/>;
+            })}
+            <text x={barW/2} y={H + 12} fontSize="9" fill="var(--ink-4)" fontFamily="var(--mono)" textAnchor="middle">{cat}</text>
+          </g>
+        );
+      })}
+      {/* Legend */}
+      {series.map((sr, si) => (
+        <g key={si} transform={`translate(${si*86},${H+26})`}>
+          <rect width={10} height={10} rx={2} fill={sr.color || defaultColors[si%defaultColors.length]} opacity="0.92"/>
+          <text x={14} y={9} fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{sr.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// Clustered Column · columnas agrupadas por dimensión
+function ClusterChart({ groups, series, height = 200 }) {
+  const W = 320, H = height;
+  const maxV = Math.max(...groups.flatMap(g => g.values.map(v => v.v)), 1);
+  const groupW = W / groups.length;
+  const innerBarW = (groupW - 12) / series.length - 2;
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 36}`} style={{width:'100%', overflow:'visible'}}>
+      {groups.map((g, gi) => (
+        <g key={gi} transform={`translate(${gi*groupW+6},0)`}>
+          {g.values.map((bar, bi) => {
+            const barH = (bar.v / maxV) * (H - 10);
+            const x = bi * (innerBarW + 2);
+            return <rect key={bi} x={x} y={H - barH} width={innerBarW} height={barH} rx={2} fill={series[bi]?.color || 'var(--bn-blue)'} opacity="0.9"/>;
+          })}
+          <text x={groupW/2-6} y={H + 12} fontSize="9" fill="var(--ink-4)" fontFamily="var(--mono)" textAnchor="middle">{g.label}</text>
+        </g>
+      ))}
+      {/* Legend */}
+      {series.map((sr, si) => (
+        <g key={si} transform={`translate(${si*86},${H+26})`}>
+          <rect width={10} height={10} rx={2} fill={sr.color} opacity="0.9"/>
+          <text x={14} y={9} fontSize="8" fill="var(--ink-4)" fontFamily="var(--mono)">{sr.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// AI Insight · texto generado por BeonAI sobre una métrica
+function AIInsightWidget({ insight, tags, widget }) {
+  return (
+    <div style={{padding:'14px 18px', display:'flex', gap:12, alignItems:'flex-start'}}>
+      {window.BeonAIChar && <window.BeonAIChar size={36} mood="happy" interactive={false} float/>}
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--bai-violet, #6E50EE)', fontWeight:700, marginBottom:4}}>★ AI Insight · BeonAI</div>
+        <div style={{fontSize:13.5, lineHeight:1.55, color:'var(--ink)'}} dangerouslySetInnerHTML={{__html: (insight || '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')}}/>
+        {tags && tags.length > 0 && (
+          <div style={{display:'flex', gap:5, marginTop:8, flexWrap:'wrap'}}>
+            {tags.map((t,i) => <span key={i} style={{fontFamily:'var(--mono)', fontSize:9, padding:'2px 7px', background:'rgba(110,80,238,0.08)', color:'var(--bai-violet, #6E50EE)', borderRadius:999, fontWeight:600}}>#{t}</span>)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// AI Cluster · agrupación automática de usuarios
+function AIClusterWidget({ clusters, widget }) {
+  const totalSize = clusters.reduce((s, c) => s + c.size, 0) || 1;
+  return (
+    <div style={{padding:'12px 18px', display:'flex', flexDirection:'column', gap:10}}>
+      <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--bai-violet, #6E50EE)', fontWeight:700}}>★ Clusters generados por BeonAI · {clusters.length} grupos · {totalSize} usuarios</div>
+      {clusters.map((c, i) => (
+        <div key={i} style={{padding:'10px 12px', background:'var(--paper-2)', border:'1px solid var(--line)', borderRadius:8, display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:8, height:36, borderRadius:2, background:c.color, flexShrink:0}}/>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:12.5, fontWeight:700, color:'var(--ink)'}}>{c.name}</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:2}}>{c.traits.join(' · ')}</div>
+          </div>
+          <div style={{fontFamily:'var(--mono)', fontSize:18, fontWeight:800, color:c.color}}>{c.size}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// AI Anomaly · detección de outliers en serie temporal
+function AIAnomalyWidget({ points, anomalyIdx, color, alert, widget }) {
+  const W = 280, H = 120, pad = 10;
+  const maxV = Math.max(...points, 1);
+  const step = (W - pad*2) / (points.length - 1);
+  const pathD = points.map((v, i) => {
+    const x = pad + i * step;
+    const y = H - pad - (v / maxV) * (H - pad*2);
+    return (i === 0 ? 'M' : 'L') + x + ' ' + y;
+  }).join(' ');
+  return (
+    <div style={{padding:'10px 18px 14px'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%'}}>
+        <path d={pathD} stroke={color || 'var(--bn-blue)'} strokeWidth="2" fill="none"/>
+        {points.map((v, i) => {
+          const x = pad + i * step;
+          const y = H - pad - (v / maxV) * (H - pad*2);
+          const isAn = i === anomalyIdx;
+          return <circle key={i} cx={x} cy={y} r={isAn ? 6 : 3} fill={isAn ? 'var(--accent)' : color || 'var(--bn-blue)'} stroke={isAn ? '#fff' : 'none'} strokeWidth={isAn ? 2 : 0}/>;
+        })}
+      </svg>
+      {alert && (
+        <div style={{marginTop:8, padding:'8px 10px', background:'rgba(244,87,68,0.06)', border:'1px solid rgba(244,87,68,0.25)', borderRadius:6, fontSize:11.5, color:'var(--accent)', display:'flex', gap:6, alignItems:'flex-start'}}>
+          <span>⚠</span><span>{alert}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DonutChart({ segments, size = 120 }) {
   const total = segments.reduce((s, seg) => s + seg.v, 0) || 1;
   const r = 42, cx = size/2, cy = size/2, strokeW = 18;
@@ -2645,16 +2776,49 @@ function TextWidget({ text }) {
 // Categorías de visualización (estilo Sprinklr)
 const WIDGET_CATEGORIES = [
   { id:'kpi',      label:'KPIs · Counters',     desc:'Métricas únicas y resúmenes numéricos' },
-  { id:'column',   label:'Column · Bar',        desc:'Comparaciones entre categorías' },
+  { id:'column',   label:'Column · Bar',        desc:'Comparaciones entre categorías (bar, column, stacked, cluster)' },
   { id:'line',     label:'Line · Area · Spline', desc:'Tendencias temporales' },
   { id:'distribution', label:'Distribution',    desc:'Pie, donut, tree map, heatmap, word cloud' },
   { id:'table',    label:'Tables',              desc:'Pivot, summary, tabla 2D' },
   { id:'funnel',   label:'Funnel · Stages',     desc:'Conversión y etapas' },
-  { id:'advanced', label:'Advanced',            desc:'Bubble, quadrant, dual axis, AI insights' },
+  { id:'ai',       label:'AI · Insights',       desc:'Cluster, anomalías y resúmenes BeonAI' },
+  { id:'advanced', label:'Advanced',            desc:'Bubble, quadrant, dual axis' },
   { id:'layout',   label:'Layout',              desc:'Title, text — sin datos' },
 ];
 
-// Librería completa de tipos de widget · 28 tipos
+// Catálogo de MÉTRICAS · lo que se mide (eje y / valor)
+const METRICS = [
+  { id:'pills_completed',  label:'Pills completadas',       unit:'unidades',   color:'var(--bn-blue)' },
+  { id:'active_users',     label:'Usuarios activos',        unit:'usuarios',   color:'var(--ok)' },
+  { id:'sessions',         label:'Sesiones',                unit:'sesiones',   color:'var(--accent-glow)' },
+  { id:'avg_session_time', label:'Tiempo medio · sesión',   unit:'minutos',    color:'var(--bn-purple)' },
+  { id:'completion_rate',  label:'Tasa de completación',    unit:'%',          color:'var(--bn-lime)' },
+  { id:'nps',              label:'NPS',                     unit:'puntos',     color:'var(--info)' },
+  { id:'engagement',       label:'Engagement score',        unit:'puntos',     color:'var(--warn)' },
+  { id:'drop_off',         label:'Drop-off rate',           unit:'%',          color:'var(--accent)' },
+  { id:'time_invested',    label:'Tiempo invertido',        unit:'horas',      color:'var(--bn-blue)' },
+  { id:'modules_started',  label:'Módulos iniciados',       unit:'módulos',    color:'var(--bn-purple-2)' },
+  { id:'cert_progress',    label:'Progreso certificación',  unit:'%',          color:'var(--ok)' },
+];
+
+// Catálogo de DIMENSIONES · cómo se agrupa (eje x / categoría)
+const DIMENSIONS = [
+  { id:'day',         label:'Día' },
+  { id:'week',        label:'Semana' },
+  { id:'month',       label:'Mes' },
+  { id:'hour',        label:'Hora del día' },
+  { id:'weekday',     label:'Día de la semana' },
+  { id:'role',        label:'Rol' },
+  { id:'team',        label:'Equipo' },
+  { id:'market',      label:'Mercado' },
+  { id:'category',    label:'Categoría' },
+  { id:'module',      label:'Módulo' },
+  { id:'pill',        label:'Pill' },
+  { id:'level',       label:'Nivel' },
+  { id:'user',        label:'Usuario' },
+];
+
+// Librería completa de tipos de widget
 // Cada uno: id, label, icon, cat (categoría), desc (descripción corta), defaultSpan
 const WIDGET_LIBRARY = [
   // KPI
@@ -2665,7 +2829,9 @@ const WIDGET_LIBRARY = [
   // Column / Bar
   { id:'column',          label:'Column',           icon:'📊', cat:'column',  desc:'Barras verticales por categoría' },
   { id:'bar',             label:'Bar',              icon:'📊', cat:'column',  desc:'Barras horizontales por categoría' },
-  { id:'stacked',         label:'Stacked Bar',      icon:'🟦', cat:'column',  desc:'Composición acumulada',           defaultSpan:2 },
+  { id:'stacked',         label:'Stacked Bar',      icon:'🟦', cat:'column',  desc:'Barras horizontales acumuladas',  defaultSpan:2 },
+  { id:'stacked-column',  label:'Stacked Column',   icon:'🟫', cat:'column',  desc:'Columnas verticales acumuladas',  defaultSpan:2 },
+  { id:'cluster',         label:'Clustered Column', icon:'🟪', cat:'column',  desc:'Columnas agrupadas por dimensión',defaultSpan:2 },
   // Line / Area
   { id:'line',            label:'Line',             icon:'📈', cat:'line',    desc:'Serie temporal · puntos conectados' },
   { id:'spline',          label:'Spline',           icon:'🌊', cat:'line',    desc:'Línea suavizada · curva' },
@@ -2685,6 +2851,10 @@ const WIDGET_LIBRARY = [
   // Funnel
   { id:'funnel',          label:'Funnel',           icon:'🔻', cat:'funnel',  desc:'Etapas de conversión' },
   { id:'modules',         label:'Completación',     icon:'✅', cat:'funnel',  desc:'% completado por módulo' },
+  // AI (cluster / insights generados con IA)
+  { id:'ia-insight',      label:'AI Insight',       icon:'✨', cat:'ai',      desc:'Insight generado por BeonAI sobre la métrica', defaultSpan:2 },
+  { id:'ia-cluster',      label:'AI Cluster',       icon:'🤖', cat:'ai',      desc:'Agrupación automática de usuarios por comportamiento', defaultSpan:2 },
+  { id:'ia-anomaly',      label:'AI Anomaly',       icon:'⚠️', cat:'ai',      desc:'Detección de anomalías en la serie temporal' },
   // Advanced
   { id:'bubble',          label:'Bubble',           icon:'⚪', cat:'advanced', desc:'Scatter 3D (x, y, tamaño)' },
   { id:'dual-axis',       label:'Dual Axis',        icon:'⚖️', cat:'advanced', desc:'Bar + línea con 2 ejes' },
@@ -2709,12 +2879,21 @@ const DATE_RANGES = [
 // Helper: genera un widget nuevo con id único y configuración por defecto
 function newWidget(typeId) {
   const def = WIDGET_LIBRARY.find(w => w.id === typeId);
+  // Defaults sensatos de métrica/dimensión según el tipo de widget
+  const defaultMetric = (def && def.cat === 'kpi') ? 'active_users'
+                      : (def && def.cat === 'ai')  ? 'engagement'
+                      : 'pills_completed';
+  const defaultDimension = (def && (def.cat === 'line' || def.id === 'spline')) ? 'day'
+                         : (def && def.cat === 'kpi') ? null
+                         : 'role';
   return {
     id: 'w-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
     type: typeId,
     title: def ? def.label : typeId,
     subtitle: def ? def.desc : '',
     span: def && def.defaultSpan ? def.defaultSpan : 1,
+    metric: defaultMetric,
+    dimension: defaultDimension,
   };
 }
 
@@ -2740,6 +2919,42 @@ const EXAMPLE_DASHBOARD = {
     { id:'ex-9', type:'text',            title:'Notas del dashboard',          subtitle:'Insights generados automáticamente',                    span:1 },
   ],
 };
+
+// ── Helpers de tabs ────────────────────────────────────────────────
+// Genera un id de tab nuevo
+function newTabId() { return 't-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5); }
+
+// Crea una tab vacía
+function newTab(name) {
+  return {
+    id: newTabId(),
+    name: name || 'Nueva pestaña',
+    filters: null, // null = hereda del dashboard; objeto = overrides {team, role, range}
+    widgets: [],
+  };
+}
+
+// Migración · si el dashboard no tiene tabs, mete sus widgets en una tab por defecto
+function ensureTabs(d) {
+  if (d && Array.isArray(d.tabs) && d.tabs.length > 0) return d;
+  return {
+    ...d,
+    tabs: [{
+      id: 't-default',
+      name: 'Vista general',
+      filters: null,
+      widgets: Array.isArray(d.widgets) ? d.widgets : [],
+    }],
+  };
+}
+
+// Filtro de fecha por defecto del dashboard
+function defaultDateFilter() {
+  const today = new Date();
+  const from = new Date(today.getTime() - 29 * 86400000);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { preset:'30d', from: fmt(from), to: fmt(today) };
+}
 
 
 // ---------- Mock data registry · datos por defecto por widget type ----------
@@ -2768,6 +2983,23 @@ function getMockData(type) {
         {label:'En progreso',  values:[8,12,20,25,15,10]},
         {label:'Sin iniciar',  values:[3,12,26,37,63,79]},
       ], categories:['Social Publish','Aprobaciones','Calendario','Monitorización','DAM','Compliance'], height:160 };
+    case 'stacked-column':
+      return { series:[
+        {label:'Completado',   values:[89,76,54,38,22,11], color:'var(--ok)' },
+        {label:'En progreso',  values:[8,12,20,25,15,10],  color:'var(--accent-glow)' },
+        {label:'Sin iniciar',  values:[3,12,26,37,63,79],  color:'var(--ink-4)' },
+      ], categories:['Publish','Aprob.','Calend.','Monit.','DAM','Compl.'], height:200 };
+    case 'cluster':
+      return { groups:[
+        { label:'Publish', values:[{l:'Repsol',v:142},{l:'BeonIt',v:98}, {l:'Sprinklr',v:68}] },
+        { label:'Care',    values:[{l:'Repsol',v:96}, {l:'BeonIt',v:124},{l:'Sprinklr',v:54}] },
+        { label:'Analyt.', values:[{l:'Repsol',v:78}, {l:'BeonIt',v:62}, {l:'Sprinklr',v:112}]},
+        { label:'Content', values:[{l:'Repsol',v:54}, {l:'BeonIt',v:48}, {l:'Sprinklr',v:38}] },
+      ], series:[
+        { label:'Repsol',   color:'var(--repsol-red)' },
+        { label:'BeonIt',   color:'var(--bn-blue)' },
+        { label:'Sprinklr', color:'var(--bn-purple)' },
+      ], height:200 };
     case 'line':
       return { data:[{l:'L 14',v:142},{l:'M 15',v:168},{l:'X 16',v:155},{l:'J 17',v:184},{l:'V 18',v:210},{l:'L 21',v:201},{l:'M 22',v:223},{l:'X 23',v:198},{l:'J 24',v:241},{l:'V 25',v:258}], color:'var(--bn-blue)', smooth:false };
     case 'spline':
@@ -2896,6 +3128,17 @@ function getMockData(type) {
       return { title:'Sección del dashboard', subtitle:'Edita este título desde las opciones del widget', color:'var(--bn-blue)' };
     case 'text':
       return { text:'Texto libre del widget. Útil para documentar el contexto del dashboard, añadir notas o describir hallazgos.\nPuedes editar este contenido desde las opciones del widget.' };
+    case 'ia-insight':
+      return { insight:'**Engagement** cae un 14% los viernes en *Care*. Posible causa: rotación de turno y solapamiento con otros equipos. Sugerencia: revisar horarios de la pill 13.', tags:['care','engagement','semanal'] };
+    case 'ia-cluster':
+      return { clusters:[
+        { name:'High-engagement', size:62, color:'var(--ok)',     traits:['>4 sesiones/sem','≥80% completion'] },
+        { name:'Steady learners',  size:124, color:'var(--bn-blue)', traits:['2-3 sesiones/sem','55-80% completion'] },
+        { name:'At-risk',          size:48, color:'var(--warn)',   traits:['<1 sesión/sem','<40% completion'] },
+        { name:'Dormant',          size:13, color:'var(--accent)', traits:['0 actividad 21d','progreso < 10%'] },
+      ]};
+    case 'ia-anomaly':
+      return { points:[60,62,58,61,59,63,28,65,67,64,68,72], anomalyIdx:6, color:'var(--bn-blue)', alert:'Caída inesperada el día 7 (-49% vs baseline)' };
     default:
       return {};
   }
@@ -2914,6 +3157,11 @@ function WidgetRenderer({ widget, onRemove, onEditMeta }) {
     case 'column':          body = <ColumnChart {...data}/>; break;
     case 'bar':             body = <BarChart {...data}/>; break;
     case 'stacked':         body = <StackedBarChart {...data}/>; break;
+    case 'stacked-column':  body = <StackedColumnChart {...data}/>; break;
+    case 'cluster':         body = <ClusterChart {...data}/>; break;
+    case 'ia-insight':      body = <AIInsightWidget {...data} widget={widget}/>; break;
+    case 'ia-cluster':      body = <AIClusterWidget {...data} widget={widget}/>; break;
+    case 'ia-anomaly':      body = <AIAnomalyWidget {...data} widget={widget}/>; break;
     case 'line':            body = <LineChart {...data}/>; break;
     case 'spline':          body = <LineChart {...data}/>; break;
     case 'area':            body = <AreaChart {...data}/>; break;
@@ -2997,6 +3245,8 @@ function WidgetRenderer({ widget, onRemove, onEditMeta }) {
     default:                body = <div style={{padding:20, color:'var(--ink-4)', fontSize:12}}>Widget type "{widget.type}" no soportado.</div>;
   }
   const isLayout = widget.type === 'title' || widget.type === 'text';
+  const metricDef = widget.metric && METRICS.find(m => m.id === widget.metric);
+  const dimDef = widget.dimension && DIMENSIONS.find(dd => dd.id === widget.dimension);
   return (
     <div className="dash-panel" style={{position:'relative'}}>
       {!isLayout && (
@@ -3004,9 +3254,15 @@ function WidgetRenderer({ widget, onRemove, onEditMeta }) {
           <h3>{widget.title || (def && def.label) || widget.type}</h3>
           {widget.subtitle && <span className="panel-sub">{widget.subtitle}</span>}
           <div style={{marginLeft:'auto', display:'flex', gap:4}}>
-            <button onClick={() => onEditMeta(widget)} title="Editar título" style={{background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px'}}>✎</button>
+            <button onClick={() => onEditMeta(widget)} title="Editar widget · métrica, dimensión, tipo" style={{background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px'}}>⚙</button>
             <button onClick={() => onRemove(widget.id)} title="Eliminar widget" style={{background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--ink-4)', lineHeight:1, padding:'2px 6px'}}>×</button>
           </div>
+        </div>
+      )}
+      {!isLayout && (metricDef || dimDef) && (
+        <div style={{padding:'0 18px 6px', display:'flex', gap:6, flexWrap:'wrap'}}>
+          {metricDef && <span style={{fontFamily:'var(--mono)', fontSize:9, padding:'2px 7px', background:'rgba(0,89,150,0.08)', color:'var(--bn-blue)', borderRadius:999, fontWeight:600, letterSpacing:'0.04em'}}>📏 {metricDef.label}</span>}
+          {dimDef && <span style={{fontFamily:'var(--mono)', fontSize:9, padding:'2px 7px', background:'rgba(138,57,146,0.08)', color:'var(--bn-purple)', borderRadius:999, fontWeight:600, letterSpacing:'0.04em'}}>📐 por {dimDef.label}</span>}
         </div>
       )}
       {!isLayout ? <div className="dash-panel-body">{body}</div> : body}
@@ -3099,6 +3355,120 @@ function PromptModal({ title, fields, initial, onSave, onClose, saveLabel = 'Gua
   );
 }
 
+// ---------- Modal · editar widget con type/metric/dimension ----------
+function WidgetEditModal({ widget, onSave, onClose }) {
+  const [vals, setVals] = useS2({
+    title: widget.title || '',
+    subtitle: widget.subtitle || '',
+    type: widget.type,
+    metric: widget.metric || 'pills_completed',
+    dimension: widget.dimension || 'role',
+  });
+  const def = WIDGET_LIBRARY.find(w => w.id === vals.type);
+  const dimensionApplies = def && def.cat !== 'kpi' && def.cat !== 'layout';
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,23,42,0.45)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(6px)'}}>
+      <div onClick={e => e.stopPropagation()} style={{background:'#FFFFFF', borderRadius:14, width:'100%', maxWidth:560, maxHeight:'90vh', overflowY:'auto', boxShadow:'0 24px 64px rgba(15,23,42,0.25)'}}>
+        <div style={{padding:'18px 22px 12px', borderBottom:'1px solid var(--line)'}}>
+          <h3 style={{margin:0, fontFamily:'var(--sans)', fontSize:17, fontWeight:700, color:'var(--ink)'}}>Editar widget</h3>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', marginTop:3}}>{def ? def.icon + ' ' + def.label : vals.type}</div>
+        </div>
+        <div style={{padding:'18px 22px', display:'flex', flexDirection:'column', gap:16}}>
+          {/* TÍTULO + SUBTÍTULO */}
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Título</span>
+            <input value={vals.title} onChange={e => setVals(v => ({ ...v, title: e.target.value }))} placeholder="Nombre visible"
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)'}}/>
+          </label>
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Subtítulo (opcional)</span>
+            <input value={vals.subtitle} onChange={e => setVals(v => ({ ...v, subtitle: e.target.value }))} placeholder="Descripción corta"
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)'}}/>
+          </label>
+
+          {/* TIPO DE WIDGET · swap */}
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Tipo de visualización</span>
+            <select value={vals.type} onChange={e => setVals(v => ({ ...v, type: e.target.value }))}
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', background:'#fff'}}>
+              {WIDGET_CATEGORIES.map(cat => (
+                <optgroup key={cat.id} label={cat.label}>
+                  {WIDGET_LIBRARY.filter(w => w.cat === cat.id).map(w => (
+                    <option key={w.id} value={w.id}>{w.icon} {w.label} — {w.desc}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+
+          {/* MÉTRICA */}
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Métrica · qué se mide</span>
+            <select value={vals.metric} onChange={e => setVals(v => ({ ...v, metric: e.target.value }))}
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', background:'#fff'}}>
+              {METRICS.map(m => <option key={m.id} value={m.id}>{m.label} ({m.unit})</option>)}
+            </select>
+          </label>
+
+          {/* DIMENSIÓN · solo si aplica */}
+          {dimensionApplies && (
+            <label style={{display:'flex', flexDirection:'column', gap:5}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Dimensión · cómo se agrupa</span>
+              <select value={vals.dimension || ''} onChange={e => setVals(v => ({ ...v, dimension: e.target.value }))}
+                style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', background:'#fff'}}>
+                {DIMENSIONS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
+        <div style={{padding:'12px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'flex-end', gap:8, background:'var(--paper-2)'}}>
+          <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>Cancelar</button>
+          <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Modal · filtros propios de una pestaña ----------
+function TabFiltersModal({ tab, dashboardDefaults, onSave, onClose }) {
+  const initial = tab.filters || dashboardDefaults;
+  const [vals, setVals] = useS2(initial);
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,23,42,0.45)', zIndex:1100, display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(6px)'}}>
+      <div onClick={e => e.stopPropagation()} style={{background:'#FFFFFF', borderRadius:14, width:'100%', maxWidth:440, boxShadow:'0 24px 64px rgba(15,23,42,0.25)'}}>
+        <div style={{padding:'18px 22px 12px', borderBottom:'1px solid var(--line)'}}>
+          <h3 style={{margin:0, fontFamily:'var(--sans)', fontSize:17, fontWeight:700, color:'var(--ink)'}}>Filtros de "{tab.name}"</h3>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', marginTop:3, lineHeight:1.5}}>Estos filtros sólo aplican a los widgets de esta pestaña.</div>
+        </div>
+        <div style={{padding:'18px 22px', display:'flex', flexDirection:'column', gap:14}}>
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Equipo</span>
+            <select value={vals.team} onChange={e => setVals(v => ({ ...v, team: e.target.value }))}
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', background:'#fff'}}>
+              {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+          <label style={{display:'flex', flexDirection:'column', gap:5}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700}}>Rol</span>
+            <select value={vals.role} onChange={e => setVals(v => ({ ...v, role: e.target.value }))}
+              style={{padding:'9px 12px', border:'1px solid var(--line-2)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', background:'#fff'}}>
+              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+        </div>
+        <div style={{padding:'12px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'space-between', gap:8, background:'var(--paper-2)'}}>
+          <button onClick={() => onSave(null)} style={{padding:'8px 14px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-4)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--sans)', fontWeight:600}}>Heredar del dashboard</button>
+          <div style={{display:'flex', gap:8}}>
+            <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>Cancelar</button>
+            <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Library view · grid de dashboards ----------
 function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate }) {
   const [showCreate, setShowCreate] = useS2(false);
@@ -3126,7 +3496,8 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
               color: palette[custom.length % palette.length],
               createdAt: Date.now(),
               updatedAt: Date.now(),
-              widgets: [],
+              tabs: [{ id: newTabId(), name:'Vista general', filters:null, widgets:[] }],
+              dateFilter: defaultDateFilter(),
             };
             onCreate(d);
           }}
@@ -3187,7 +3558,7 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
                 </div>
               </button>
               <div style={{padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.06em', color:'var(--ink-4)', textTransform:'uppercase', fontWeight:600}}>{d.widgets.length} widgets · {new Date(d.updatedAt).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.06em', color:'var(--ink-4)', textTransform:'uppercase', fontWeight:600}}>{((d.tabs && d.tabs.reduce((s,t) => s + (t.widgets?.length||0), 0)) || (d.widgets?.length || 0))} widgets · {(d.tabs?.length || 1)} pestaña{(d.tabs?.length||1)===1?'':'s'} · {new Date(d.updatedAt).toLocaleDateString('es-ES', { day:'numeric', month:'short' })}</div>
                 <div style={{display:'flex', gap:4}}>
                   <button onClick={() => onDuplicate(d.id)} title="Duplicar" style={{background:'none', border:'none', cursor:'pointer', fontSize:13, padding:'4px 6px', color:'var(--ink-4)'}}>⎘</button>
                   <button onClick={() => { if (confirm('¿Eliminar el dashboard "' + d.name + '"? Esta acción no se puede deshacer.')) onDelete(d.id); }} title="Eliminar" style={{background:'none', border:'none', cursor:'pointer', fontSize:13, padding:'4px 6px', color:'var(--ink-4)'}}>🗑</button>
@@ -3203,28 +3574,75 @@ function DashboardLibrary({ dashboards, onOpen, onCreate, onDelete, onDuplicate 
 
 // ---------- Dashboard view · vista de un dashboard concreto ----------
 function DashboardView({ dashboard, onUpdate, onBack, onRename }) {
+  const d = ensureTabs(dashboard);
   const [showPicker, setShowPicker] = useS2(false);
   const [editingMeta, setEditingMeta] = useS2(null);
   const [showRename, setShowRename] = useS2(false);
-  const [filters, setFilters] = useS2({ range:'30d', team:'Todos', role:'Todos' });
-  const addWidget = (typeId) => onUpdate({ ...dashboard, widgets: [...dashboard.widgets, newWidget(typeId)], updatedAt: Date.now() });
-  const removeWidget = (id) => onUpdate({ ...dashboard, widgets: dashboard.widgets.filter(w => w.id !== id), updatedAt: Date.now() });
-  const editWidgetMeta = (w) => setEditingMeta(w);
+  const [showTabFilters, setShowTabFilters] = useS2(false);
+  const [tabMenu, setTabMenu] = useS2(null); // id de la tab cuyo menú está abierto
+  const [activeTabId, setActiveTabId] = useS2(d.tabs[0].id);
+  const [dateFilter, setDateFilter] = useS2(d.dateFilter || defaultDateFilter());
+
+  const activeTab = d.tabs.find(t => t.id === activeTabId) || d.tabs[0];
+  const effFilters = (activeTab && activeTab.filters) || { team:'Todos', role:'Todos' };
+
+  // Persiste el dashboard con tabs
+  const persist = (next) => onUpdate({ ...next, updatedAt: Date.now() });
+
+  // ── CRUD widgets dentro de la tab activa
+  const updateTabs = (mut) => persist({ ...d, tabs: d.tabs.map(t => t.id === activeTab.id ? mut(t) : t) });
+  const addWidget = (typeId) => updateTabs(t => ({ ...t, widgets: [...t.widgets, newWidget(typeId)] }));
+  const removeWidget = (id) => updateTabs(t => ({ ...t, widgets: t.widgets.filter(w => w.id !== id) }));
   const saveWidgetMeta = (vals) => {
-    onUpdate({ ...dashboard, widgets: dashboard.widgets.map(w => w.id === editingMeta.id ? { ...w, title: vals.title, subtitle: vals.subtitle } : w), updatedAt: Date.now() });
+    updateTabs(t => ({ ...t, widgets: t.widgets.map(w => w.id === editingMeta.id ? {
+      ...w,
+      title: vals.title,
+      subtitle: vals.subtitle,
+      type: vals.type || w.type,
+      metric: vals.metric || w.metric,
+      dimension: vals.dimension || w.dimension,
+    } : w) }));
     setEditingMeta(null);
   };
+
+  // ── CRUD tabs
+  const addTab = () => {
+    const t = newTab('Pestaña ' + (d.tabs.length + 1));
+    persist({ ...d, tabs: [...d.tabs, t] });
+    setActiveTabId(t.id);
+  };
+  const renameTab = (tabId, name) => persist({ ...d, tabs: d.tabs.map(t => t.id === tabId ? { ...t, name } : t) });
+  const deleteTab = (tabId) => {
+    if (d.tabs.length === 1) { alert('No puedes eliminar la última pestaña.'); return; }
+    if (!confirm('¿Eliminar esta pestaña y sus widgets?')) return;
+    const next = d.tabs.filter(t => t.id !== tabId);
+    persist({ ...d, tabs: next });
+    if (activeTabId === tabId) setActiveTabId(next[0].id);
+  };
+  const updateTabFilters = (filters) => persist({ ...d, tabs: d.tabs.map(t => t.id === activeTab.id ? { ...t, filters } : t) });
+
+  // ── Date filter
+  const setPreset = (preset) => {
+    const today = new Date();
+    const days = preset === '7d' ? 6 : preset === '30d' ? 29 : preset === '90d' ? 89 : preset === '12m' ? 364 : null;
+    const fmt = (x) => x.toISOString().slice(0, 10);
+    const from = days !== null ? new Date(today.getTime() - days * 86400000) : new Date(2024, 0, 1);
+    const next = { preset, from: fmt(from), to: fmt(today) };
+    setDateFilter(next);
+    persist({ ...d, dateFilter: next });
+  };
+  const setCustomDate = (key, value) => {
+    const next = { ...dateFilter, [key]: value, preset:'custom' };
+    setDateFilter(next);
+    persist({ ...d, dateFilter: next });
+  };
+
   return (
     <div className="dash-root">
       {showPicker && <WidgetPicker onAdd={addWidget} onClose={() => setShowPicker(false)}/>}
       {editingMeta && (
-        <PromptModal
-          title="Editar widget"
-          fields={[
-            { key:'title', label:'Título', placeholder:'Nombre visible' },
-            { key:'subtitle', label:'Subtítulo (opcional)', placeholder:'Descripción corta' },
-          ]}
-          initial={{ title: editingMeta.title, subtitle: editingMeta.subtitle }}
+        <WidgetEditModal
+          widget={editingMeta}
           onSave={saveWidgetMeta}
           onClose={() => setEditingMeta(null)}
         />
@@ -3236,9 +3654,17 @@ function DashboardView({ dashboard, onUpdate, onBack, onRename }) {
             { key:'name', label:'Nombre' },
             { key:'desc', label:'Descripción', type:'textarea', rows:2 },
           ]}
-          initial={{ name: dashboard.name, desc: dashboard.desc }}
-          onSave={(vals) => { onRename(dashboard.id, vals.name, vals.desc); setShowRename(false); }}
+          initial={{ name: d.name, desc: d.desc }}
+          onSave={(vals) => { onRename(d.id, vals.name, vals.desc); setShowRename(false); }}
           onClose={() => setShowRename(false)}
+        />
+      )}
+      {showTabFilters && (
+        <TabFiltersModal
+          tab={activeTab}
+          dashboardDefaults={{ team:'Todos', role:'Todos' }}
+          onSave={(filters) => { updateTabFilters(filters); setShowTabFilters(false); }}
+          onClose={() => setShowTabFilters(false)}
         />
       )}
 
@@ -3246,57 +3672,138 @@ function DashboardView({ dashboard, onUpdate, onBack, onRename }) {
         ← Volver a mis dashboards
       </button>
 
-      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:16}}>
+      <div className="dash-header" style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:14}}>
         <div style={{display:'flex', alignItems:'flex-start', gap:14}}>
-          <div style={{fontSize:36, lineHeight:1, marginTop:6}}>{dashboard.icon || '📊'}</div>
+          <div style={{fontSize:36, lineHeight:1, marginTop:6}}>{d.icon || '📊'}</div>
           <div>
-            <div className="lms-hero-eyebrow"><span className="repsol-dot"/>{dashboard.isExample ? 'Dashboard ejemplo' : 'Dashboard custom'}</div>
-            <h1>{dashboard.name}</h1>
-            {dashboard.desc && <div className="dash-sub">{dashboard.desc}</div>}
-            <div className="dash-sub" style={{marginTop:4, opacity:0.7}}>{dashboard.widgets.length} widgets · Rango {DATE_RANGES.find(r => r.id === filters.range)?.label} · Equipo {filters.team} · Rol {filters.role}</div>
+            <div className="lms-hero-eyebrow"><span className="repsol-dot"/>{d.isExample ? 'Dashboard ejemplo' : 'Dashboard custom'}</div>
+            <h1>{d.name}</h1>
+            {d.desc && <div className="dash-sub">{d.desc}</div>}
+            <div className="dash-sub" style={{marginTop:4, opacity:0.7}}>{d.tabs.length} pestaña{d.tabs.length === 1 ? '' : 's'} · {d.tabs.reduce((s, t) => s + t.widgets.length, 0)} widgets · {dateFilter.from} → {dateFilter.to}</div>
           </div>
         </div>
         <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
-          {!dashboard.isExample && <button onClick={() => setShowRename(true)} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>✎ Renombrar</button>}
+          {!d.isExample && <button onClick={() => setShowRename(true)} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>✎ Renombrar</button>}
           <button onClick={() => setShowPicker(true)} style={{display:'inline-flex', alignItems:'center', gap:7, padding:'9px 16px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:13, boxShadow:'0 4px 14px rgba(0,89,150,0.3)'}}>+ Añadir widget</button>
         </div>
       </div>
 
-      <div style={{display:'flex', gap:10, flexWrap:'wrap', marginBottom:16, padding:'10px 14px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, alignItems:'center'}}>
-        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>Filtros</div>
+      {/* FILTRO DE FECHA · siempre abierto en la parte superior */}
+      <div style={{display:'flex', gap:10, flexWrap:'wrap', marginBottom:12, padding:'12px 14px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, alignItems:'center'}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', fontWeight:700}}>📅 Fecha</div>
         <div style={{display:'flex', gap:4, alignItems:'center'}}>
           {DATE_RANGES.map(r => (
-            <button key={r.id} onClick={() => setFilters(f => ({ ...f, range: r.id }))} style={{
+            <button key={r.id} onClick={() => setPreset(r.id)} style={{
               padding:'5px 10px', fontFamily:'var(--mono)', fontSize:10.5, fontWeight:600,
-              background: filters.range === r.id ? 'var(--bn-blue)' : 'var(--paper-2)',
-              color: filters.range === r.id ? '#fff' : 'var(--ink-3)',
-              border: '1px solid ' + (filters.range === r.id ? 'var(--bn-blue)' : 'var(--line)'),
+              background: dateFilter.preset === r.id ? 'var(--bn-blue)' : 'var(--paper-2)',
+              color: dateFilter.preset === r.id ? '#fff' : 'var(--ink-3)',
+              border: '1px solid ' + (dateFilter.preset === r.id ? 'var(--bn-blue)' : 'var(--line)'),
               borderRadius:6, cursor:'pointer',
             }}>{r.label}</button>
           ))}
         </div>
         <div style={{width:1, height:20, background:'var(--line)'}}/>
-        <select value={filters.team} onChange={e => setFilters(f => ({ ...f, team: e.target.value }))} style={{padding:'6px 10px', fontSize:12, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6}}>
-          {TEAMS.map(t => <option key={t} value={t}>Equipo · {t}</option>)}
-        </select>
-        <select value={filters.role} onChange={e => setFilters(f => ({ ...f, role: e.target.value }))} style={{padding:'6px 10px', fontSize:12, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:6}}>
-          {ROLES.map(r => <option key={r} value={r}>Rol · {r}</option>)}
-        </select>
+        <div style={{display:'flex', gap:6, alignItems:'center'}}>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>Desde</span>
+          <input type="date" value={dateFilter.from} onChange={e => setCustomDate('from', e.target.value)}
+            style={{padding:'5px 8px', fontFamily:'var(--mono)', fontSize:11, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid ' + (dateFilter.preset==='custom' ? 'var(--bn-blue)' : 'var(--line)'), borderRadius:6}}/>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', letterSpacing:'0.06em'}}>hasta</span>
+          <input type="date" value={dateFilter.to} onChange={e => setCustomDate('to', e.target.value)}
+            style={{padding:'5px 8px', fontFamily:'var(--mono)', fontSize:11, background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid ' + (dateFilter.preset==='custom' ? 'var(--bn-blue)' : 'var(--line)'), borderRadius:6}}/>
+        </div>
       </div>
 
-      {dashboard.widgets.length === 0 && (
+      {/* BARRA DE TABS · pestañas + 3-dot menu por pestaña + añadir */}
+      <div style={{display:'flex', alignItems:'center', gap:2, marginBottom:16, borderBottom:'1px solid var(--line)', paddingBottom:0, position:'relative'}}>
+        {d.tabs.map(t => {
+          const isActive = t.id === activeTabId;
+          const isMenu = tabMenu === t.id;
+          return (
+            <div key={t.id} style={{position:'relative'}}>
+              <button onClick={() => setActiveTabId(t.id)} style={{
+                padding:'10px 14px 9px', background:'transparent', border:'none',
+                borderBottom: '2px solid ' + (isActive ? 'var(--bn-blue)' : 'transparent'),
+                color: isActive ? 'var(--ink)' : 'var(--ink-4)',
+                fontFamily:'var(--sans)', fontWeight: isActive ? 700 : 500, fontSize:13.5,
+                cursor:'pointer', display:'inline-flex', alignItems:'center', gap:8,
+                marginBottom:-1,
+              }}>
+                <span>{t.name}</span>
+                <span style={{fontFamily:'var(--mono)', fontSize:9, padding:'1px 5px', background:'var(--paper-2)', color:'var(--ink-4)', borderRadius:999, fontWeight:600}}>{t.widgets.length}</span>
+                {t.filters && <span title="Filtros propios" style={{fontSize:9, color:'var(--bn-blue)'}}>●</span>}
+              </button>
+              {!d.isExample && (
+                <button onClick={(e) => { e.stopPropagation(); setTabMenu(isMenu ? null : t.id); }}
+                  title="Opciones de pestaña"
+                  style={{position:'absolute', right:-4, top:8, padding:'3px 6px', background:'transparent', border:'none', color:'var(--ink-4)', cursor:'pointer', fontSize:14, lineHeight:1, opacity: isActive ? 0.85 : 0.45}}>⋯</button>
+              )}
+              {isMenu && (
+                <>
+                  <div onClick={() => setTabMenu(null)} style={{position:'fixed', inset:0, zIndex:50}}/>
+                  <div style={{position:'absolute', top:'100%', right:0, minWidth:200, background:'var(--paper)', border:'1px solid var(--line)', borderRadius:8, boxShadow:'0 8px 24px rgba(15,23,42,0.12)', zIndex:51, padding:6, marginTop:4}}>
+                    <button onClick={() => { setActiveTabId(t.id); setShowTabFilters(true); setTabMenu(null); }}
+                      style={{display:'flex', width:'100%', alignItems:'center', gap:8, padding:'8px 10px', background:'transparent', border:'none', cursor:'pointer', borderRadius:6, fontSize:12.5, color:'var(--ink-2)', textAlign:'left'}}
+                      onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                      ⚙ Filtros de esta pestaña
+                    </button>
+                    <button onClick={() => { const n = prompt('Nuevo nombre', t.name); if (n && n.trim()) renameTab(t.id, n.trim()); setTabMenu(null); }}
+                      style={{display:'flex', width:'100%', alignItems:'center', gap:8, padding:'8px 10px', background:'transparent', border:'none', cursor:'pointer', borderRadius:6, fontSize:12.5, color:'var(--ink-2)', textAlign:'left'}}
+                      onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                      ✎ Renombrar
+                    </button>
+                    {t.filters && (
+                      <button onClick={() => { updateTabFilters(null); setTabMenu(null); }}
+                        style={{display:'flex', width:'100%', alignItems:'center', gap:8, padding:'8px 10px', background:'transparent', border:'none', cursor:'pointer', borderRadius:6, fontSize:12.5, color:'var(--ink-2)', textAlign:'left'}}
+                        onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'}
+                        onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                        ↻ Quitar filtros propios
+                      </button>
+                    )}
+                    <div style={{height:1, background:'var(--line)', margin:'4px 0'}}/>
+                    <button onClick={() => { deleteTab(t.id); setTabMenu(null); }}
+                      style={{display:'flex', width:'100%', alignItems:'center', gap:8, padding:'8px 10px', background:'transparent', border:'none', cursor:'pointer', borderRadius:6, fontSize:12.5, color:'var(--accent)', textAlign:'left'}}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(244,87,68,0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                      🗑 Eliminar pestaña
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+        {!d.isExample && (
+          <button onClick={addTab} title="Añadir pestaña"
+            style={{padding:'8px 12px', marginLeft:4, background:'transparent', border:'1px dashed var(--line-2)', color:'var(--ink-4)', borderRadius:6, cursor:'pointer', fontSize:13, fontFamily:'var(--sans)', fontWeight:600}}>+ Pestaña</button>
+        )}
+      </div>
+
+      {/* CHIP de filtros activos de la tab */}
+      {activeTab.filters && (
+        <div style={{display:'inline-flex', alignItems:'center', gap:8, marginBottom:12, padding:'6px 12px', background:'rgba(0,89,150,0.06)', border:'1px solid rgba(0,89,150,0.18)', borderRadius:999, fontSize:11.5, color:'var(--ink-2)'}}>
+          <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--bn-blue)', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase'}}>Pestaña</span>
+          <span>Equipo: <strong>{activeTab.filters.team}</strong></span>
+          <span>·</span>
+          <span>Rol: <strong>{activeTab.filters.role}</strong></span>
+          <button onClick={() => updateTabFilters(null)} style={{background:'none', border:'none', cursor:'pointer', color:'var(--ink-4)', fontSize:13, lineHeight:1}}>×</button>
+        </div>
+      )}
+
+      {activeTab.widgets.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">📊</div>
-          <h3>Este dashboard está vacío</h3>
-          <p>Añade tu primer widget desde la librería. {WIDGET_LIBRARY.length} tipos disponibles, organizados en {WIDGET_CATEGORIES.length} categorías.</p>
+          <h3>Esta pestaña está vacía</h3>
+          <p>Añade tu primer widget. {WIDGET_LIBRARY.length} tipos disponibles, organizados en {WIDGET_CATEGORIES.length} categorías.</p>
           <button className="btn glow" onClick={() => setShowPicker(true)}>+ Añadir mi primer widget</button>
         </div>
       )}
 
       <div className="dash-grid">
-        {dashboard.widgets.map(w => (
+        {activeTab.widgets.map(w => (
           <div key={w.id} style={{gridColumn: w.span > 1 ? `span ${w.span}` : undefined}}>
-            <WidgetRenderer widget={w} onRemove={removeWidget} onEditMeta={editWidgetMeta}/>
+            <WidgetRenderer widget={w} onRemove={removeWidget} onEditMeta={(x) => setEditingMeta(x)}/>
           </div>
         ))}
       </div>
@@ -3330,9 +3837,22 @@ function Dashboard() {
     setState(s => ({ ...s, dashboards: s.dashboards.filter(d => d.id !== id), currentId: s.currentId === id ? null : s.currentId }));
   };
   const duplicateDashboard = (id) => setState(s => {
-    const src = s.dashboards.find(d => d.id === id);
+    const src = ensureTabs(s.dashboards.find(d => d.id === id));
     if (!src) return s;
-    const copy = { ...src, id:'d-'+Date.now().toString(36), name: src.name + ' (copia)', isExample:false, createdAt:Date.now(), updatedAt:Date.now(), widgets: src.widgets.map(w => ({ ...w, id:'w-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6) })) };
+    const copy = {
+      ...src,
+      id: 'd-' + Date.now().toString(36),
+      name: src.name + ' (copia)',
+      isExample: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      widgets: undefined,
+      tabs: src.tabs.map(t => ({
+        ...t,
+        id: newTabId(),
+        widgets: t.widgets.map(w => ({ ...w, id:'w-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6) })),
+      })),
+    };
     return { ...s, dashboards: [...s.dashboards, copy], currentId: copy.id };
   });
 
