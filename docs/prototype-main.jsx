@@ -1801,6 +1801,19 @@ function App() {
   }, []);
   useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser && authUser.id]);
 
+  // Top nav items · sincroniza active class + click handlers con vanilla nav HTML
+  useEM(() => {
+    const items = document.querySelectorAll('.top-nav-item');
+    const onClick = (e) => { setView(e.currentTarget.dataset.view); };
+    items.forEach(b => b.addEventListener('click', onClick));
+    return () => items.forEach(b => b.removeEventListener('click', onClick));
+  }, []);
+  useEM(() => {
+    document.querySelectorAll('.top-nav-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === view);
+    });
+  }, [view]);
+
   // Initialize tracker and handle tracked URL opens
   useEM(() => {
     WATracker.seedIfEmpty();
@@ -1895,13 +1908,13 @@ function App() {
           onClick={() => setSidebarOpen(true)}
           aria-label="Abrir menú"
           style={{
-            position:'fixed', top:14, left:14, zIndex:1001,
+            position:'fixed', top:78, left:18, zIndex:497,
             width:40, height:40, borderRadius:'50%',
             background:'rgba(13,17,23,0.78)', backdropFilter:'blur(10px)',
             border:'1px solid rgba(255,255,255,0.18)',
             color:'#fff', cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 14px rgba(0,0,0,0.3)',
+            boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
             transition:'transform .12s, background .12s',
           }}
           onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.95)'; e.currentTarget.style.transform='scale(1.08)'; }}

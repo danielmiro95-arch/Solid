@@ -132,6 +132,40 @@ body.scroll-top .shell-tabs.nav-cinematic {
   border-bottom-color: transparent;
   box-shadow: none;
 }
+
+/* Top nav items · estilo Netflix · transparente sobre hero, dark glass al scrollear */
+.top-nav-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  margin-left: 28px;
+}
+.top-nav-item {
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, background .15s;
+}
+.top-nav-item:hover { color: var(--ink); background: rgba(0, 114, 190, 0.08); }
+.top-nav-item.active { color: var(--ink); font-weight: 700; }
+/* En cinematic: textos blancos sobre el hero oscuro */
+.shell-tabs.nav-cinematic .top-nav-item { color: rgba(255,255,255,0.75); }
+.shell-tabs.nav-cinematic .top-nav-item:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.shell-tabs.nav-cinematic .top-nav-item.active { color: #fff; font-weight: 700; }
+/* En móvil, ocultamos los items y usamos solo el hamburger */
+@media (max-width: 900px) {
+  .top-nav-items { display: none; }
+}
+
 .shell-wordmark {
   font-family: var(--sans);
   font-weight: 800;
