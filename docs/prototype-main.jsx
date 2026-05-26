@@ -1960,22 +1960,10 @@ function App() {
       )}
       {aiMode === 'collapsed' && view !== 'onboarding' && (
         <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir BeonAI" aria-label="Abrir BeonAI">
-          <svg className="mentor-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="railGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#FCCB00"/>
-                <stop offset="20%" stopColor="#F45744"/>
-                <stop offset="45%" stopColor="#BD2882"/>
-                <stop offset="70%" stopColor="#0072BE"/>
-                <stop offset="100%" stopColor="#BCD630"/>
-              </linearGradient>
-            </defs>
-            {/* Wave M shape — eco del logo BeonAI */}
-            <path d="M 12 78 Q 16 60 24 56 Q 33 52 38 64 Q 42 74 46 50 Q 50 26 54 50 Q 58 74 62 64 Q 67 52 76 56 Q 84 60 88 78"
-              stroke="url(#railGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
-            {/* Punto luminoso */}
-            <circle cx="50" cy="22" r="3" fill="#BCD630"/>
-          </svg>
+          {window.BeonAIChar
+            ? <BeonAIChar size={44} mood="happy" float interactive={false}/>
+            : <span style={{color:'#fff', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em'}}>AI</span>}
+          <span className="ai-rail-badge">BeonAI</span>
         </button>
       )}
 
