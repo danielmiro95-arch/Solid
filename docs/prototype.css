@@ -757,7 +757,7 @@ body.cinematic-mode { background: #0D1117 !important; }
 /* Collapsed AI — show a thin rail */
 .proto-root.ai-collapsed .ai { border-left: none; }
 .ai-rail-btn {
-  position: fixed; right: 22px; bottom: 22px; z-index: 300;
+  position: fixed; right: 22px; bottom: 22px; z-index: 1200;
   height: 64px; min-width: 64px; padding: 0 10px 0 10px;
   border-radius: 999px;
   background: linear-gradient(135deg, #4FC3F7 0%, #3B82F6 45%, #6E50EE 100%);
@@ -770,7 +770,10 @@ body.cinematic-mode { background: #0D1117 !important; }
     0 0 0 2px rgba(110, 80, 238, 0.35),
     0 18px 44px rgba(13, 17, 23, 0.55),
     0 6px 18px rgba(79, 195, 247, 0.35);
-  transition: transform .18s ease, box-shadow .18s ease, padding .18s ease;
+  transition: transform .18s ease, box-shadow .18s ease, padding .18s ease, right .25s ease;
+}
+.ai-rail-btn.is-open {
+  right: calc(var(--aiw, 360px) + 22px);
 }
 .ai-rail-btn::before {
   /* anillo pulsante sutil */

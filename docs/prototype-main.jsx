@@ -1958,12 +1958,17 @@ function App() {
       {view !== 'onboarding' && aiMode !== 'collapsed' && (
         <AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
-      {aiMode === 'collapsed' && view !== 'onboarding' && (
-        <button className="ai-rail-btn" onClick={() => setAIMode('companion')} title="Abrir BeonAI" aria-label="Abrir BeonAI">
+      {view !== 'onboarding' && (
+        <button
+          className={`ai-rail-btn${aiMode !== 'collapsed' ? ' is-open' : ''}`}
+          onClick={() => setAIMode(aiMode === 'collapsed' ? 'companion' : 'collapsed')}
+          title={aiMode === 'collapsed' ? 'Abrir BeonAI' : 'Cerrar BeonAI'}
+          aria-label={aiMode === 'collapsed' ? 'Abrir BeonAI' : 'Cerrar BeonAI'}
+        >
           {window.BeonAIChar
-            ? <BeonAIChar size={44} mood="happy" float interactive={false}/>
+            ? <BeonAIChar size={44} mood={aiMode === 'collapsed' ? 'happy' : 'thinking'} float interactive={false}/>
             : <span style={{color:'#fff', fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.08em'}}>AI</span>}
-          <span className="ai-rail-badge">BeonAI</span>
+          <span className="ai-rail-badge">{aiMode === 'collapsed' ? 'BeonAI' : 'Cerrar'}</span>
         </button>
       )}
 
