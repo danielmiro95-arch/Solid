@@ -9,6 +9,158 @@
 .proto-root.ai-collapsed { --aiw: 0px; }
 .proto-root.ai-hero { --aiw: 520px; }
 
+/* ============================================================
+ * SIDEBAR OVERLAY MODE · Netflix-style · hidden hasta hover
+ * Aplicado en vistas cinematográficas (home, detail, player, browse, rutas)
+ * El sidebar se vuelve overlay flotante con dark glass + backdrop-blur
+ * ============================================================ */
+.proto-root.sb-overlay {
+  grid-template-columns: 0 1fr var(--aiw, 380px);
+}
+.proto-root.sb-overlay .sb {
+  position: fixed !important;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 248px;
+  height: calc(100vh - 60px);
+  z-index: 199;
+  transform: translateX(-100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1), opacity .28s;
+  /* Dark glass · estilo Netflix overlay */
+  background: linear-gradient(180deg, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.96) 100%) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 12px 0 40px rgba(0,0,0,0.4);
+  color: rgba(255,255,255,0.85);
+  opacity: 0;
+}
+.proto-root.sb-overlay .sb-trigger {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 18px;
+  z-index: 198;
+  /* Hint visual sutil para que el usuario sepa que hay algo */
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  cursor: e-resize;
+}
+.proto-root.sb-overlay .sb-trigger::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60px;
+  background: linear-gradient(180deg, var(--bn-lime) 0%, var(--bn-blue) 100%);
+  border-radius: 0 3px 3px 0;
+  opacity: 0.7;
+  box-shadow: 0 0 12px rgba(188,214,48,0.4);
+  transition: opacity .25s, height .25s;
+}
+.proto-root.sb-overlay .sb-trigger:hover::before {
+  opacity: 1;
+  height: 100px;
+}
+/* Hover activa el sidebar: trigger zone OR sidebar mismo */
+.proto-root.sb-overlay .sb-trigger:hover ~ .sb,
+.proto-root.sb-overlay .sb:hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+/* Backdrop dim opcional cuando sidebar abierto (sutil, no oscurece toda la pantalla) */
+.proto-root.sb-overlay .sb::after {
+  content: '';
+  position: fixed;
+  top: 60px;
+  left: 248px;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0);
+  pointer-events: none;
+  transition: background .3s;
+  z-index: -1;
+}
+.proto-root.sb-overlay .sb:hover::after,
+.proto-root.sb-overlay .sb-trigger:hover ~ .sb::after {
+  background: rgba(0,0,0,0.25);
+}
+
+/* Estilos invertidos para sidebar en overlay mode (texto claro sobre fondo oscuro) */
+.proto-root.sb-overlay .sb-item {
+  background: transparent !important;
+  color: rgba(255,255,255,0.7) !important;
+  box-shadow: none !important;
+}
+.proto-root.sb-overlay .sb-item:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+}
+.proto-root.sb-overlay .sb-item.active {
+  background: linear-gradient(90deg, var(--bn-blue) 0%, rgba(0,114,190,0.4) 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(0,114,190,0.4) !important;
+}
+.proto-root.sb-overlay .sb-search {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+.proto-root.sb-overlay .sb-search:hover {
+  background: rgba(255,255,255,0.14) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+}
+.proto-root.sb-overlay .sb-search .kbd {
+  background: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.6) !important;
+}
+.proto-root.sb-overlay .sb-org,
+.proto-root.sb-overlay .sb-path,
+.proto-root.sb-overlay .sb-user {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+.proto-root.sb-overlay .sb-org-name,
+.proto-root.sb-overlay .sb-user-name { color: #fff !important; }
+.proto-root.sb-overlay .sb-org-sub,
+.proto-root.sb-overlay .sb-user-role,
+.proto-root.sb-overlay .sb-section-title,
+.proto-root.sb-overlay .sb-path-title,
+.proto-root.sb-overlay .sb-path-meta { color: rgba(255,255,255,0.55) !important; }
+.proto-root.sb-overlay .sb-progress { background: rgba(255,255,255,0.1) !important; }
+
+/* En overlay mode, el hero ocupa toda la pantalla (incluso detrás del nav fixed) */
+.proto-root.sb-overlay .main-inner {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: none;
+}
+.proto-root.sb-overlay .cine-hero,
+.proto-root.sb-overlay .cine-hero.netflix-hero {
+  margin-top: -60px;       /* extiende detrás del shell-tabs fixed */
+  margin-left: 0;
+  margin-right: 0;
+}
+.proto-root.sb-overlay .cine-hero-content { padding-left: 64px; padding-right: 64px; }
+.proto-root.sb-overlay .cine-stats { padding: 0 64px; }
+.proto-root.sb-overlay .cine-row { padding: 0 64px; }
+.proto-root.sb-overlay .cine-row-wrap { margin: 0 -64px; padding: 0 64px; }
+.proto-root.sb-overlay .cine-row-scroll { scroll-padding-left: 64px; }
+.proto-root.sb-overlay .catalog-section { padding: 0 64px; }
+.proto-root.sb-overlay .ai-cta-banner { margin-left: 64px; margin-right: 64px; }
+@media (max-width: 900px) {
+  .proto-root.sb-overlay .sb-trigger { display: none; }
+  .proto-root.sb-overlay .cine-hero-content,
+  .proto-root.sb-overlay .cine-stats,
+  .proto-root.sb-overlay .cine-row,
+  .proto-root.sb-overlay .catalog-section { padding-left: 16px; padding-right: 16px; }
+  .proto-root.sb-overlay .cine-row-wrap { margin: 0 -16px; padding: 0 16px; }
+}
+
 /* --- Sidebar (panel elevado tipo card) --- */
 .sb {
   border-right: 1px solid rgba(0, 114, 190, 0.1);

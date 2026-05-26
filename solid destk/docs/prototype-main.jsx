@@ -1861,7 +1861,13 @@ function App() {
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
+  // Layout Netflix: sidebar overlay flotante (hidden by default, hover-to-show).
+  // Vistas "cinematográficas" (home, detail, player, browse, rutas) usan overlay.
+  // Vistas de utilidad (analytics, settings, admin, perfil) usan sidebar fija
+  // para no obstaculizar la navegación entre filtros y datos.
+  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas'];
+  const isCinematic = CINEMATIC_VIEWS.includes(view);
+  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}${isCinematic ? ' sb-overlay' : ''}`;
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
@@ -1878,6 +1884,8 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
+      {/* Zona invisible de hover-trigger · 18px en el borde izq · solo visible en overlay mode */}
+      {view !== 'onboarding' && isCinematic && <div className="sb-trigger" aria-hidden="true"/>}
       {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}

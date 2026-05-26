@@ -18,12 +18,12 @@
 <link rel="icon" type="image/png" href="/mentor-ia-logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260427aj">
-<link rel="stylesheet" href="prototype.css?v=20260427aj">
+<link rel="stylesheet" href="styles.css?v=20260427ak">
+<link rel="stylesheet" href="prototype.css?v=20260427ak">
 
 <script>
   (function(){
-    var V = '20260427aj';
+    var V = '20260427ak';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -56,7 +56,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427aj" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="sgs-on-logo.png?v=20260427ak" style="height:34px;width:auto" alt="SGS|on"/><div style="width:1px;height:18px;background:var(--line)"></div><span style="font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4)">by BeonIt × Repsol</span></div>
   <div class="shell-tabs-list" role="tablist" style="display:none">
     <button class="shell-tab active" data-tab="prototype">Prototype</button>
   </div>
@@ -67,7 +67,7 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427aj</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260427ak</div>
 
 <!-- Prototype panel -->
 <section class="shell-panel" id="prototype-panel">
@@ -143,11 +143,11 @@ window.addEventListener('appinstalled', function() {
 </script>
 
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260427aj"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260427aj"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260427aj"></script>
-<script type="text/babel" src="mentor-ia.jsx?v=20260427aj"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260427aj"></script>
+<script type="text/babel" src="components.jsx?v=20260427ak"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260427ak"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260427ak"></script>
+<script type="text/babel" src="mentor-ia.jsx?v=20260427ak"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260427ak"></script>
 
 <!-- Boot -->
 <script type="text/babel">
@@ -202,6 +202,36 @@ window.addEventListener('appinstalled', function() {
       protoEl.innerHTML = '';
       ReactDOM.createRoot(protoEl).render(<PrototypeApp/>);
     }
+
+    // Netflix-style nav · scroll-top class para nav transparente en hero
+    function syncScrollTop() {
+      var atTop = (window.scrollY || document.documentElement.scrollTop) < 24;
+      document.body.classList.toggle('scroll-top', atTop);
+    }
+    syncScrollTop();
+    window.addEventListener('scroll', syncScrollTop, { passive: true });
+
+    // Aplica .nav-cinematic a shell-tabs según la vista activa
+    // (observa el atributo data-screen-label en .proto-root)
+    var CINEMATIC = ['home','detail','player','browse','rutas'];
+    function syncNavCinematic() {
+      var pr = document.querySelector('.proto-root');
+      var nav = document.querySelector('.shell-tabs');
+      if (!pr || !nav) return;
+      var label = pr.getAttribute('data-screen-label') || '';
+      var view = label.replace('Prototype · ', '').trim();
+      nav.classList.toggle('nav-cinematic', CINEMATIC.indexOf(view) >= 0);
+    }
+    syncNavCinematic();
+    var obs = new MutationObserver(syncNavCinematic);
+    var protoCheck = setInterval(function(){
+      var pr = document.querySelector('.proto-root');
+      if (pr) {
+        obs.observe(pr, { attributes: true, attributeFilter: ['data-screen-label','class'] });
+        syncNavCinematic();
+        clearInterval(protoCheck);
+      }
+    }, 200);
   } catch (err) {
     showBootError('Excepción al montar React', (err && err.stack) || String(err));
   }

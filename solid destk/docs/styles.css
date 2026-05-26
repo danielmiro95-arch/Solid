@@ -101,7 +101,7 @@ body {
 
 /* ===== Top shell (tab bar) ===== */
 .shell-tabs {
-  position: sticky; top: 0; z-index: 500;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 28px;
   height: 60px;
@@ -111,6 +111,33 @@ body {
   border-bottom: 1px solid rgba(0,114,190,0.12);
   box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(0,89,150,0.04);
   backdrop-filter: blur(8px);
+  transition: background .3s, border-color .3s, box-shadow .3s, color .3s;
+}
+/* Hace falta padding-top en body cuando el nav es fixed */
+body { padding-top: 60px; }
+/* Top nav Netflix-style · transparente al inicio en vistas cinematográficas */
+body.scroll-top .shell-tabs.nav-cinematic {
+  background:
+    linear-gradient(180deg, rgba(13,17,23,0.85) 0%, rgba(13,17,23,0.35) 70%, transparent 100%);
+  border-bottom-color: transparent;
+  box-shadow: none;
+  color: #fff;
+}
+body.scroll-top .shell-tabs.nav-cinematic .shell-meta,
+body.scroll-top .shell-tabs.nav-cinematic .shell-wordmark { color: #fff !important; }
+body.scroll-top .shell-tabs.nav-cinematic .shell-wordmark span { color: rgba(255,255,255,0.65) !important; }
+/* Cuando se scrollea (no estamos en top), el nav se vuelve dark glass */
+.shell-tabs.nav-cinematic {
+  background: linear-gradient(180deg, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.88) 100%);
+  border-bottom-color: rgba(255,255,255,0.08);
+  box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+  color: #fff;
+}
+.shell-tabs.nav-cinematic .shell-meta,
+.shell-tabs.nav-cinematic .shell-wordmark { color: #fff; }
+.shell-tabs.nav-cinematic .shell-wordmark span { color: rgba(255,255,255,0.65) !important; }
+.shell-tabs.nav-cinematic .shell-wordmark > div[style*="background:var(--line)"] {
+  background: rgba(255,255,255,0.2) !important;
 }
 .shell-wordmark {
   font-family: var(--sans);
