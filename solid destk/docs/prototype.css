@@ -132,6 +132,89 @@
 .proto-root.sb-overlay .sb-path-meta { color: rgba(255,255,255,0.55) !important; }
 .proto-root.sb-overlay .sb-progress { background: rgba(255,255,255,0.1) !important; }
 
+/* ===== AI Sidekick · overlay flotante con dark-glass en vistas cinematográficas =====
+ * Por defecto está oculto (transform translateX(100%)). Solo aparece cuando el usuario
+ * pulsa la rail-btn (que setAIMode → 'companion'). Nunca aparece blanco encima del hero.
+ */
+.proto-root.sb-overlay {
+  grid-template-columns: 0 1fr 0 !important;
+}
+.proto-root.sb-overlay .ai {
+  position: fixed !important;
+  right: 0;
+  top: 60px;
+  bottom: 0;
+  width: 420px;
+  height: calc(100vh - 60px);
+  z-index: 199;
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);
+  background: linear-gradient(180deg, rgba(13,17,23,0.94) 0%, rgba(13,17,23,0.97) 100%) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  box-shadow: -16px 0 50px rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.88);
+}
+.proto-root.sb-overlay.ai-companion .ai,
+.proto-root.sb-overlay.ai-hero .ai {
+  transform: translateX(0);
+}
+.proto-root.sb-overlay.ai-hero .ai { width: 560px; }
+/* Estilos invertidos para el chat AI dentro del overlay */
+.proto-root.sb-overlay .ai-head {
+  background: rgba(255,255,255,0.04) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}
+.proto-root.sb-overlay .ai-head .title { color: #fff !important; }
+.proto-root.sb-overlay .ai-head .sub { color: rgba(255,255,255,0.55) !important; }
+.proto-root.sb-overlay .ai-head .collapse { color: rgba(255,255,255,0.7) !important; }
+.proto-root.sb-overlay .ai-head .collapse:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+}
+.proto-root.sb-overlay .ai-context-card {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.85);
+}
+.proto-root.sb-overlay .ai-context-card .meta .eyebrow,
+.proto-root.sb-overlay .ai-msg .who { color: rgba(255,255,255,0.55) !important; }
+.proto-root.sb-overlay .ai-msg.from-ai .bubble {
+  background: rgba(255,255,255,0.08) !important;
+  color: rgba(255,255,255,0.92) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+.proto-root.sb-overlay .ai-msg.from-me .bubble {
+  background: var(--bn-blue) !important;
+  color: #fff !important;
+}
+.proto-root.sb-overlay .ai-chip {
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.85) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+.proto-root.sb-overlay .ai-chip:hover {
+  background: rgba(255,255,255,0.12) !important;
+  border-color: var(--bn-lime) !important;
+}
+.proto-root.sb-overlay .ai-input-wrap {
+  background: rgba(13,17,23,0.6) !important;
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+}
+.proto-root.sb-overlay .ai-input {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+.proto-root.sb-overlay .ai-input input {
+  color: #fff !important;
+  background: transparent !important;
+}
+.proto-root.sb-overlay .ai-input input::placeholder {
+  color: rgba(255,255,255,0.4) !important;
+}
+.proto-root.sb-overlay .ai-footer-row .hint { color: rgba(255,255,255,0.4) !important; }
+
 /* En overlay mode, el hero ocupa toda la pantalla (incluso detrás del nav fixed) */
 .proto-root.sb-overlay .main-inner {
   padding-top: 0;
