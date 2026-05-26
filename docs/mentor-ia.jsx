@@ -639,6 +639,7 @@ function Coach() {
   );
 }
 
-// Sobreescribir los componentes en window (después de prototype-views.jsx)
-Object.assign(window, { AISidekick, Coach, MentorAvatar, MarkdownText });
-console.log('[BeonAI v3] polish pack cargado · markdown + Think Pill badges + sugerencias contextuales');
+// AISidekick legacy DESACTIVADO · usamos el de prototype-views.jsx (rediseño BeonAI)
+// Se mantienen Coach, MentorAvatar y MarkdownText porque los usan otras vistas.
+Object.assign(window, { Coach, MentorAvatar, MarkdownText });
+console.log('[BeonAI v3] polish pack cargado · markdown + Think Pill badges + sugerencias contextuales (AISidekick legacy off)');

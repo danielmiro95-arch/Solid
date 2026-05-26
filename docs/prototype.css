@@ -2450,6 +2450,34 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 .ai *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
 
 
+/* ===== AISidekick · MODO DÍA (BeonAI light) ============================
+ * Cuando el panel lleva la clase .bai-light, neutraliza el modo nocturno
+ * heredado del bloque anterior. Todas las reglas son !important para
+ * vencer al modo nocturno legacy.
+ * ===================================================================== */
+.ai.bai-light {
+  background: #FFFFFF !important;
+  border-left: 1px solid rgba(15, 23, 42, 0.08) !important;
+  color: #0F172A !important;
+}
+.ai.bai-light .ai-head {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+  background: transparent !important;
+}
+.ai.bai-light .ai-head .title { color: #0F172A !important; }
+.ai.bai-light .ai-head .sub { color: #64748B !important; }
+.ai.bai-light .ai-body { color: #0F172A !important; background: #FFFFFF !important; }
+.ai.bai-light .ai-input-wrap {
+  border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
+  background: #F7F8FB !important;
+}
+.ai.bai-light input,
+.ai.bai-light input::placeholder { color: #0F172A !important; }
+.ai.bai-light input::placeholder { color: #94A3B8 !important; }
+.ai.bai-light *::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.15) !important; }
+.ai.bai-light *::-webkit-scrollbar-thumb:hover { background: rgba(15,23,42,0.28) !important; }
+
+
 /* ===== Mi Ruta · mejor distribución =================================== */
 .path-hero {
   background: linear-gradient(135deg, rgba(0,114,190,0.04), rgba(188,214,48,0.04) 50%, transparent);
