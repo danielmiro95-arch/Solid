@@ -1956,8 +1956,8 @@ function App() {
         {view === 'browse' && (window.BrowseView_New ? <BrowseView_New openDetail={openDetail}/> : <BrowseView openDetail={openDetail} setView={setView}/>)}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
-      {view !== 'onboarding' && aiMode !== 'collapsed' && (
-        <AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
+      {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && (
+        <window.AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
       {view !== 'onboarding' && aiMode === 'collapsed' && (
         <button
