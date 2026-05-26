@@ -1889,7 +1889,8 @@ function App() {
 
   // Sin sidebar fijo · main siempre ocupa toda la columna 2 (1fr)
   // Col 1 colapsa a 0 · Col 3 reserva espacio para AI panel (companion/hero)
-  const rootStyle = { gridTemplateColumns: '0 1fr var(--aiw, 0px)' };
+  // --aiw: 0px collapsed · 380px companion · 520px hero (definido en CSS)
+  const rootStyle = { gridTemplateColumns: '0 1fr var(--aiw, 380px)' };
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
