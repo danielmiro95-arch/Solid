@@ -1861,10 +1861,13 @@ function App() {
   const openDetail = (it) => { setDetailItem(it); setView('detail'); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  // Layout: sidebar fija a la izquierda (como Netflix después de logueado).
-  // El Home es Netflix-style en su CONTENIDO (hero + rows dark) sin requerir
-  // overlay del sidebar. El sidebar mantiene su look light estándar.
-  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
+  // Layout: sidebar overlay flotante en vistas cinematográficas (home, detail,
+  // player, browse, rutas). Aparece al hover en el borde izquierdo (sb-trigger).
+  // En vistas de utilidad (analytics, settings, admin, perfil, coach), el
+  // sidebar se mantiene fijo para no obstaculizar la navegación entre datos.
+  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas'];
+  const isCinematic = CINEMATIC_VIEWS.includes(view);
+  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}${isCinematic ? ' sb-overlay' : ''}`;
 
   // Cierra el menú móvil al cambiar de vista
   useEM(() => { setMobileMenuOpen(false); }, [view]);
@@ -1881,6 +1884,8 @@ function App() {
         </button>
       )}
       {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
+      {/* Zona invisible de hover-trigger · 18px en el borde izq · solo en cinematic */}
+      {view !== 'onboarding' && isCinematic && <div className="sb-trigger" aria-hidden="true"/>}
       {view !== 'onboarding' && <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
