@@ -218,8 +218,10 @@ const CTX_SUGGESTIONS = {
   ],
 };
 
-// ── AISidekick (panel lateral) ──────────────────────────────────────────────
-function AISidekick({ setAIMode, aiMode, view }) {
+// ── AISidekick (panel lateral) LEGACY DESACTIVADO ───────────────────────────
+// La versión activa vive en prototype-views.jsx con tokens BeonAI light mode.
+// Esta función se mantiene RENOMBRADA para no chocar con la nueva en scope.
+function _LegacyAISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useM('');
   const [loading, setLoading] = useM(false);
   const [msgs, setMsgs] = useM([]);
