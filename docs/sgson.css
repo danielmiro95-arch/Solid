@@ -1831,3 +1831,183 @@ body.sgs-redesign { padding-top: 0; }
   0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-3px); }
 }
+
+/* ============================================================
+   PASE E · vistas no rediseñadas heredan el dark cinematic
+   Aplican tokens del rediseño SIN reescribir su layout interno
+   ============================================================ */
+
+/* Body global y proto-root en dark · ya estaban por sgson.css base */
+body.sgs-redesign .proto-root {
+  background: var(--bg-canvas);
+  color: var(--fg);
+}
+
+/* Main-inner · contenedor base de la mayoría de vistas legacy */
+body.sgs-redesign .main { background: var(--bg-canvas); }
+body.sgs-redesign .main-inner {
+  background: var(--bg-canvas);
+  color: var(--fg);
+  padding-top: 80px;     /* deja sitio para el TopNav fixed (60px + 20 margen) */
+}
+
+/* Headings y texto base · dentro de main-inner */
+body.sgs-redesign .main-inner h1,
+body.sgs-redesign .main-inner h2,
+body.sgs-redesign .main-inner h3,
+body.sgs-redesign .main-inner h4 { color: var(--fg); }
+body.sgs-redesign .main-inner h1 em,
+body.sgs-redesign .main-inner h2 em { color: var(--accent); font-family: var(--font-serif); font-style: italic; font-weight: 400; }
+
+body.sgs-redesign .main-inner p,
+body.sgs-redesign .main-inner span,
+body.sgs-redesign .main-inner div { color: inherit; }
+
+/* Sidebar legacy · cuando se ve en vistas utilitarias · respeta dark */
+body.sgs-redesign .sb {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--line);
+  color: var(--fg);
+  box-shadow: none;
+}
+body.sgs-redesign .sb-item { color: var(--fg-muted); }
+body.sgs-redesign .sb-item:hover { background: rgba(255,255,255,0.04); color: var(--fg); box-shadow: none; }
+body.sgs-redesign .sb-item.active { background: var(--bg-elevated); color: var(--fg); box-shadow: none; }
+body.sgs-redesign .sb-section-title { color: var(--fg-dim); }
+body.sgs-redesign .sb-search,
+body.sgs-redesign .sb-org,
+body.sgs-redesign .sb-path,
+body.sgs-redesign .sb-user {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  color: var(--fg-muted);
+}
+body.sgs-redesign .sb-search .kbd { background: var(--bg-elevated); color: var(--fg-dim); }
+body.sgs-redesign .sb-org-name,
+body.sgs-redesign .sb-user-name { color: var(--fg); }
+body.sgs-redesign .sb-org-sub,
+body.sgs-redesign .sb-user-role,
+body.sgs-redesign .sb-path-title,
+body.sgs-redesign .sb-path-meta { color: var(--fg-dim); }
+body.sgs-redesign .sb-progress { background: rgba(255,255,255,0.06); }
+body.sgs-redesign .sb-progress > i { background: var(--accent); }
+body.sgs-redesign .sb-brand img { filter: brightness(1.2) contrast(0.95); }
+body.sgs-redesign .sb-avatar { background: var(--accent); color: var(--fg-on-accent); }
+
+/* Cards genéricas en vistas legacy (KPI cards, dash-panel, etc.) */
+body.sgs-redesign .dash-panel,
+body.sgs-redesign .stat-card,
+body.sgs-redesign .kpi-card,
+body.sgs-redesign .hip-card,
+body.sgs-redesign .cadence-card,
+body.sgs-redesign .ai-context-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  box-shadow: none;
+}
+body.sgs-redesign .dash-panel-head { background: rgba(255,255,255,0.02); border-bottom-color: var(--line); }
+body.sgs-redesign .dash-panel-head h3 { color: var(--fg); }
+body.sgs-redesign .dash-panel-head .panel-sub,
+body.sgs-redesign .panel-sub { color: var(--fg-dim); }
+
+/* Botones */
+body.sgs-redesign .btn.glow,
+body.sgs-redesign .btn-primary {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border: none;
+}
+body.sgs-redesign .btn.glow:hover,
+body.sgs-redesign .btn-primary:hover { background: var(--accent-hover); }
+body.sgs-redesign .btn.ghost {
+  background: rgba(255,255,255,0.06);
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+body.sgs-redesign .btn.ghost:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--fg);
+}
+body.sgs-redesign .link-btn { color: var(--info); }
+
+/* Inputs */
+body.sgs-redesign input[type="text"],
+body.sgs-redesign input[type="email"],
+body.sgs-redesign input[type="password"],
+body.sgs-redesign input[type="search"],
+body.sgs-redesign textarea,
+body.sgs-redesign select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+body.sgs-redesign input::placeholder,
+body.sgs-redesign textarea::placeholder { color: var(--fg-dim); }
+
+/* Tablas */
+body.sgs-redesign table { color: var(--fg); }
+body.sgs-redesign th { background: rgba(255,255,255,0.03); color: var(--fg-muted); border-bottom-color: var(--line); }
+body.sgs-redesign td { border-bottom-color: var(--line-faint); color: var(--fg); }
+body.sgs-redesign tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* Modal genérico (no DetailModal, otros) */
+body.sgs-redesign .modal-content,
+body.sgs-redesign .modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+
+/* CHANNELS (WhatsApp/Teams selector) */
+body.sgs-redesign .wa-root { background: var(--bg-canvas); color: var(--fg); }
+body.sgs-redesign .wa-toggle { background: var(--bg-surface); border: 1px solid var(--line); color: var(--fg); }
+body.sgs-redesign .wa-toggle .t { color: var(--fg); }
+body.sgs-redesign .wa-toggle .d { color: var(--fg-muted); }
+body.sgs-redesign .wa-toggle.on { background: var(--bg-elevated); border-color: var(--ok); }
+body.sgs-redesign .wa-phone { background: var(--bg-elevated); border: 1px solid var(--line); }
+
+/* MI PERFIL (Profile) */
+body.sgs-redesign .profile-root { background: var(--bg-canvas); color: var(--fg); }
+body.sgs-redesign .profile-card { background: var(--bg-surface); border: 1px solid var(--line); }
+body.sgs-redesign .profile-section-title { color: var(--fg-dim); }
+body.sgs-redesign .profile-form label { color: var(--fg-muted); }
+
+/* AJUSTES (Settings) */
+body.sgs-redesign .settings-section,
+body.sgs-redesign .settings-card { background: var(--bg-surface); border: 1px solid var(--line); color: var(--fg); }
+
+/* ADMIN PANEL */
+body.sgs-redesign .admin-panel,
+body.sgs-redesign .admin-card { background: var(--bg-surface); border: 1px solid var(--line); color: var(--fg); }
+body.sgs-redesign .admin-table th { color: var(--fg-muted); }
+
+/* BROWSE / catálogo · cards y filtros */
+body.sgs-redesign .browse-root,
+body.sgs-redesign .catalog-section { background: var(--bg-canvas); color: var(--fg); }
+body.sgs-redesign .cat-bar { background: rgba(255,255,255,0.04); border-color: var(--line); }
+body.sgs-redesign .cat-bar button { color: var(--fg-muted); }
+body.sgs-redesign .cat-bar button:hover { color: var(--fg); background: rgba(255,255,255,0.08); }
+body.sgs-redesign .cat-bar button.active { background: var(--fg); color: var(--bg-canvas); }
+
+/* RUTAS · path cards */
+body.sgs-redesign .rutas-root,
+body.sgs-redesign .path-root { background: var(--bg-canvas); color: var(--fg); }
+body.sgs-redesign .lms-hero-eyebrow { color: var(--fg-dim); }
+body.sgs-redesign .repsol-dot { background: var(--accent); }
+
+/* MI RUTA / PATH VIEW */
+body.sgs-redesign .progress-bar { background: rgba(255,255,255,0.06); }
+body.sgs-redesign .progress-bar > i { background: var(--accent); }
+
+/* INBOX / Bandeja */
+body.sgs-redesign .inbox-root,
+body.sgs-redesign .inbox-item { background: var(--bg-surface); border-color: var(--line); color: var(--fg); }
+body.sgs-redesign .inbox-item:hover { background: var(--bg-elevated); }
+body.sgs-redesign .inbox-item.unread { border-left: 3px solid var(--accent); }
+
+/* SAVED · bookmarks */
+body.sgs-redesign .saved-root { background: var(--bg-canvas); color: var(--fg); }
+
+/* TWEAKS panel · esquina inferior */
+body.sgs-redesign .tweaks-panel { background: var(--bg-surface); border-color: var(--line); color: var(--fg); }
