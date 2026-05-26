@@ -23,6 +23,10 @@
  * padding-top:60 detrás del nav fixed también sea oscuro (evitando white-flash).
  * ============================================================ */
 body.cinematic-mode { background: #0D1117 !important; }
+@keyframes sbSlideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
 .proto-root.sb-overlay {
   /* Override completo de los CSS vars al equivalente del dark theme */
   --paper:   #0D1117;

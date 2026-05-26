@@ -1912,27 +1912,30 @@ function App() {
         </div>
       )}
 
-      {view !== 'onboarding' && (
+      {/* Sidebar EN CINEMATIC: solo se renderiza si sidebarHover=true (no truco CSS).
+          Esto garantiza que es FÍSICAMENTE imposible verlo si no haces hover. */}
+      {view !== 'onboarding' && isCinematic && sidebarHover && (
         <div
-          onMouseEnter={() => isCinematic && setSidebarHover(true)}
           onMouseLeave={() => setSidebarHover(false)}
-          style={isCinematic ? {
-            position:'fixed', top:60, left:0, bottom:0, width:248,
-            height:'calc(100vh - 60px)', zIndex:199,
-            transform: sidebarHover ? 'translateX(0)' : 'translateX(-100%)',
-            opacity: sidebarHover ? 1 : 0,
-            transition:'transform .32s cubic-bezier(.2,.7,.3,1), opacity .28s',
-            background:'linear-gradient(180deg, rgba(13,17,23,0.94) 0%, rgba(13,17,23,0.97) 100%)',
+          style={{
+            position:'fixed', top:60, left:0, bottom:0, width:260,
+            height:'calc(100vh - 60px)', zIndex:1000,
+            background:'linear-gradient(180deg, rgba(13,17,23,0.96) 0%, rgba(13,17,23,0.98) 100%)',
             backdropFilter:'blur(22px) saturate(140%)',
             WebkitBackdropFilter:'blur(22px) saturate(140%)',
             borderRight:'1px solid rgba(255,255,255,0.08)',
-            boxShadow:'12px 0 40px rgba(0,0,0,0.4)',
+            boxShadow:'12px 0 40px rgba(0,0,0,0.5)',
             color:'rgba(255,255,255,0.85)',
             overflowY:'auto',
-          } : {}}
+            animation:'sbSlideIn .28s cubic-bezier(.2,.7,.3,1)',
+          }}
         >
-          <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
+          <Sidebar view={view} setView={(v) => { setSidebarHover(false); setView(v); if (v === 'wa') setView('wa'); }}/>
         </div>
+      )}
+      {/* Sidebar en vistas no cinematic: render normal en columna del grid */}
+      {view !== 'onboarding' && !isCinematic && (
+        <Sidebar view={view} setView={(v) => { setView(v); if (v === 'wa') setView('wa'); }}/>
       )}
       <main className="main" style={view === 'onboarding' ? {gridColumn:'1 / -1'} : {}}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
