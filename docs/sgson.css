@@ -1825,3 +1825,9 @@ img { display: block; max-width: 100%; }
 body.sgs-redesign nav.shell-tabs { display: none !important; }
 /* Y body padding-top se quita (TopNav del rediseño es position:fixed) */
 body.sgs-redesign { padding-top: 0; }
+
+/* Loading dots en CoachView */
+@keyframes mentorDot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
