@@ -241,9 +241,19 @@ function Home({ openDetail, openPlayer, setView }) {
     return () => clearInterval(t);
   }, [FEATURED_PILLS.length, heroPaused]);
   const heroPill = FEATURED_PILLS[heroIdx] || PILLS[0];
-  const heroBg = heroPill && heroPill.yt
-    ? `url(https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg)`
-    : 'linear-gradient(135deg, #003a72 0%, #0072BE 35%, #8A3992 100%)';
+  // Color base de la categoría para gradient siempre visible (aunque YouTube falle)
+  const CAT_HEX = {
+    'Fundamentos': '#0072BE', 'Estructura': '#005a96', 'Gobernanza': '#3d31cc',
+    'Social Publish': '#EB0029', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
+    'Compliance': '#1a1a2e', 'Calendario': '#0072BE', 'Analytics': '#004d8a',
+    'Care': '#B8001F', 'Integraciones': '#3d31cc',
+  };
+  const heroAccent = (heroPill && CAT_HEX[heroPill.category]) || '#0072BE';
+  // Gradient fallback que SIEMPRE se ve (no depende de YouTube)
+  const heroGradient = `linear-gradient(135deg, ${heroAccent} 0%, #1a2940 55%, #0D1117 100%)`;
+  const heroThumbUrl = heroPill && heroPill.yt
+    ? `https://img.youtube.com/vi/${heroPill.yt}/maxresdefault.jpg`
+    : null;
 
   const profile = window.UserProfile ? window.UserProfile.get() : { name:'', role:'Publish Agent' };
   const firstName = (profile.name || 'tú').split(' ')[0];
@@ -257,15 +267,30 @@ function Home({ openDetail, openPlayer, setView }) {
   return (
     <div className="main-inner home-cinema">
 
-      {/* HERO CINEMATOGRÁFICO NETFLIX · autoplay video + rotación cada 9.5s */}
+      {/* HERO CINEMATOGRÁFICO NETFLIX · gradient siempre visible + thumb + iframe video
+          Capas (de abajo a arriba): gradient colorido por categoría → thumb img → iframe video → overlay → content
+          Si YouTube está bloqueado, sigue viéndose el gradient + título + decoración */}
       <section className="cine-hero netflix-hero"
         onMouseEnter={() => setHeroPaused(true)}
         onMouseLeave={() => setHeroPaused(false)}
-        style={{ backgroundImage: heroBg, backgroundSize:'cover', backgroundPosition:'center' }}>
+        style={{ background: heroGradient }}>
 
+        {/* Capa 1 · thumb estático YouTube (si yt y carga bien) */}
+        {heroThumbUrl && (
+          <img
+            key={'thumb-'+heroPill.id}
+            src={heroThumbUrl}
+            alt=""
+            className="cine-hero-thumb"
+            aria-hidden="true"
+            onError={(e) => { e.currentTarget.style.display='none'; }}
+          />
+        )}
+
+        {/* Capa 2 · iframe video (si yt y autoplay permitido) */}
         {heroPill && heroPill.yt && (
           <iframe
-            key={heroPill.id}
+            key={'video-'+heroPill.id}
             src={`https://www.youtube.com/embed/${heroPill.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${heroPill.yt}&playsinline=1&start=3&iv_load_policy=3&disablekb=1`}
             className="cine-hero-video"
             allow="autoplay; encrypted-media"
@@ -274,6 +299,12 @@ function Home({ openDetail, openPlayer, setView }) {
             title=""
           />
         )}
+
+        {/* Capa 3 · decoraciones SVG que siempre se ven (blobs + grid pattern) */}
+        <div className="cine-hero-decor" aria-hidden="true">
+          <div className="cine-hero-blob1" style={{background: `radial-gradient(circle, ${heroAccent}66 0%, transparent 70%)`}}/>
+          <div className="cine-hero-blob2"/>
+        </div>
 
         <div className="cine-hero-overlay"/>
         <div className="cine-hero-content" key={heroPill?.id}>
