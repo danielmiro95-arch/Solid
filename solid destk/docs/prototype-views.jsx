@@ -355,6 +355,22 @@ function AISidekick({ setAIMode, aiMode, view }) {
   const [input, setInput] = useS2('');
   const [loading, setLoading] = useS2(false);
   const [dynMsgs, setDynMsgs] = useS2([]);
+  const [happyPulse, setHappyPulse] = useS2(false);
+  const feedRef = React.useRef(null);
+
+  // Mood del BeonAIChar · cambia según el estado del chat
+  // - typing input: 'curious' (mirando lo que escribes)
+  // - loading API: 'thinking' (un ojo cerrado)
+  // - recién respondido: 'happy' (sonrisa breve · 1.5s)
+  // - idle sin actividad: 'idle' (parpadeo)
+  // - default: 'neutral'
+  const mood = (() => {
+    if (loading) return 'thinking';
+    if (happyPulse) return 'happy';
+    if (input.length > 0) return 'curious';
+    if (dynMsgs.length === 0) return 'neutral';
+    return 'neutral';
+  })();
 
   const contextLabel = {
     home: 'Vista general · tu progreso',
@@ -363,13 +379,22 @@ function AISidekick({ setAIMode, aiMode, view }) {
     path: 'Tu ruta de certificación',
     dashboard: 'Analytics · visión admin',
     coach: 'BeonAI · modo completo',
-  }[view] || 'Plataforma Sprinklr';
+  }[view] || 'Sprinklr · contexto Repsol';
 
+  // Acciones rápidas con icono · más presencia visual (estilo design)
   const QUICK = [
-    { label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer?' },
-    { label: 'Hazme un quiz', q: 'Hazme 3 preguntas de repaso sobre lo que he visto.' },
-    { label: 'Flujo de aprobación', q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?' },
-    { label: 'Ayuda con macros', q: '¿Qué es una macro en Sprinklr y cómo se usa?' },
+    { icon: '🎯', label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer según mi ruta?', accent: 'var(--bai-cyan)' },
+    { icon: '🧪', label: 'Hazme un quiz',      q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.', accent: 'var(--bai-blue)' },
+    { icon: '⚡', label: 'Flujo aprobación',    q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?', accent: 'var(--bai-violet)' },
+    { icon: '⚙️', label: 'Macros Sprinklr',     q: '¿Qué es una macro en Sprinklr y cómo se usa día a día en Repsol?', accent: 'var(--bai-lav)' },
+  ];
+
+  // Acciones según el trabajo (cambian moods + tone)
+  const TASK_CHIPS = [
+    { label: 'Resumir',        prefix: 'Resume en 3 puntos: ', mood:'thinking' },
+    { label: 'Plan en pasos',  prefix: 'Conviértelo en un plan paso a paso: ', mood:'thinking' },
+    { label: 'Citar fuente',   prefix: 'Cita la fuente exacta (think pill nº) de: ', mood:'curious' },
+    { label: 'Traducir',       prefix: 'Tradúcelo al inglés: ', mood:'curious' },
   ];
 
   const SIDE_DEMOS = {
@@ -380,6 +405,11 @@ function AISidekick({ setAIMode, aiMode, view }) {
     'default': 'Entendido. Puedo ayudarte con Social Publish, Care, Analytics, aprobaciones y tu certificación Sprinklr × Repsol. ¿Qué necesitas?',
   };
 
+  useS2.length; // noop to avoid unused
+  React.useEffect(() => {
+    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  }, [dynMsgs.length, loading]);
+
   const sendMsg = async (overrideQ) => {
     const q = (overrideQ || input).trim();
     if (!q || loading) return;
@@ -387,7 +417,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     setInput('');
     setLoading(true);
     try {
-      const reply = await callMentorAPI([{ role: 'user', text: q }]);
+      const reply = await callMentorAPI([...dynMsgs, { role: 'user', text: q }]);
       setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
     } catch {
       await new Promise(r => setTimeout(r, 600));
@@ -395,70 +425,148 @@ function AISidekick({ setAIMode, aiMode, view }) {
       setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
     }
     setLoading(false);
+    setHappyPulse(true);
+    setTimeout(() => setHappyPulse(false), 1800);
   };
 
   return (
-    <aside className="ai">
-      <div className="ai-head">
-        <div className="ai-head-left">
-          <span className="orb"/>
-          <div>
-            <div className="title">BeonAI <span className="beta-badge">BETA</span></div>
-            <div className="sub">{contextLabel}</div>
+    <aside className="ai" style={{
+      background: 'linear-gradient(180deg, rgba(14,14,18,0.96) 0%, rgba(22,27,34,0.98) 100%)',
+      backdropFilter: 'blur(22px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(22px) saturate(140%)',
+      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      color: 'var(--fg, #F5F4F1)',
+    }}>
+      {/* HEADER · BeonAIChar grande con mood + título + acciones */}
+      <div className="ai-head" style={{padding:'18px 18px 14px', borderBottom:'1px solid rgba(255,255,255,0.08)', background:'transparent'}}>
+        <div className="ai-head-left" style={{flex:1, display:'flex', alignItems:'center', gap:12}}>
+          {window.BeonAIChar
+            ? <BeonAIChar size={44} mood={mood} float interactive={false}/>
+            : <span className="orb"/>}
+          <div style={{flex:1, minWidth:0}}>
+            <div className="title" style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:16, color:'var(--fg, #F5F4F1)', letterSpacing:'-0.015em', display:'flex', alignItems:'center', gap:6}}>
+              BeonAI
+              <span style={{fontFamily:'var(--font-mono, monospace)', fontSize:9, fontWeight:700, letterSpacing:'0.12em', padding:'2px 6px', background:'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))', color:'#fff', borderRadius:4}}>BETA</span>
+            </div>
+            <div className="sub" style={{fontSize:11, color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', marginTop:2}}>
+              <span style={{color: loading ? 'var(--warn, #F4B740)' : 'var(--ok, #4ADE80)'}}>●</span> {loading ? 'pensando…' : contextLabel}
+            </div>
           </div>
         </div>
-        <button className="collapse" onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')}>
-          {aiMode === 'hero' ? '— Reducir' : '↔ Ampliar'}
+        <button onClick={() => setAIMode(aiMode === 'hero' ? 'companion' : 'hero')}
+          style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'var(--fg-muted, #A8A6A0)', padding:'4px 8px', borderRadius:6, fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:600, cursor:'pointer', letterSpacing:'0.04em'}}
+          title={aiMode === 'hero' ? 'Reducir panel' : 'Ampliar panel'}>
+          {aiMode === 'hero' ? '—' : '↔'}
         </button>
-        <button className="collapse" onClick={() => setAIMode('collapsed')}>× Ocultar</button>
+        <button onClick={() => setAIMode('collapsed')}
+          style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'var(--fg-muted, #A8A6A0)', padding:'4px 8px', borderRadius:6, fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:600, cursor:'pointer', marginLeft:4}}
+          title="Cerrar">×</button>
       </div>
-      <div className="ai-body">
+
+      {/* FEED · mensajes */}
+      <div className="ai-body" ref={feedRef} style={{padding:'16px 18px', display:'flex', flexDirection:'column', gap:14, overflowY:'auto', flex:1}}>
         {view === 'player' && (
-          <div className="ai-context-card">
-            <div className="thumb"><div className="ph teal"/></div>
-            <div className="meta">
-              <span className="eyebrow">Viendo ahora</span>
-              <div className="t">Programar posts · Lección 3 de 5</div>
+          <div style={{padding:'12px 14px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, display:'flex', alignItems:'center', gap:10}}>
+            <div style={{width:42, height:42, borderRadius:8, background:'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))', flexShrink:0}}/>
+            <div>
+              <div style={{fontFamily:'var(--font-mono, monospace)', fontSize:9, color:'var(--fg-dim, #6F6D67)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:3}}>Viendo ahora</div>
+              <div style={{fontSize:13, fontWeight:600, color:'var(--fg, #F5F4F1)'}}>Programar posts · Lección 3 de 5</div>
             </div>
           </div>
         )}
-        <div className="ai-msg from-ai">
-          <span className="who">BeonAI</span>
-          <div className="bubble">
-            ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
+
+        {/* Mensaje inicial · saludo */}
+        {dynMsgs.length === 0 && !loading && (
+          <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+            {window.BeonAIChar && <BeonAIChar size={28} mood="neutral" interactive={false}/>}
+            <div style={{flex:1, padding:'12px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'4px 12px 12px 12px', color:'var(--fg, #F5F4F1)', fontSize:13.5, lineHeight:1.55}}>
+              ¡Hola! Soy <strong style={{background:'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700}}>BeonAI</strong>. Llevas un <span style={{background:'linear-gradient(180deg, transparent 62%, rgba(188,214,48,0.6) 62%)', padding:'0 3px'}}>58% de tu certificación</span>. ¿En qué te ayudo?
+            </div>
           </div>
-        </div>
-        <div className="ai-chip-row">
-          {QUICK.map((q, i) => (
-            <button key={i} className="ai-chip" onClick={() => sendMsg(q.q)}>{q.label}</button>
-          ))}
-        </div>
+        )}
+
+        {/* Quick action cards · más presencia */}
+        {dynMsgs.length === 0 && (
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:4}}>
+            {QUICK.map((q, i) => (
+              <button key={i} onClick={() => sendMsg(q.q)}
+                style={{
+                  padding:'12px 12px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
+                  borderRadius:10, cursor:'pointer', textAlign:'left',
+                  display:'flex', flexDirection:'column', gap:6, transition:'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor=q.accent; e.currentTarget.style.transform='translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; e.currentTarget.style.transform='translateY(0)'; }}>
+                <span style={{fontSize:18, lineHeight:1}}>{q.icon}</span>
+                <span style={{fontSize:12.5, color:'var(--fg, #F5F4F1)', fontWeight:600, fontFamily:'var(--font-sans, Inter)', lineHeight:1.3}}>{q.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mensajes dinámicos */}
         {dynMsgs.map((m, i) => (
-          <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-            <span className="who">{m.role === 'assistant' ? 'BeonAI' : 'Tú'}</span>
-            <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
-          </div>
+          m.role === 'assistant' ? (
+            <div key={i} style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+              {window.BeonAIChar && <BeonAIChar size={28} mood="neutral" interactive={false}/>}
+              <div style={{flex:1, padding:'12px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'4px 12px 12px 12px', color:'var(--fg, #F5F4F1)', fontSize:13.5, lineHeight:1.55, whiteSpace:'pre-wrap'}}>
+                {m.text}
+              </div>
+            </div>
+          ) : (
+            <div key={i} style={{display:'flex', justifyContent:'flex-end'}}>
+              <div style={{maxWidth:'85%', padding:'10px 14px', background:'linear-gradient(135deg, var(--bai-violet, #6E50EE), var(--bai-blue, #3B82F6))', color:'#fff', borderRadius:'12px 12px 4px 12px', fontSize:13.5, lineHeight:1.5, fontFamily:'var(--font-sans, Inter)'}}>
+                {m.text}
+              </div>
+            </div>
+          )
         ))}
+
+        {/* Loading indicator con BeonAIChar thinking */}
         {loading && (
-          <div className="ai-msg from-ai">
-            <span className="who">BeonAI</span>
-            <div className="bubble mentor-typing"><span/><span/><span/></div>
+          <div style={{display:'flex', gap:10, alignItems:'center'}}>
+            {window.BeonAIChar && <BeonAIChar size={28} mood="thinking" interactive={false}/>}
+            <div style={{padding:'12px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'4px 12px 12px 12px', display:'flex', gap:5, alignItems:'center'}}>
+              <span style={{width:5, height:5, borderRadius:'50%', background:'var(--bai-cyan, #4FC3F7)', animation:'mentorDot 1.4s ease-in-out infinite both'}}/>
+              <span style={{width:5, height:5, borderRadius:'50%', background:'var(--bai-blue, #3B82F6)', animation:'mentorDot 1.4s ease-in-out .15s infinite both'}}/>
+              <span style={{width:5, height:5, borderRadius:'50%', background:'var(--bai-violet, #6E50EE)', animation:'mentorDot 1.4s ease-in-out .3s infinite both'}}/>
+            </div>
           </div>
         )}
       </div>
-      <div className="ai-input-wrap">
-        <div className="ai-input">
+
+      {/* COMPOSER · chips de tarea + input */}
+      <div className="ai-input-wrap" style={{padding:'12px 14px 14px', borderTop:'1px solid rgba(255,255,255,0.08)', background:'rgba(8,8,11,0.6)'}}>
+        {dynMsgs.length > 0 && (
+          <div style={{display:'flex', gap:5, marginBottom:10, flexWrap:'wrap'}}>
+            {TASK_CHIPS.map((c, i) => (
+              <button key={i} onClick={() => setInput(c.prefix)}
+                style={{padding:'4px 10px', fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:600, letterSpacing:'0.04em', background:'rgba(255,255,255,0.06)', color:'var(--fg-muted, #A8A6A0)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:999, cursor:'pointer', transition:'all .12s'}}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.12)'; e.currentTarget.style.color='var(--fg, #F5F4F1)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.06)'; e.currentTarget.style.color='var(--fg-muted, #A8A6A0)'; }}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div style={{display:'flex', gap:6, alignItems:'center', padding:'8px 10px', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, transition:'border-color .15s'}}
+          onFocus={e => e.currentTarget.style.borderColor='var(--bai-violet, #6E50EE)'}
+          onBlur={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMsg()}
-            placeholder="Pregunta sobre Sprinklr o tu formación…"
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
+            placeholder="Pregunta a BeonAI…"
+            style={{flex:1, background:'transparent', border:'none', outline:'none', color:'var(--fg, #F5F4F1)', fontFamily:'var(--font-sans, Inter)', fontSize:13.5}}
           />
-          <button className="send" onClick={sendMsg}><Icon name="send" size={14}/></button>
+          <button onClick={() => sendMsg()} disabled={!input.trim() || loading}
+            style={{width:30, height:30, borderRadius:'50%', background: input.trim() && !loading ? 'linear-gradient(135deg, var(--bai-cyan, #4FC3F7), var(--bai-violet, #6E50EE))' : 'rgba(255,255,255,0.08)', border:'none', color:'#fff', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s'}}>
+            <Icon name="send" size={13}/>
+          </button>
         </div>
-        <div className="ai-footer-row">
-          <span className="hint">Contexto: módulo actual · ruta · progreso</span>
-          <span className="hint">↵ enviar</span>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8, fontFamily:'var(--font-mono, monospace)', fontSize:9, letterSpacing:'0.06em', color:'var(--fg-dim, #6F6D67)', textTransform:'uppercase'}}>
+          <span>★ Contexto: {view} · ruta · progreso</span>
+          <span>↵ enviar · ⇧↵ línea</span>
         </div>
       </div>
     </aside>
