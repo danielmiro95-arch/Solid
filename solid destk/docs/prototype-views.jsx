@@ -110,7 +110,7 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
               Compartir WA
             </button>
             <button className="btn ghost cine-cta-info" onClick={askMentor}>
-              <Icon name="sparkle" size={14}/> MENTOR-IA
+              <Icon name="sparkle" size={14}/> BeonAI
             </button>
           </div>
         </div>
@@ -144,7 +144,7 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
             </div>
           </div>
           <div>
-            <h3>MENTOR-IA dice <span className="beta-badge">BETA</span></h3>
+            <h3>BeonAI dice <span className="beta-badge">BETA</span></h3>
             <div style={{padding:'14px 16px', border:'1px solid var(--line)', borderRadius:12, background:'var(--paper-2)', fontFamily:'var(--serif)', fontStyle:'italic', fontSize:15, lineHeight:1.5}}>
               "Amaia, completar este módulo te acerca al test final de certificación. El nivel de dificultad encaja con tu progreso actual."
             </div>
@@ -265,7 +265,7 @@ function Player({ back, item }) {
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
                 <button className="back" style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
-                  ✦ MENTOR-IA activo
+                  ✦ BeonAI activo
                 </button>
               </div>
             </div>
@@ -282,7 +282,7 @@ function Player({ back, item }) {
               <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
               <div style={{display:'flex', gap:8}}>
                 <button className="back"><Icon name="caption" size={12}/> SUB</button>
-                <button className="back">MENTOR-IA activo</button>
+                <button className="back">BeonAI activo</button>
               </div>
             </div>
             <div className="player-overlay-bottom">
@@ -362,7 +362,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     detail: 'Detalle de módulo',
     path: 'Tu ruta de certificación',
     dashboard: 'Analytics · visión admin',
-    coach: 'MENTOR-IA · modo completo',
+    coach: 'BeonAI · modo completo',
   }[view] || 'Plataforma Sprinklr';
 
   const QUICK = [
@@ -403,7 +403,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
         <div className="ai-head-left">
           <span className="orb"/>
           <div>
-            <div className="title">MENTOR-IA <span className="beta-badge">BETA</span></div>
+            <div className="title">BeonAI <span className="beta-badge">BETA</span></div>
             <div className="sub">{contextLabel}</div>
           </div>
         </div>
@@ -423,7 +423,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
           </div>
         )}
         <div className="ai-msg from-ai">
-          <span className="who">MENTOR-IA</span>
+          <span className="who">BeonAI</span>
           <div className="bubble">
             ¡Hola Amaia! Llevas un <span className="hl">58% de tu certificación</span>. El siguiente módulo es <em>Programar posts</em>. ¿Seguimos?
           </div>
@@ -435,13 +435,13 @@ function AISidekick({ setAIMode, aiMode, view }) {
         </div>
         {dynMsgs.map((m, i) => (
           <div key={i} className={`ai-msg ${m.role === 'assistant' ? 'from-ai' : 'from-me'}`}>
-            <span className="who">{m.role === 'assistant' ? 'MENTOR-IA' : 'Tú'}</span>
+            <span className="who">{m.role === 'assistant' ? 'BeonAI' : 'Tú'}</span>
             <div className="bubble" style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
           </div>
         ))}
         {loading && (
           <div className="ai-msg from-ai">
-            <span className="who">MENTOR-IA</span>
+            <span className="who">BeonAI</span>
             <div className="bubble mentor-typing"><span/><span/><span/></div>
           </div>
         )}
@@ -489,7 +489,7 @@ async function callMentorAPI(messages) {
   });
   if (!res.ok) {
     const err = await res.text().catch(() => res.status);
-    console.error('[MENTOR-IA] error:', res.status, err);
+    console.error('[BeonAI] error:', res.status, err);
     throw new Error(`${res.status}`);
   }
   const data = await res.json();
@@ -501,7 +501,7 @@ function Coach() {
   const [loading, setLoading] = useS2(false);
   const [apiStatus, setApiStatus] = useS2('live');
   const [msgs, setMsgs] = useS2([
-    { role: 'assistant', text: '¡Hola Amaia! Soy MENTOR-IA, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
+    { role: 'assistant', text: '¡Hola Amaia! Soy BeonAI, tu asistente de formación Sprinklr. Llevas un 15% de tu certificación — estás en el Bloque 2, sobre estructura y gobernanza. ¿En qué te puedo ayudar hoy?' },
   ]);
 
   const DEMOS = {
@@ -527,7 +527,7 @@ function Coach() {
       setMsgs(m => [...m, { role: 'assistant', text: reply }]);
       setApiStatus('live');
     } catch (err) {
-      console.warn('[MENTOR-IA] modo demo:', err.message);
+      console.warn('[BeonAI] modo demo:', err.message);
       setApiStatus('demo');
       await new Promise(r => setTimeout(r, 800));
       const demoKey = Object.keys(DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
@@ -594,7 +594,7 @@ function Coach() {
           </div>
           <div style={{flex:1}}>
             <div style={{fontFamily:'var(--sans)', fontWeight:800, fontSize:16, letterSpacing:'-0.02em', color:'#fff', lineHeight:1.1}}>
-              MENTOR-IA
+              BeonAI
               <span style={{marginLeft:8, fontFamily:'var(--mono)', fontWeight:400, fontSize:9, background:'#BCD630', color:'#0d1117', padding:'2px 7px', borderRadius:4, letterSpacing:'0.1em', textTransform:'uppercase', verticalAlign:'middle'}}>BETA</span>
             </div>
             <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(150,200,255,0.55)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2}}>IA contextualizada · Sprinklr × Repsol</div>
@@ -654,7 +654,7 @@ function Coach() {
                 border: `1px solid ${m.role==='assistant' ? 'rgba(0,150,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
                 color: 'rgba(220,235,255,0.9)', fontSize:13, lineHeight:1.6, whiteSpace:'pre-wrap',
               }}>
-                {m.role==='assistant' && <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(0,180,255,0.6)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4}}>MENTOR-IA</div>}
+                {m.role==='assistant' && <div style={{fontFamily:'var(--mono)', fontSize:9, color:'rgba(0,180,255,0.6)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4}}>BeonAI</div>}
                 {m.text}
               </div>
             </div>
@@ -741,7 +741,7 @@ function Onboarding({ done = () => {} }) {
       const roleLabel = ({ publish:'Publish Agent', content:'Content Lead', analytics:'Analytics Lead', it:'IT / Integraciones', direccion:'Dirección' })[role] || 'Publish Agent';
       window.UserProfile.update({ role: roleLabel });
     }
-    if (window.Toast) window.Toast.success('Onboarding completado · Bienvenido a SGS|on', { icon: '🎉' });
+    if (window.Toast) window.Toast.success('Onboarding completado · Bienvenido a SolidStream', { icon: '🎉' });
     done();
   };
 
@@ -825,7 +825,7 @@ function Onboarding({ done = () => {} }) {
           <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
             <div style={{width:40, height:40, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.4)', flexShrink:0}}/>
             <div>
-              <div style={{fontWeight:600, fontSize:14}}>MENTOR-IA <span className="beta-badge">BETA</span></div>
+              <div style={{fontWeight:600, fontSize:14}}>BeonAI <span className="beta-badge">BETA</span></div>
               <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>IA contextualizada · Maximiza el aprendizaje</div>
             </div>
           </div>
@@ -833,12 +833,12 @@ function Onboarding({ done = () => {} }) {
             "Hola. Basándome en tu rol de <em>Publish Agent</em> y las áreas que has elegido, te preparo una ruta de <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>4 semanas y 10 módulos</span>. ¿Empezamos?"
           </div>
           <div style={{display:'flex', gap:10}}>
-            <button className="btn glow" onClick={persistOnboarding}>Sí — entrar en SGS|on →</button>
+            <button className="btn glow" onClick={persistOnboarding}>Sí — entrar en SolidStream →</button>
             <button className="btn ghost" onClick={() => setShowMentorInfo(s => !s)}>{showMentorInfo ? 'Ocultar' : 'Cuéntame más'}</button>
           </div>
           {showMentorInfo && (
             <div style={{marginTop:16, padding:'14px 16px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, fontSize:13, lineHeight:1.55, color:'var(--ink-2)'}}>
-              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Qué hace MENTOR-IA</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Qué hace BeonAI</div>
               <ul style={{margin:0, paddingLeft:18}}>
                 <li>Resuelve dudas sobre Sprinklr en el contexto Repsol con respuestas accionables</li>
                 <li>Te recomienda el próximo módulo basándose en tu progreso y rol</li>
@@ -865,7 +865,7 @@ function Onboarding({ done = () => {} }) {
           <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:16}}>Certificación Sprinklr</div>
           <h2 style={{fontSize:'clamp(40px,5vw,62px)', fontWeight:700, fontStyle:'normal', lineHeight:1.05}}>Domina<br/>Sprinklr<br/>como<br/><em style={{fontStyle:'italic', color:'var(--bn-lime)'}}>experto</em>.</h2>
           <div style={{marginTop:24, display:'flex', flexWrap:'wrap', gap:8}}>
-            {['41 Think Pills', '3 Talleres', 'MENTOR-IA', 'Certificado Repsol'].map(t => (
+            {['41 Think Pills', '3 Talleres', 'BeonAI', 'Certificado Repsol'].map(t => (
               <span key={t} style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', padding:'4px 10px', border:'1px solid rgba(255,255,255,0.2)', borderRadius:999, color:'rgba(255,255,255,0.7)'}}>
                 {t}
               </span>
@@ -877,7 +877,7 @@ function Onboarding({ done = () => {} }) {
             <div style={{width:8, height:8, borderRadius:'50%', background:'var(--bn-lime)'}}/>
             <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>Certificación oficial · 2026</span>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SGS|on · BeonIt × Repsol</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SolidStream · BeonIt × Repsol</div>
         </div>
       </div>
       <div className="onb-right">
@@ -888,7 +888,7 @@ function Onboarding({ done = () => {} }) {
         <div className="onb-nav">
           {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>← Atrás</button>}
           <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : persistOnboarding()}>
-            {step < 3 ? 'Continuar →' : 'Entrar en SGS|on →'}
+            {step < 3 ? 'Continuar →' : 'Entrar en SolidStream →'}
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">
             {[0,1,2,3].map(i => <span key={i} className={i <= step ? 'on' : ''}/>)}
@@ -1067,7 +1067,7 @@ function PathView({ openPlayer, setView }) {
             <button className="btn ghost" onClick={() => setShowExam(true)} style={examResult && examResult.passed ? {borderColor:'var(--bn-lime)', color:'var(--bn-lime-dark)', background:'rgba(188,214,48,0.08)'} : {}}>
               {examResult && examResult.passed ? '✓ Examen aprobado · ver de nuevo' : '🎓 Examen final de la ruta'}
             </button>
-            {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={14}/> Preguntar a MENTOR-IA</button>}
+            {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={14}/> Preguntar a BeonAI</button>}
           </div>
           {showExam && typeof RouteExamModal !== 'undefined' && <RouteExamModal routeId={examRouteId} routeLabel={profile.role} onClose={() => setShowExam(false)}/>}
         </div>
@@ -1123,7 +1123,7 @@ function PathView({ openPlayer, setView }) {
           { phase:'Autodiagnóstico', sub:'Know it',    icon:'◎', color:'var(--beonit-orange)', active:true, done:true },
           { phase:'Think Pills',      sub:'Think it',   icon:'💊', color:'var(--beonit-blue)', active:true },
           { phase:'Taller',           sub:'Explore it', icon:'👥', color:'var(--beonit-purple)' },
-          { phase:'MENTOR-IA',        sub:'Do it',      icon:'✦', color:'var(--beonit-lime)' },
+          { phase:'BeonAI',        sub:'Do it',      icon:'✦', color:'var(--beonit-lime)' },
           { phase:'Certificación',    sub:'Own it',     icon:'🏆', color:'var(--bn-purple)' },
         ].map((p, i, arr) => (
           <React.Fragment key={i}>
@@ -1239,7 +1239,7 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
 .foot { display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; font-size:12px; color:#4A5568; }
 .sig { font-family:'Inter', -apple-system, sans-serif; font-style:italic; font-size:20px; color:#0D1117; border-top:1px solid #ccc; padding-top:6px; margin-top:24px; }
 </style></head><body><div class="frame">
-<div class="kicker">SGS|on · BeonIt × Repsol · Certificación oficial</div>
+<div class="kicker">SolidStream · BeonIt × Repsol · Certificación oficial</div>
 <h1>Certificado de formación</h1>
 <div class="lead">Por la presente certificamos que la persona reseñada a continuación ha completado satisfactoriamente la formación oficial Sprinklr del programa SOLID GROWTH dentro del entorno Repsol, superando todos los autodiagnósticos, talleres y módulos requeridos.</div>
 <div class="name">${profile.name}</div>
@@ -1264,7 +1264,7 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
   };
 
   const shareProfile = async () => {
-    const text = `${profile.name} · ${profile.role} en ${profile.team}\n\nProgreso en certificación Sprinklr SGS|on: 58%`;
+    const text = `${profile.name} · ${profile.role} en ${profile.team}\n\nProgreso en certificación Sprinklr SolidStream: 58%`;
     if (navigator.share) {
       try { await navigator.share({ title:`Perfil ${profile.name}`, text }); return; } catch(e) {}
     }
@@ -1296,7 +1296,7 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
           <button className="btn ghost" onClick={openEdit}><Icon name="user" size={13}/> Editar perfil</button>
           <button className="btn ghost" onClick={() => setShowCert(true)}><Icon name="bookmark" size={13}/> Descargar certificado</button>
           <button className="btn ghost" onClick={shareProfile}><Icon name="send" size={13}/> Compartir perfil</button>
-          {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={13}/> Hablar con MENTOR-IA</button>}
+          {setView && <button className="btn ghost" onClick={() => setView('coach')}><Icon name="sparkle" size={13}/> Hablar con BeonAI</button>}
         </div>
       </header>
 
@@ -1342,7 +1342,7 @@ h1 { font-size:42px; margin:0 0 32px; color:#0D1117; letter-spacing:-0.02em; }
             <p style={{fontSize:14, lineHeight:1.55, color:'var(--ink-3)', marginBottom:18}}>El certificado oficial se emite tras completar el 100% de la ruta. Puedes descargar ahora una <strong>versión preliminar</strong> con tu progreso actual para tu archivo personal.</p>
             <div style={{padding:14, background:'var(--paper-2)', borderRadius:10, marginBottom:20, fontSize:13, color:'var(--ink-2)'}}>
               <div><strong>{profile.name}</strong> · {profile.role}</div>
-              <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', marginTop:4}}>SGS|on · BeonIt × Repsol</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)', marginTop:4}}>SolidStream · BeonIt × Repsol</div>
             </div>
             <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
               <button className="btn ghost" onClick={() => setShowCert(false)}>Cerrar</button>
@@ -1434,7 +1434,7 @@ function WhatsApp() {
   const options = isTeams ? [
     { t: 'Módulo diario en Teams, 9:00',                  d: 'Cada mañana, un mensaje en tu chat de Teams con el próximo módulo de Sprinklr.' },
     { t: 'Briefs antes de reuniones Outlook',             d: '30 min antes de cualquier reunión Sprinklr en tu calendario, te llega el módulo más relevante.' },
-    { t: 'Respuestas de MENTOR-IA en chat Teams',         d: 'Pregunta al bot directamente desde Teams. Solo responde cuando tú preguntas.' },
+    { t: 'Respuestas de BeonAI en chat Teams',         d: 'Pregunta al bot directamente desde Teams. Solo responde cuando tú preguntas.' },
     { t: 'Resumen semanal en Teams (viernes, 17:00)',     d: 'Tu progreso, qué módulos completaste y qué viene la semana siguiente — todo en un mensaje.' },
   ] : [
     { t: 'Módulo diario en WhatsApp, 9:00',               d: 'Un mensaje cada mañana con tu próximo módulo de Sprinklr. Sin ruido.' },
@@ -1520,7 +1520,7 @@ function WhatsApp() {
               <div className="wa-bar" style={{background:channelColor, color:'#fff'}}>
                 <div className="av" style={{background:'rgba(255,255,255,0.2)', color:'#fff'}}>{isTeams ? 'T' : 'S'}</div>
                 <div>
-                  <div className="t" style={{color:'#fff'}}>{isTeams ? 'SGS|on bot · Teams' : 'MENTOR-IA · SGS|on'}</div>
+                  <div className="t" style={{color:'#fff'}}>{isTeams ? 'SolidStream bot · Teams' : 'BeonAI · SolidStream'}</div>
                   <div className="s" style={{color:'rgba(255,255,255,0.85)'}}>{isTeams ? 'Disponible · 9:00' : 'en línea · 9:00'}</div>
                 </div>
               </div>
