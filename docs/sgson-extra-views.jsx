@@ -356,6 +356,134 @@ function ChannelsView() {
 }
 
 // ── Smart Scheduling Panel · BeonAI sugiere el mejor horario ─────────────
+// ── Push Notifications Panel · suscripción + install prompt ──────────────
+function PushNotificationsPanel() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const supported = window.PushNotifications && window.PushNotifications.isSupported();
+  const [perm, setPerm] = useEV2(() => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'));
+  const [active, setActive] = useEV2(false);
+  const [busy, setBusy] = useEV2(false);
+  const [installPrompt, setInstallPrompt] = useEV2(null);
+  const [installed, setInstalled] = useEV2(() => typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone));
+
+  // Sync active state on mount
+  useEE2(() => {
+    let mounted = true;
+    if (!window.PushNotifications) return;
+    window.PushNotifications.isActive().then(v => { if (mounted) setActive(v); });
+    const onSub = () => window.PushNotifications.isActive().then(v => { if (mounted) { setActive(v); setPerm(Notification.permission); } });
+    const onUnsub = () => { if (mounted) setActive(false); };
+    window.addEventListener('push-subscribed', onSub);
+    window.addEventListener('push-unsubscribed', onUnsub);
+    return () => { mounted = false; window.removeEventListener('push-subscribed', onSub); window.removeEventListener('push-unsubscribed', onUnsub); };
+  }, []);
+
+  // Install prompt · captura beforeinstallprompt
+  useEE2(() => {
+    const onBefore = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    const onInstalled = () => { setInstalled(true); setInstallPrompt(null); };
+    window.addEventListener('beforeinstallprompt', onBefore);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => { window.removeEventListener('beforeinstallprompt', onBefore); window.removeEventListener('appinstalled', onInstalled); };
+  }, []);
+
+  const toggle = async () => {
+    setBusy(true);
+    if (active) await window.PushNotifications.unsubscribe();
+    else await window.PushNotifications.subscribe();
+    const v = await window.PushNotifications.isActive();
+    setActive(v); setPerm(Notification.permission);
+    setBusy(false);
+  };
+
+  const testLocal = async () => {
+    const r = await window.PushNotifications.sendTestLocal();
+    if (r.error && window.Toast) window.Toast.info('Test local · ' + r.error);
+  };
+  const testRemote = async () => {
+    const r = await window.PushNotifications.sendTestRemote();
+    if (r.ok && window.Toast) window.Toast.success('Push enviada desde el servidor', { icon:'📨' });
+    else if (window.Toast) window.Toast.info('Server push no configurado · usa el test local');
+  };
+
+  const triggerInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === 'accepted') setInstalled(true);
+    setInstallPrompt(null);
+  };
+
+  const statusColor = active ? 'var(--ok)' : (perm === 'denied' ? 'var(--warn)' : 'var(--fg-dim)');
+  const statusLabel = !supported ? T('push.notSupported')
+    : perm === 'denied' ? T('push.denied')
+    : active ? T('push.active')
+    : T('push.inactive');
+
+  return (
+    <section style={{ marginTop: 40, marginBottom: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap: 12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>🔔 {T('push.title')}</h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color: statusColor, fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius:'50%', background: statusColor }}/>
+          {statusLabel}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 20 }}>{T('push.sub')}</div>
+
+      {/* Card principal · suscripción */}
+      <div style={{ padding:'18px 22px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12, marginBottom: 12 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>
+              {active ? T('push.active') : T('push.enable')}
+            </div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>
+              {supported ? 'Permiso del navegador: ' + perm : T('push.notSupported')}
+            </div>
+          </div>
+          <div style={{ display:'flex', gap: 8, flexWrap:'wrap' }}>
+            {supported && perm !== 'denied' && (
+              <button onClick={toggle} disabled={busy}
+                style={{ padding:'10px 16px', background: active ? 'transparent' : 'var(--accent)', border: active ? '1px solid var(--line)' : 'none', color: active ? 'var(--fg-muted)' : '#fff', borderRadius: 8, cursor: busy ? 'wait' : 'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, opacity: busy ? 0.6 : 1 }}>
+                {busy ? '…' : (active ? T('push.disable') : T('push.enable'))}
+              </button>
+            )}
+            {active && (
+              <button onClick={testLocal} style={{ padding:'10px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 12, fontWeight: 600 }}>
+                📨 {T('push.testLocal')}
+              </button>
+            )}
+            {active && (
+              <button onClick={testRemote} style={{ padding:'10px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 12, fontWeight: 600 }}>
+                ☁️ {T('push.testRemote')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Install banner · solo si NO está instalada y el browser ofrece prompt */}
+      {!installed && installPrompt && (
+        <div style={{ padding:'14px 18px', background:'linear-gradient(135deg, rgba(110,80,238,0.10), transparent)', border:'1px solid rgba(110,80,238,0.3)', borderRadius: 12, display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{T('push.install')}</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('push.installPromo')}</div>
+          </div>
+          <button onClick={triggerInstall} style={{ padding:'10px 18px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13, boxShadow:'0 4px 12px rgba(110,80,238,0.30)' }}>
+            {T('push.install')}
+          </button>
+        </div>
+      )}
+      {installed && (
+        <div style={{ padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 8, fontSize: 12, color:'var(--ok)' }}>
+          {T('push.installed')}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SmartSchedulingPanel() {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const lang = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
@@ -1779,6 +1907,9 @@ function SettingsView({ setView }) {
           </div>
         </div>
       </section>
+
+      {/* PUSH NOTIFICATIONS · Web Push API · suscripción del dispositivo */}
+      <PushNotificationsPanel/>
 
       {/* SMART SCHEDULING · IA con análisis del mejor horario */}
       <SmartSchedulingPanel/>

@@ -320,6 +320,31 @@ create table if not exists public.test_sends (
 create index if not exists test_sends_user_ws_idx on public.test_sends(user_id, workspace_id, created_at desc);
 
 -- =====================================================================
+-- 18b. push_subscriptions · suscripciones Web Push del navegador
+-- =====================================================================
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  user_id uuid references public.profiles(id) on delete cascade,
+  workspace_id uuid references public.workspaces(id) on delete cascade,
+  keys jsonb not null,                       -- { p256dh, auth }
+  user_agent text,
+  active boolean default true,
+  created_at timestamptz default now(),
+  last_used_at timestamptz
+);
+create index if not exists push_subs_user_idx on public.push_subscriptions(user_id, active);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists push_subs_self on public.push_subscriptions;
+create policy push_subs_self on public.push_subscriptions
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists push_subs_admin_read on public.push_subscriptions;
+create policy push_subs_admin_read on public.push_subscriptions
+  for select using (public.is_platform_admin());
+
+-- =====================================================================
 -- 19. Storage bucket · pill-submissions
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

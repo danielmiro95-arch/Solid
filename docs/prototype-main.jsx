@@ -1086,6 +1086,181 @@ const Workspaces = (function() {
 })();
 window.Workspaces = Workspaces;
 
+// ── PushNotifications · Web Push API · suscripción + envío ─────────────────
+// Gestión completa de notificaciones push del navegador. El SW ya tiene listener
+// `push` que muestra la notificación · este store maneja el lifecycle:
+//   1. Pedir permiso al usuario.
+//   2. Crear PushSubscription con VAPID public key.
+//   3. Enviar la subscription al backend (Supabase si activo, localStorage si demo).
+//   4. Listar / borrar suscripciones.
+const PushNotifications = (function() {
+  // VAPID public key · se obtiene desde /api/config (configurado server-side).
+  // En modo demo sin VAPID, push solo funciona como showNotification local.
+  function _vapidKey() { return window.VAPID_PUBLIC_KEY || null; }
+
+  function isSupported() {
+    return typeof window !== 'undefined'
+      && 'serviceWorker' in navigator
+      && 'PushManager' in window
+      && 'Notification' in window;
+  }
+
+  function permission() {
+    if (typeof Notification === 'undefined') return 'unsupported';
+    return Notification.permission;
+  }
+
+  // Convierte base64url → Uint8Array (formato requerido por PushManager.subscribe)
+  function _urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  async function getRegistration() {
+    if (!isSupported()) return null;
+    try { return await navigator.serviceWorker.ready; } catch(e) { return null; }
+  }
+
+  async function getSubscription() {
+    const reg = await getRegistration();
+    if (!reg) return null;
+    return reg.pushManager.getSubscription();
+  }
+
+  async function subscribe() {
+    if (!isSupported()) return { error:'not-supported' };
+    if (permission() === 'denied') return { error:'denied' };
+
+    // Pedir permiso si aún no se otorgó
+    if (permission() === 'default') {
+      const r = await Notification.requestPermission();
+      if (r !== 'granted') return { error:'permission-denied' };
+    }
+
+    const reg = await getRegistration();
+    if (!reg) return { error:'no-service-worker' };
+
+    // Si ya hay suscripción, devolverla
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const vapid = _vapidKey();
+      if (!vapid) {
+        // Sin VAPID el server no puede enviar push; solo notifs locales funcionarán
+        if (window.Toast) window.Toast.info('Permiso concedido · push del servidor no configurado', { icon:'🔔' });
+        return { warning:'no-vapid-key', subscription: null };
+      }
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: _urlBase64ToUint8Array(vapid),
+        });
+      } catch (e) {
+        console.warn('[push] subscribe failed', e);
+        return { error:'subscribe-failed', message: e.message };
+      }
+    }
+
+    await _persistSubscription(sub);
+    if (window.Toast) window.Toast.success('Notificaciones push activadas', { icon:'🔔' });
+    window.dispatchEvent(new CustomEvent('push-subscribed', { detail: sub }));
+    return { subscription: sub };
+  }
+
+  async function unsubscribe() {
+    const sub = await getSubscription();
+    if (!sub) return { ok:true };
+    try {
+      await sub.unsubscribe();
+      await _deleteSubscription(sub.endpoint);
+      if (window.Toast) window.Toast.info('Notificaciones push desactivadas');
+      window.dispatchEvent(new Event('push-unsubscribed'));
+      return { ok:true };
+    } catch (e) { return { error:'unsubscribe-failed', message: e.message }; }
+  }
+
+  // Persiste la subscription · Supabase si activo, sino localStorage.
+  async function _persistSubscription(sub) {
+    const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+    const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+    if (!u) return;
+    const payload = {
+      endpoint: sub.endpoint,
+      keys: sub.toJSON && sub.toJSON().keys,
+      user_id: u.id,
+      workspace_id: wsId,
+      user_agent: navigator.userAgent,
+      created_at: new Date().toISOString(),
+    };
+    if (window.SGSON_BACKEND === 'supabase' && window.supabaseClient) {
+      const { error } = await window.supabaseClient.from('push_subscriptions').upsert(payload, { onConflict: 'endpoint' });
+      if (error) console.warn('[push] persist', error.message);
+    } else {
+      const key = 'solid-push-subs:' + u.id;
+      let arr = []; try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+      if (!arr.find(x => x.endpoint === sub.endpoint)) arr.push(payload);
+      localStorage.setItem(key, JSON.stringify(arr));
+    }
+  }
+
+  async function _deleteSubscription(endpoint) {
+    const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+    if (!u) return;
+    if (window.SGSON_BACKEND === 'supabase' && window.supabaseClient) {
+      await window.supabaseClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    } else {
+      const key = 'solid-push-subs:' + u.id;
+      let arr = []; try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+      localStorage.setItem(key, JSON.stringify(arr.filter(x => x.endpoint !== endpoint)));
+    }
+  }
+
+  // Envía una notif de PRUEBA local · usa showNotification del SW directamente
+  async function sendTestLocal() {
+    if (permission() !== 'granted') return { error:'no-permission' };
+    const reg = await getRegistration();
+    if (!reg) return { error:'no-service-worker' };
+    await reg.showNotification('SolidStream · Test local', {
+      body: 'Esta es una notificación push de prueba enviada localmente desde tu navegador.',
+      icon: '/beonit-logo.png',
+      badge: '/beonit-logo.png',
+      tag: 'solid-test',
+      data: { url: '/' },
+    });
+    return { ok: true };
+  }
+
+  // Envía via servidor (si endpoint /api/push-send está activo)
+  async function sendTestRemote() {
+    const sub = await getSubscription();
+    if (!sub) return { error:'no-subscription' };
+    try {
+      const r = await fetch('/api/push-send', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          subscription: sub.toJSON(),
+          payload: { title:'SolidStream · Test', body:'Push del servidor recibido ✓', url:'/' },
+        }),
+      });
+      if (!r.ok) return { error:'send-failed', status: r.status };
+      return { ok: true };
+    } catch(e) { return { error:'send-failed', message: e.message }; }
+  }
+
+  async function isActive() {
+    if (!isSupported() || permission() !== 'granted') return false;
+    const sub = await getSubscription();
+    return !!sub;
+  }
+
+  return { isSupported, permission, subscribe, unsubscribe, getSubscription,
+           sendTestLocal, sendTestRemote, isActive };
+})();
+window.PushNotifications = PushNotifications;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
@@ -2484,6 +2659,19 @@ const I18n = (function() {
       'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
       'workspaces.empty':'Aún no hay workspaces. Crea el primero para empezar.',
       'workspaces.confirmDelete':'¿Eliminar el workspace "{name}"? Esta acción borra todos los miembros del workspace.',
+      'push.title':'Notificaciones push',
+      'push.sub':'Recibe avisos en tu móvil o navegador cuando hay contenido nuevo o un mensaje importante.',
+      'push.notSupported':'Tu navegador no soporta notificaciones push.',
+      'push.denied':'Has bloqueado las notificaciones. Habilítalas desde la configuración del navegador.',
+      'push.active':'✓ Activas en este dispositivo',
+      'push.inactive':'Inactivas',
+      'push.enable':'🔔 Activar push',
+      'push.disable':'Desactivar',
+      'push.testLocal':'Test local',
+      'push.testRemote':'Test desde servidor',
+      'push.install':'📲 Instalar como app',
+      'push.installed':'✓ Instalada como app',
+      'push.installPromo':'Añade SolidStream a tu pantalla de inicio para acceso rápido y notificaciones push.',
       'common.save':'Guardar', 'common.cancel':'Cancelar', 'common.close':'Cerrar', 'common.edit':'Editar',
       'common.delete':'Borrar', 'common.confirm':'Confirmar', 'common.logout':'Cerrar sesión',
       'common.search':'Buscar', 'common.loading':'Cargando…', 'common.reset':'Restablecer',
@@ -2716,6 +2904,19 @@ const I18n = (function() {
       'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
       'workspaces.empty':'No workspaces yet. Create the first one to get started.',
       'workspaces.confirmDelete':'Delete workspace "{name}"? This removes all workspace members.',
+      'push.title':'Push notifications',
+      'push.sub':'Get alerts on your phone or browser when there\'s new content or an important message.',
+      'push.notSupported':'Your browser doesn\'t support push notifications.',
+      'push.denied':'You\'ve blocked notifications. Enable them in browser settings.',
+      'push.active':'✓ Active on this device',
+      'push.inactive':'Inactive',
+      'push.enable':'🔔 Enable push',
+      'push.disable':'Disable',
+      'push.testLocal':'Local test',
+      'push.testRemote':'Server test',
+      'push.install':'📲 Install as app',
+      'push.installed':'✓ Installed as app',
+      'push.installPromo':'Add SolidStream to your home screen for quick access and push notifications.',
       'common.save':'Save', 'common.cancel':'Cancel', 'common.close':'Close', 'common.edit':'Edit',
       'common.delete':'Delete', 'common.confirm':'Confirm', 'common.logout':'Log out',
       'common.search':'Search', 'common.loading':'Loading…', 'common.reset':'Reset',
@@ -2948,6 +3149,19 @@ const I18n = (function() {
       'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
       'workspaces.empty':'Ainda não há workspaces. Crie o primeiro para começar.',
       'workspaces.confirmDelete':'Excluir o workspace "{name}"? Esta ação remove todos os membros do workspace.',
+      'push.title':'Notificações push',
+      'push.sub':'Receba avisos no seu celular ou navegador quando há conteúdo novo ou uma mensagem importante.',
+      'push.notSupported':'Seu navegador não suporta notificações push.',
+      'push.denied':'Você bloqueou as notificações. Ative-as nas configurações do navegador.',
+      'push.active':'✓ Ativas neste dispositivo',
+      'push.inactive':'Inativas',
+      'push.enable':'🔔 Ativar push',
+      'push.disable':'Desativar',
+      'push.testLocal':'Teste local',
+      'push.testRemote':'Teste do servidor',
+      'push.install':'📲 Instalar como app',
+      'push.installed':'✓ Instalado como app',
+      'push.installPromo':'Adicione SolidStream à tela inicial para acesso rápido e notificações push.',
       'common.save':'Salvar', 'common.cancel':'Cancelar', 'common.close':'Fechar', 'common.edit':'Editar',
       'common.delete':'Excluir', 'common.confirm':'Confirmar', 'common.logout':'Sair',
       'common.search':'Buscar', 'common.loading':'Carregando…', 'common.reset':'Redefinir',
