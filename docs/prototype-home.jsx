@@ -276,6 +276,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 }
 
 function HomeHero({ onPlay, onMore }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const PILLS = (D && D.PILLS) || [];
   const [muted, setMuted] = React.useState(true);
@@ -367,10 +368,10 @@ function HomeHero({ onPlay, onMore }) {
 
         <div className="hero-actions">
           <button className="btn btn-primary" onClick={() => onPlay(p)}>
-            <Ico name="play" size={16}/> Reproducir
+            <Ico name="play" size={16}/> {T('hero.play')}
           </button>
           <button className="btn btn-secondary" onClick={() => onMore(p)}>
-            <Ico name="info" size={16}/> Más información
+            <Ico name="info" size={16}/> {T('hero.more')}
           </button>
           <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}>
             <Ico name={muted ? 'mute' : 'volume'} size={16}/>

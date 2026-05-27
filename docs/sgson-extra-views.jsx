@@ -62,17 +62,19 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
    BrowseView · catálogo con filtro + grid de cards
    ============================================================ */
 function BrowseView({ openDetail }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const pills = (D && D.PILLS) || [];
-  const allCats = ['Todos', ...Array.from(new Set(pills.map(p => p.category))).filter(Boolean)];
-  const [cat, setCat] = useEV2('Todos');
-  const filtered = cat === 'Todos' ? pills : pills.filter(p => p.category === cat);
+  const ALL_KEY = T('browse.all');
+  const allCats = [ALL_KEY, ...Array.from(new Set(pills.map(p => p.category))).filter(Boolean)];
+  const [cat, setCat] = useEV2(ALL_KEY);
+  const filtered = cat === ALL_KEY ? pills : pills.filter(p => p.category === cat);
 
   return (
     <PageShell
-      eyebrow="Catálogo completo"
-      title={<>Todos los <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>módulos</em></>}
-      sub={`${pills.length} Think Pills · BeonIt × Repsol`}>
+      eyebrow={T('browse.eyebrow')}
+      title={<>{T('browse.title')}</>}
+      sub={`${pills.length} ${T('browse.sub')}`}>
       {/* Filtro categoría */}
       <div style={{
         display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 32,
@@ -123,15 +125,16 @@ function BrowseView({ openDetail }) {
    RutasView · 6 grandes path cards estilo featured
    ============================================================ */
 function RutasView({ setView, openPath }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
 
   return (
     <PageShell
-      eyebrow="Rutas de certificación"
-      title={<>Especialízate <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>en tu rol</em></>}
-      sub="Cada ruta es una secuencia curada · al completarla obtienes el certificado oficial Repsol × BeonIt">
+      eyebrow={T('rutas.eyebrow')}
+      title={<>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>}
+      sub={T('rutas.sub')}>
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
@@ -150,7 +153,7 @@ function RutasView({ setView, openPath }) {
               <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
                 marginTop: 14, padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
                 background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
-              }}>Empezar ruta →</button>
+              }}>{T('rutas.start')}</button>
             </div>
           </article>
         ))}
@@ -163,6 +166,7 @@ function RutasView({ setView, openPath }) {
    MyPathView · progreso del usuario + próximas pills
    ============================================================ */
 function MyPathView({ openDetail, setView, pathId }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const [showExam, setShowExam] = useEV2(false);
   const D = window.SGS_DATA;
   const ALL_PILLS = (D && D.PILLS) || [];
@@ -199,10 +203,10 @@ function MyPathView({ openDetail, setView, pathId }) {
         <div style={{ display:'flex', gap: 10 }}>
           {totalProgress >= 70 && window.RouteExamModal && (
             <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 4px 12px rgba(89,71,255,0.30)' }}>
-              🎓 Hacer examen final
+              {T('mypath.exam')}
             </button>
           )}
-          <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>← Todas las rutas</button>
+          <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>{T('mypath.allRoutes')}</button>
         </div>
       ) : null}>
 
@@ -212,7 +216,7 @@ function MyPathView({ openDetail, setView, pathId }) {
         borderRadius: 'var(--r-2)', marginBottom: 32,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Certificación global</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{T('mypath.cert.title')}</span>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 40, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.02em' }}>{totalProgress}%</span>
         </div>
         <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
@@ -223,9 +227,9 @@ function MyPathView({ openDetail, setView, pathId }) {
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 40 }}>
         {[
-          { label: 'Pills completadas', value: completed.length, color: 'var(--ok)' },
-          { label: 'En progreso', value: inProgress.length, color: 'var(--accent)' },
-          { label: 'Por empezar', value: PILLS.length - completed.length - inProgress.length, color: 'var(--fg-muted)' },
+          { label: T('mypath.completed'), value: completed.length, color: 'var(--ok)' },
+          { label: T('mypath.inProgress'), value: inProgress.length, color: 'var(--accent)' },
+          { label: T('mypath.toStart'), value: PILLS.length - completed.length - inProgress.length, color: 'var(--fg-muted)' },
         ].map((s, i) => (
           <div key={i} style={{ padding: 18, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
@@ -238,7 +242,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            Continúa aquí
+            {T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -266,7 +270,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {next.length > 0 && (
         <section>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            Próximas pills recomendadas
+            {T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -306,6 +310,7 @@ function MyPathView({ openDetail, setView, pathId }) {
    ChannelsView · WhatsApp/Teams · keeps storage state
    ============================================================ */
 function ChannelsView() {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   // Estado del Channel Manager (canales conectados + canal principal)
   const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
   useEE2(() => {
@@ -321,9 +326,9 @@ function ChannelsView() {
 
   return (
     <PageShell
-      eyebrow="Canales de comunicación"
-      title={<>Tu formación, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>donde estés</em></>}
-      sub="Conecta los canales corporativos por los que quieres recibir contenido. Puedes activar varios a la vez.">
+      eyebrow={T('channels.eyebrow')}
+      title={<>{T('channels.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('channels.titleEm')}</em></>}
+      sub={T('channels.sub')}>
 
       {/* CHANNEL MANAGER · conectar / desconectar / re-autenticar / marcar principal */}
       <ChannelManagerPanel chState={chState} catalog={catalog}/>
@@ -1468,6 +1473,7 @@ function InboxView({ openDetail }) {
    SavedView · bookmarks grid
    ============================================================ */
 function SavedView({ openDetail }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const PILLS = (D && D.PILLS) || [];
   const [bmIds, setBmIds] = useEV2(() => (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
@@ -1480,15 +1486,15 @@ function SavedView({ openDetail }) {
 
   return (
     <PageShell
-      eyebrow="Mi lista"
-      title={<>Pills <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>guardadas</em></>}
-      sub={`${saved.length} módulos en tu colección`}>
+      eyebrow={T('saved.eyebrow')}
+      title={<>{T('saved.title')}</>}
+      sub={`${saved.length} ${T('saved.count')}`}>
 
       {saved.length === 0 ? (
         <div style={{ padding: 80, textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>🔖</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)', marginBottom: 6 }}>Tu lista está vacía</div>
-          <div style={{ fontSize: 13.5, color: 'var(--fg-muted)' }}>Cuando hagas hover en una card y pulses el botón <strong>+</strong>, la pill aparece aquí.</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)', marginBottom: 6 }}>{T('saved.empty')}</div>
+          <div style={{ fontSize: 13.5, color: 'var(--fg-muted)' }}>{T('saved.emptyDesc')}</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>

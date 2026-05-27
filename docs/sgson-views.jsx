@@ -21,6 +21,7 @@ const catSlugFix = (s) => {
    Detail modal · slide-up cinematográfico
    ============================================================ */
 function DetailModal({ pill, onClose, openPlayer, openPill }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   if (!pill) return null;
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
   const PILLS = (D && D.PILLS) || [];
@@ -97,7 +98,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
         <div className="modal-body">
           <div>
             <div className="meta-row">
-              <span className="match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% afinidad</span>
+              <span className="match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}{T('detail.affinity')}</span>
               <span>2026</span>
               <span className="lvl">{pill.level}</span>
               <span>{pill.duration}</span>
@@ -135,7 +136,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
 
         {related.length > 0 && (
           <div className="modal-related">
-            <h3>Más pills de {cat.label}</h3>
+            <h3>{T('detail.relatedTitle')} {cat.label}</h3>
             <div className="grid">
               {related.map(p => {
                 const ps = catSlugFix(p.category);
@@ -175,6 +176,7 @@ const SUGG = [
 ];
 
 function CoachView() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [hasConv, setHasConv] = useSV(false);
   const [msgs, setMsgs] = useSV([]);
   const [activeChatId, setActiveChatId] = useSV(null);
@@ -262,13 +264,13 @@ function CoachView() {
     <div className="coach" data-screen-label="Coach · BeonAI">
       <aside className="coach-sidebar">
         <button className="coach-new" onClick={reset}>
-          Nueva conversación <Ico name="plus" size={14}/>
+          {T('coach.new')} <Ico name="plus" size={14}/>
         </button>
 
         <div className="sb-section-label" style={{ padding:'0 4px', marginBottom:8 }}>Hoy</div>
         {threads.length === 0 && (
           <div style={{ padding:'18px 8px', fontSize: 12, color:'var(--fg-muted)', textAlign:'center', lineHeight: 1.5 }}>
-            Aún no tienes conversaciones.<br/>Empieza una preguntando algo abajo.
+            {T('coach.empty')}<br/>{T('coach.emptyDesc','Pregunta algo abajo para empezar.')}
           </div>
         )}
         {threads.map(t => (
@@ -309,9 +311,9 @@ function CoachView() {
                     <BeonAIChar size={140} mood="happy" float interactive={false}/>
                   </div>
                 )}
-                <div className="eyebrow"><span className="dot"/>BeonAI · mentor para tu rol de {userRole}</div>
-                <h1>Hola, {firstName}. <span className="you">¿qué quieres dominar hoy?</span></h1>
-                <p>Pregunta sobre Sprinklr, tu ruta, métricas de Care, flujos de aprobación o cualquier pill. Cito siempre la fuente.</p>
+                <div className="eyebrow"><span className="dot"/>{T('coach.eyebrow','BeonAI · mentor para tu rol de')} {userRole}</div>
+                <h1>{T('coach.greeting')}, {firstName}. <span className="you">{T('coach.askYou')}</span></h1>
+                <p>{T('coach.subtitle')}</p>
               </div>
 
               <div className="coach-suggestions">
@@ -368,7 +370,7 @@ function CoachView() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Pregunta a BeonAI…"
+                placeholder={T('coach.placeholder')}
               />
               <button className="icon-btn" aria-label="Adjuntar archivo" title="Adjuntar archivo" onClick={() => window.Toast && window.Toast.info('Adjuntar archivos · próximamente', { icon:'📎' })}><Ico name="attach" size={16}/></button>
               <button className="coach-send" aria-label="Enviar" onClick={() => send()} disabled={!input.trim() || loading}><Ico name="send" size={14}/></button>
