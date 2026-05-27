@@ -571,8 +571,16 @@ async function callMentorAPI(messages) {
 
 // ---------- Onboarding ----------
 function Onboarding({ done = () => {} }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  // Re-render al cambiar el idioma (en caso de que el usuario lo cambie via login screen previo)
+  const [, _force] = useS2(0);
+  useE2(() => {
+    const onChange = () => _force(x => x + 1);
+    window.addEventListener('settings-changed', onChange);
+    return () => window.removeEventListener('settings-changed', onChange);
+  }, []);
   const [step, setStep] = useS2(0);
-  const [selectedAreas, setSelectedAreas] = useS2(new Set(['Publicación', 'Aprobaciones']));
+  const [selectedAreas, setSelectedAreas] = useS2(new Set(['publish','aprobs']));
   const [role, setRole] = useS2('publish');
   const [notifs, setNotifs] = useS2([true, true, false, false]);
   const [showMentorInfo, setShowMentorInfo] = useS2(false);
@@ -602,48 +610,52 @@ function Onboarding({ done = () => {} }) {
       const roleLabel = ({ publish:'Publish Agent', content:'Content Lead', analytics:'Analytics Lead', it:'IT / Integraciones', direccion:'Dirección' })[role] || 'Publish Agent';
       window.UserProfile.update({ role: roleLabel });
     }
-    if (window.Toast) window.Toast.success('Onboarding completado · Bienvenido a SolidStream', { icon: '🎉' });
+    if (window.Toast) window.Toast.success(T('onboarding.complete'), { icon: '🎉' });
     done();
   };
 
-  const areas = ['Social Publish', 'Aprobaciones', 'Calendario editorial', 'Analytics y Reporting', 'Activos DAM', 'Compliance', 'Care y Atención al cliente', 'Integraciones Salesforce', 'Gobernanza y roles', 'Sprinklr Fundamentals'];
-  const toggleArea = (t) => { const n = new Set(selectedAreas); n.has(t) ? n.delete(t) : n.add(t); setSelectedAreas(n); };
+  // Áreas con id para i18n
+  const areaIds = ['publish','aprobs','calendar','analytics','dam','compliance','care','salesforce','gov','fundamentals'];
+  const areaLabel = (id) => T('onboarding.area.' + id, id);
+  const toggleArea = (id) => { const n = new Set(selectedAreas); n.has(id) ? n.delete(id) : n.add(id); setSelectedAreas(n); };
   const toggleNotif = (i) => setNotifs(ns => ns.map((v, idx) => idx === i ? !v : v));
 
   const roles = [
-    { id: 'publish',   label: 'Publish Agent',   desc: 'Publico y apruebo contenido en Sprinklr' },
-    { id: 'content',   label: 'Content Lead',     desc: 'Lidero la estrategia de contenidos' },
-    { id: 'analytics', label: 'Analytics Lead',   desc: 'Analizo rendimiento de campañas' },
-    { id: 'it',        label: 'IT / Integraciones', desc: 'Gestiono la integración con sistemas Repsol' },
-    { id: 'direccion', label: 'Dirección',         desc: 'Necesito visión global de la plataforma' },
+    { id: 'publish',   label: T('onboarding.role.publish'),   desc: T('onboarding.role.publish.sub') },
+    { id: 'content',   label: T('onboarding.role.content'),   desc: T('onboarding.role.content.sub') },
+    { id: 'analytics', label: T('onboarding.role.analytics'), desc: T('onboarding.role.analytics.sub') },
+    { id: 'it',        label: T('onboarding.role.it'),        desc: T('onboarding.role.it.sub') },
+    { id: 'direccion', label: T('onboarding.role.direccion'), desc: T('onboarding.role.direccion.sub') },
   ];
 
   const notifOptions = [
-    { t: 'Recordatorio diario en WhatsApp, 9:00', d: 'Un módulo cada mañana. Sin ruido extra.' },
-    { t: 'Acceso libre desde la app', d: 'Entro cuando tengo tiempo, sin notificaciones.' },
-    { t: 'Resumen semanal por email (viernes)', d: 'Qué aprendiste, qué viene la próxima semana.' },
-    { t: 'Alertas antes de reuniones Sprinklr', d: 'El agente te manda un módulo relevante 30 min antes.' },
+    { t: T('onboarding.notif.daily'),   d: T('onboarding.notif.daily.sub') },
+    { t: T('onboarding.notif.free'),    d: T('onboarding.notif.free.sub') },
+    { t: T('onboarding.notif.weekly'),  d: T('onboarding.notif.weekly.sub') },
+    { t: T('onboarding.notif.meeting'), d: T('onboarding.notif.meeting.sub') },
   ];
+
+  const fmtStep = (n) => T('onboarding.stepOf','{step} · De {total}').replace('{step}', String(n).padStart(2,'0')).replace('{total}', '04');
 
   const steps = [
     {
-      eyebrow: '01 · De 04',
-      title: <>¿En qué área de Sprinklr<br/>quieres <em>certificarte</em>?</>,
-      lead: 'Selecciona las áreas prioritarias. Tu ruta de formación se construirá en torno a ellas — puedes cambiarlas después.',
+      eyebrow: fmtStep(1),
+      title: <>{T('onboarding.s1.title.l1')}<br/>{T('onboarding.s1.title.l2').replace(T('onboarding.s1.titleEm',''), '')}<em> {T('onboarding.s1.titleEm')}</em>?</>,
+      lead: T('onboarding.s1.lead'),
       body: (
         <div className="onb-chips">
-          {areas.map(t => (
-            <button key={t} className={`onb-chip ${selectedAreas.has(t) ? 'sel' : ''}`} onClick={() => toggleArea(t)}>
-              <span className="mark"/>{t}
+          {areaIds.map(id => (
+            <button key={id} className={`onb-chip ${selectedAreas.has(id) ? 'sel' : ''}`} onClick={() => toggleArea(id)}>
+              <span className="mark"/>{areaLabel(id)}
             </button>
           ))}
         </div>
       )
     },
     {
-      eyebrow: '02 · De 04',
-      title: <>¿Cuál es tu <em>rol</em><br/>en Repsol?</>,
-      lead: 'Personalizamos el orden de los módulos y los casos prácticos según tu función en el equipo de comunicación.',
+      eyebrow: fmtStep(2),
+      title: <>{T('onboarding.s2.title.l1')}<br/>{T('onboarding.s2.title.l2')}</>,
+      lead: T('onboarding.s2.lead'),
       body: (
         <div style={{display:'flex', flexDirection:'column', gap:10, maxWidth:520}}>
           {roles.map(r => (
@@ -660,9 +672,9 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '03 · De 04',
-      title: <>¿Cómo quieres <em>aprender</em>?</>,
-      lead: 'Elige cómo quieres recibir tu formación. Puedes activar o desactivar cada canal en cualquier momento desde tu perfil.',
+      eyebrow: fmtStep(3),
+      title: <>{T('onboarding.s3.title')}</>,
+      lead: T('onboarding.s3.lead'),
       body: (
         <div style={{display:'flex', flexDirection:'column', gap:12, maxWidth:520}}>
           {notifOptions.map((x, i) => (
@@ -678,34 +690,33 @@ function Onboarding({ done = () => {} }) {
       )
     },
     {
-      eyebrow: '04 · De 04',
-      title: <>Tu agente IA <em>te espera</em>.</>,
-      lead: 'Conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa — en cualquier momento.',
+      eyebrow: fmtStep(4),
+      title: <>{T('onboarding.s4.title')}</>,
+      lead: T('onboarding.s4.lead'),
       body: (
         <div style={{border:'1px solid var(--line)', borderRadius:16, padding:24, maxWidth:560, background:'var(--paper-2)'}}>
           <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
             <div style={{width:40, height:40, borderRadius:'50%', background:'radial-gradient(circle at 30% 30%, #FCCB00, var(--accent-glow) 60%, #b06800)', boxShadow:'0 0 18px rgba(243,165,36,0.4)', flexShrink:0}}/>
             <div>
               <div style={{fontWeight:600, fontSize:14}}>BeonAI <span className="beta-badge">BETA</span></div>
-              <div style={{fontFamily:'var(--mono)', fontSize:9.5, color:'var(--ink-4)', letterSpacing:'0.08em', textTransform:'uppercase'}}>IA contextualizada · Maximiza el aprendizaje</div>
             </div>
           </div>
           <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize:18, lineHeight:1.4, marginBottom:16, color:'var(--ink)'}}>
-            "Hola. Basándome en tu rol de <em>Publish Agent</em> y las áreas que has elegido, te preparo una ruta de <span style={{background:'linear-gradient(180deg,transparent 62%,var(--accent-glow) 62%)', padding:'0 2px'}}>4 semanas y 10 módulos</span>. ¿Empezamos?"
+            "{T('onboarding.s4.message').replace('{role}', T('onboarding.role.' + role, 'Publish Agent'))}"
           </div>
           <div style={{display:'flex', gap:10}}>
-            <button className="btn glow" onClick={persistOnboarding}>Sí — entrar en SolidStream →</button>
-            <button className="btn ghost" onClick={() => setShowMentorInfo(s => !s)}>{showMentorInfo ? 'Ocultar' : 'Cuéntame más'}</button>
+            <button className="btn glow" onClick={persistOnboarding}>{T('onboarding.s4.cta')}</button>
+            <button className="btn ghost" onClick={() => setShowMentorInfo(s => !s)}>{showMentorInfo ? T('onboarding.s4.hide') : T('onboarding.s4.more')}</button>
           </div>
           {showMentorInfo && (
             <div style={{marginTop:16, padding:'14px 16px', background:'var(--paper)', border:'1px solid var(--line)', borderRadius:10, fontSize:13, lineHeight:1.55, color:'var(--ink-2)'}}>
-              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Qué hace BeonAI</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>{T('onboarding.s4.featuresTitle')}</div>
               <ul style={{margin:0, paddingLeft:18}}>
-                <li>Resuelve dudas sobre Sprinklr en el contexto Repsol con respuestas accionables</li>
-                <li>Te recomienda el próximo módulo basándose en tu progreso y rol</li>
-                <li>Genera quizzes personalizados para repasar lo aprendido</li>
-                <li>Conoce las 41 Think Pills del currículum y sabe cuál cubre cada tema</li>
-                <li>Funciona desde la barra lateral, en pantalla completa o por WhatsApp</li>
+                <li>{T('onboarding.s4.f1')}</li>
+                <li>{T('onboarding.s4.f2')}</li>
+                <li>{T('onboarding.s4.f3')}</li>
+                <li>{T('onboarding.s4.f4')}</li>
+                <li>{T('onboarding.s4.f5')}</li>
               </ul>
             </div>
           )}
@@ -723,10 +734,10 @@ function Onboarding({ done = () => {} }) {
           <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginLeft:4}}>× Repsol</span>
         </div>
         <div style={{position:'relative'}}>
-          <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:16}}>Certificación Sprinklr</div>
-          <h2 style={{fontSize:'clamp(40px,5vw,62px)', fontWeight:700, fontStyle:'normal', lineHeight:1.05}}>Domina<br/>Sprinklr<br/>como<br/><em style={{fontStyle:'italic', color:'var(--bn-lime)'}}>experto</em>.</h2>
+          <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:16}}>{T('onboarding.cert')}</div>
+          <h2 style={{fontSize:'clamp(40px,5vw,62px)', fontWeight:700, fontStyle:'normal', lineHeight:1.05}}>{T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')}<br/><em style={{fontStyle:'italic', color:'var(--bn-lime)'}}>{T('login.title.expert')}</em>.</h2>
           <div style={{marginTop:24, display:'flex', flexWrap:'wrap', gap:8}}>
-            {['41 Think Pills', '3 Talleres', 'BeonAI', 'Certificado Repsol'].map(t => (
+            {[T('login.chip.pills'), T('login.chip.workshops'), 'BeonAI', T('login.chip.cert')].map(t => (
               <span key={t} style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'0.1em', textTransform:'uppercase', padding:'4px 10px', border:'1px solid rgba(255,255,255,0.2)', borderRadius:999, color:'rgba(255,255,255,0.7)'}}>
                 {t}
               </span>
@@ -736,7 +747,7 @@ function Onboarding({ done = () => {} }) {
         <div style={{position:'relative'}}>
           <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
             <div style={{width:8, height:8, borderRadius:'50%', background:'var(--bn-lime)'}}/>
-            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>Certificación oficial · 2026</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>{T('onboarding.certOfficial')}</span>
           </div>
           <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SolidStream · BeonIt × Repsol</div>
         </div>
@@ -747,9 +758,9 @@ function Onboarding({ done = () => {} }) {
         <p className="lead">{s.lead}</p>
         {s.body}
         <div className="onb-nav">
-          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>← Atrás</button>}
+          {step > 0 && <button className="btn ghost" onClick={() => setStep(step-1)}>{T('onboarding.back')}</button>}
           <button className="btn" style={{background:'var(--ink)'}} onClick={() => step < 3 ? setStep(step+1) : persistOnboarding()}>
-            {step < 3 ? 'Continuar →' : 'Entrar en SolidStream →'}
+            {step < 3 ? T('onboarding.continue') : T('onboarding.enter')}
           </button>
           <div style={{marginLeft:'auto'}} className="onb-progress">
             {[0,1,2,3].map(i => <span key={i} className={i <= step ? 'on' : ''}/>)}
