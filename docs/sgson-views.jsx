@@ -175,6 +175,51 @@ const SUGG = [
   { ico:'search', t:'Busca pills sobre flujo de aprobación urgente',          s:'Filtra por nivel intermedio',  q:'¿Qué pills me recomiendas sobre flujo de aprobación urgente de contenido?' },
 ];
 
+// Render rich text de Claude · soporta markdown básico inline (negritas,
+// cursivas, código, links) y a nivel de párrafo (listas, headers). Sin parser
+// completo: solo los patrones que BeonAI usa de forma natural. Escapa HTML
+// antes de procesar para evitar XSS (aunque la fuente es nuestra API).
+function renderRichText(text) {
+  const escape = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => escape(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  const paragraphs = String(text || '').split(/\n{2,}/);
+  return paragraphs.map((p, j) => {
+    const lines = p.split('\n').filter(Boolean);
+    if (lines.length === 0) return null;
+    // Header (## Title o ### Title al inicio del párrafo)
+    const headerMatch = lines[0].match(/^(#{1,3})\s+(.+)$/);
+    if (headerMatch && lines.length === 1) {
+      const level = headerMatch[1].length;
+      const Tag = level === 1 ? 'h2' : (level === 2 ? 'h3' : 'h4');
+      return <Tag key={j} style={{margin: j===0 ? '0 0 6px' : '14px 0 4px', fontSize: level===1?18:level===2?15:14, fontWeight:700, lineHeight:1.3}} dangerouslySetInnerHTML={{__html: inline(headerMatch[2])}}/>;
+    }
+    // Lista no ordenada (- o *)
+    if (lines.every(l => /^[-*]\s+/.test(l))) {
+      return (
+        <ul key={j} style={{margin: j===0 ? '0 0 8px' : '4px 0 10px', paddingLeft: 22}}>
+          {lines.map((l, k) => <li key={k} style={{marginBottom:3}} dangerouslySetInnerHTML={{__html: inline(l.replace(/^[-*]\s+/, ''))}}/>)}
+        </ul>
+      );
+    }
+    // Lista ordenada (1. 2. ...)
+    if (lines.every(l => /^\d+\.\s+/.test(l))) {
+      return (
+        <ol key={j} style={{margin: j===0 ? '0 0 8px' : '4px 0 10px', paddingLeft: 22}}>
+          {lines.map((l, k) => <li key={k} style={{marginBottom:3}} dangerouslySetInnerHTML={{__html: inline(l.replace(/^\d+\.\s+/, ''))}}/>)}
+        </ol>
+      );
+    }
+    // Párrafo normal · saltos de línea simples como <br/>
+    const html = lines.map(inline).join('<br/>');
+    return <p key={j} style={{margin: j===0 ? '0 0 8px' : '8px 0', lineHeight:1.5}} dangerouslySetInnerHTML={{__html: html}}/>;
+  });
+}
+
 function CoachView() {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [hasConv, setHasConv] = useSV(false);
@@ -352,9 +397,7 @@ function CoachView() {
                   <div key={i} className="msg-ai">
                     {window.BeonAIChar ? <div className="ai-mark" style={{padding:0, background:'transparent', boxShadow:'none'}}><BeonAIChar size={32} interactive={false}/></div> : <div className="ai-mark">B</div>}
                     <div className="body">
-                      {String(m.text).split('\n\n').map((p, j) => (
-                        <p key={j} style={{margin: j===0 ? '0 0 8px' : '8px 0'}}>{p}</p>
-                      ))}
+                      {renderRichText(m.text)}
                     </div>
                   </div>
                 )

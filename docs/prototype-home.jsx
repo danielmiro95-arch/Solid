@@ -307,7 +307,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 
         {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
         {menuOpen && (
-          <div style={{
+          <div className="avatar-menu" style={{
             position:'absolute', top:'calc(100% + 12px)', right:0, zIndex:1100,
             minWidth:280,
             background:'rgba(14,14,18,0.96)',
@@ -318,6 +318,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
             boxShadow:'0 20px 60px rgba(0,0,0,0.6)',
             padding:8,
             animation:'fadeIn .15s ease',
+            color:'#F5F4F1',
           }}>
             {/* Header con usuario */}
             <div style={{
@@ -357,7 +358,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
             <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
 
             {/* Logout */}
-            <button onClick={() => { setMenuOpen(false); onLogout && onLogout(); }}
+            <button data-logout="true" onClick={() => { setMenuOpen(false); onLogout && onLogout(); }}
               style={{
                 display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 14px',
                 background:'transparent', border:'none', borderRadius:8, cursor:'pointer',
