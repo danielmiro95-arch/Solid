@@ -1326,6 +1326,7 @@ function DeliveryPreferencesPanel({ channelColor }) {
    InboxView · listado de notificaciones · API real Inbox.getAll()
    ============================================================ */
 function InboxView({ openDetail }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const [data, setData] = useEV2(() => (window.Inbox && window.Inbox.getAll && window.Inbox.getAll()) || { messages:[], notifications:[], releases:[] });
   const [tab, setTab] = useEV2('messages');
@@ -1345,9 +1346,9 @@ function InboxView({ openDetail }) {
                     + (data.releases || []).filter(m => !m.read).length;
 
   const TABS = [
-    { id:'messages',      label:'Mensajes',      icon:'💬', count:(data.messages||[]).filter(m => !m.read).length },
-    { id:'notifications', label:'Notificaciones',icon:'🔔', count:(data.notifications||[]).filter(m => !m.read).length },
-    { id:'releases',      label:'Novedades',     icon:'✨', count:(data.releases||[]).filter(m => !m.read).length },
+    { id:'messages',      label:T('inbox.tab.messages'),  icon:'💬', count:(data.messages||[]).filter(m => !m.read).length },
+    { id:'notifications', label:T('inbox.tab.notifs'),    icon:'🔔', count:(data.notifications||[]).filter(m => !m.read).length },
+    { id:'releases',      label:T('inbox.tab.releases'),  icon:'✨', count:(data.releases||[]).filter(m => !m.read).length },
   ];
 
   // Resuelve título · cuerpo · icono según el tipo de elemento (messages/notifications/releases)
@@ -1409,11 +1410,11 @@ function InboxView({ openDetail }) {
     <PageShell
       eyebrow={`Bandeja · ${totalAll} elementos`}
       title={<>Tus <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>notificaciones</em></>}
-      sub={totalUnread > 0 ? `${totalUnread} sin leer` : 'Todo al día'}
+      sub={totalUnread > 0 ? `${totalUnread} ${T('inbox.unread').toLowerCase()}` : ''}
       actions={items.length > 0 && unread.length > 0 ? (
         <button onClick={() => window.Inbox && window.Inbox.markAllRead && window.Inbox.markAllRead(tab)}
           style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>
-          ✓ Marcar todo como leído
+          {T('inbox.markAllRead')}
         </button>
       ) : null}>
 
@@ -1440,20 +1441,20 @@ function InboxView({ openDetail }) {
       {items.length === 0 ? (
         <div style={{ padding: 60, textAlign:'center', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>📭</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>Bandeja vacía</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>{T('inbox.empty')}</div>
           <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Cuando recibas algo en {TABS.find(t => t.id === tab).label.toLowerCase()}, aparecerá aquí.</div>
         </div>
       ) : (
         <>
           {unread.length > 0 && (
             <section style={{ marginBottom: 32 }}>
-              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>Sin leer · {unread.length}</h2>
+              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>{T('inbox.unread')} · {unread.length}</h2>
               {unread.map(renderItem)}
             </section>
           )}
           {read.length > 0 && (
             <section>
-              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>Leídos · {read.length}</h2>
+              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>{T('inbox.read')} · {read.length}</h2>
               {read.map(renderItem)}
             </section>
           )}
@@ -1515,6 +1516,7 @@ function SavedView({ openDetail }) {
    ProfileView · datos usuario + progreso resumen
    ============================================================ */
 function ProfileView({ setView }) {
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const USER = (D && D.USER) || {};
   const PILLS = (D && D.PILLS) || [];
@@ -1531,14 +1533,14 @@ function ProfileView({ setView }) {
   }, [USER.id]);
 
   const handleLogout = () => {
-    if (!confirm('¿Cerrar sesión de ' + USER.name + '?')) return;
+    if (!confirm(T('profile.confirmLogout') + ' ' + USER.name + '?')) return;
     if (window.Auth && window.Auth.logout) window.Auth.logout();
   };
 
   const saveEdits = () => {
     if (window.UserProfile && window.UserProfile.update) {
       window.UserProfile.update({ name, role, team });
-      if (window.Toast) window.Toast.success('Perfil actualizado', { icon:'✓' });
+      if (window.Toast) window.Toast.success(T('profile.updated'), { icon:'✓' });
     }
     setEditing(false);
   };
@@ -1549,7 +1551,7 @@ function ProfileView({ setView }) {
 
   return (
     <PageShell
-      eyebrow="Mi perfil"
+      eyebrow={T('profile.title')}
       title={USER.name || 'Usuario'}
       sub={`${USER.role || 'Publish Agent'} · ${USER.team || 'Repsol'}`}
       narrow>
@@ -1576,15 +1578,15 @@ function ProfileView({ setView }) {
         {editing && (
           <div style={{ flex: 1, display:'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
             <label style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Nombre</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>{T('profile.name')}</span>
               <input value={name} onChange={e => setName(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}/>
             </label>
             <label style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Equipo</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>{T('profile.team')}</span>
               <input value={team} onChange={e => setTeam(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}/>
             </label>
             <label style={{ display:'flex', flexDirection:'column', gap:4, gridColumn:'1 / -1' }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Rol</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>{T('profile.role')}</span>
               <select value={role} onChange={e => setRole(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}>
                 {['Publish Agent','Care Agent','Reporting Agent','Manager','Analyst','Content Lead','Otro'].map(r => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -1596,9 +1598,9 @@ function ProfileView({ setView }) {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
         {[
-          { label: 'Pills completadas', value: completed, color: 'var(--ok)' },
-          { label: 'En curso', value: inProgress, color: 'var(--accent)' },
-          { label: 'Días activo', value: 14, color: 'var(--info)' },
+          { label: T('profile.stats.completed'), value: completed, color: 'var(--ok)' },
+          { label: T('profile.stats.inProgress'), value: inProgress, color: 'var(--accent)' },
+          { label: T('profile.stats.daysActive'), value: 14, color: 'var(--info)' },
         ].map((s, i) => (
           <div key={i} style={{ padding: 18, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
@@ -1615,7 +1617,7 @@ function ProfileView({ setView }) {
             border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
             fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14,
             boxShadow:'0 4px 12px rgba(89,71,255,0.30)',
-          }}>✎ Editar perfil</button>
+          }}>{T('profile.editBtn')}</button>
         )}
         {editing && (
           <>
@@ -1623,34 +1625,34 @@ function ProfileView({ setView }) {
               padding: '12px 20px', background: 'var(--ok)', color: '#fff',
               border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14,
-            }}>✓ Guardar</button>
+            }}>✓ {T('common.save')}</button>
             <button onClick={cancelEdits} style={{
               padding: '12px 20px', background: 'transparent', color: 'var(--fg-muted)',
               border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
-            }}>Cancelar</button>
+            }}>{T('common.cancel')}</button>
           </>
         )}
         <button onClick={() => setView('settings')} style={{
           padding: '12px 20px', background: 'var(--bg-elevated)', color: 'var(--fg)',
           border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
-        }}>Ajustes</button>
+        }}>{T('nav.settings')}</button>
         <button onClick={() => setView('saved')} style={{
           padding: '12px 20px', background: 'var(--bg-elevated)', color: 'var(--fg)',
           border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
-        }}>Mi lista</button>
+        }}>{T('nav.saved')}</button>
         <button onClick={() => setView('path')} style={{
           padding: '12px 20px', background: 'var(--bg-elevated)', color: 'var(--fg)',
           border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
-        }}>Mi ruta</button>
+        }}>{T('nav.path')}</button>
         <button onClick={handleLogout} style={{
           padding: '12px 20px', background: 'transparent', color: 'var(--accent)',
           border: '1px solid var(--accent)', borderRadius: 'var(--r-1)', cursor: 'pointer',
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, marginLeft: 'auto',
-        }}>Cerrar sesión</button>
+        }}>{T('common.logout')}</button>
       </div>
     </PageShell>
   );
@@ -1670,38 +1672,41 @@ function SettingsView({ setView }) {
     if (window.Settings && window.Settings.update) window.Settings.update({ [key]: val });
   };
 
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
+  const themeLabels = { light: T('settings.theme.light'), dark: T('settings.theme.dark'), auto: T('settings.theme.auto') };
+
   return (
     <PageShell
-      eyebrow="Preferencias"
-      title={<>Ajustes <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>de tu cuenta</em></>}
-      sub="Personaliza qué contenido recibes, a quién sigues y cómo se comporta SolidStream">
+      eyebrow={T('settings.eyebrow')}
+      title={<>{T('settings.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}/></>}
+      sub="">
 
       {/* General · tema + idioma */}
       <section style={{ marginBottom: 40 }}>
-        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>General</h2>
-        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>Aspecto y idioma de la plataforma.</div>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>{T('settings.general')}</h2>
+        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>{T('settings.general.sub')}</div>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
           {/* Tema */}
           <div style={{ padding: 20, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12 }}>
-            <h3 style={{ fontFamily:'var(--font-sans)', fontSize:14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>Tema visual</h3>
-            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>Solo afecta vistas no cinematográficas (Analytics, perfil…). El Home siempre va en dark.</p>
+            <h3 style={{ fontFamily:'var(--font-sans)', fontSize:14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.theme.title')}</h3>
+            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>{T('settings.theme.desc')}</p>
             <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
-              {[{k:'light', l:'Claro'}, {k:'dark', l:'Oscuro'}, {k:'auto', l:'Automático'}].map(t => (
-                <button key={t.k} onClick={() => { setTheme(t.k); save('theme', t.k); }} style={{
+              {[{k:'light'}, {k:'dark'}, {k:'auto'}].map(ti => (
+                <button key={ti.k} onClick={() => { setTheme(ti.k); save('theme', ti.k); }} style={{
                   padding:'8px 14px', fontFamily:'var(--font-sans)', fontSize: 12.5, fontWeight: 600,
-                  background: theme === t.k ? 'var(--fg)' : 'var(--bg-elevated)',
-                  color: theme === t.k ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+                  background: theme === ti.k ? 'var(--fg)' : 'var(--bg-elevated)',
+                  color: theme === ti.k ? 'var(--bg-canvas)' : 'var(--fg-muted)',
                   border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer',
-                }}>{t.l}</button>
+                }}>{themeLabels[ti.k]}</button>
               ))}
             </div>
           </div>
 
           {/* Idioma */}
           <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
-            <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>Idioma</h3>
-            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>Idioma de interfaz, notificaciones y BeonAI.</p>
+            <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.language.title')}</h3>
+            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>{T('settings.language.desc')}</p>
             <select value={lang} onChange={e => { setLang(e.target.value); save('language', e.target.value); }} style={{
               padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize: 12.5,
               background:'var(--bg-elevated)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 6,

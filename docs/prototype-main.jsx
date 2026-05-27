@@ -1978,6 +1978,172 @@ const Settings = (function() {
 })();
 window.Settings = Settings;
 
+// ── I18n · diccionario de traducciones es/en/pt ───────────────────────────
+// Los componentes leen via I18n.t('key.path') con fallback a la propia key.
+// Reactivo a settings-changed (Settings.update({language})).
+const I18n = (function() {
+  const DICTIONARIES = {
+    es: {
+      'nav.home':'Inicio', 'nav.browse':'Catálogo', 'nav.rutas':'Rutas', 'nav.path':'Mi ruta',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Bandeja',
+      'nav.saved':'Mi lista', 'nav.profile':'Mi perfil', 'nav.settings':'Ajustes', 'nav.admin':'Admin',
+
+      'common.save':'Guardar', 'common.cancel':'Cancelar', 'common.close':'Cerrar', 'common.edit':'Editar',
+      'common.delete':'Borrar', 'common.confirm':'Confirmar', 'common.logout':'Cerrar sesión',
+      'common.search':'Buscar', 'common.loading':'Cargando…', 'common.reset':'Restablecer',
+      'common.test':'Test', 'common.apply':'Aplicar', 'common.next':'Siguiente', 'common.back':'Volver',
+
+      'settings.title':'Ajustes', 'settings.eyebrow':'Preferencias',
+      'settings.general':'General', 'settings.general.sub':'Aspecto y idioma de la plataforma.',
+      'settings.theme.title':'Tema visual',
+      'settings.theme.desc':'Solo afecta vistas no cinematográficas (Analytics, perfil…). El Home siempre va en dark.',
+      'settings.theme.light':'Claro', 'settings.theme.dark':'Oscuro', 'settings.theme.auto':'Automático',
+      'settings.language.title':'Idioma',
+      'settings.language.desc':'Idioma de interfaz, notificaciones y BeonAI.',
+
+      'profile.title':'Mi perfil', 'profile.editBtn':'✎ Editar perfil',
+      'profile.name':'Nombre', 'profile.role':'Rol', 'profile.team':'Equipo',
+      'profile.updated':'Perfil actualizado',
+      'profile.confirmLogout':'¿Cerrar sesión de',
+      'profile.stats.completed':'Pills completadas', 'profile.stats.inProgress':'En curso', 'profile.stats.daysActive':'Días activo',
+
+      'inbox.title':'Bandeja', 'inbox.tab.messages':'Mensajes', 'inbox.tab.notifs':'Notificaciones',
+      'inbox.tab.releases':'Novedades', 'inbox.empty':'Bandeja vacía',
+      'inbox.unread':'Sin leer', 'inbox.read':'Leídos', 'inbox.markAllRead':'✓ Marcar todo como leído',
+
+      'saved.title':'Pills guardadas', 'saved.empty':'Aún no tienes pills guardadas',
+
+      'rutas.title':'Especialízate en tu rol', 'rutas.eyebrow':'Rutas de certificación',
+      'rutas.start':'Empezar ruta →',
+
+      'mypath.exam':'🎓 Hacer examen final', 'mypath.allRoutes':'← Todas las rutas',
+      'mypath.cert.title':'Certificación global', 'mypath.cont':'Continúa aquí', 'mypath.next':'Próximas pills recomendadas',
+
+      'channels.title':'Tu formación, donde estés',
+      'channels.eyebrow':'Canales de comunicación',
+      'channels.connected':'Canales conectados',
+      'channels.primary':'Principal', 'channels.connect':'Conectar', 'channels.disconnect':'Desconectar',
+      'channels.reauth':'Reauth', 'channels.markPrimary':'⭐ Marcar principal', 'channels.soon':'Próximamente',
+    },
+    en: {
+      'nav.home':'Home', 'nav.browse':'Catalog', 'nav.rutas':'Paths', 'nav.path':'My path',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Inbox',
+      'nav.saved':'My list', 'nav.profile':'My profile', 'nav.settings':'Settings', 'nav.admin':'Admin',
+
+      'common.save':'Save', 'common.cancel':'Cancel', 'common.close':'Close', 'common.edit':'Edit',
+      'common.delete':'Delete', 'common.confirm':'Confirm', 'common.logout':'Log out',
+      'common.search':'Search', 'common.loading':'Loading…', 'common.reset':'Reset',
+      'common.test':'Test', 'common.apply':'Apply', 'common.next':'Next', 'common.back':'Back',
+
+      'settings.title':'Settings', 'settings.eyebrow':'Preferences',
+      'settings.general':'General', 'settings.general.sub':'Platform appearance and language.',
+      'settings.theme.title':'Visual theme',
+      'settings.theme.desc':'Only affects non-cinematic views (Analytics, profile…). Home always stays dark.',
+      'settings.theme.light':'Light', 'settings.theme.dark':'Dark', 'settings.theme.auto':'Automatic',
+      'settings.language.title':'Language',
+      'settings.language.desc':'Language for interface, notifications and BeonAI.',
+
+      'profile.title':'My profile', 'profile.editBtn':'✎ Edit profile',
+      'profile.name':'Name', 'profile.role':'Role', 'profile.team':'Team',
+      'profile.updated':'Profile updated',
+      'profile.confirmLogout':'Log out of',
+      'profile.stats.completed':'Pills completed', 'profile.stats.inProgress':'In progress', 'profile.stats.daysActive':'Active days',
+
+      'inbox.title':'Inbox', 'inbox.tab.messages':'Messages', 'inbox.tab.notifs':'Notifications',
+      'inbox.tab.releases':'What\'s new', 'inbox.empty':'Inbox empty',
+      'inbox.unread':'Unread', 'inbox.read':'Read', 'inbox.markAllRead':'✓ Mark all as read',
+
+      'saved.title':'Saved pills', 'saved.empty':'You have no saved pills yet',
+
+      'rutas.title':'Specialize in your role', 'rutas.eyebrow':'Certification paths',
+      'rutas.start':'Start path →',
+
+      'mypath.exam':'🎓 Take final exam', 'mypath.allRoutes':'← All paths',
+      'mypath.cert.title':'Overall certification', 'mypath.cont':'Continue here', 'mypath.next':'Recommended next pills',
+
+      'channels.title':'Your training, wherever you are',
+      'channels.eyebrow':'Communication channels',
+      'channels.connected':'Connected channels',
+      'channels.primary':'Primary', 'channels.connect':'Connect', 'channels.disconnect':'Disconnect',
+      'channels.reauth':'Reauth', 'channels.markPrimary':'⭐ Make primary', 'channels.soon':'Coming soon',
+    },
+    pt: {
+      'nav.home':'Início', 'nav.browse':'Catálogo', 'nav.rutas':'Trilhas', 'nav.path':'Minha trilha',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Canais', 'nav.inbox':'Caixa',
+      'nav.saved':'Minha lista', 'nav.profile':'Meu perfil', 'nav.settings':'Ajustes', 'nav.admin':'Admin',
+
+      'common.save':'Salvar', 'common.cancel':'Cancelar', 'common.close':'Fechar', 'common.edit':'Editar',
+      'common.delete':'Excluir', 'common.confirm':'Confirmar', 'common.logout':'Sair',
+      'common.search':'Buscar', 'common.loading':'Carregando…', 'common.reset':'Redefinir',
+      'common.test':'Teste', 'common.apply':'Aplicar', 'common.next':'Próximo', 'common.back':'Voltar',
+
+      'settings.title':'Ajustes', 'settings.eyebrow':'Preferências',
+      'settings.general':'Geral', 'settings.general.sub':'Aparência e idioma da plataforma.',
+      'settings.theme.title':'Tema visual',
+      'settings.theme.desc':'Afeta apenas vistas não cinematográficas (Analytics, perfil…). O Home sempre fica em dark.',
+      'settings.theme.light':'Claro', 'settings.theme.dark':'Escuro', 'settings.theme.auto':'Automático',
+      'settings.language.title':'Idioma',
+      'settings.language.desc':'Idioma da interface, notificações e BeonAI.',
+
+      'profile.title':'Meu perfil', 'profile.editBtn':'✎ Editar perfil',
+      'profile.name':'Nome', 'profile.role':'Cargo', 'profile.team':'Equipe',
+      'profile.updated':'Perfil atualizado',
+      'profile.confirmLogout':'Sair da conta de',
+      'profile.stats.completed':'Pills concluídas', 'profile.stats.inProgress':'Em curso', 'profile.stats.daysActive':'Dias ativo',
+
+      'inbox.title':'Caixa', 'inbox.tab.messages':'Mensagens', 'inbox.tab.notifs':'Notificações',
+      'inbox.tab.releases':'Novidades', 'inbox.empty':'Caixa vazia',
+      'inbox.unread':'Não lidas', 'inbox.read':'Lidas', 'inbox.markAllRead':'✓ Marcar tudo como lido',
+
+      'saved.title':'Pills salvas', 'saved.empty':'Ainda não tem pills salvas',
+
+      'rutas.title':'Especialize-se em seu cargo', 'rutas.eyebrow':'Trilhas de certificação',
+      'rutas.start':'Começar trilha →',
+
+      'mypath.exam':'🎓 Fazer prova final', 'mypath.allRoutes':'← Todas as trilhas',
+      'mypath.cert.title':'Certificação global', 'mypath.cont':'Continue aqui', 'mypath.next':'Próximas pills recomendadas',
+
+      'channels.title':'Sua formação, onde você estiver',
+      'channels.eyebrow':'Canais de comunicação',
+      'channels.connected':'Canais conectados',
+      'channels.primary':'Principal', 'channels.connect':'Conectar', 'channels.disconnect':'Desconectar',
+      'channels.reauth':'Reauth', 'channels.markPrimary':'⭐ Marcar como principal', 'channels.soon':'Em breve',
+    },
+  };
+
+  function currentLang() {
+    try {
+      const s = window.Settings && window.Settings.get && window.Settings.get();
+      const lang = s && s.language;
+      return DICTIONARIES[lang] ? lang : 'es';
+    } catch(e) { return 'es'; }
+  }
+
+  function t(key, fallback) {
+    const dict = DICTIONARIES[currentLang()] || DICTIONARIES.es;
+    if (dict[key] != null) return dict[key];
+    // Fallback en español
+    if (DICTIONARIES.es[key] != null) return DICTIONARIES.es[key];
+    return fallback != null ? fallback : key;
+  }
+
+  return { t, currentLang, DICTIONARIES };
+})();
+window.I18n = I18n;
+// Helper global · acceso corto sin window
+window.t = (key, fallback) => I18n.t(key, fallback);
+
+// Hook React · re-renderiza componentes cuando cambia el idioma
+window.useI18n = function() {
+  const [lang, setLang] = React.useState(I18n.currentLang());
+  React.useEffect(() => {
+    const onChange = () => setLang(I18n.currentLang());
+    window.addEventListener('settings-changed', onChange);
+    return () => window.removeEventListener('settings-changed', onChange);
+  }, []);
+  return { t: I18n.t, lang };
+};
+
 // ── Theme controller · aplica light/dark/auto al html en cuanto cambia ──
 (function _initThemeController(){
   function applyTheme(theme) {
