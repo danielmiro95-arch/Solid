@@ -254,6 +254,102 @@ const DeliveryPrefs = (function() {
 })();
 window.DeliveryPrefs = DeliveryPrefs;
 
+// ── Channels · Manager · canales conectados (Teams · WhatsApp · Email · Slack · Push) ─
+// Estructura: { teams:{connected:true, account:'amaia@repsol.com', since:ts}, ... , primary:'teams' }
+const Channels = (function() {
+  const KEY = 'solid-channels';
+
+  const CATALOG = [
+    { id:'whatsapp', label:'WhatsApp',         color:'#25D366', icon:'💬',  desc:'Mensajes con thumbnail y CTA · ideal para móvil', authType:'phone',      available:true },
+    { id:'teams',    label:'Microsoft Teams',  color:'#5059C9', icon:'🟦',  desc:'Adaptive cards y notificaciones en chat',         authType:'oauth',      available:true },
+    { id:'email',    label:'Email',            color:'#EA4335', icon:'✉️',  desc:'Digest diario o semanal con HTML rico',           authType:'oauth',      available:true },
+    { id:'slack',    label:'Slack',            color:'#4A154B', icon:'💼',  desc:'Bot notifications + channel posting',             authType:'oauth',      available:false },
+    { id:'push',     label:'Push web/mobile',  color:'#0EA5E9', icon:'🔔',  desc:'Notificaciones nativas del navegador/app',        authType:'permission', available:false },
+  ];
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') return s;
+    } catch(e) {}
+    // estado por defecto: WhatsApp conectado de fábrica
+    return {
+      whatsapp: { connected:true, account:'+34 6XX XXX 234', since: Date.now() - 7*86400000 },
+      primary: 'whatsapp',
+    };
+  }
+
+  function save(state) {
+    localStorage.setItem(_userKey(), JSON.stringify(state));
+    window.dispatchEvent(new CustomEvent('channels-changed', { detail: state }));
+    return state;
+  }
+
+  function connect(channelId, account) {
+    const def = CATALOG.find(c => c.id === channelId);
+    if (!def) return null;
+    const accs = {
+      whatsapp: '+34 6XX XXX 234',
+      teams:    'amaia.ruiz@repsol.com',
+      email:    'amaia.ruiz@repsol.com',
+      slack:    'amaia@repsol.slack.com',
+      push:     (navigator.userAgent || 'Web push').split(' ')[0],
+    };
+    const next = get();
+    next[channelId] = { connected:true, account: account || accs[channelId] || 'Cuenta conectada', since: Date.now() };
+    if (!next.primary || !next[next.primary] || !next[next.primary].connected) next.primary = channelId;
+    if (window.Toast) window.Toast.success(def.label + ' conectado', { icon: def.icon });
+    return save(next);
+  }
+
+  function disconnect(channelId) {
+    const def = CATALOG.find(c => c.id === channelId);
+    const next = get();
+    delete next[channelId];
+    if (next.primary === channelId) {
+      const otherConnected = Object.keys(next).find(k => k !== 'primary' && next[k] && next[k].connected);
+      next.primary = otherConnected || null;
+    }
+    if (def && window.Toast) window.Toast.info(def.label + ' desconectado');
+    return save(next);
+  }
+
+  function setPrimary(channelId) {
+    const next = get();
+    if (!next[channelId] || !next[channelId].connected) return next;
+    next.primary = channelId;
+    if (window.Toast) {
+      const def = CATALOG.find(c => c.id === channelId);
+      if (def) window.Toast.success(def.label + ' es ahora tu canal principal', { icon:'⭐' });
+    }
+    return save(next);
+  }
+
+  function reauth(channelId) {
+    const def = CATALOG.find(c => c.id === channelId);
+    const next = get();
+    if (next[channelId]) next[channelId].since = Date.now();
+    if (def && window.Toast) window.Toast.success(def.label + ' re-autenticado', { icon:'🔐' });
+    return save(next);
+  }
+
+  function getConnected() {
+    const s = get();
+    return CATALOG.filter(c => s[c.id] && s[c.id].connected).map(c => ({ ...c, ...s[c.id], primary: s.primary === c.id }));
+  }
+
+  return { CATALOG, get, save, connect, disconnect, setPrimary, reauth, getConnected };
+})();
+window.Channels = Channels;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy

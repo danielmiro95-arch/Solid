@@ -266,93 +266,165 @@ function MyPathView({ openDetail, setView }) {
    ChannelsView · WhatsApp/Teams · keeps storage state
    ============================================================ */
 function ChannelsView() {
-  const [channel, setChannel] = useEV2(() => localStorage.getItem('solid-channel') || 'whatsapp');
-  const [toggles, setToggles] = useEV2([true, true, false, true]);
-  useEE2(() => { localStorage.setItem('solid-channel', channel); }, [channel]);
-  const toggle = (i) => setToggles(t => t.map((v, idx) => idx === i ? !v : v));
-  const isTeams = channel === 'teams';
-  const channelColor = isTeams ? '#5059C9' : '#25D366';
+  // Estado del Channel Manager (canales conectados + canal principal)
+  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
+  useEE2(() => {
+    const onChange = (e) => setChState(e.detail);
+    window.addEventListener('channels-changed', onChange);
+    return () => window.removeEventListener('channels-changed', onChange);
+  }, []);
 
-  const opts = isTeams ? [
-    { t: 'Módulo diario en Teams · 9:00', d: 'Cada mañana, un mensaje en Teams con tu próximo módulo de Sprinklr.' },
-    { t: 'Briefs antes de reuniones', d: '30 min antes de cualquier reunión Sprinklr en tu calendario.' },
-    { t: 'Respuestas de BeonAI en Teams', d: 'Pregunta al bot directamente desde Teams.' },
-    { t: 'Resumen semanal · viernes 17:00', d: 'Tu progreso de la semana, en un mensaje.' },
-  ] : [
-    { t: 'Módulo diario en WhatsApp · 9:00', d: 'Un mensaje cada mañana con tu próximo módulo.' },
-    { t: 'Briefs antes de reuniones', d: '30 min antes de cualquier sesión relacionada con Sprinklr.' },
-    { t: 'Respuestas de BeonAI por WhatsApp', d: 'Pregunta al agente directamente.' },
-    { t: 'Resumen semanal · viernes 17:00', d: 'Lo completado, tu progreso y qué viene la semana siguiente.' },
-  ];
+  const catalog = (window.Channels && window.Channels.CATALOG) || [];
+  const primaryId = chState.primary || null;
+  const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
+  const channelColor = primaryDef ? primaryDef.color : '#25D366';
 
   return (
     <PageShell
       eyebrow="Canales de comunicación"
       title={<>Tu formación, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>donde estés</em></>}
-      sub="SolidStream llega a ti por el canal corporativo que prefieras">
+      sub="Conecta los canales corporativos por los que quieres recibir contenido. Puedes activar varios a la vez.">
 
-      {/* Selector */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 40, flexWrap: 'wrap' }}>
-        {[
-          { id: 'whatsapp', label: 'WhatsApp', color: '#25D366', desc: 'Equipo Repsol y partners externos' },
-          { id: 'teams', label: 'Microsoft Teams', color: '#5059C9', desc: 'Empleados internos Repsol' },
-        ].map(c => (
-          <button key={c.id} onClick={() => setChannel(c.id)} style={{
-            flex: 1, minWidth: 280, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14,
-            background: channel === c.id ? c.color : 'var(--bg-surface)',
-            color: channel === c.id ? '#fff' : 'var(--fg)',
-            border: `1px solid ${channel === c.id ? c.color : 'var(--line)'}`,
-            borderRadius: 'var(--r-2)', cursor: 'pointer', textAlign: 'left',
-            boxShadow: channel === c.id ? `0 8px 24px ${c.color}40` : 'none', transition: 'all .2s',
-          }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: channel === c.id ? 'rgba(255,255,255,0.2)' : c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}>
-              {c.id === 'teams' ? 'T' : 'W'}
-            </div>
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 3 }}>{c.label}</div>
-              <div style={{ fontSize: 12.5, opacity: 0.8 }}>{c.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* CHANNEL MANAGER · conectar / desconectar / re-autenticar / marcar principal */}
+      <ChannelManagerPanel chState={chState} catalog={catalog}/>
 
-      {/* Toggles + Phone preview */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'flex-start' }}>
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Notificaciones</h2>
-          {opts.map((o, i) => (
-            <div key={i} onClick={() => toggle(i)} style={{
-              padding: 18, marginBottom: 10, background: toggles[i] ? 'var(--bg-elevated)' : 'var(--bg-surface)',
-              border: `1px solid ${toggles[i] ? channelColor : 'var(--line)'}`, borderRadius: 'var(--r-2)',
-              cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14,
-            }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', marginBottom: 4 }}>{o.t}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--fg-muted)' }}>{o.d}</div>
-              </div>
-              <div style={{ width: 36, height: 20, background: toggles[i] ? channelColor : 'rgba(255,255,255,0.1)', borderRadius: 10, position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
-                <div style={{ width: 16, height: 16, background: '#fff', borderRadius: '50%', position: 'absolute', top: 2, left: toggles[i] ? 18 : 2, transition: 'left .2s' }}/>
-              </div>
+      {/* PREVIEW · cómo se ve el mensaje en tu canal principal */}
+      {primaryDef && (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap: 32, alignItems:'flex-start', marginTop: 40 }}>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Vista previa en {primaryDef.label}</h2>
+            <div style={{ fontSize: 13.5, color:'var(--fg-muted)', lineHeight: 1.55, padding:'14px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:12 }}>
+              Así se verá un mensaje típico de SolidStream en tu canal principal. Configura abajo cuándo lo quieres recibir.
             </div>
-          ))}
-        </div>
-
-        {/* Phone preview */}
-        <div style={{ background: '#000', border: '1px solid var(--line)', borderRadius: 24, padding: 12, height: 480 }}>
-          <div style={{ background: channelColor, padding: 12, borderRadius: 12, color: '#fff', marginBottom: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{isTeams ? 'SolidStream bot · Teams' : 'BeonAI · SolidStream'}</div>
-            <div style={{ fontSize: 11, opacity: 0.85 }}>{isTeams ? 'Disponible · 9:00' : 'en línea · 9:00'}</div>
           </div>
-          <div style={{ padding: 12, background: 'var(--bg-canvas)', borderRadius: 8, color: 'var(--fg)', fontSize: 12.5, lineHeight: 1.5 }}>
-            Buenos días ☀️ Hoy toca <b>Programar posts y calendario</b>. ¿Lo vemos ahora?
-            <div style={{ fontSize: 10, color: 'var(--fg-dim)', marginTop: 6 }}>9:00</div>
+          <div style={{ background: '#000', border: '1px solid var(--line)', borderRadius: 24, padding: 12, minHeight: 240 }}>
+            <div style={{ background: channelColor, padding: 12, borderRadius: 12, color: '#fff', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{primaryId === 'teams' ? 'SolidStream bot · Teams' : primaryId === 'email' ? 'SolidStream · Digest' : 'BeonAI · SolidStream'}</div>
+              <div style={{ fontSize: 11, opacity: 0.85 }}>{primaryId === 'teams' ? 'Disponible · 9:00' : primaryId === 'email' ? 'Asunto · Tu pill del día' : 'en línea · 9:00'}</div>
+            </div>
+            <div style={{ padding: 12, background: 'var(--bg-canvas)', borderRadius: 8, color: 'var(--fg)', fontSize: 12.5, lineHeight: 1.5 }}>
+              Buenos días ☀️ Hoy toca <b>Programar posts y calendario</b>. ¿Lo vemos ahora?
+              <div style={{ fontSize: 10, color: 'var(--fg-dim)', marginTop: 6 }}>9:00</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* DELIVERY PREFERENCES · cuándo recibir contenido */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
     </PageShell>
+  );
+}
+
+// ── Channel Manager Panel ─────────────────────────────────────────────────
+function ChannelManagerPanel({ chState, catalog }) {
+  const [connecting, setConnecting] = useEV2(null);
+
+  const startConnect = (chId) => {
+    setConnecting(chId);
+    // mock OAuth · 800 ms de "redirección"
+    setTimeout(() => {
+      window.Channels && window.Channels.connect(chId);
+      setConnecting(null);
+    }, 800);
+  };
+
+  const connectedCount = catalog.filter(c => chState[c.id] && chState[c.id].connected).length;
+
+  return (
+    <section>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 16, gap:12, flexWrap:'wrap' }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Canales conectados</h2>
+          <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{connectedCount} de {catalog.filter(c => c.available).length} canales disponibles activos · puedes conectar varios a la vez.</div>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        {catalog.map(c => {
+          const state = chState[c.id];
+          const connected = !!(state && state.connected);
+          const primary = chState.primary === c.id && connected;
+          const isConnecting = connecting === c.id;
+          const since = state && state.since ? Math.floor((Date.now() - state.since) / 86400000) : null;
+          return (
+            <div key={c.id} style={{
+              padding: '16px 18px',
+              background: connected ? `linear-gradient(135deg, ${c.color}10 0%, var(--bg-surface) 100%)` : 'var(--bg-surface)',
+              border: `1.5px solid ${primary ? c.color : connected ? `${c.color}55` : 'var(--line)'}`,
+              borderRadius: 14,
+              display:'flex', flexDirection:'column', gap: 10,
+              opacity: c.available ? 1 : 0.55,
+              position:'relative',
+            }}>
+              {primary && (
+                <div style={{ position:'absolute', top: -10, left: 12, padding:'2px 8px', background: c.color, color:'#fff', fontFamily:'var(--font-mono)', fontSize: 9, letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700, borderRadius: 999 }}>★ Principal</div>
+              )}
+              <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: c.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{c.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
+                  <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2, lineHeight:1.4 }}>{c.desc}</div>
+                </div>
+                <div style={{ width: 8, height: 8, borderRadius:'50%', background: connected ? '#22C55E' : 'var(--fg-dim)', boxShadow: connected ? '0 0 0 3px rgba(34,197,94,0.18)' : 'none', flexShrink:0 }} title={connected ? 'Conectado' : 'Desconectado'}/>
+              </div>
+
+              {!c.available && (
+                <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.06em', color:'var(--fg-dim)', textTransform:'uppercase', fontWeight:700 }}>Próximamente</div>
+              )}
+
+              {connected && (
+                <div style={{ padding: '8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.06em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Cuenta</div>
+                    <div style={{ fontSize: 12.5, color:'var(--fg)', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{state.account}</div>
+                  </div>
+                  {since != null && (
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', whiteSpace:'nowrap' }}>{since === 0 ? 'hoy' : 'hace ' + since + 'd'}</div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display:'flex', gap: 6, flexWrap:'wrap', marginTop: 'auto' }}>
+                {!connected && c.available && (
+                  <button onClick={() => startConnect(c.id)} disabled={isConnecting} style={{
+                    flex: 1, padding:'9px 12px', background: c.color, color:'#fff', border:'none', borderRadius: 8,
+                    cursor: isConnecting ? 'wait' : 'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12,
+                    opacity: isConnecting ? 0.7 : 1,
+                  }}>
+                    {isConnecting ? '⏳ Conectando…' : (c.authType === 'oauth' ? '🔐 Conectar (OAuth)' : c.authType === 'phone' ? '📱 Conectar' : '🔔 Activar permiso')}
+                  </button>
+                )}
+                {connected && !primary && (
+                  <button onClick={() => window.Channels && window.Channels.setPrimary(c.id)} style={{
+                    padding:'7px 10px', background:'transparent', border:`1px solid ${c.color}`, color: c.color, borderRadius: 8,
+                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 11.5,
+                  }}>⭐ Marcar principal</button>
+                )}
+                {connected && (
+                  <button onClick={() => window.Channels && window.Channels.reauth(c.id)} title="Re-autenticar OAuth" style={{
+                    padding:'7px 10px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8,
+                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
+                  }}>🔄 Reauth</button>
+                )}
+                {connected && (
+                  <button onClick={() => { if (confirm('¿Desconectar ' + c.label + '?')) window.Channels && window.Channels.disconnect(c.id); }} style={{
+                    padding:'7px 10px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8,
+                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
+                  }}>Desconectar</button>
+                )}
+                {!c.available && (
+                  <button disabled style={{
+                    flex: 1, padding:'9px 12px', background:'var(--bg-surface)', color:'var(--fg-dim)', border:'1px dashed var(--line)', borderRadius: 8,
+                    cursor:'not-allowed', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
+                  }}>Próximamente</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
