@@ -2048,8 +2048,10 @@ function BeonAIConfigPanel() {
   const [docs, setDocs] = useEV2([]);
   const [newDocName, setNewDocName] = useEV2('');
   const [newDocContent, setNewDocContent] = useEV2('');
-  const [toolReadSolid, setToolReadSolid] = useEV2(false);
-  const [toolWebSearch, setToolWebSearch] = useEV2(false);
+  const [toolReadProgress, setToolReadProgress] = useEV2(false);
+  const [toolSearchPills, setToolSearchPills] = useEV2(false);
+  const [toolWebSprinklr, setToolWebSprinklr] = useEV2(false);
+  const [toolSearchLoop, setToolSearchLoop] = useEV2(false);
 
   const wsId = (window.Workspaces.current() && window.Workspaces.current().id) || null;
 
@@ -2073,8 +2075,10 @@ function BeonAIConfigPanel() {
         setMaxTokens(c.max_tokens || 1024);
         setDocs(Array.isArray(c.knowledge_docs) ? c.knowledge_docs : []);
         const tools = c.tools_enabled || {};
-        setToolReadSolid(!!tools.read_solid_data);
-        setToolWebSearch(!!tools.web_search);
+        setToolReadProgress(!!tools.read_user_progress);
+        setToolSearchPills(!!tools.search_pill_catalog);
+        setToolWebSprinklr(!!tools.web_search_sprinklr);
+        setToolSearchLoop(!!tools.search_microsoft_loop);
       } catch (e) {
         if (!cancelled) setError('No se pudo cargar la configuración: ' + e.message);
       } finally {
@@ -2114,7 +2118,12 @@ function BeonAIConfigPanel() {
           temperature: Number(temperature),
           max_tokens: Number(maxTokens),
           knowledge_docs: docs,
-          tools_enabled: { read_solid_data: toolReadSolid, web_search: toolWebSearch },
+          tools_enabled: {
+            read_user_progress: toolReadProgress,
+            search_pill_catalog: toolSearchPills,
+            web_search_sprinklr: toolWebSprinklr,
+            search_microsoft_loop: toolSearchLoop,
+          },
         }),
       });
       if (!res.ok) {
@@ -2136,7 +2145,12 @@ function BeonAIConfigPanel() {
       system_prompt: systemPrompt, model,
       temperature: Number(temperature), max_tokens: Number(maxTokens),
       knowledge_docs: docs,
-      tools_enabled: { read_solid_data: toolReadSolid, web_search: toolWebSearch },
+      tools_enabled: {
+        read_user_progress: toolReadProgress,
+        search_pill_catalog: toolSearchPills,
+        web_search_sprinklr: toolWebSprinklr,
+        search_microsoft_loop: toolSearchLoop,
+      },
       exported_at: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -2158,8 +2172,10 @@ function BeonAIConfigPanel() {
         if (typeof d.max_tokens === 'number') setMaxTokens(d.max_tokens);
         if (Array.isArray(d.knowledge_docs)) setDocs(d.knowledge_docs);
         if (d.tools_enabled) {
-          setToolReadSolid(!!d.tools_enabled.read_solid_data);
-          setToolWebSearch(!!d.tools_enabled.web_search);
+          setToolReadProgress(!!d.tools_enabled.read_user_progress);
+          setToolSearchPills(!!d.tools_enabled.search_pill_catalog);
+          setToolWebSprinklr(!!d.tools_enabled.web_search_sprinklr);
+          setToolSearchLoop(!!d.tools_enabled.search_microsoft_loop);
         }
         if (window.Toast && window.Toast.show) window.Toast.show('Configuración importada · revisa y guarda', { type: 'info' });
       } catch (e) { setError('JSON inválido: ' + e.message); }
@@ -2250,20 +2266,36 @@ function BeonAIConfigPanel() {
             <label style={labelStyle}>Tools · capacidades del agente</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={toolReadSolid} onChange={e => setToolReadSolid(e.target.checked)}/>
+                <input type="checkbox" checked={toolReadProgress} onChange={e => setToolReadProgress(e.target.checked)}/>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Leer datos del usuario en Solid</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Pills vistas, ruta actual, ratings · respuestas personalizadas</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Leer progreso del usuario</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Nombre, rol, pills completadas, en curso, % global · respuestas personalizadas</div>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-dim)' }}>Próximamente</span>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={toolWebSearch} onChange={e => setToolWebSearch(e.target.checked)}/>
+                <input type="checkbox" checked={toolSearchPills} onChange={e => setToolSearchPills(e.target.checked)}/>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Para info actualizada que no está en la KB</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en el catálogo de pills</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>El agente puede buscar por tema/categoría y recomendar pills concretas</div>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-dim)' }}>Próximamente</span>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolWebSprinklr} onChange={e => setToolWebSprinklr(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web · Sprinklr Help</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Restringido a help.sprinklr.com vía web_search nativo de Anthropic · máx 3 búsquedas/turno</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolSearchLoop} onChange={e => setToolSearchLoop(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en Microsoft Loop</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Requiere registro de app en Azure AD + permisos Microsoft Graph (Sites.Read.All, Files.Read.All)</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--warn, #B45309)' }}>Stub · setup pendiente</span>
               </label>
             </div>
           </div>

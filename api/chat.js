@@ -10,6 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClient } from '@supabase/supabase-js';
+import { buildTools, handleToolCall } from './beonai-tools.js';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -123,6 +124,94 @@ export default async function handler(req, res) {
   const max_tokens = (config && config.max_tokens) || 1024;
   const temperature = typeof (config && config.temperature) === 'number' ? config.temperature : 0.7;
 
+  const toolsEnabled = (config && config.tools_enabled) || {};
+  const allowedDomains = (config && config.guardrails && config.guardrails.web_search_allowed_domains) || undefined;
+  const tools = buildTools(toolsEnabled, allowedDomains);
+  // Tools client-side que requieren handler local (no las server-side de Anthropic).
+  const hasClientTools = tools.some(t => !t.type || t.type === 'custom');
+
+  // Si hay client tools, hacemos loop con tool_use. Si sólo hay tools server-side
+  // (web_search nativo) o ninguna, podemos seguir con streaming directo.
+  if (hasClientTools) {
+    const ctx = { supa, userId: userProfile?.id, workspaceId };
+    const conversation = [...anthropicMessages];
+    let finalText = '';
+    let lastUsage = null;
+    const MAX_TURNS = 6; // failsafe contra loops infinitos del agente
+    try {
+      for (let turn = 0; turn < MAX_TURNS; turn++) {
+        const response = await client.messages.create({
+          model, max_tokens, temperature,
+          system: systemBlocks,
+          tools,
+          messages: conversation,
+        });
+        lastUsage = response.usage;
+
+        if (response.stop_reason === 'tool_use') {
+          conversation.push({ role: 'assistant', content: response.content });
+          const toolResults = [];
+          for (const block of response.content) {
+            if (block.type !== 'tool_use') continue;
+            const result = await handleToolCall(block.name, block.input, ctx);
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: JSON.stringify(result),
+            });
+          }
+          conversation.push({ role: 'user', content: toolResults });
+          continue;
+        }
+
+        // Texto final
+        for (const block of response.content) {
+          if (block.type === 'text') finalText += block.text;
+        }
+        break;
+      }
+    } catch (err) {
+      console.error('[beonai] tool loop error:', err.message);
+      if (stream) {
+        setCors(res);
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.flushHeaders?.();
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        return res.end();
+      }
+      setCors(res);
+      return res.status(500).json({ error: 'Claude API error', detail: process.env.NODE_ENV === 'development' ? err.message : undefined });
+    }
+
+    if (stream) {
+      setCors(res);
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders?.();
+      // Envía el texto final como un único delta (no hay streaming intermedio
+      // porque la respuesta final llega ya completa tras el loop de tools).
+      res.write(`data: ${JSON.stringify({ delta: finalText })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true, usage: {
+        input: lastUsage?.input_tokens || 0,
+        output: lastUsage?.output_tokens || 0,
+        cached: lastUsage?.cache_read_input_tokens || 0,
+        created: lastUsage?.cache_creation_input_tokens || 0,
+      } })}\n\n`);
+      return res.end();
+    }
+    setCors(res);
+    return res.status(200).json({
+      content: finalText,
+      usage: {
+        input: lastUsage?.input_tokens || 0,
+        output: lastUsage?.output_tokens || 0,
+        cached: lastUsage?.cache_read_input_tokens || 0,
+        created: lastUsage?.cache_creation_input_tokens || 0,
+      },
+    });
+  }
+
   // ── Streaming SSE · UX mucho mejor (texto aparece a medida que genera) ──
   if (stream) {
     setCors(res);
@@ -134,6 +223,7 @@ export default async function handler(req, res) {
       const s = await client.messages.stream({
         model, max_tokens, temperature,
         system: systemBlocks,
+        ...(tools.length > 0 ? { tools } : {}),
         messages: anthropicMessages,
       });
       for await (const event of s) {
@@ -162,6 +252,7 @@ export default async function handler(req, res) {
     const response = await client.messages.create({
       model, max_tokens, temperature,
       system: systemBlocks,
+      ...(tools.length > 0 ? { tools } : {}),
       messages: anthropicMessages,
     });
     setCors(res);
