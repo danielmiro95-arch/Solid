@@ -170,8 +170,10 @@ const SUGG = [
 function CoachView() {
   const [hasConv, setHasConv] = useSV(false);
   const [msgs, setMsgs] = useSV([]);
+  const [activeChatId, setActiveChatId] = useSV(null);
   const [input, setInput] = useSV('');
   const [loading, setLoading] = useSV(false);
+  const [threadsTick, setThreadsTick] = useSV(0);
   const feedRef = React.useRef(null);
 
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
@@ -179,17 +181,22 @@ function CoachView() {
   const userRole = (D && D.USER && D.USER.role) || 'Publish Agent';
   const firstName = String(userName).split(/\s+/)[0];
 
-  // Threads desde ChatHistory si existe (placeholder si no)
+  // Sync de threads cuando cambia ChatHistory en otra pestaña o vía evento
+  useEV(() => {
+    const onChange = () => setThreadsTick(t => t + 1);
+    window.addEventListener('chats-changed', onChange);
+    return () => window.removeEventListener('chats-changed', onChange);
+  }, []);
+
+  // Threads desde ChatHistory real · si no hay ninguno mostramos hint
   const threads = React.useMemo(() => {
     const ch = window.ChatHistory && window.ChatHistory.list ? window.ChatHistory.list() : [];
-    if (ch.length === 0) {
-      return [
-        { id:'t1', title:'Configurar listening de campaña', time:'hace 12 min' },
-        { id:'t2', title:'Plantilla de respuesta a queja recurrente', time:'hace 1 h' },
-      ];
-    }
-    return ch.slice(0, 8).map(c => ({ id: c.id, title: c.title || c.firstMessage || 'Conversación', time: c.updatedAt ? new Date(c.updatedAt).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '' }));
-  }, [hasConv]);
+    return ch.slice(0, 12).map(c => ({
+      id: c.id,
+      title: c.title || (c.messages && c.messages[0] && c.messages[0].text && c.messages[0].text.slice(0, 50)) || 'Conversación',
+      time: c.updatedAt ? new Date(c.updatedAt).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '',
+    }));
+  }, [threadsTick, hasConv]);
 
   useEV(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
@@ -198,24 +205,51 @@ function CoachView() {
   const send = async (q) => {
     const text = (q || input).trim();
     if (!text || loading) return;
-    const userMsg = { role: 'user', text };
+    const userMsg = { role: 'user', text, ts: Date.now() };
+
+    // Asegura un chat en historial
+    let chatId = activeChatId;
+    if (!chatId && window.ChatHistory && window.ChatHistory.create) {
+      const chat = window.ChatHistory.create([]);
+      chatId = chat.id;
+      setActiveChatId(chatId);
+    }
+
     setMsgs(m => [...m, userMsg]);
     setInput('');
     setLoading(true);
     setHasConv(true);
+
+    if (chatId && window.ChatHistory && window.ChatHistory.appendMessage) {
+      try { window.ChatHistory.appendMessage(chatId, userMsg); } catch(e) {}
+    }
+
     try {
       const reply = await (typeof callMentorAPI === 'function'
         ? callMentorAPI([...msgs, userMsg])
         : Promise.resolve('BeonAI no disponible · revisa la conexión.'));
-      setMsgs(m => [...m, { role: 'assistant', text: reply }]);
+      const aiMsg = { role: 'assistant', text: reply, ts: Date.now() };
+      setMsgs(m => [...m, aiMsg]);
+      if (chatId && window.ChatHistory && window.ChatHistory.appendMessage) {
+        try { window.ChatHistory.appendMessage(chatId, aiMsg); } catch(e) {}
+      }
     } catch (e) {
-      setMsgs(m => [...m, { role: 'assistant', text: 'No he podido procesar la consulta. Inténtalo de nuevo en unos segundos.' }]);
+      const errMsg = { role: 'assistant', text: 'No he podido procesar la consulta. Inténtalo de nuevo en unos segundos.', ts: Date.now() };
+      setMsgs(m => [...m, errMsg]);
+      if (chatId && window.ChatHistory && window.ChatHistory.appendMessage) {
+        try { window.ChatHistory.appendMessage(chatId, errMsg); } catch(e) {}
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const reset = () => { setHasConv(false); setMsgs([]); };
+  const reset = () => {
+    setHasConv(false);
+    setMsgs([]);
+    setActiveChatId(null);
+    if (window.ChatHistory && window.ChatHistory.setActive) window.ChatHistory.setActive(null);
+  };
 
   return (
     <div className="coach" data-screen-label="Coach · BeonAI">
@@ -225,12 +259,20 @@ function CoachView() {
         </button>
 
         <div className="sb-section-label" style={{ padding:'0 4px', marginBottom:8 }}>Hoy</div>
-        {threads.map((t, i) => (
-          <button key={t.id} className={`coach-thread ${i === 0 && hasConv ? 'active' : ''}`} onClick={() => {
+        {threads.length === 0 && (
+          <div style={{ padding:'18px 8px', fontSize: 12, color:'var(--fg-muted)', textAlign:'center', lineHeight: 1.5 }}>
+            Aún no tienes conversaciones.<br/>Empieza una preguntando algo abajo.
+          </div>
+        )}
+        {threads.map(t => (
+          <button key={t.id} className={`coach-thread ${activeChatId === t.id ? 'active' : ''}`} onClick={() => {
             const chat = window.ChatHistory && window.ChatHistory.get && window.ChatHistory.get(t.id);
-            if (chat && Array.isArray(chat.messages)) setMsgs(chat.messages);
-            else setMsgs([{ role:'assistant', text:'Conversación previa · esta es una vista de demostración. Pregunta lo que quieras y BeonAI responderá.' }]);
-            setHasConv(true);
+            if (chat && Array.isArray(chat.messages)) {
+              setMsgs(chat.messages);
+              setActiveChatId(chat.id);
+              if (window.ChatHistory && window.ChatHistory.setActive) window.ChatHistory.setActive(chat.id);
+              setHasConv(true);
+            }
           }}>
             {t.title}
             <span className="when">{t.time}</span>
@@ -331,7 +373,7 @@ function CoachView() {
   );
 }
 
-function AnalyticsView({ openLegacyDashboard }) {
+function AnalyticsView() {
   // Analytics renderiza directamente el Dashboard creator.
   if (window.Dashboard) {
     return (

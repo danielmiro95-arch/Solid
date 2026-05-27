@@ -1944,7 +1944,10 @@ window.Settings = Settings;
 
   // Lista de eventos del bus interno que se propagan cross-tab
   var BRIDGED = ['bookmarks-changed','chats-changed','submissions-changed','inbox-changed',
-                 'invitations-changed','activity-changed','exams-changed','auth-users-changed'];
+                 'invitations-changed','activity-changed','exams-changed','auth-users-changed',
+                 'ratings-changed','settings-changed','channels-changed','delivery-prefs-changed',
+                 'content-push-changed','subscriptions-changed','notif-rules-changed',
+                 'channel-notifs-changed','test-sends-changed'];
   var inFlight = false;
   BRIDGED.forEach(function(evName){
     window.addEventListener(evName, function(){
@@ -2527,13 +2530,20 @@ function App() {
     window.addEventListener('auth-changed', refresh);
     return () => window.removeEventListener('auth-changed', refresh);
   }, []);
-  useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser && authUser.id]);
+  useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser?.id]);
 
   // Atajos globales · "Ir a Ajustes" desde otras vistas
   useEM(() => {
     const goSettings = () => setView('settings');
     window.addEventListener('__go-settings', goSettings);
     return () => window.removeEventListener('__go-settings', goSettings);
+  }, []);
+
+  // Atajo global · abrir Player desde un componente que no recibe openPlayer como prop
+  useEM(() => {
+    const onOpenPlayer = (e) => { if (e && e.detail) openPlayer(e.detail); };
+    window.addEventListener('__openPlayer', onOpenPlayer);
+    return () => window.removeEventListener('__openPlayer', onOpenPlayer);
   }, []);
 
   // Initialize tracker and handle tracked URL opens
@@ -2662,8 +2672,7 @@ function App() {
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
         {view === 'player' && <Player back={() => setView(prevView && prevView !== 'player' ? prevView : 'home')} item={detailItem}/>}
         {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
-        {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
-        {view === 'dashboard-legacy' && <Dashboard/>}
+        {view === 'dashboard' && <AnalyticsView/>}
         {view === 'rutas' && <RutasView_New openDetail={openDetail} setView={setView} openPath={openPath}/>}
         {view === 'path' && <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId}/>}
         {view === 'profile' && <ProfileView_New setView={setView}/>}
