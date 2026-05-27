@@ -378,10 +378,13 @@ function PushNotificationsPanel() {
     return () => { mounted = false; window.removeEventListener('push-subscribed', onSub); window.removeEventListener('push-unsubscribed', onUnsub); };
   }, []);
 
-  // Install prompt · captura beforeinstallprompt
+  // Install prompt · index.html ya capturó el evento ANTES de montar el panel,
+  // lo guardó en window._installPromptEvent. Lo leemos en mount + nos suscribimos
+  // por si volviera a dispararse (raro pero posible si user dismiss y vuelve).
   useEE2(() => {
-    const onBefore = (e) => { e.preventDefault(); setInstallPrompt(e); };
-    const onInstalled = () => { setInstalled(true); setInstallPrompt(null); };
+    if (window._installPromptEvent) setInstallPrompt(window._installPromptEvent);
+    const onBefore = (e) => { e.preventDefault(); window._installPromptEvent = e; setInstallPrompt(e); };
+    const onInstalled = () => { setInstalled(true); setInstallPrompt(null); window._installPromptEvent = null; };
     window.addEventListener('beforeinstallprompt', onBefore);
     window.addEventListener('appinstalled', onInstalled);
     return () => { window.removeEventListener('beforeinstallprompt', onBefore); window.removeEventListener('appinstalled', onInstalled); };
@@ -412,6 +415,7 @@ function PushNotificationsPanel() {
     const choice = await installPrompt.userChoice;
     if (choice.outcome === 'accepted') setInstalled(true);
     setInstallPrompt(null);
+    window._installPromptEvent = null;
   };
 
   const statusColor = active ? 'var(--ok)' : (perm === 'denied' ? 'var(--warn)' : 'var(--fg-dim)');
@@ -1761,7 +1765,8 @@ function ProfileView({ setView }) {
           <div style={{ flex: 1 }}>
             <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 24, fontWeight: 700, color: 'var(--fg)', margin: 0, marginBottom: 4 }}>{USER.name}</h2>
             <div style={{ fontSize: 14, color: 'var(--fg-muted)', marginBottom: 12 }}>{USER.role} · {USER.team}</div>
-            {USER.isAdmin && <span style={{ display:'inline-block', fontFamily:'var(--font-mono)', fontSize:9.5, fontWeight:800, letterSpacing:'0.12em', textTransform:'uppercase', padding:'4px 9px', background:'var(--accent)', color:'#fff', borderRadius:4 }}>ADMIN</span>}
+            {(USER.systemRole === 'admin' || USER.isAdmin) && <span style={{ display:'inline-block', fontFamily:'var(--font-mono)', fontSize:9.5, fontWeight:800, letterSpacing:'0.12em', textTransform:'uppercase', padding:'4px 9px', background:'var(--warn)', color:'#fff', borderRadius:4, marginRight: 6 }}>ADMIN</span>}
+            {USER.systemRole === 'manager' && <span style={{ display:'inline-block', fontFamily:'var(--font-mono)', fontSize:9.5, fontWeight:800, letterSpacing:'0.12em', textTransform:'uppercase', padding:'4px 9px', background:'var(--accent)', color:'#fff', borderRadius:4 }}>MANAGER</span>}
           </div>
         )}
         {editing && (
@@ -1970,7 +1975,7 @@ function AdminView({ setView, openLegacyAdmin }) {
           const ratingStats = (window.Ratings && window.Ratings.globalStats && window.Ratings.globalStats()) || { avg: 0, count: 0 };
           const avgRating = ratingStats.avg || 0;
           const ratingsCount = ratingStats.count || 0;
-          const adminCount = users.filter(u => u.isAdmin || u.role === 'admin').length;
+          const adminCount = users.filter(u => u.systemRole === 'admin' || u.isAdmin).length;
           const usersSubKey = adminCount === 1 ? 'admin.users.sub' : 'admin.users.subMulti';
           const ratingsSubKey = ratingsCount === 1 ? 'admin.rating.subOne' : 'admin.rating.sub';
           return [
@@ -2035,10 +2040,11 @@ function WorkspacesPanel() {
   const list = window.Workspaces.list();
   const current = window.Workspaces.current();
 
-  const create = () => {
+  const create = async () => {
     if (!name.trim()) return;
-    const ws = window.Workspaces.create({ name: name.trim(), primaryColor: color });
-    if (window.Toast) window.Toast.success('Workspace "' + ws.name + '" creado', { icon:'🏢' });
+    // create puede ser sync (modo demo) o async (modo Supabase). Await sirve para ambos.
+    // Ambos paths emiten su propio toast internamente, no duplicamos aquí.
+    await Promise.resolve(window.Workspaces.create({ name: name.trim(), primaryColor: color }));
     setName(''); setCreating(false);
   };
 

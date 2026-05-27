@@ -320,6 +320,26 @@ create table if not exists public.test_sends (
 create index if not exists test_sends_user_ws_idx on public.test_sends(user_id, workspace_id, created_at desc);
 
 -- =====================================================================
+-- 18a. route_exams · resultados de exámenes finales por ruta
+-- =====================================================================
+create table if not exists public.route_exams (
+  user_id uuid references public.profiles(id) on delete cascade,
+  workspace_id uuid references public.workspaces(id) on delete cascade,
+  route_id text not null,
+  score int not null,
+  total int not null,
+  passed boolean not null default false,
+  completed_at timestamptz default now(),
+  primary key (user_id, workspace_id, route_id)
+);
+create index if not exists route_exams_user_idx on public.route_exams(user_id, completed_at desc);
+
+alter table public.route_exams enable row level security;
+drop policy if exists route_exams_self on public.route_exams;
+create policy route_exams_self on public.route_exams
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- =====================================================================
 -- 18b. push_subscriptions · suscripciones Web Push del navegador
 -- =====================================================================
 create table if not exists public.push_subscriptions (

@@ -7,15 +7,13 @@
 // Versión bumpeada con cada release que cambia el shell. Si subes la versión
 // borra los caches viejos en el activate().
 
-const VERSION = 'sgson-v1-20260427ct';
+const VERSION = 'sgson-v1-20260427cu';
 const SHELL_CACHE = VERSION + '-shell';
 const CDN_CACHE   = VERSION + '-cdn';
 
 const SHELL_FILES = [
   '/',
   '/manifest.json',
-  '/sgs-on-logo.png',
-  '/mentor-ia-logo.png',
   '/beonit-logo.png',
 ];
 
@@ -90,8 +88,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'SGS|on';
   const options = {
     body: data.body || 'Tienes una notificación nueva.',
-    icon: '/mentor-ia-logo.png',
-    badge: '/mentor-ia-logo.png',
+    icon: '/beonit-logo.png',
+    badge: '/beonit-logo.png',
     data: { url: data.url || '/' },
     vibrate: [100, 50, 100],
     tag: data.tag || 'sgson-notif',

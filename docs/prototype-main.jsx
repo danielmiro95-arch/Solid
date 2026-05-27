@@ -187,9 +187,11 @@ const DeliveryPrefs = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -271,9 +273,11 @@ const Channels = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -380,9 +384,11 @@ const ContentPush = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -483,9 +489,11 @@ const Subscriptions = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -558,9 +566,11 @@ const TestSends = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -635,9 +645,11 @@ const NotificationRules = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -733,9 +745,11 @@ const ChannelNotifs = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -799,9 +813,11 @@ const SmartScheduling = (function() {
   function _userKey() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
-      const email = (u && u.email) || 'guest';
+      // Usa id como identificador (consistente con _userScopedKey global).
+      // Fallback a email para datos legacy creados antes de tener id.
+      const ident = (u && u.id) || (u && u.email) || 'guest';
       const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
-      return KEY + ':' + email + ':' + wsId;
+      return KEY + ':' + ident + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -921,7 +937,9 @@ const Workspaces = (function() {
   function setCurrent(id) {
     const w = get(id);
     if (!w) return null;
+    const wasActive = currentId() === id;
     localStorage.setItem(ACTIVE_KEY, id);
+    if (wasActive) return w; // No spam de eventos si el workspace ya estaba activo
     window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
     // Refresca todas las UIs reactivas a los stores per-workspace
     var STORE_EVENTS = ['bookmarks-changed','ratings-changed','channels-changed',
@@ -1363,11 +1381,20 @@ const Auth = (function() {
   }
 
   function deleteUser(id) {
+    var deletedUser = listUsers().find(function(u){ return u.id === id; });
     var users = listUsers().filter(function(u){ return u.id !== id; });
     _saveUsers(users);
-    // Borrar también su storage namespaced
+    // Borrar también su storage namespaced en todos los formatos en uso:
+    //   <prefix>:<id>                  (legacy pre-multi-tenant via _userScopedKey)
+    //   <prefix>:<id>:<wsId>           (multi-tenant via _userScopedKey)
+    //   <prefix>:<email>:<wsId>        (multi-tenant via _userKey local de stores)
+    var email = deletedUser && deletedUser.email;
     Object.keys(localStorage).forEach(function(k){
       if (k.endsWith(':' + id)) localStorage.removeItem(k);
+      // Match :id:anything (multi-tenant)
+      else if (k.indexOf(':' + id + ':') >= 0) localStorage.removeItem(k);
+      // Match :email:anything (multi-tenant via _userKey local)
+      else if (email && k.indexOf(':' + email + ':') >= 0) localStorage.removeItem(k);
     });
     if (currentUserId() === id) logout();
   }
@@ -2095,7 +2122,7 @@ function _activateSupabaseData() {
     const u = _uid(); if (!u) { subsCache = []; return; }
     const me = window.Auth.currentUser();
     const isAdmin = me && me.isAdmin;
-    let q = sb.from('submissions').select('*, profiles!submissions_user_id_fkey(name, email, avatar_color)').order('submitted_at', { ascending: false });
+    let q = sb.from('submissions').select('*, profiles!submissions_user_id_fkey(name, email, avatar_color)').order('created_at', { ascending: false });
     if (!isAdmin) q = q.eq('user_id', u);
     const { data, error } = await q;
     if (error) { console.warn('[supa] submissions', error.message); return; }
@@ -2128,7 +2155,7 @@ function _activateSupabaseData() {
     if (file) {
       const ext = (fileName || file.name || 'video.mp4').split('.').pop();
       filePath = u + '/' + pillId + '_' + Date.now() + '.' + ext;
-      const { error: upErr } = await sb.storage.from('submissions').upload(filePath, file, { upsert: true });
+      const { error: upErr } = await sb.storage.from('pill-submissions').upload(filePath, file, { upsert: true });
       if (upErr) throw new Error('Error subiendo vídeo: ' + upErr.message);
     }
     const existing = subsCache.find(s => s.userId === u && s.pillId === pillId);
@@ -2138,7 +2165,9 @@ function _activateSupabaseData() {
       file_name: fileName, file_size: fileSize, duration_sec: durationSec,
       thumb_url: thumbDataUrl,
       status: 'pending', feedback: null, reviewed_at: null, reviewed_by: null,
-      submitted_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      // Fix 7 · scoping multi-tenant: workspace_id necesario por schema/FK
+      workspace_id: _wsid() || null,
     };
     let res;
     if (existing) res = await sb.from('submissions').update(payload).eq('id', existing.id).select().single();
@@ -2159,7 +2188,8 @@ function _activateSupabaseData() {
     // Notificar al user
     const sub = subsCache.find(s => s.id === id);
     if (sub) {
-      await sb.from('inbox_notifications').insert({
+      await sb.from('inbox_messages').insert({
+        category: 'notifications',
         user_id: sub.userId,
         text: 'Tu entrega de "' + sub.pillTitle + '" ha sido ' + (status === 'approved' ? 'APROBADA ✓' : 'rechazada — revisa el feedback'),
         kind: status, icon: status === 'approved' ? '✓' : '✗',
@@ -2170,33 +2200,34 @@ function _activateSupabaseData() {
   Submissions.remove = async function(id) {
     const sub = subsCache.find(s => s.id === id);
     if (sub && sub.filePath) {
-      await sb.storage.from('submissions').remove([sub.filePath]).catch(()=>{});
+      await sb.storage.from('pill-submissions').remove([sub.filePath]).catch(()=>{});
     }
     await sb.from('submissions').delete().eq('id', id);
     await _loadSubmissions();
   };
 
-  // ── Inbox ────────────────────────────────────────────
+  // ── Inbox · usa tabla unificada inbox_messages con category filter ──────
   let inboxCache = { messages: [], notifications: [], releases: [] };
   async function _loadInbox() {
     const u = _uid(); if (!u) { inboxCache = { messages:[], notifications:[], releases:[] }; return; }
-    const [msgsRes, notifsRes, releasesRes] = await Promise.all([
-      sb.from('inbox_messages').select('*').eq('user_id', u).order('created_at', { ascending: false }),
-      sb.from('inbox_notifications').select('*').eq('user_id', u).order('created_at', { ascending: false }),
-      sb.from('releases').select('*').order('created_at', { ascending: false }),
-    ]);
-    inboxCache.messages = (msgsRes.data || []).map(r => ({
-      id: r.id, from: r.from_name, subject: r.subject, body: r.body,
+    const wsId = _wsid();
+    // Una sola query · filtramos por categoría client-side. RLS limita por user_id.
+    let q = sb.from('inbox_messages').select('*').eq('user_id', u).order('created_at', { ascending: false });
+    if (wsId) q = q.eq('workspace_id', wsId);
+    const { data, error } = await q;
+    if (error) { console.warn('[supa] inbox', error.message); return; }
+    const all = data || [];
+    inboxCache.messages = all.filter(r => r.category === 'messages').map(r => ({
+      id: r.id, from: r.from_label, subject: r.subject, body: r.body,
       createdAt: new Date(r.created_at).getTime(), read: r.read,
-      fromAdmin: r.is_admin, fromAvatarColor: r.avatar_color,
     }));
-    inboxCache.notifications = (notifsRes.data || []).map(r => ({
+    inboxCache.notifications = all.filter(r => r.category === 'notifications').map(r => ({
       id: r.id, text: r.text, kind: r.kind, icon: r.icon, link: r.link,
       createdAt: new Date(r.created_at).getTime(), read: r.read,
     }));
-    inboxCache.releases = (releasesRes.data || []).map(r => ({
-      id: r.id, version: r.version, title: r.title, body: r.body,
-      kind: r.kind, createdAt: new Date(r.created_at).getTime(), read: false, // releases no tienen read por usuario en este modelo simple
+    inboxCache.releases = all.filter(r => r.category === 'releases').map(r => ({
+      id: r.id, version: r.version, title: r.subject || r.body, body: r.body,
+      kind: r.kind, createdAt: new Date(r.created_at).getTime(), read: r.read,
     }));
     window.dispatchEvent(new Event('inbox-changed'));
   }
@@ -2211,7 +2242,8 @@ function _activateSupabaseData() {
     const item = list.find(x => x.id === id);
     if (item) {
       item.read = true;
-      const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+      // Tabla unificada · filtramos por category
+    const table = 'inbox_messages';
       sb.from(table).update({ read: true }).eq('id', id).then(()=>{});
       window.dispatchEvent(new Event('inbox-changed'));
     }
@@ -2220,15 +2252,18 @@ function _activateSupabaseData() {
     const u = _uid(); if (!u) return;
     if (category === 'releases') return;
     (inboxCache[category] || []).forEach(it => it.read = true);
-    const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+    // Tabla unificada · filtramos por category
+    const table = 'inbox_messages';
     sb.from(table).update({ read: true }).eq('user_id', u).then(()=>{});
     window.dispatchEvent(new Event('inbox-changed'));
   };
   Inbox.addNotification = function(text, opts) {
     const u = _uid(); if (!u) return;
     opts = opts || {};
-    sb.from('inbox_notifications').insert({
-      user_id: u, text, kind: opts.kind || 'info',
+    sb.from('inbox_messages').insert({
+      category: 'notifications',
+      user_id: u, workspace_id: _wsid() || null,
+      text, kind: opts.kind || 'info',
       icon: opts.icon || '🔔', link: opts.link || null,
     }).then(() => _loadInbox());
   };
@@ -2243,7 +2278,8 @@ function _activateSupabaseData() {
   Inbox.deleteItem = function(category, id) {
     if (category === 'releases') return;
     inboxCache[category] = (inboxCache[category] || []).filter(x => x.id !== id);
-    const table = category === 'messages' ? 'inbox_messages' : 'inbox_notifications';
+    // Tabla unificada · filtramos por category
+    const table = 'inbox_messages';
     sb.from(table).delete().eq('id', id).then(()=>{});
     window.dispatchEvent(new Event('inbox-changed'));
   };
@@ -2353,13 +2389,32 @@ function _activateSupabaseData() {
       return me ? me.workspaceRole : null;
     } catch(e) { return null; }
   };
+  // Override de currentId/current/setCurrent en Supabase mode · usan wsCache + ACTIVE_KEY localStorage
+  const ACTIVE_KEY_SB = 'solid-active-workspace';
+  Workspaces.currentId = function() { return localStorage.getItem(ACTIVE_KEY_SB) || null; };
+  Workspaces.current = function() {
+    const id = Workspaces.currentId();
+    if (id) { const w = wsCache.find(w => w.id === id); if (w) return w; }
+    return wsCache[0] || null;
+  };
+  Workspaces.setCurrent = function(id) {
+    const w = wsCache.find(x => x.id === id);
+    if (!w) return null;
+    localStorage.setItem(ACTIVE_KEY_SB, id);
+    window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
+    ['bookmarks-changed','ratings-changed','channels-changed','delivery-prefs-changed',
+     'content-push-changed','subscriptions-changed','notif-rules-changed','channel-notifs-changed',
+     'test-sends-changed','smart-scheduling-changed','chats-changed','inbox-changed']
+       .forEach(ev => window.dispatchEvent(new Event(ev)));
+    return w;
+  };
   // seedIfEmpty en Supabase: si no hay workspaces accesibles, crear "Repsol" como owner
   Workspaces.seedIfEmpty = async function() {
     await _loadWorkspaces();
     if (wsCache.length > 0) { Workspaces.setCurrent(Workspaces.currentId() || wsCache[0].id); return; }
     const u = _uid(); if (!u) return;
     const repsol = await Workspaces.create({ name:'Repsol', slug:'repsol', primaryColor:'#6E50EE' });
-    if (repsol) Workspaces.setCurrent(repsol.id);
+    if (repsol && repsol.id) Workspaces.setCurrent(repsol.id);
   };
 
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
@@ -2390,7 +2445,7 @@ function _activateSupabaseData() {
     const u = window.Auth && window.Auth.currentUser();
     if (!u) { actCache = []; return; }
     // Admin lee todos, user lee solo los suyos (RLS lo limita en DB)
-    const { data, error } = await sb.from('events').select('*').order('created_at', { ascending: false }).limit(500);
+    const { data, error } = await sb.from('activity_log').select('*').order('created_at', { ascending: false }).limit(500);
     if (error) { console.warn('[supa] events', error.message); return; }
     actCache = (data || []).map(r => ({
       id: r.id,
@@ -2410,7 +2465,7 @@ function _activateSupabaseData() {
       const ev = _origLog.call(window.Activity, type, meta); // sigue guardando local también
       const u = window.Auth && window.Auth.currentUser();
       if (u) {
-        sb.from('events').insert({
+        sb.from('activity_log').insert({
           user_id: u.id,
           user_name: u.name,
           user_email: u.email,
@@ -2436,7 +2491,7 @@ function _activateSupabaseData() {
   // cambia otro user/dispositivo lo ves en vivo sin recargar.
   const ch = sb.channel('sgson-realtime-' + Math.random().toString(36).slice(2));
   ch.on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => _loadSubmissions())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_notifications' }, () => _loadInbox())
+    // inbox_messages cubre messages + notifications + releases (filtrado por category)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => _loadInbox())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { if (window.Auth && window.Auth.reloadUsers) window.Auth.reloadUsers(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => _loadActivity())
@@ -2507,18 +2562,36 @@ const UserProfile = (function() {
       isAdmin: !!u.isAdmin, id: u.id,
     };
   }
+  function _toShape(u) {
+    if (!u) return Object.assign({}, DEFAULT);
+    return {
+      name: u.name, role: u.role, team: u.team,
+      avatarColor: u.avatarColor, email: u.email,
+      isAdmin: !!u.isAdmin, id: u.id,
+    };
+  }
   function update(patch) {
     var u = window.Auth ? window.Auth.currentUser() : null;
     if (!u) return DEFAULT;
     var fields = ['name', 'role', 'team', 'avatarColor', 'email'];
     var clean = {};
     fields.forEach(function(f){ if (patch[f] !== undefined) clean[f] = patch[f]; });
-    var updated = window.Auth.updateUser(u.id, clean);
-    var profileShape = {
-      name: updated.name, role: updated.role, team: updated.team,
-      avatarColor: updated.avatarColor, email: updated.email,
-      isAdmin: !!updated.isAdmin, id: updated.id,
-    };
+    // Auth.updateUser puede ser sync (modo demo) o Promise (modo Supabase).
+    // En sync, devuelve el user actualizado. En async, devuelve Promise → manejamos ambos.
+    var result = window.Auth.updateUser(u.id, clean);
+    var optimistic = Object.assign({}, u, clean);
+    var optimisticShape = _toShape(optimistic);
+    if (result && typeof result.then === 'function') {
+      // Async path · disparamos el shape optimista de inmediato y refrescamos con el real al resolver.
+      window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: optimisticShape }));
+      result.then(function(realUpdated){
+        if (realUpdated) {
+          window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: _toShape(realUpdated) }));
+        }
+      }).catch(function(e){ console.warn('[profile] update failed', e); });
+      return optimisticShape;
+    }
+    var profileShape = _toShape(result || optimistic);
     window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: profileShape }));
     return profileShape;
   }
