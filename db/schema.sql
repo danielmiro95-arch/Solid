@@ -24,6 +24,13 @@
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 
+-- Desactivar validación del cuerpo de las funciones durante esta migración.
+-- Necesario porque is_platform_admin() referencia public.profiles antes de
+-- que la tabla exista. Postgres permite esto explícitamente vía este flag.
+-- Una vez ejecutado el script entero, las funciones quedan registradas con
+-- sus tablas ya existentes y todo funciona normal.
+set check_function_bodies = off;
+
 -- =====================================================================
 -- 0b. RLS helpers · funciones que se referencian en políticas inline
 -- =====================================================================
