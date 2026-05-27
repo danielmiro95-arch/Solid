@@ -2044,24 +2044,19 @@ window.Settings = Settings;
 // ── CommandPalette (global search ⌘K) ──────────────────────────────────────
 function CommandPalette({ open, onClose, onNavigate, openDetail }) {
   const [q, setQ] = useSM('');
+  const [activeIdx, setActiveIdx] = useSM(0);
   const inputRef = React.useRef(null);
+  const listRef = React.useRef(null);
 
   useEM(() => {
     if (open && inputRef.current) {
       setQ('');
+      setActiveIdx(0);
       setTimeout(() => inputRef.current && inputRef.current.focus(), 30);
     }
   }, [open]);
 
-  useEM(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
+  // Calcular items combinados (nav + pills) para indexar con activeIdx
   const all = (window.PILLS || []).concat(window.SERIES || []).concat(window.PODCASTS || []);
   const ql = q.trim().toLowerCase();
   const items = ql.length === 0
@@ -2069,16 +2064,56 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     : all.filter(it => (it.title || '').toLowerCase().includes(ql) || (it.category || '').toLowerCase().includes(ql) || (it.teacher || '').toLowerCase().includes(ql)).slice(0, 12);
 
   const navItems = [
-    { id:'home', label:'Inicio' },
-    { id:'browse', label:'Catálogo' },
-    { id:'rutas', label:'Rutas de certificación' },
-    { id:'path', label:'Mi ruta' },
-    { id:'dashboard', label:'Analytics' },
-    { id:'coach', label:'BeonAI' },
-    { id:'wa', label:'Channels' },
-    { id:'saved', label:'Guardados' },
-    { id:'profile', label:'Mi perfil' },
+    { id:'home',     label:'Inicio' },
+    { id:'browse',   label:'Catálogo' },
+    { id:'rutas',    label:'Rutas de certificación' },
+    { id:'path',     label:'Mi ruta' },
+    { id:'dashboard',label:'Analytics' },
+    { id:'coach',    label:'BeonAI' },
+    { id:'wa',       label:'Channels' },
+    { id:'saved',    label:'Guardados' },
+    { id:'inbox',    label:'Bandeja' },
+    { id:'profile',  label:'Mi perfil' },
+    { id:'settings', label:'Ajustes' },
+    { id:'admin',    label:'Admin · panel' },
   ].filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
+
+  // Lista combinada plana · primero nav, luego items
+  const combined = navItems.map(n => ({ type:'nav', payload: n })).concat(items.map(it => ({ type:'item', payload: it })));
+  const totalCount = combined.length;
+
+  // Reset activeIdx cuando cambia la consulta
+  useEM(() => { setActiveIdx(0); }, [q]);
+
+  const activate = (entry) => {
+    if (!entry) return;
+    if (entry.type === 'nav') { onNavigate(entry.payload.id); onClose(); }
+    else { openDetail(entry.payload); onClose(); }
+  };
+
+  useEM(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(totalCount - 1, i + 1)); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveIdx(i => Math.max(0, i - 1)); return; }
+      if (e.key === 'Enter')     { e.preventDefault(); activate(combined[activeIdx]); return; }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose, activeIdx, totalCount]);
+
+  // Scroll del activo al viewport
+  useEM(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.querySelector('[data-active="true"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block:'nearest' });
+  }, [activeIdx]);
+
+  if (!open) return null;
+
+  // Helper · es el item el activo
+  const isActiveAt = (offset) => activeIdx === offset;
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:'10vh'}}>
@@ -2092,32 +2127,45 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
             placeholder="Buscar módulos, vistas, profesores…"
             style={{flex:1, border:'none', outline:'none', fontFamily:'var(--sans)', fontSize:15, background:'transparent', color:'var(--ink)'}}
           />
-          <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', padding:'2px 6px', border:'1px solid var(--line)', borderRadius:4}}>ESC</span>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', padding:'2px 6px', border:'1px solid var(--line)', borderRadius:4}}>↑↓ ↩ ESC</span>
         </div>
-        <div style={{maxHeight:'55vh', overflowY:'auto'}}>
+        <div ref={listRef} style={{maxHeight:'55vh', overflowY:'auto'}}>
           {navItems.length > 0 && (
             <div>
               <div style={{padding:'10px 18px 4px', fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase'}}>Navegación</div>
-              {navItems.map(n => (
-                <button key={n.id} onClick={() => { onNavigate(n.id); onClose(); }} style={{display:'flex', alignItems:'center', gap:10, width:'100%', padding:'10px 18px', border:'none', background:'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)', fontSize:13, color:'var(--ink)'}} onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                  <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.08em'}}>IR A</span> {n.label}
-                </button>
-              ))}
+              {navItems.map((n, i) => {
+                const active = isActiveAt(i);
+                return (
+                  <button key={n.id} data-active={active}
+                    onMouseEnter={() => setActiveIdx(i)}
+                    onClick={() => { onNavigate(n.id); onClose(); }}
+                    style={{display:'flex', alignItems:'center', gap:10, width:'100%', padding:'10px 18px', border:'none', background: active ? 'var(--paper-2)' : 'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)', fontSize:13, color:'var(--ink)', borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent'}}>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.08em'}}>IR A</span> {n.label}
+                  </button>
+                );
+              })}
             </div>
           )}
           {items.length > 0 && (
             <div>
               <div style={{padding:'10px 18px 4px', fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase'}}>Módulos {ql && `· ${items.length} resultados`}</div>
-              {items.map(it => (
-                <button key={it.id} onClick={() => { openDetail(it); onClose(); }} style={{display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 18px', border:'none', background:'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)'}} onMouseEnter={e => e.currentTarget.style.background='var(--paper-2)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                  <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', flexShrink:0, width:36}}>{it.format || 'módulo'}</span>
-                  <span style={{flex:1, fontSize:13, color:'var(--ink)', fontWeight:500}}>{it.title}</span>
-                  <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{it.duration}</span>
-                </button>
-              ))}
+              {items.map((it, i) => {
+                const offset = navItems.length + i;
+                const active = isActiveAt(offset);
+                return (
+                  <button key={it.id} data-active={active}
+                    onMouseEnter={() => setActiveIdx(offset)}
+                    onClick={() => { openDetail(it); onClose(); }}
+                    style={{display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 18px', border:'none', background: active ? 'var(--paper-2)' : 'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)', borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent'}}>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', flexShrink:0, width:36}}>{it.format || 'módulo'}</span>
+                    <span style={{flex:1, fontSize:13, color:'var(--ink)', fontWeight:500}}>{it.title}</span>
+                    <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{it.duration}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
-          {items.length === 0 && navItems.length === 0 && (
+          {totalCount === 0 && (
             <div style={{padding:'24px 18px', textAlign:'center', fontSize:13, color:'var(--ink-4)'}}>Sin resultados para "{q}"</div>
           )}
         </div>
@@ -2252,6 +2300,8 @@ function App() {
   const openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
   // AI oculta por defecto · entra como overlay solo cuando el usuario pulsa la rail-btn
   const [aiMode, setAIMode] = useSM(saved.aiMode || 'collapsed'); // hero | companion | collapsed
+  // Exposición global · permite que componentes que no reciben setAIMode como prop (Player) puedan abrir BeonAI
+  React.useEffect(() => { window.__setAIMode = setAIMode; return () => { try { delete window.__setAIMode; } catch(e) { window.__setAIMode = null; } }; }, []);
   const [shape, setShape] = useSM(saved.shape || 'mixed');
   const [accent, setAccent] = useSM(saved.accent || '#F3A524');
   const [detailItem, setDetailItem] = useSM(null);
@@ -2325,8 +2375,6 @@ function App() {
     return () => window.removeEventListener('__tweaks', h);
   }, []);
 
-  // Mobile menu drawer
-  const [mobileMenuOpen, setMobileMenuOpen] = useSM(false);
 
   // Command palette (⌘K / Ctrl+K)
   const [paletteOpen, setPaletteOpen] = useSM(false);
@@ -2352,19 +2400,13 @@ function App() {
   //   abrirlo. Sidebar aparece como overlay dark-glass con backdrop dim. Click
   //   en backdrop, en un item o en X cierra.
   // - En vistas de utilidad (analytics, settings, profile, admin, coach, channels):
-  //   sidebar SIEMPRE visible en su columna del grid, para navegación rápida.
-  const CINEMATIC_VIEWS = ['home','detail','player','browse','rutas','dashboard','coach','wa','path','saved','inbox','profile','settings','admin'];
-  const isCinematic = CINEMATIC_VIEWS.includes(view);
-
-  const rootClass = `proto-root ai-${aiMode}${mobileMenuOpen ? ' mobile-menu-open' : ''}`;
+  const rootClass = `proto-root ai-${aiMode}`;
 
   // Sin sidebar fijo · main siempre ocupa toda la columna 2 (1fr)
   // Col 1 colapsa a 0 · Col 3 reserva espacio para AI panel (companion/hero)
   // --aiw: 0px collapsed · 380px companion · 520px hero (definido en CSS)
   const rootStyle = { gridTemplateColumns: '0 1fr var(--aiw, 380px)' };
 
-  // Cierra el menú móvil al cambiar de vista
-  useEM(() => { setMobileMenuOpen(false); }, [view]);
 
   // Marca body con sgs-redesign · oculta shell-tabs legacy y aplica padding-top 0
   useEM(() => {
@@ -2386,7 +2428,7 @@ function App() {
       {view !== 'onboarding' && window.TopNav && (
         <TopNav
           view={view}
-          onView={(v) => { if (v === 'wa') setView('wa'); else setView(v); }}
+          onView={(v) => setView(v)}
           onSearch={() => window.__openPalette && window.__openPalette()}
           onLogout={() => { if (window.Auth && window.Auth.logout) window.Auth.logout(); }}
         />
@@ -2402,12 +2444,11 @@ function App() {
         />
       )}
 
-      {mobileMenuOpen && <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}/>}
 
       <main className="main" style={{
         gridColumn: view === 'onboarding' ? '1 / -1' : '2 / 3',
       }}>
-        {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
+        {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView} openPath={openPath}/>}
         {view === 'player' && <Player back={() => setView(prevView && prevView !== 'player' ? prevView : 'home')} item={detailItem}/>}
         {view === 'coach' && <CoachView/>}
         {view === 'dashboard' && <AnalyticsView/>}

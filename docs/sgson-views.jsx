@@ -47,7 +47,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
   const [saved, setSaved] = useSV(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
   const [liked, setLiked] = useSV(() => {
     const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
-    return !!(r && r.stars >= 4);
+    return typeof r === 'number' ? r >= 4 : !!(r && r.stars >= 4);
   });
   // muted del video del modal media (controla iframe via key change si hubiera; aquí no hay iframe)
   const [muted, setMuted] = useSV(true);
@@ -97,7 +97,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
         <div className="modal-body">
           <div>
             <div className="meta-row">
-              <span className="match">{Math.round(78 + (pill.id * 17) % 22)}% afinidad</span>
+              <span className="match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% afinidad</span>
               <span>2026</span>
               <span className="lvl">{pill.level}</span>
               <span>{pill.duration}</span>
@@ -150,6 +150,13 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Examen práctico · entrega de vídeo Sprinklr (si el módulo lo pide) */}
+        {window.VideoSubmissionForm && (
+          <div className="modal-submission" style={{ marginTop: 24, padding:'0 32px 28px' }}>
+            <window.VideoSubmissionForm pillId={pill.id} pillTitle={pill.title}/>
           </div>
         )}
       </div>
