@@ -13,6 +13,15 @@
       // re-intentar al siguiente tick
       return setTimeout(setup, 50);
     }
+    // sgson-adapter.jsx se carga ANTES de prototype-main.jsx (que define
+    // window.Auth / window.UserProfile). Si aún no están listos, esperamos:
+    // construir SGS_DATA aquí dejaría USER = "Usuario SGS" (el fallback final)
+    // y los components que leen D.USER (TopNav, AdminView_New, MyPath…) verían
+    // datos vacíos hasta que algo dispare auth-changed (cosa que no ocurre en
+    // el restore de sesión inicial). Re-intentamos hasta tener Auth.
+    if (!window.Auth || !window.UserProfile) {
+      return setTimeout(setup, 50);
+    }
 
     // ── Mapeo categoría tu data → tone visual del rediseño (5 paletas) ──
     // Conservamos las 11 categorías reales en el LABEL, solo el COLOR

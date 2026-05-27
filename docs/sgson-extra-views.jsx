@@ -1940,7 +1940,10 @@ function AdminView({ setView, openLegacyAdmin }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const D = window.SGS_DATA;
   const USER = (D && D.USER) || {};
-  if (!USER.isAdmin) {
+  // Lectura directa desde Auth · evita falsos negativos si SGS_DATA todavía
+  // tiene el USER del primer build (cuando Auth aún no existía).
+  const _canAdmin = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  if (!_canAdmin) {
     return (
       <PageShell title={T('admin.locked')} sub={T('admin.lockedDesc','Solo administradores pueden ver este panel.')}>
         <div style={{ padding: 60, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', textAlign: 'center' }}>

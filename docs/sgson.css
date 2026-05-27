@@ -172,6 +172,13 @@ html[data-theme="light"] .topnav .nav-item.active { color: #F5F4F1; font-weight:
 html[data-theme="light"] .topnav .menu-trigger { color: #F5F4F1; }
 /* TopNav scrolled mantiene solidez en light · evita degradación visual */
 html[data-theme="light"] .topnav.scrolled { background: rgba(14, 14, 18, 0.98); }
+/* Wordmark / workspace switcher dentro del TopNav · invertir colores en light
+ * para que sean legibles sobre el fondo oscuro forzado del TopNav. */
+html[data-theme="light"] .topnav .wordmark,
+html[data-theme="light"] .topnav .wordmark .on { color: #F5F4F1 !important; }
+html[data-theme="light"] .topnav .workspace-switcher,
+html[data-theme="light"] .topnav .workspace-switcher * { color: #F5F4F1 !important; }
+html[data-theme="light"] .topnav .workspace-switcher button { color: #F5F4F1 !important; border-color: rgba(255,255,255,0.18) !important; background: rgba(255,255,255,0.06) !important; }
 
 /* ============================================================
    BASE
