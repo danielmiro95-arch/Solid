@@ -4201,7 +4201,7 @@ function Cronograma() {
             <span>{leg.l}</span>
           </div>
         ))}
-      </div>}
+      </div>
 
       {drillBar && (
         <div onClick={() => setDrillBar(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>

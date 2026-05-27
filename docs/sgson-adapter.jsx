@@ -101,12 +101,17 @@
       'Analyst': 'cat-manage',
     };
     const LEARNING_PATHS = SRC_PATHS.map(p => ({
-      id:    p.id,
-      title: p.label || p.title || 'Ruta',
-      desc:  p.desc || p.roleTag || '',
-      pills: (p.pills && p.pills.length) || p.totalPills || 0,
-      hours: p.duration || (p.pills ? (p.pills.length * 5) + ' min' : '—'),
-      accent: TONE_BY_LABEL[p.label] || 'cat-publish',
+      id:      p.id,
+      title:   p.label || p.title || 'Ruta',
+      label:   p.label || p.title || 'Ruta',
+      desc:    p.desc || p.roleTag || '',
+      badge:   p.badge || '',
+      // `pills` queda como CUENTA por compatibilidad con cards (Rutas).
+      // `pillIds` guarda el array original para componentes que necesiten filtrar pills (MyPath).
+      pills:   (p.pills && p.pills.length) || p.totalPills || 0,
+      pillIds: Array.isArray(p.pills) ? p.pills.slice() : [],
+      hours:   p.duration || (p.pills ? (p.pills.length * 5) + ' min' : '—'),
+      accent:  TONE_BY_LABEL[p.label] || 'cat-publish',
     }));
 
     // ── USER · del Auth/UserProfile actual ──

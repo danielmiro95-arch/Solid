@@ -122,7 +122,7 @@ function BrowseView({ openDetail }) {
 /* ============================================================
    RutasView · 6 grandes path cards estilo featured
    ============================================================ */
-function RutasView({ setView, openDetail, openPath }) {
+function RutasView({ setView, openPath }) {
   const D = window.SGS_DATA;
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
@@ -170,8 +170,9 @@ function MyPathView({ openDetail, setView, pathId }) {
 
   // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
   const path = pathId ? PATHS.find(p => p.id === pathId) : null;
-  const PILLS = path && path.pills
-    ? ALL_PILLS.filter(p => path.pills.includes(p.id))
+  const pathPillIds = path && Array.isArray(path.pillIds) ? path.pillIds : (path && Array.isArray(path.pills) ? path.pills : null);
+  const PILLS = pathPillIds && pathPillIds.length
+    ? ALL_PILLS.filter(p => pathPillIds.includes(p.id))
     : ALL_PILLS;
 
   const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
@@ -179,14 +180,19 @@ function MyPathView({ openDetail, setView, pathId }) {
   const next = PILLS.filter(p => p.progress === 0).slice(0, 6);
   const totalProgress = PILLS.length > 0 ? Math.round((completed.length / PILLS.length) * 100) : 0;
 
+  // Nombres robustos del path (adapter expone `title`/`label`, legacy expone `label`/`desc`/`badge`).
+  const pTitle = path ? (path.label || path.title || 'Ruta') : '';
+  const pDesc  = path ? (path.desc || path.roleTag || '') : '';
+  const pBadge = path ? (path.badge || '') : '';
+
   return (
     <PageShell
-      eyebrow={path ? `Ruta · ${path.label}` : `Mi ruta · ${USER.role || 'Usuario'}`}
+      eyebrow={path ? `Ruta · ${pTitle}` : `Mi ruta · ${USER.role || 'Usuario'}`}
       title={path
-        ? <>{path.label}{path.badge ? <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, fontSize:24, color:'var(--accent)', marginLeft:12 }}> · {path.badge}</em> : null}</>
+        ? <>{pTitle}{pBadge ? <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, fontSize:24, color:'var(--accent)', marginLeft:12 }}> · {pBadge}</em> : null}</>
         : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
       sub={path
-        ? `${path.desc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
+        ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
         : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}
       actions={path && setView ? <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>← Todas las rutas</button> : null}>
 
@@ -1162,6 +1168,7 @@ function DeliveryPreferencesPanel({ channelColor }) {
    InboxView · listado de notificaciones · API real Inbox.getAll()
    ============================================================ */
 function InboxView({ openDetail }) {
+  const D = window.SGS_DATA;
   const [data, setData] = useEV2(() => (window.Inbox && window.Inbox.getAll && window.Inbox.getAll()) || { messages:[], notifications:[], releases:[] });
   const [tab, setTab] = useEV2('messages');
   useEE2(() => {
@@ -1185,25 +1192,51 @@ function InboxView({ openDetail }) {
     { id:'releases',      label:'Novedades',     icon:'✨', count:(data.releases||[]).filter(m => !m.read).length },
   ];
 
-  const renderItem = (m) => (
-    <article key={m.id} style={{
-      padding: 18, marginBottom: 10, background: m.read ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-      border: `1px solid ${m.read ? 'var(--line)' : 'var(--line)'}`,
-      borderLeft: m.read ? '1px solid var(--line)' : '3px solid var(--accent)',
-      borderRadius: 'var(--r-2)', cursor: 'pointer',
-    }} onClick={() => window.Inbox && window.Inbox.markRead && window.Inbox.markRead(tab, m.id)}>
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 6, gap: 12 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{m.title || m.subject || m.summary || 'Notificación'}</div>
-        <div style={{ fontSize: 11, color:'var(--fg-dim)', fontFamily:'var(--font-mono)', whiteSpace:'nowrap' }}>
-          {m.time || (m.createdAt && new Date(m.createdAt).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })) || ''}
+  // Resuelve título · cuerpo · icono según el tipo de elemento (messages/notifications/releases)
+  const _titleOf = (m) => m.title || m.subject || m.summary || m.text || 'Sin asunto';
+  const _bodyOf  = (m) => m.body  || m.preview || m.message || m.description || (m.title ? '' : m.text) || '';
+  const _iconOf  = (m) => m.icon || (tab === 'releases' ? '✨' : tab === 'messages' ? '💬' : '🔔');
+
+  const PILLS_BY_ID = ((D && D.PILLS) || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+
+  const onItemClick = (m) => {
+    if (window.Inbox && window.Inbox.markRead) window.Inbox.markRead(tab, m.id);
+    // Si la notificación tiene `link` con pill id → abre el detalle
+    if (m && m.link && openDetail) {
+      const linkStr = String(m.link);
+      const pillId = linkStr.startsWith('pill:') ? linkStr.slice(5) : linkStr;
+      const pill = PILLS_BY_ID[pillId];
+      if (pill) openDetail(pill);
+    }
+  };
+
+  const renderItem = (m) => {
+    const title = _titleOf(m);
+    const body  = _bodyOf(m);
+    const icon  = _iconOf(m);
+    const isAchievement = m.kind === 'achievement';
+    return (
+      <article key={m.id} style={{
+        padding: 18, marginBottom: 10, background: m.read ? 'var(--bg-surface)' : 'var(--bg-elevated)',
+        border: `1px solid var(--line)`,
+        borderLeft: m.read ? '1px solid var(--line)' : `3px solid ${isAchievement ? 'var(--ok)' : 'var(--accent)'}`,
+        borderRadius: 'var(--r-2)', cursor: 'pointer', display:'flex', gap: 12,
+      }} onClick={() => onItemClick(m)}>
+        <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, background: isAchievement ? 'rgba(34,197,94,0.16)' : 'var(--bg-elevated)', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 18 }}>{icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 4, gap: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{title}</div>
+            <div style={{ fontSize: 11, color:'var(--fg-dim)', fontFamily:'var(--font-mono)', whiteSpace:'nowrap' }}>
+              {m.time || (m.createdAt && new Date(m.createdAt).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })) || ''}
+            </div>
+          </div>
+          {body && <div style={{ fontSize: 13, color:'var(--fg-muted)', lineHeight: 1.5 }}>{body}</div>}
+          {m.from && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>De · {m.from}</div>}
+          {m.version && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>v{m.version}</div>}
         </div>
-      </div>
-      <div style={{ fontSize: 13, color:'var(--fg-muted)', lineHeight: 1.5 }}>
-        {m.body || m.preview || m.message || m.description || ''}
-      </div>
-      {m.from && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>De · {m.from}</div>}
-    </article>
-  );
+      </article>
+    );
+  };
 
   const totalAll = (data.messages||[]).length + (data.notifications||[]).length + (data.releases||[]).length;
 
@@ -1271,8 +1304,13 @@ function InboxView({ openDetail }) {
 function SavedView({ openDetail }) {
   const D = window.SGS_DATA;
   const PILLS = (D && D.PILLS) || [];
-  const bmIds = (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || [];
-  const saved = PILLS.filter(p => bmIds.includes(p.id) || bmIds.includes('pill-' + p.pill));
+  const [bmIds, setBmIds] = useEV2(() => (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
+  useEE2(() => {
+    const onChange = () => setBmIds((window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
+    window.addEventListener('bookmarks-changed', onChange);
+    return () => window.removeEventListener('bookmarks-changed', onChange);
+  }, []);
+  const saved = PILLS.filter(p => bmIds.includes(p.id));
 
   return (
     <PageShell

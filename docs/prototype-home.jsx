@@ -107,116 +107,6 @@ function CategoryBar({ active, setActive }) {
     </div>
   );
 }
-
-function Sidebar({ view, setView }) {
-  const [profile, setProfile] = useState(window.UserProfile ? window.UserProfile.get() : { name:'Sin sesión', role:'—', team:'—', avatarColor:'var(--ink-3)', isAdmin:false });
-  const [unread, setUnread] = useState(window.Inbox ? window.Inbox.unreadCount() : 0);
-  useEffect(() => {
-    const h = () => setProfile(window.UserProfile.get());
-    const refreshUnread = () => setUnread(window.Inbox ? window.Inbox.unreadCount() : 0);
-    window.addEventListener('user-profile-changed', h);
-    window.addEventListener('auth-changed', () => { h(); refreshUnread(); });
-    window.addEventListener('inbox-changed', refreshUnread);
-    refreshUnread();
-    return () => {
-      window.removeEventListener('user-profile-changed', h);
-      window.removeEventListener('auth-changed', h);
-      window.removeEventListener('inbox-changed', refreshUnread);
-    };
-  }, []);
-
-  const items = [
-    { id: 'home',      label: 'Inicio',      icon: 'home' },
-    { id: 'inbox',     label: 'Bandeja',     icon: 'chat', badge: unread > 0 ? String(unread) : null },
-    { id: 'browse',    label: 'Catálogo',    icon: 'compass' },
-    { id: 'path',      label: 'Mi ruta',     icon: 'book' },
-    { id: 'rutas',     label: 'Rutas',       icon: 'compass' },
-    { id: 'dashboard', label: 'Analytics',   icon: 'trend' },
-    { id: 'coach',     label: 'BeonAI',   icon: 'sparkle', badge: 'BETA' },
-    { id: 'wa',        label: 'Channels',    icon: 'chat' },
-    { id: 'saved',     label: 'Guardado',    icon: 'bookmark' },
-    { id: 'profile',   label: 'Mi perfil',   icon: 'user' },
-    { id: 'settings',  label: 'Ajustes',     icon: 'compass' },
-  ];
-  if (profile.isAdmin) {
-    items.push({ id: 'admin', label: 'Admin', icon: 'user', badge: 'ADMIN' });
-  }
-
-  const handleLogout = (e) => {
-    e.stopPropagation();
-    if (!confirm('¿Cerrar sesión de ' + profile.name + '?')) return;
-    if (window.Auth) window.Auth.logout();
-    if (window.Toast) window.Toast.info('Sesión cerrada · hasta pronto');
-  };
-
-  const initials = profile.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
-  const openPalette = () => window.__openPalette && window.__openPalette();
-
-  return (
-    <aside className="sb">
-      <div className="sb-brand" style={{alignItems:'center'}}>
-        <img src="sgs-on-logo.png?v=20260427e" style={{height:30, width:'auto', flexShrink:0}} alt="SolidStream"/>
-      </div>
-
-      <div className="sb-org">
-        <div className="sb-org-logo">R</div>
-        <div>
-          <div className="sb-org-name">{profile.team}</div>
-          <div className="sb-org-sub">Formación Sprinklr</div>
-        </div>
-      </div>
-
-      <button className="sb-search" onClick={openPalette}>
-        <Icon name="search" size={14}/>
-        <span>Buscar módulos…</span>
-        <span className="kbd">⌘K</span>
-      </button>
-
-      <div className="sb-nav">
-        {items.map(it => (
-          <button key={it.id} className={`sb-item ${view === it.id ? 'active' : ''}`} onClick={() => setView(it.id)}>
-            <span className="sb-icon"><Icon name={it.icon} size={15}/></span>
-            {it.label}
-            {it.badge && <span className="sb-badge sb-badge-new">{it.badge}</span>}
-          </button>
-        ))}
-      </div>
-
-      <div>
-        <div className="sb-section-title">Mi progreso</div>
-        <div className="sb-paths">
-          <div className="sb-path" onClick={() => setView('path')}>
-            <div className="sb-path-title">Rol {profile.role} · Certificación</div>
-            <div className="sb-progress"><i style={{width:'15%'}}/></div>
-            <div className="sb-path-meta"><span>Think Pill 4 / 27</span><span>·</span><span>15%</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{display:'flex', alignItems:'center', gap:6}}>
-        <button className="sb-user" onClick={() => setView('profile')} style={{border:'none', background:'transparent', textAlign:'left', cursor:'pointer', padding:0, flex:1, minWidth:0}}>
-          <div className="sb-avatar" style={{background:profile.avatarColor}}>{initials}</div>
-          <div style={{minWidth:0}}>
-            <div className="sb-user-name" style={{display:'flex', alignItems:'center', gap:5}}>
-              <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{profile.name}</span>
-              {profile.isAdmin && <span style={{fontFamily:'var(--mono)', fontSize:8, padding:'1px 5px', background:'var(--ink)', color:'#fff', borderRadius:3, letterSpacing:'0.06em', flexShrink:0}}>ADMIN</span>}
-            </div>
-            <div className="sb-user-role">{profile.role} · {profile.team}</div>
-          </div>
-        </button>
-        <button onClick={handleLogout} title="Cerrar sesión"
-          style={{flexShrink:0, width:32, height:32, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-3)'}}
-          onMouseEnter={e => { e.currentTarget.style.background='rgba(235,0,41,0.08)'; e.currentTarget.style.color='var(--repsol-red)'; e.currentTarget.style.borderColor='rgba(235,0,41,0.25)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background='var(--paper)'; e.currentTarget.style.color='var(--ink-3)'; e.currentTarget.style.borderColor='var(--line)'; }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-          </svg>
-        </button>
-      </div>
-    </aside>
-  );
-}
-
 // ============================================================
 // REDESIGN · TopNav · Hero · Card · PathCard · Row · HomeView
 // Adaptación del mockup `redesign/sgson-home.jsx` al SaaS actual.
@@ -233,6 +123,7 @@ const _catSlugFix = (s) => {
 function TopNav({ view, onView, onSearch, onLogout }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inboxCount, setInboxCount] = useState(() => (window.Inbox && window.Inbox.unreadCount && window.Inbox.unreadCount()) || 0);
   const menuRef = React.useRef(null);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -247,6 +138,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     document.addEventListener('mousedown', onClickOut);
     return () => document.removeEventListener('mousedown', onClickOut);
   }, [menuOpen]);
+  // Badge de bandeja se mantiene reactivo a cambios del Inbox
+  useEffect(() => {
+    const refresh = () => setInboxCount((window.Inbox && window.Inbox.unreadCount && window.Inbox.unreadCount()) || 0);
+    refresh();
+    window.addEventListener('inbox-changed', refresh);
+    return () => window.removeEventListener('inbox-changed', refresh);
+  }, []);
 
   const items = [
     { k:'home',      label:'Inicio' },
@@ -262,7 +160,6 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const userName = (D && D.USER && D.USER.name) || 'Usuario';
   const userRole = (D && D.USER && D.USER.role) || '';
   const isAdmin = !!(D && D.USER && D.USER.isAdmin);
-  const inboxCount = D && D.SIDEBAR_LINKS ? (D.SIDEBAR_LINKS.find(l => l.key === 'inbox') || {}).count : null;
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
   const menuItems = [
