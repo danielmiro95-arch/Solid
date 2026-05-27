@@ -2500,7 +2500,10 @@ window.ActivityFeed = ActivityFeed;
 
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
-  const [view, setView] = useSM(saved.view || 'home');
+  const [view, _setView] = useSM(saved.view || 'home');
+  // Stack de vistas previas · para botón "back" del Player
+  const [prevView, setPrevView] = useSM(saved.prevView || 'home');
+  const setView = (v) => { _setView(prev => { if (prev !== v) setPrevView(prev); return v; }); };
   // pathId activo · seteado por RutasView al pulsar una ruta concreta
   const [activePathId, setActivePathId] = useSM(saved.activePathId || null);
   const openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
@@ -2563,9 +2566,9 @@ function App() {
   }, []);
 
   useEM(() => {
-    localStorage.setItem('solid-proto', JSON.stringify({ view, aiMode, shape, accent, activePathId }));
+    localStorage.setItem('solid-proto', JSON.stringify({ view, prevView, aiMode, shape, accent, activePathId }));
     document.documentElement.style.setProperty('--accent-glow', accent);
-  }, [view, aiMode, shape, accent, activePathId]);
+  }, [view, prevView, aiMode, shape, accent, activePathId]);
 
   // Tweaks protocol
   useEM(() => {
@@ -2669,7 +2672,7 @@ function App() {
       }}>
         {view === 'home' && <Home openDetail={openDetail} openPlayer={openPlayer} setView={setView}/>}
         {view === 'detail' && <Detail item={detailItem} openPlayer={openPlayer} back={() => setView('home')} setView={setView} setAIMode={setAIMode}/>}
-        {view === 'player' && <Player back={() => setView('detail')} item={detailItem}/>}
+        {view === 'player' && <Player back={() => setView(prevView && prevView !== 'player' ? prevView : 'home')} item={detailItem}/>}
         {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
         {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
         {view === 'dashboard-legacy' && <Dashboard/>}
