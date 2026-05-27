@@ -1378,10 +1378,13 @@ const Auth = (function() {
   const SYSTEM_ROLES = ['admin', 'manager', 'user'];
   function _inferSystemRole(data, users) {
     if (data.systemRole && SYSTEM_ROLES.indexOf(data.systemRole) >= 0) return data.systemRole;
+    // Bootstrap: el primer usuario del sistema es admin para que alguien pueda arrancar
     if (data.isAdmin || users.length === 0) return 'admin';
-    if (/admin/i.test(data.email) || /@beonit\./i.test(data.email)) return 'admin';
-    // Heurística: roles funcionales con "Lead" / "Manager" / "Director" → manager
-    if (/lead|manager|director|jefe|head/i.test(data.role || '')) return 'manager';
+    // Bootstrap: cualquier email @beonit.* es admin de plataforma (equipo BeonIt)
+    if (/@beonit\./i.test(data.email)) return 'admin';
+    // El resto arranca como 'user'. El rol funcional (Publish Agent, Content Lead…)
+    // NO otorga privilegios de sistema — el admin promueve a manager/admin desde
+    // el panel admin manualmente, decisión consciente, no heurística.
     return 'user';
   }
   function signup(data) {
@@ -1494,7 +1497,9 @@ const Auth = (function() {
   };
   function _migrateLegacyRole(u) {
     if (u && !u.systemRole) {
-      u.systemRole = u.isAdmin ? 'admin' : (/lead|manager|director|jefe|head/i.test(u.role || '') ? 'manager' : 'user');
+      // Migración: usuarios viejos sin systemRole. NO inferimos manager por el
+      // rol funcional — eso era el bug. Sólo respetamos `isAdmin` explícito.
+      u.systemRole = u.isAdmin ? 'admin' : 'user';
     }
     if (u && u.systemRole === 'admin') u.isAdmin = true;
     return u;
@@ -1511,10 +1516,13 @@ const Auth = (function() {
     _migrateLegacyRole(u);
     var required = PERMISSIONS[action];
     if (!required) return false;
-    // Fallback robusto: si user.isAdmin es true o el email contiene admin/@beonit.,
-    // promueve in-flight a admin. Evita "Acceso restringido" cuando systemRole
-    // no se persistió correctamente en signup viejo.
-    if (u.isAdmin || /admin/i.test(u.email || '') || /@beonit\./i.test(u.email || '')) {
+    // Fallback bootstrap: si el user tiene isAdmin=true (asignado por panel) o
+    // su email es @beonit.* (equipo BeonIt), promueve a admin in-flight para
+    // evitar "Acceso restringido" si systemRole no se persistió. Quitamos la
+    // regla `/admin/i.test(email)` porque cualquier email con "admin" en él
+    // (incluido `admin@cliente.com`) entraría como admin de plataforma sin
+    // intención.
+    if (u.isAdmin || /@beonit\./i.test(u.email || '')) {
       u.systemRole = 'admin';
     }
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[required];
@@ -1523,7 +1531,7 @@ const Auth = (function() {
     var u = currentUser();
     if (!u) return false;
     _migrateLegacyRole(u);
-    if (u.isAdmin || /admin/i.test(u.email || '') || /@beonit\./i.test(u.email || '')) {
+    if (u.isAdmin || /@beonit\./i.test(u.email || '')) {
       u.systemRole = 'admin';
     }
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[role];
@@ -4879,7 +4887,7 @@ function LoginScreen() {
                   <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.role')}</div>
                   <select value={role} onChange={e => setRole(e.target.value)}
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, background:'rgba(255,255,255,0.04)', color:'#F5F4F1', boxSizing:'border-box', cursor:'pointer'}}>
-                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
+                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
                   </select>
                 </label>
                 <label style={{display:'block', marginBottom:14}}>
