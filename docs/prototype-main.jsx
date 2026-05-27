@@ -546,6 +546,66 @@ const Subscriptions = (function() {
 })();
 window.Subscriptions = Subscriptions;
 
+// ── TestSends · historial de notificaciones de prueba ─────────────────────
+const TestSends = (function() {
+  const KEY = 'solid-test-sends';
+  const MAX = 12;
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function list() {
+    try { return JSON.parse(localStorage.getItem(_userKey()) || '[]'); } catch(e) { return []; }
+  }
+  function _save(arr) { localStorage.setItem(_userKey(), JSON.stringify(arr.slice(0, MAX))); }
+
+  function send(channelId, channelLabel) {
+    const entry = {
+      id: 't-' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+      channelId, channelLabel,
+      ts: Date.now(),
+      status: 'delivered',
+    };
+    const next = [entry, ...list()];
+    _save(next);
+    // Notificación nativa del navegador (si el usuario la permitió)
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('SolidStream · Test ' + channelLabel, {
+          body: 'Hoy toca: Programar posts y calendario',
+          icon: '/beonit-logo.png',
+        });
+      }
+    } catch(e) {}
+    window.dispatchEvent(new CustomEvent('test-sends-changed', { detail: next }));
+    if (window.Toast) window.Toast.success('Test enviado a ' + channelLabel, { icon:'📨' });
+    return entry;
+  }
+
+  function clear() {
+    _save([]);
+    window.dispatchEvent(new CustomEvent('test-sends-changed', { detail: [] }));
+  }
+
+  async function requestPermission() {
+    try {
+      if (typeof Notification === 'undefined') return 'unsupported';
+      if (Notification.permission === 'granted') return 'granted';
+      if (Notification.permission === 'denied')  return 'denied';
+      const r = await Notification.requestPermission();
+      return r;
+    } catch(e) { return 'error'; }
+  }
+
+  return { list, send, clear, requestPermission };
+})();
+window.TestSends = TestSends;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
