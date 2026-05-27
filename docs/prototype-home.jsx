@@ -120,6 +120,95 @@ const _catSlugFix = (s) => {
   return x;
 };
 
+// ── WorkspaceSwitcher · chip con dropdown para cambiar de tenant ──────────
+function WorkspaceSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [tick, setTick] = useState(0);
+  const ref = React.useRef(null);
+  useEffect(() => {
+    const refresh = () => setTick(x => x + 1);
+    window.addEventListener('workspaces-changed', refresh);
+    window.addEventListener('workspace-changed', refresh);
+    window.addEventListener('auth-changed', refresh);
+    return () => {
+      window.removeEventListener('workspaces-changed', refresh);
+      window.removeEventListener('workspace-changed', refresh);
+      window.removeEventListener('auth-changed', refresh);
+    };
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const onClickOut = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [open]);
+
+  if (!window.Workspaces) return null;
+  const current = window.Workspaces.current();
+  const mine = window.Workspaces.listMine();
+  if (!current || mine.length === 0) return null;
+
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const T_ALL = T('workspaces.allWorkspaces','Todos los workspaces');
+  const T_SWITCH = T('workspaces.switch','Cambiar workspace');
+
+  return (
+    <div ref={ref} style={{ position:'relative', marginLeft: 10 }}>
+      <button onClick={() => setOpen(o => !o)}
+        title={T_SWITCH}
+        style={{
+          display:'inline-flex', alignItems:'center', gap: 6,
+          padding:'5px 10px',
+          background:'rgba(255,255,255,0.04)',
+          border:'1px solid rgba(255,255,255,0.10)',
+          borderRadius: 999,
+          fontFamily:'var(--font-mono, "JetBrains Mono", monospace)',
+          fontSize: 10.5, letterSpacing:'0.06em', fontWeight: 600,
+          color:'var(--fg, #F5F4F1)',
+          cursor:'pointer',
+          maxWidth: 220, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+        }}>
+        <span style={{ width: 6, height: 6, borderRadius:'50%', background: current.primaryColor || 'var(--accent)' }}/>
+        {current.name}
+        <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
+      </button>
+      {open && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 6px)', left: 0, zIndex: 80,
+          minWidth: 260,
+          background:'var(--bg-glass-strong, rgba(14,14,18,0.95))',
+          backdropFilter:'blur(20px)',
+          border:'1px solid var(--line, rgba(255,255,255,0.10))',
+          borderRadius: 10, padding: 6,
+          boxShadow:'0 20px 60px rgba(0,0,0,0.40)',
+        }}>
+          <div style={{ padding:'8px 12px', fontFamily:'var(--font-mono, monospace)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700 }}>
+            {T_ALL}
+          </div>
+          {mine.map(w => (
+            <button key={w.id} onClick={() => { window.Workspaces.setCurrent(w.id); setOpen(false); }}
+              style={{
+                display:'flex', alignItems:'center', gap: 10, width:'100%',
+                padding:'8px 12px', border:'none', background: w.id === current.id ? 'rgba(110,80,238,0.16)' : 'transparent',
+                cursor:'pointer', textAlign:'left', borderRadius: 6,
+                fontFamily:'var(--font-sans, Inter)', fontSize: 13, color:'var(--fg)',
+              }}>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: w.primaryColor || 'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                {(w.name || '?').slice(0, 2).toUpperCase()}
+              </span>
+              <span style={{ flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{w.name}</span>
+              {w._membership && (
+                <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize: 9, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{w._membership.role}</span>
+              )}
+              {w.id === current.id && <span style={{ color:'var(--accent)', fontSize: 14 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TopNav({ view, onView, onSearch, onLogout }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -184,6 +273,8 @@ function TopNav({ view, onView, onSearch, onLogout }) {
           ? <Wordmark variant="v1"/>
           : <span style={{display:'inline-flex', alignItems:'center', gap:8}}><img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="" style={{height:32}}/><span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:18, letterSpacing:'-0.02em'}}>SolidStream</span></span>
         }
+        {/* Workspace switcher · chip al lado del logo si hay workspaces */}
+        <WorkspaceSwitcher/>
       </div>
 
       <div className="topnav-center">
