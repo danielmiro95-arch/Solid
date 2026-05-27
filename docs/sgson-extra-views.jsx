@@ -357,9 +357,20 @@ function ChannelsView() {
 
 // ── Smart Scheduling Panel · BeonAI sugiere el mejor horario ─────────────
 function SmartSchedulingPanel() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const lang = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
   const [data, setData] = useEV2(() => (window.SmartScheduling ? window.SmartScheduling.get() : null));
   const [analyzing, setAnalyzing] = useEV2(false);
   const [applied, setApplied] = useEV2(false);
+  // Días localizados para el headline
+  const DAYS_LONG_BY_LANG = {
+    es:['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'],
+    en:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+    pt:['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'],
+  };
+  const daysLong = DAYS_LONG_BY_LANG[lang] || DAYS_LONG_BY_LANG.es;
+  // Mapping insights id → keys i18n (en orden devuelto por SmartScheduling.analyze)
+  const INSIGHT_KEYS = ['optimal','bestDay','window','avg','engagement'];
 
   useEE2(() => {
     const onChange = (e) => setData(e.detail || (window.SmartScheduling ? window.SmartScheduling.get() : null));
@@ -383,38 +394,41 @@ function SmartSchedulingPanel() {
     setTimeout(() => {
       if (window.SmartScheduling) setData(window.SmartScheduling.analyze());
       setAnalyzing(false);
-      if (window.Toast) window.Toast.success('BeonAI ha recalculado tu horario óptimo', { icon:'✨' });
+      if (window.Toast) window.Toast.success(T('smart.reAnalyze') + ' ✓', { icon:'✨' });
     }, 900);
   };
 
   const apply = () => {
     if (window.SmartScheduling) window.SmartScheduling.applyToDelivery();
-    if (window.Toast) window.Toast.success('Horario óptimo aplicado a tus preferencias de entrega', { icon:'⚡' });
+    if (window.Toast) window.Toast.success(T('smart.appliedBtn'), { icon:'⚡' });
   };
 
   if (!data) return null;
 
   const fmtAgo = (ts) => {
     const d = Math.floor((Date.now() - ts) / 60000);
-    if (d < 1)   return 'ahora mismo';
-    if (d < 60)  return 'hace ' + d + ' min';
+    const prefix = lang === 'en' ? '' : (lang === 'pt' ? 'há ' : 'hace ');
+    const suffix = lang === 'en' ? ' ago' : '';
+    if (d < 1)   return lang === 'en' ? 'just now' : (lang === 'pt' ? 'agora mesmo' : 'ahora mismo');
+    if (d < 60)  return prefix + d + ' min' + suffix;
     const h = Math.floor(d / 60);
-    if (h < 24)  return 'hace ' + h + ' h';
-    return 'hace ' + Math.floor(h / 24) + ' días';
+    if (h < 24)  return prefix + h + ' h' + suffix;
+    const dys = Math.floor(h / 24);
+    return prefix + dys + (lang === 'en' ? ' day' + (dys === 1 ? '' : 's') : (lang === 'pt' ? ' dia' + (dys === 1 ? '' : 's') : ' día' + (dys === 1 ? '' : 's'))) + suffix;
   };
 
   return (
     <section style={{ marginTop: 40, marginBottom: 40 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap: 12, flexWrap:'wrap' }}>
         <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>
-          ✨ Smart Scheduling · <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>BeonAI te recomienda</em>
+          ✨ {T('smart.eyebrow')} · <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('smart.title')}</em>
         </h2>
         <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
-          Actualizado {fmtAgo(data.generatedAt || Date.now())}
+          {T('smart.updatedAt','Actualizado')} {fmtAgo(data.generatedAt || Date.now())}
         </div>
       </div>
       <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 20 }}>
-        BeonAI analiza tu historial · horarios de apertura, tiempo de visualización y engagement · para sugerirte el mejor momento para recibir contenido.
+        {T('smart.sub')}
       </div>
 
       {/* CARD principal · gradiente accent + métricas top */}
@@ -429,18 +443,21 @@ function SmartSchedulingPanel() {
         {analyzing && (
           <div style={{ position:'absolute', top: 12, right: 16, fontFamily:'var(--font-mono)', fontSize: 10.5, color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 6 }}>
             <span className="dot-pulse" style={{ width: 8, height: 8, borderRadius:'50%', background:'var(--accent)' }}/>
-            Analizando…
+            {T('smart.analyzing')}
           </div>
         )}
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap: 24, alignItems:'flex-start' }}>
           <div>
-            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', fontWeight: 700, marginBottom: 8 }}>📨 Best time to watch</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', fontWeight: 700, marginBottom: 8 }}>{T('smart.bestTime')}</div>
             <div style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontSize: 38, color:'var(--fg)', lineHeight: 1.1, marginBottom: 6 }}>
-              Te llega mejor a las <strong style={{ color:'var(--accent)' }}>{data.time}</strong>
+              {T('smart.youHeadline')} <strong style={{ color:'var(--accent)' }}>{data.time}</strong>
             </div>
             <div style={{ fontSize: 13.5, color:'var(--fg-muted)', lineHeight: 1.55, maxWidth: 560 }}>
-              Te abres con más constancia los <strong style={{ color:'var(--fg)' }}>{data.days[data.bestDayIdx].toLowerCase()}</strong>. En tu ventana de pico ({data.peakWindow}) el engagement es del <strong style={{ color:'var(--fg)' }}>{data.engagement}%</strong>, casi el doble de la media. Te recomendamos enviarte el contenido justo antes.
+              {T('smart.explain','Te abres con más constancia los {day}. En tu ventana de pico ({window}) el engagement es del {engagement}%.')
+                .replace('{day}', daysLong[data.bestDayIdx].toLowerCase())
+                .replace('{window}', data.peakWindow)
+                .replace('{engagement}', data.engagement)}
             </div>
           </div>
 
@@ -453,7 +470,7 @@ function SmartSchedulingPanel() {
               boxShadow: applied ? 'none' : '0 6px 18px rgba(89,71,255,0.35)',
               display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
             }}>
-              {applied ? '✓ Aplicado a Channels' : '⚡ Aplicar este horario'}
+              {applied ? T('smart.appliedBtn') : T('smart.applyBtn')}
             </button>
             <button onClick={reAnalyze} disabled={analyzing} style={{
               padding:'10px 16px', background:'transparent',
@@ -461,7 +478,7 @@ function SmartSchedulingPanel() {
               borderRadius: 10, cursor: analyzing ? 'wait' : 'pointer',
               fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
             }}>
-              {analyzing ? '⏳ Analizando…' : '🔄 Re-analizar'}
+              {analyzing ? T('smart.analyzing') : T('smart.reAnalyze')}
             </button>
           </div>
         </div>
@@ -469,19 +486,27 @@ function SmartSchedulingPanel() {
 
       {/* INSIGHTS · grid de métricas */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
-        {data.insights.map((ins, i) => (
-          <div key={i} style={{ padding:'14px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
-            <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 8 }}>{ins.icon}</div>
-            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700, marginBottom: 4 }}>{ins.label}</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color:'var(--fg)', marginBottom: 2 }}>{ins.value}</div>
-            <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.4 }}>{ins.hint}</div>
-          </div>
-        ))}
+        {data.insights.map((ins, i) => {
+          const key = INSIGHT_KEYS[i] || null;
+          const label = key ? T('smart.insights.' + key, ins.label) : ins.label;
+          const hint  = key ? T('smart.insights.' + key + '.hint', ins.hint) : ins.hint;
+          // Para `bestDay`, traducir el value (que es el nombre del día)
+          let value = ins.value;
+          if (key === 'bestDay' && typeof value === 'string') value = daysLong[data.bestDayIdx] || value;
+          return (
+            <div key={i} style={{ padding:'14px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
+              <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 8 }}>{ins.icon}</div>
+              <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700, marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color:'var(--fg)', marginBottom: 2 }}>{value}</div>
+              <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.4 }}>{hint}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Notas · qué optimiza la IA */}
       <div style={{ marginTop: 14, padding:'12px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 10, fontSize: 12, color:'var(--fg-muted)', lineHeight: 1.55 }}>
-        <strong style={{ color:'var(--fg)' }}>BeonAI también optimiza por ti</strong> · evita enviarte en quiet hours, agrupa pills en digest si superas tu límite diario, y respeta tu modo vacaciones automáticamente.
+        {T('smart.disclaimer','BeonAI también optimiza por ti · evita enviarte en quiet hours, agrupa pills en digest si superas tu límite diario, y respeta tu modo vacaciones automáticamente.')}
       </div>
     </section>
   );
@@ -489,6 +514,7 @@ function SmartSchedulingPanel() {
 
 // ── Notification Rules Panel ────────────────────────────────────────────
 function NotificationRulesPanel({ channelColor }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [rules, setRules] = useEV2(() => (window.NotificationRules ? window.NotificationRules.get() : {}));
   useEE2(() => {
     const onChange = (e) => setRules(e.detail);
@@ -500,32 +526,32 @@ function NotificationRulesPanel({ channelColor }) {
   const muted = window.NotificationRules ? window.NotificationRules.isMuted() : false;
 
   const DIGEST = [
-    { id:'instant', label:'Instantáneo', desc:'En cuanto haya algo, te llega' },
-    { id:'daily',   label:'Digest diario', desc:'Un único mensaje agrupado al día' },
-    { id:'weekly',  label:'Digest semanal', desc:'Un único mensaje los lunes a las 9:00' },
+    { id:'instant', label:T('rules.digest.instant'), desc:T('rules.digest.instant.sub','En cuanto haya algo, te llega') },
+    { id:'daily',   label:T('rules.digest.daily'),   desc:T('rules.digest.daily.sub','Un único mensaje agrupado al día') },
+    { id:'weekly',  label:T('rules.digest.weekly'),  desc:T('rules.digest.weekly.sub','Un único mensaje los lunes a las 9:00') },
   ];
 
   const PRIORITY = [
-    { id:'all',      label:'Todo',                 desc:'Cualquier contenido nuevo' },
-    { id:'relevant', label:'Solo relevante',       desc:'BeonAI filtra por tu rol y objetivos' },
-    { id:'high',     label:'Solo prioridad alta',  desc:'Sólo alertas y deadlines' },
+    { id:'all',      label:T('rules.priority.all'),      desc:T('rules.priority.all.sub','Cualquier contenido nuevo') },
+    { id:'relevant', label:T('rules.priority.relevant'), desc:T('rules.priority.relevant.sub','BeonAI filtra por tu rol y objetivos') },
+    { id:'high',     label:T('rules.priority.high'),     desc:T('rules.priority.high.sub','Sólo alertas y deadlines') },
   ];
 
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
-        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Reglas de notificación</h2>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>{T('rules.title')}</h2>
         <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color: muted ? 'var(--warn)' : 'var(--ok)', fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 6 }}>
           <span style={{ width: 6, height: 6, borderRadius:'50%', background: muted ? 'var(--warn)' : 'var(--ok)' }}/>
-          {muted ? 'En silencio ahora' : 'Activas'}
+          {muted ? T('rules.muted') : T('rules.active')}
         </div>
       </div>
       <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 24 }}>
-        Controla cuándo y con qué prioridad te llegan las notificaciones.
+        {T('rules.sub')}
       </div>
 
       {/* DIGEST · cómo agrupar */}
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Frecuencia de envío</div>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>{T('rules.digest.title')}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10, marginBottom:28 }}>
         {DIGEST.map(d => {
           const active = rules.digest === d.id;
@@ -548,8 +574,8 @@ function NotificationRulesPanel({ channelColor }) {
       <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:`1px solid ${rules.quietHours && rules.quietHours.enabled ? channelColor : 'var(--line)'}`, borderRadius: 12, marginBottom: 14 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>🌙 Horas de silencio</div>
-            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>No te llegará nada en esta franja horaria. Útil para dormir o concentrarte.</div>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>{T('rules.quiet.title')}</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('rules.quiet.sub','No te llegará nada en esta franja horaria. Útil para dormir o concentrarte.')}</div>
           </div>
           <button onClick={() => update({ quietHours: { ...rules.quietHours, enabled: !rules.quietHours.enabled } })} aria-label="Toggle quiet hours"
             style={{ width:48, height:26, background: rules.quietHours && rules.quietHours.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
@@ -559,12 +585,12 @@ function NotificationRulesPanel({ channelColor }) {
         {rules.quietHours && rules.quietHours.enabled && (
           <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'center', flexWrap:'wrap' }}>
             <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Desde</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>{T('rules.quiet.from','Desde')}</span>
               <input type="time" value={rules.quietHours.from} onChange={e => update({ quietHours: { ...rules.quietHours, from: e.target.value } })}
                 style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
             </label>
             <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Hasta</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>{T('rules.quiet.to','Hasta')}</span>
               <input type="time" value={rules.quietHours.to} onChange={e => update({ quietHours: { ...rules.quietHours, to: e.target.value } })}
                 style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
             </label>
@@ -575,7 +601,7 @@ function NotificationRulesPanel({ channelColor }) {
                 const f = fh*60+fm, t = th*60+tm;
                 const diff = f === t ? 0 : (f < t ? t - f : (1440 - f) + t);
                 const h = Math.floor(diff/60), m = diff % 60;
-                return diff === 0 ? 'Sin franja' : (h ? h + 'h ' : '') + (m ? m + 'min' : '') + ' en silencio';
+                return diff === 0 ? T('rules.quiet.noWindow','Sin franja') : ((h ? h + 'h ' : '') + (m ? m + 'min' : '') + ' ' + T('rules.quiet.duration','en silencio'));
               })()}
             </div>
           </div>
@@ -586,8 +612,8 @@ function NotificationRulesPanel({ channelColor }) {
       <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:`1px solid ${rules.vacation && rules.vacation.enabled ? channelColor : 'var(--line)'}`, borderRadius: 12, marginBottom: 14 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>🏖 Modo vacaciones</div>
-            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Pausa todas las notificaciones hasta la fecha que elijas.</div>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>{T('rules.vacation.title')}</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('rules.vacation.sub','Pausa todas las notificaciones hasta la fecha que elijas.')}</div>
           </div>
           <button onClick={() => update({ vacation: { ...rules.vacation, enabled: !rules.vacation.enabled } })} aria-label="Toggle vacation"
             style={{ width:48, height:26, background: rules.vacation && rules.vacation.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
@@ -597,14 +623,16 @@ function NotificationRulesPanel({ channelColor }) {
         {rules.vacation && rules.vacation.enabled && (
           <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'center', flexWrap:'wrap' }}>
             <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Hasta</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>{T('rules.vacation.until','Hasta')}</span>
               <input type="date" value={rules.vacation.until || ''} onChange={e => update({ vacation: { ...rules.vacation, until: e.target.value } })}
                 min={new Date().toISOString().slice(0,10)}
                 style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
             </label>
-            {rules.vacation.until && (
-              <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>Te reactivamos automáticamente el {new Date(rules.vacation.until).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'short' })}</div>
-            )}
+            {rules.vacation.until && (() => {
+              const lang2 = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
+              const locale = lang2 === 'en' ? 'en-US' : lang2 === 'pt' ? 'pt-BR' : 'es-ES';
+              return <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>{T('rules.vacation.reactivate','Te reactivamos automáticamente el')} {new Date(rules.vacation.until).toLocaleDateString(locale, { weekday:'long', day:'numeric', month:'short' })}</div>;
+            })()}
           </div>
         )}
       </div>
@@ -613,8 +641,8 @@ function NotificationRulesPanel({ channelColor }) {
       <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12, marginBottom: 14 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>🤖 Recordatorio inteligente</div>
-            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>BeonAI evita recordarte contenido que ya viste.</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{T('rules.smart.title')}</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('rules.smart.sub','BeonAI evita recordarte contenido que ya viste.')}</div>
           </div>
           <button onClick={() => update({ smartReminder: !rules.smartReminder })} aria-label="Toggle smart reminder"
             style={{ width:48, height:26, background: rules.smartReminder ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
@@ -624,7 +652,7 @@ function NotificationRulesPanel({ channelColor }) {
       </div>
 
       {/* PRIORITY */}
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Filtro por prioridad</div>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>{T('rules.priority.title')}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10, marginBottom: 18 }}>
         {PRIORITY.map(p => {
           const active = rules.priority === p.id;
@@ -658,6 +686,7 @@ function NotificationRulesPanel({ channelColor }) {
 
 // ── Subscriptions Panel · seguir categorías, skills, equipos, trainers ───
 function SubscriptionsPanel({ channelColor }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [subs, setSubs] = useEV2(() => (window.Subscriptions ? window.Subscriptions.get() : { categories:{}, skills:{}, teams:{}, trainers:{} }));
   const [activeGroup, setActiveGroup] = useEV2('categories');
   useEE2(() => {
@@ -668,10 +697,10 @@ function SubscriptionsPanel({ channelColor }) {
 
   const CAT = (window.Subscriptions && window.Subscriptions.CATALOG) || { categories:[], skills:[], teams:[], trainers:[] };
   const TABS = [
-    { id:'categories', label:'Categorías',  icon:'🗂', items: CAT.categories || [] },
-    { id:'skills',     label:'Skills',      icon:'🧠', items: CAT.skills     || [] },
-    { id:'teams',      label:'Equipos',     icon:'👥', items: CAT.teams      || [] },
-    { id:'trainers',   label:'Trainers',    icon:'🎓', items: CAT.trainers   || [] },
+    { id:'categories', label:T('subs.tab.categories'), icon:'🗂', items: CAT.categories || [] },
+    { id:'skills',     label:T('subs.tab.skills'),     icon:'🧠', items: CAT.skills     || [] },
+    { id:'teams',      label:T('subs.tab.teams'),      icon:'👥', items: CAT.teams      || [] },
+    { id:'trainers',   label:T('subs.tab.trainers'),   icon:'🎓', items: CAT.trainers   || [] },
   ];
   const active = TABS.find(t => t.id === activeGroup) || TABS[0];
 
@@ -681,13 +710,13 @@ function SubscriptionsPanel({ channelColor }) {
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
-        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Lo que sigues</h2>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>{T('subs.title')}</h2>
         <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
-          {total} suscripci{total === 1 ? 'ón' : 'ones'} activa{total === 1 ? '' : 's'}
+          {T('subs.activeCount').replace('{n}', total)}
         </div>
       </div>
       <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 20 }}>
-        Recibirás contenido nuevo de las categorías, skills, equipos y trainers que sigas.
+        {T('subs.sub')}
       </div>
 
       {/* Tabs */}
@@ -752,7 +781,7 @@ function SubscriptionsPanel({ channelColor }) {
       {/* Chips resumen · qué sigues en total (todas las pestañas) */}
       {total > 0 && (
         <div style={{ marginTop: 18, padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 10 }}>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700, marginBottom: 8 }}>Resumen de suscripciones</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700, marginBottom: 8 }}>{T('subs.summary')}</div>
           <div style={{ display:'flex', flexWrap:'wrap', gap: 6 }}>
             {TABS.flatMap(t => t.items.filter(i => subs[t.id] && subs[t.id][i.id]).map(i => (
               <span key={t.id+':'+i.id} style={{ padding:'4px 10px', fontFamily:'var(--font-mono)', fontSize: 10.5, fontWeight: 600, background: (i.color || channelColor)+'15', color: i.color || channelColor, borderRadius: 999, border: `1px solid ${(i.color || channelColor)+'40'}` }}>
@@ -768,6 +797,7 @@ function SubscriptionsPanel({ channelColor }) {
 
 // ── Content Push Panel · tipos de contenido + formato de mensaje ─────────
 function ContentPushPanel({ channelColor }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [prefs, setPrefs] = useEV2(() => (window.ContentPush ? window.ContentPush.get() : {}));
   useEE2(() => {
     const onChange = (e) => setPrefs(e.detail);
@@ -775,26 +805,32 @@ function ContentPushPanel({ channelColor }) {
     return () => window.removeEventListener('content-push-changed', onChange);
   }, []);
 
-  const types = (window.ContentPush && window.ContentPush.TYPES) || [];
+  // Tipos de contenido · enriquecidos con traducción i18n por id
+  const rawTypes = (window.ContentPush && window.ContentPush.TYPES) || [];
+  const types = rawTypes.map(t => ({
+    ...t,
+    label: T('content.types.' + t.id, t.label),
+    desc:  T('content.types.' + t.id + '.sub', t.desc),
+  }));
   const enabledCount = types.filter(t => prefs.types && prefs.types[t.id]).length;
 
   const FLAGS = [
-    { key:'autoReceive',   label:'Recibir automáticamente',  desc:'Llega solo, sin que pidas que te lo envíen.' },
-    { key:'showSummary',   label:'Resumen previo del contenido', desc:'Antes del enlace, una línea con lo que vas a aprender.' },
-    { key:'showThumbnail', label:'Thumbnail + CTA',          desc:'Imagen de portada con botón "Ver ahora".' },
-    { key:'showDuration',  label:'Ver duración',             desc:'Muestra cuánto dura antes de que abras.' },
-    { key:'openInSolid',   label:'Abrir en SolidStream',     desc:'Al hacer click, abrir dentro de la plataforma (no en web pública).' },
+    { key:'autoReceive',   label:T('content.flag.auto'),     desc:T('content.flag.auto.sub','Llega solo, sin que pidas que te lo envíen.') },
+    { key:'showSummary',   label:T('content.flag.summary'),  desc:T('content.flag.summary.sub','Antes del enlace, una línea con lo que vas a aprender.') },
+    { key:'showThumbnail', label:T('content.flag.thumb'),    desc:T('content.flag.thumb.sub','Imagen de portada con botón "Ver ahora".') },
+    { key:'showDuration',  label:T('content.flag.duration'), desc:T('content.flag.duration.sub','Muestra cuánto dura antes de que abras.') },
+    { key:'openInSolid',   label:T('content.flag.openSolid'),desc:T('content.flag.openSolid.sub','Al hacer click, abrir dentro de la plataforma (no en web pública).') },
   ];
 
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
-        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Qué contenido quieres recibir</h2>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>{T('content.title')}</h2>
         <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
-          {enabledCount}/{types.length} tipos activos
+          {T('content.count').replace('{n}', enabledCount).replace('{total}', types.length)}
         </div>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>Activa los formatos que quieres que te lleguen por tu canal principal.</div>
+      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>{T('content.sub')}</div>
 
       {/* Grid de tipos de contenido */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginBottom: 32 }}>
@@ -825,7 +861,7 @@ function ContentPushPanel({ channelColor }) {
       {/* Opciones de formato + preview */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap: 24, alignItems:'flex-start' }}>
         <div>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Formato del mensaje</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>{T('content.format.title')}</div>
           {FLAGS.map(f => {
             const active = !!prefs[f.key];
             return (
