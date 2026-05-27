@@ -25,6 +25,42 @@ create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 
 -- =====================================================================
+-- 0b. RLS helpers · funciones que se referencian en políticas inline
+-- =====================================================================
+-- Estas funciones se definen ANTES que cualquier tabla/policy para que el
+-- planner las encuentre cuando ejecuta `create policy ... using (...)`.
+-- Las tablas que referencian (profiles, workspace_members) se crean después;
+-- como las funciones son `language sql`, el cuerpo se resuelve lazy en
+-- runtime, no en parse time, así que el forward reference es seguro.
+create or replace function public.is_platform_admin()
+returns boolean language sql security definer stable as $$
+  select coalesce((select system_role = 'admin' from public.profiles where id = auth.uid()), false);
+$$;
+
+-- Trigger genérico para auto-actualizar columna `updated_at`.
+-- Necesita estar definido antes que cualquier `create trigger` que lo referencie.
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end; $$;
+
+create or replace function public.is_workspace_member(ws_id uuid, min_role text default 'member')
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.workspace_members
+    where workspace_id = ws_id
+      and user_id = auth.uid()
+      and (
+        min_role = 'member' or
+        (min_role = 'admin' and role in ('owner','admin')) or
+        (min_role = 'owner' and role = 'owner')
+      )
+  );
+$$;
+
+-- =====================================================================
 -- 1. profiles · extiende auth.users con campos del usuario
 -- =====================================================================
 -- profiles.ingest_token · token personal opaco para autenticar el bookmarklet
@@ -523,12 +559,7 @@ create trigger on_auth_user_created
 -- =====================================================================
 -- 21. Trigger · auto-update updated_at en tablas con esa columna
 -- =====================================================================
-create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
-begin
-  new.updated_at := now();
-  return new;
-end; $$;
+-- (función set_updated_at() definida en sección 0b arriba)
 
 do $$
 declare
@@ -572,27 +603,8 @@ alter table public.activity_log        enable row level security;
 alter table public.test_sends          enable row level security;
 
 -- =====================================================================
--- 23. RLS helper · es admin de plataforma?
+-- 23. RLS helpers · (definidos arriba en sección 0b, antes de las tablas)
 -- =====================================================================
-create or replace function public.is_platform_admin()
-returns boolean language sql security definer stable as $$
-  select coalesce((select system_role = 'admin' from public.profiles where id = auth.uid()), false);
-$$;
-
--- Es miembro del workspace? (con role mínimo opcional)
-create or replace function public.is_workspace_member(ws_id uuid, min_role text default 'member')
-returns boolean language sql security definer stable as $$
-  select exists (
-    select 1 from public.workspace_members
-    where workspace_id = ws_id
-      and user_id = auth.uid()
-      and (
-        min_role = 'member' or
-        (min_role = 'admin' and role in ('owner','admin')) or
-        (min_role = 'owner' and role = 'owner')
-      )
-  );
-$$;
 
 -- =====================================================================
 -- 24. RLS policies · profiles
