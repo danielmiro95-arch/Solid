@@ -2443,6 +2443,13 @@ function App() {
     items.forEach(b => b.addEventListener('click', onClick));
     return () => items.forEach(b => b.removeEventListener('click', onClick));
   }, []);
+
+  // Atajos globales · "Ir a Ajustes" desde otras vistas
+  useEM(() => {
+    const goSettings = () => setView('settings');
+    window.addEventListener('__go-settings', goSettings);
+    return () => window.removeEventListener('__go-settings', goSettings);
+  }, []);
   useEM(() => {
     document.querySelectorAll('.top-nav-item').forEach(b => {
       b.classList.toggle('active', b.dataset.view === view);

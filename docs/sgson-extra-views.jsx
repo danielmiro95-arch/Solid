@@ -291,17 +291,21 @@ function ChannelsView() {
       {/* PREVIEW MULTI-CANAL · vista previa específica por canal + test */}
       <ChannelPreviewPanel chState={chState} catalog={catalog}/>
 
-      {/* DELIVERY PREFERENCES · cuándo recibir contenido */}
+      {/* DELIVERY PREFERENCES · cuándo recibir contenido (con max/día) */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
 
-      {/* CONTENT PUSH · qué tipo de contenido recibir */}
-      <ContentPushPanel channelColor={channelColor}/>
-
-      {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
-      <SubscriptionsPanel channelColor={channelColor}/>
-
-      {/* NOTIFICATION RULES · quiet hours, vacation, digest, límites */}
-      <NotificationRulesPanel channelColor={channelColor}/>
+      {/* Atajo a Ajustes para el resto de configuración */}
+      <div style={{ marginTop: 32, padding:'18px 22px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
+        <div style={{ fontSize: 22, lineHeight: 1 }}>⚙️</div>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>¿Quieres elegir qué contenido recibes o tus reglas de notificación?</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Tipos de contenido, suscripciones (categorías/skills/equipos/trainers) y reglas (quiet hours, vacation, digest, prioridad) viven en <strong>Ajustes</strong>.</div>
+        </div>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('__go-settings'))}
+          style={{ padding:'10px 16px', background: channelColor, color:'#fff', border:'none', borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:`0 4px 12px ${channelColor}40` }}>
+          Ir a Ajustes →
+        </button>
+      </div>
     </PageShell>
   );
 }
@@ -428,29 +432,17 @@ function NotificationRulesPanel({ channelColor }) {
         )}
       </div>
 
-      {/* MAX PER DAY · slider de límite + Priority */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 14 }}>
-        <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>📊 Límite diario</div>
-          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginBottom: 10 }}>Máximo de notificaciones que recibirás al día.</div>
-          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
-            <input type="range" min="1" max="10" value={rules.maxPerDay || 3} onChange={e => update({ maxPerDay: parseInt(e.target.value, 10) })}
-              style={{ flex: 1, accentColor: channelColor }}/>
-            <div style={{ minWidth: 56, textAlign:'right' }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize: 20, fontWeight: 800, color: channelColor }}>{rules.maxPerDay || 3}</span>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)', marginLeft: 4 }}>/día</span>
-            </div>
+      {/* SMART REMINDER · evitar repetir contenido ya visto */}
+      <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>🤖 Recordatorio inteligente</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>BeonAI evita recordarte contenido que ya viste.</div>
           </div>
-        </div>
-        <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>🤖 Recordatorio inteligente</div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14 }}>
-            <div style={{ fontSize: 12, color:'var(--fg-muted)', flex: 1 }}>BeonAI evita recordarte contenido que ya viste.</div>
-            <button onClick={() => update({ smartReminder: !rules.smartReminder })} aria-label="Toggle smart reminder"
-              style={{ width:48, height:26, background: rules.smartReminder ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
-              <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: rules.smartReminder ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
-            </button>
-          </div>
+          <button onClick={() => update({ smartReminder: !rules.smartReminder })} aria-label="Toggle smart reminder"
+            style={{ width:48, height:26, background: rules.smartReminder ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: rules.smartReminder ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
+          </button>
         </div>
       </div>
 
@@ -1225,6 +1217,20 @@ function DeliveryPreferencesPanel({ channelColor }) {
         </label>
       </div>
 
+      {/* MAX PER DAY · slider de límite diario */}
+      <div style={{ padding:'14px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12, marginBottom: 18, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>📊 Límite diario</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Máximo de mensajes que recibirás al día por este canal.</div>
+        </div>
+        <input type="range" min="1" max="10" value={prefs.maxPerDay || 1} onChange={e => update({ maxPerDay: parseInt(e.target.value, 10) })}
+          style={{ flex: 1, minWidth: 180, accentColor: channelColor }}/>
+        <div style={{ minWidth: 64, textAlign:'right' }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize: 22, fontWeight: 800, color: channelColor }}>{prefs.maxPerDay || 1}</span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)', marginLeft: 4 }}>/día</span>
+        </div>
+      </div>
+
       <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
         <button onClick={() => { window.DeliveryPrefs && window.DeliveryPrefs.reset(); setPrefs(window.DeliveryPrefs.get()); }}
           style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:600 }}>
@@ -1431,7 +1437,9 @@ function ProfileView({ setView }) {
 function SettingsView({ setView }) {
   const [theme, setTheme] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().theme) || 'auto');
   const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().lang) || 'es');
-  const [pushEnabled, setPushEnabled] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().push) || false);
+
+  // Color de acento neutro para los paneles dentro de Settings
+  const accentColor = 'var(--accent)';
 
   const save = (key, val) => {
     if (window.Settings && window.Settings.set) window.Settings.set({ [key]: val });
@@ -1441,56 +1449,54 @@ function SettingsView({ setView }) {
     <PageShell
       eyebrow="Preferencias"
       title={<>Ajustes <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>de tu cuenta</em></>}
-      sub="Personaliza cómo se comporta SolidStream para ti"
-      narrow>
+      sub="Personaliza qué contenido recibes, a quién sigues y cómo se comporta SolidStream">
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Tema */}
-        <section style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: 'var(--fg)', marginBottom: 6, marginTop: 0 }}>Tema visual</h2>
-          <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: '0 0 14px' }}>Solo afecta vistas no cinematográficas (Analytics, perfil…). El Home siempre va en dark.</p>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[{k:'light', l:'Claro'}, {k:'dark', l:'Oscuro'}, {k:'auto', l:'Automático'}].map(t => (
-              <button key={t.k} onClick={() => { setTheme(t.k); save('theme', t.k); }} style={{
-                padding: '10px 18px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-                background: theme === t.k ? 'var(--fg)' : 'var(--bg-elevated)', color: theme === t.k ? 'var(--bg-canvas)' : 'var(--fg-muted)',
-                border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
-              }}>{t.l}</button>
-            ))}
-          </div>
-        </section>
+      {/* General · tema + idioma */}
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>General</h2>
+        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>Aspecto y idioma de la plataforma.</div>
 
-        {/* Idioma */}
-        <section style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 700, color: 'var(--fg)', marginBottom: 6, marginTop: 0 }}>Idioma de interfaz</h2>
-          <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: '0 0 14px' }}>Idioma para textos, notificaciones y BeonAI.</p>
-          <select value={lang} onChange={e => { setLang(e.target.value); save('lang', e.target.value); }} style={{
-            padding: '10px 14px', fontFamily: 'var(--font-sans)', fontSize: 13,
-            background: 'var(--bg-elevated)', color: 'var(--fg)', border: '1px solid var(--line)',
-            borderRadius: 'var(--r-1)',
-          }}>
-            <option value="es">Español</option>
-            <option value="en">English</option>
-            <option value="pt">Português</option>
-          </select>
-        </section>
-
-        {/* Notificaciones push */}
-        <section style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <div>
-              <h2 style={{ fontFamily:'var(--font-sans)', fontSize:16, fontWeight:700, color:'var(--fg)', marginBottom:6, marginTop:0 }}>Notificaciones push</h2>
-              <p style={{ fontSize:13, color:'var(--fg-muted)', margin:0 }}>Recibe avisos cuando tengas un nuevo módulo disponible.</p>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
+          {/* Tema */}
+          <div style={{ padding: 20, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12 }}>
+            <h3 style={{ fontFamily:'var(--font-sans)', fontSize:14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>Tema visual</h3>
+            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>Solo afecta vistas no cinematográficas (Analytics, perfil…). El Home siempre va en dark.</p>
+            <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
+              {[{k:'light', l:'Claro'}, {k:'dark', l:'Oscuro'}, {k:'auto', l:'Automático'}].map(t => (
+                <button key={t.k} onClick={() => { setTheme(t.k); save('theme', t.k); }} style={{
+                  padding:'8px 14px', fontFamily:'var(--font-sans)', fontSize: 12.5, fontWeight: 600,
+                  background: theme === t.k ? 'var(--fg)' : 'var(--bg-elevated)',
+                  color: theme === t.k ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+                  border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer',
+                }}>{t.l}</button>
+              ))}
             </div>
-            <button onClick={() => { setPushEnabled(p => !p); save('push', !pushEnabled); }} style={{
-              width: 50, height: 28, background: pushEnabled ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
-              borderRadius: 14, position: 'relative', border: 'none', cursor: 'pointer', transition: 'background .2s', flexShrink: 0,
-            }}>
-              <div style={{ width: 22, height: 22, background: '#fff', borderRadius: '50%', position: 'absolute', top: 3, left: pushEnabled ? 25 : 3, transition: 'left .2s' }}/>
-            </button>
           </div>
-        </section>
-      </div>
+
+          {/* Idioma */}
+          <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
+            <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>Idioma</h3>
+            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>Idioma de interfaz, notificaciones y BeonAI.</p>
+            <select value={lang} onChange={e => { setLang(e.target.value); save('lang', e.target.value); }} style={{
+              padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize: 12.5,
+              background:'var(--bg-elevated)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 6,
+            }}>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="pt">Português</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTENT PUSH · qué contenido recibir */}
+      <ContentPushPanel channelColor={accentColor}/>
+
+      {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
+      <SubscriptionsPanel channelColor={accentColor}/>
+
+      {/* NOTIFICATION RULES · quiet hours, vacation, digest, smart, priority */}
+      <NotificationRulesPanel channelColor={accentColor}/>
     </PageShell>
   );
 }
