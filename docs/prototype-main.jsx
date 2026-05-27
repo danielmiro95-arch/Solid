@@ -1970,6 +1970,8 @@ const Settings = (function() {
   function update(patch) {
     const merged = Object.assign({}, get(), patch);
     localStorage.setItem(_key(), JSON.stringify(merged));
+    // Persistir idioma fuera del scope user para que LoginScreen lo respete tras logout
+    if (patch && patch.language) localStorage.setItem('solid-preferred-lang', patch.language);
     window.dispatchEvent(new CustomEvent('settings-changed', { detail: merged }));
     return merged;
   }
@@ -2111,6 +2113,33 @@ const I18n = (function() {
       'palette.navigation':'Navegación', 'palette.modules':'Módulos',
       'palette.noResults':'Sin resultados para',
       'palette.goTo':'IR A',
+      // Login
+      'login.eyebrow':'★ Plataforma de formación cinematográfica · 2026',
+      'login.title.l1':'Domina', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
+      'login.title.expert':'experto',
+      'login.subtitle':'41 Think Pills · 3 talleres · BeonAI con contexto Repsol · certificado oficial al completar tu ruta.',
+      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Talleres',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado Repsol',
+      'login.poweredBy':'Powered by Claude',
+      'login.mode.login':'Iniciar sesión', 'login.mode.signup':'Crear cuenta',
+      'login.invite.title':'Invitación recibida',
+      'login.invite.body':'Has sido invitado a unirte a SolidStream por {team} como {role}.',
+      'login.welcome':'Bienvenido de vuelta',
+      'login.welcomeCreated':'Cuenta creada · Bienvenido a SolidStream',
+      'login.welcomeInvite':'Bienvenido · invitación aceptada',
+      'login.sessionStarted':'Sesión iniciada',
+      'login.email':'Email', 'login.password':'Contraseña', 'login.name':'Nombre completo',
+      'login.role':'Rol', 'login.team':'Equipo',
+      'login.submit.login':'Acceder', 'login.submit.signup':'Crear cuenta',
+      'login.submitting':'Procesando…',
+      'login.sso':'Continuar con Microsoft', 'login.ssoOr':'o',
+      'login.toggleToSignup':'¿No tienes cuenta? Crear una',
+      'login.toggleToLogin':'¿Ya tienes cuenta? Inicia sesión',
+      'login.quickDemo':'Accesos rápidos · modo demo',
+      'login.errorGeneric':'Error desconocido',
+      // Onboarding
+      'onboarding.skip':'Saltar', 'onboarding.next':'Siguiente', 'onboarding.finish':'Empezar',
+      'onboarding.back':'← Atrás',
     },
     en: {
       'nav.home':'Home', 'nav.browse':'Catalog', 'nav.rutas':'Paths', 'nav.path':'My path',
@@ -2240,6 +2269,33 @@ const I18n = (function() {
       'palette.navigation':'Navigation', 'palette.modules':'Modules',
       'palette.noResults':'No results for',
       'palette.goTo':'GO TO',
+      // Login
+      'login.eyebrow':'★ Cinematic learning platform · 2026',
+      'login.title.l1':'Master', 'login.title.l2':'Sprinklr', 'login.title.l3':'like an',
+      'login.title.expert':'expert',
+      'login.subtitle':'41 Think Pills · 3 workshops · BeonAI with Repsol context · official certificate when you complete your path.',
+      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Repsol Certificate',
+      'login.poweredBy':'Powered by Claude',
+      'login.mode.login':'Sign in', 'login.mode.signup':'Create account',
+      'login.invite.title':'Invitation received',
+      'login.invite.body':'You\'ve been invited to join SolidStream by {team} as {role}.',
+      'login.welcome':'Welcome back',
+      'login.welcomeCreated':'Account created · Welcome to SolidStream',
+      'login.welcomeInvite':'Welcome · invitation accepted',
+      'login.sessionStarted':'Session started',
+      'login.email':'Email', 'login.password':'Password', 'login.name':'Full name',
+      'login.role':'Role', 'login.team':'Team',
+      'login.submit.login':'Sign in', 'login.submit.signup':'Create account',
+      'login.submitting':'Processing…',
+      'login.sso':'Continue with Microsoft', 'login.ssoOr':'or',
+      'login.toggleToSignup':'Don\'t have an account? Create one',
+      'login.toggleToLogin':'Already have an account? Sign in',
+      'login.quickDemo':'Quick access · demo mode',
+      'login.errorGeneric':'Unknown error',
+      // Onboarding
+      'onboarding.skip':'Skip', 'onboarding.next':'Next', 'onboarding.finish':'Get started',
+      'onboarding.back':'← Back',
     },
     pt: {
       'nav.home':'Início', 'nav.browse':'Catálogo', 'nav.rutas':'Trilhas', 'nav.path':'Minha trilha',
@@ -2369,14 +2425,51 @@ const I18n = (function() {
       'palette.navigation':'Navegação', 'palette.modules':'Módulos',
       'palette.noResults':'Sem resultados para',
       'palette.goTo':'IR PARA',
+      // Login
+      'login.eyebrow':'★ Plataforma de formação cinematográfica · 2026',
+      'login.title.l1':'Domine', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
+      'login.title.expert':'especialista',
+      'login.subtitle':'41 Think Pills · 3 workshops · BeonAI com contexto Repsol · certificado oficial ao completar sua trilha.',
+      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado Repsol',
+      'login.poweredBy':'Powered by Claude',
+      'login.mode.login':'Entrar', 'login.mode.signup':'Criar conta',
+      'login.invite.title':'Convite recebido',
+      'login.invite.body':'Você foi convidado a se juntar ao SolidStream por {team} como {role}.',
+      'login.welcome':'Bem-vindo de volta',
+      'login.welcomeCreated':'Conta criada · Bem-vindo ao SolidStream',
+      'login.welcomeInvite':'Bem-vindo · convite aceito',
+      'login.sessionStarted':'Sessão iniciada',
+      'login.email':'Email', 'login.password':'Senha', 'login.name':'Nome completo',
+      'login.role':'Cargo', 'login.team':'Equipe',
+      'login.submit.login':'Entrar', 'login.submit.signup':'Criar conta',
+      'login.submitting':'Processando…',
+      'login.sso':'Continuar com Microsoft', 'login.ssoOr':'ou',
+      'login.toggleToSignup':'Não tem conta? Crie uma',
+      'login.toggleToLogin':'Já tem conta? Entre',
+      'login.quickDemo':'Acessos rápidos · modo demo',
+      'login.errorGeneric':'Erro desconhecido',
+      // Onboarding
+      'onboarding.skip':'Pular', 'onboarding.next':'Próximo', 'onboarding.finish':'Começar',
+      'onboarding.back':'← Voltar',
     },
   };
 
   function currentLang() {
     try {
+      // 1. Preferencia del usuario (si está autenticado)
       const s = window.Settings && window.Settings.get && window.Settings.get();
       const lang = s && s.language;
-      return DICTIONARIES[lang] ? lang : 'es';
+      if (DICTIONARIES[lang]) return lang;
+      // 2. Override pre-login persistido (último idioma usado en cualquier sesión)
+      const pre = localStorage.getItem('solid-preferred-lang');
+      if (DICTIONARIES[pre]) return pre;
+      // 3. Idioma del navegador
+      if (typeof navigator !== 'undefined' && navigator.language) {
+        const navLang = navigator.language.toLowerCase().slice(0, 2);
+        if (DICTIONARIES[navLang]) return navLang;
+      }
+      return 'es';
     } catch(e) { return 'es'; }
   }
 
@@ -3528,6 +3621,14 @@ function TweaksPanel({ shape, setShape, accent, setAccent, aiMode, setAIMode }) 
 
 // ── Login / Signup screen ─────────────────────────────────────────────────
 function LoginScreen() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  // Re-renderiza cuando cambia el idioma (vía selector inline durante login)
+  const [, _forceRerender] = useSM(0);
+  useEM(() => {
+    const onChange = () => _forceRerender(x => x + 1);
+    window.addEventListener('settings-changed', onChange);
+    return () => window.removeEventListener('settings-changed', onChange);
+  }, []);
   const isSupabase = (typeof window !== 'undefined' && window.SGSON_BACKEND === 'supabase');
 
   // Detectar invite token en la URL (?invite=inv_xxx)
@@ -3554,7 +3655,7 @@ function LoginScreen() {
     try {
       if (mode === 'login') {
         const u = await Promise.resolve(Auth.login(email, password));
-        if (window.Toast && u) window.Toast.success('Bienvenido de vuelta, ' + (u.name || '').split(' ')[0], { icon: '👋' });
+        if (window.Toast && u) window.Toast.success(T('login.welcome') + ', ' + (u.name || '').split(' ')[0], { icon: '👋' });
       } else {
         const u = await Promise.resolve(Auth.signup({ email, password, name, role, team }));
         if (invitation && window.Invitations) {
@@ -3564,10 +3665,10 @@ function LoginScreen() {
             window.history.replaceState({}, '', window.location.pathname);
           }
         }
-        if (window.Toast && u) window.Toast.success(invitation ? 'Bienvenido · invitación aceptada' : 'Cuenta creada · Bienvenido a SolidStream', { icon: '✓' });
+        if (window.Toast && u) window.Toast.success(invitation ? T('login.welcomeInvite') : T('login.welcomeCreated'), { icon: '✓' });
       }
     } catch (err) {
-      setError((err && err.message) || 'Error desconocido');
+      setError((err && err.message) || T('login.errorGeneric'));
     }
     setSubmitting(false);
   };
@@ -3577,7 +3678,7 @@ function LoginScreen() {
     setError('');
     try {
       const u = await Promise.resolve(Auth.login(em));
-      if (window.Toast && u) window.Toast.success('Sesión iniciada', { icon: '✓' });
+      if (window.Toast && u) window.Toast.success(T('login.sessionStarted'), { icon: '✓' });
     } catch(e) { setError(e.message); }
   };
 
@@ -3621,17 +3722,29 @@ function LoginScreen() {
           </span>
         </div>
         <div>
-          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:24}}>★ Plataforma de formación cinematográfica · 2026</div>
+          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:24}}>{T('login.eyebrow')}</div>
           <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#F5F4F1'}}>
-            Domina<br/>Sprinklr<br/>como <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#6E50EE'}}>experto</em>.
+            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#6E50EE'}}>{T('login.title.expert')}</em>.
           </h1>
           <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(245,244,241,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
-            41 Think Pills · 3 talleres · BeonAI con contexto Repsol · certificado oficial al completar tu ruta.
+            {T('login.subtitle')}
           </p>
           <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
-            {['41 Think Pills', '3 Talleres', 'BeonAI · Claude 4.5', 'Certificado Repsol'].map(t => (
+            {[T('login.chip.pills'), T('login.chip.workshops'), T('login.chip.beonai'), T('login.chip.cert')].map(t => (
               <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.14)', borderRadius:999, color:'rgba(245,244,241,0.75)', background:'rgba(255,255,255,0.03)'}}>{t}</span>
             ))}
+          </div>
+          {/* Selector de idioma inline · sin sesión todavía */}
+          <div style={{marginTop:18, display:'flex', alignItems:'center', gap:8}}>
+            <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)'}}>🌍</span>
+            {['es','en','pt'].map(lng => {
+              const cur = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
+              const active = cur === lng;
+              return (
+                <button key={lng} onClick={() => { localStorage.setItem('solid-preferred-lang', lng); window.dispatchEvent(new Event('settings-changed')); }}
+                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#6E50EE' : 'transparent', color: active ? '#fff' : 'rgba(245,244,241,0.6)', border:'1px solid '+(active ? '#6E50EE' : 'rgba(255,255,255,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
+              );
+            })}
           </div>
         </div>
         <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(245,244,241,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
@@ -3653,26 +3766,26 @@ function LoginScreen() {
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
             <div style={{padding:'16px 18px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.3)', borderRadius:10, marginBottom:24}}>
-              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#6E50EE', fontWeight:700, marginBottom:5}}>✉ Invitación recibida</div>
-              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>Hola <strong style={{color:'#fff'}}>{invitation.name}</strong>, te han invitado a SolidStream como <strong style={{color:'#fff'}}>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#6E50EE', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
+              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'Repsol').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
           <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
             <button onClick={() => { setMode('login'); setError(''); }}
               style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
                 background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>Iniciar sesión</button>
+                transition:'all .12s'}}>{T('login.mode.login')}</button>
             <button onClick={() => { setMode('signup'); setError(''); }}
               style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
                 background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>Crear cuenta</button>
+                transition:'all .12s'}}>{T('login.mode.signup')}</button>
           </div>
           <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#F5F4F1', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
           <p style={{fontSize:14, color:'rgba(245,244,241,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
           <form onSubmit={submit}>
             <label style={{display:'block', marginBottom:14}}>
-              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Email</div>
+              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
                 style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
                 onFocus={e => e.target.style.borderColor='#6E50EE'}
@@ -3680,7 +3793,7 @@ function LoginScreen() {
             </label>
             {isSupabase && (
               <label style={{display:'block', marginBottom:14}}>
-                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Password</div>
+                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
                   style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
                   onFocus={e => e.target.style.borderColor='#6E50EE'}
@@ -3690,21 +3803,21 @@ function LoginScreen() {
             {mode === 'signup' && (
               <>
                 <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Nombre completo</div>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
                   <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
                     onFocus={e => e.target.style.borderColor='#6E50EE'}
                     onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
                 </label>
                 <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Rol</div>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.role')}</div>
                   <select value={role} onChange={e => setRole(e.target.value)}
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, background:'rgba(255,255,255,0.04)', color:'#F5F4F1', boxSizing:'border-box', cursor:'pointer'}}>
                     {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
                   </select>
                 </label>
                 <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Equipo</div>
+                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.team')}</div>
                   <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
                     onFocus={e => e.target.style.borderColor='#6E50EE'}
@@ -3721,7 +3834,7 @@ function LoginScreen() {
               style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(110,80,238,0.5)' : '#6E50EE', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
               onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#8467FF'; }}
               onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#6E50EE'; }}>
-              {submitting ? 'Cargando…' : (mode === 'login' ? 'Entrar →' : 'Crear cuenta →')}
+              {submitting ? T('login.submitting') : (mode === 'login' ? T('login.submit.login') + ' →' : T('login.submit.signup') + ' →')}
             </button>
           </form>
 
@@ -3737,7 +3850,7 @@ function LoginScreen() {
                 onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'; }}>
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
-                Continuar con Microsoft
+                {T('login.sso')}
               </button>
               <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta @repsol.com</div>
             </>
@@ -3750,7 +3863,7 @@ function LoginScreen() {
 
           {!isSupabase && users.length > 0 && mode === 'login' && (
             <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(255,255,255,0.08)'}}>
-              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>Acceso rápido · demo</div>
+              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>{T('login.quickDemo')}</div>
               <div style={{display:'flex', flexDirection:'column', gap:8}}>
                 {users.slice(0, 4).map(u => (
                   <button key={u.id} onClick={() => quickLogin(u.email)} type="button"

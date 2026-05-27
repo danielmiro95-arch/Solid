@@ -1790,17 +1790,18 @@ function SettingsView({ setView }) {
    AdminView · panel admin · solo admins · link a legacy
    ============================================================ */
 function AdminView({ setView, openLegacyAdmin }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const D = window.SGS_DATA;
   const USER = (D && D.USER) || {};
   if (!USER.isAdmin) {
     return (
-      <PageShell title="Acceso restringido" sub="Solo administradores pueden ver este panel.">
+      <PageShell title={T('admin.locked')} sub={T('admin.lockedDesc','Solo administradores pueden ver este panel.')}>
         <div style={{ padding: 60, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>🔒</div>
           <button onClick={() => setView('home')} style={{
             marginTop: 16, padding: '12px 24px', background: 'var(--accent)', color: '#fff',
             border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', fontWeight: 700,
-          }}>Volver al inicio</button>
+          }}>{T('admin.backHome','Volver al inicio')}</button>
         </div>
       </PageShell>
     );
@@ -1808,14 +1809,14 @@ function AdminView({ setView, openLegacyAdmin }) {
 
   return (
     <PageShell
-      eyebrow="Admin · Repsol"
-      title={<>Panel <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>de administración</em></>}
-      sub="Gestiona usuarios, invitaciones y métricas de la plataforma"
+      eyebrow={T('admin.eyebrow')}
+      title={<>{T('admin.title')}</>}
+      sub={T('admin.sub')}
       actions={
         <button onClick={openLegacyAdmin} style={{
           padding: '12px 20px', background: 'var(--accent)', color: '#fff',
           border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', fontWeight: 700, fontSize: 14,
-        }}>Panel completo →</button>
+        }}>{T('admin.full')}</button>
       }>
 
       {/* KPIs reales · derivados de Auth + Invitations + Activity */}
@@ -1828,13 +1829,15 @@ function AdminView({ setView, openLegacyAdmin }) {
           const completedTotal = PILLS.filter(p => p.progress >= 1).length;
           const ratingStats = (window.Ratings && window.Ratings.globalStats && window.Ratings.globalStats()) || { avg: 0, count: 0 };
           const avgRating = ratingStats.avg || 0;
-          const stars = { length: ratingStats.count || 0 };
+          const ratingsCount = ratingStats.count || 0;
           const adminCount = users.filter(u => u.isAdmin || u.role === 'admin').length;
+          const usersSubKey = adminCount === 1 ? 'admin.users.sub' : 'admin.users.subMulti';
+          const ratingsSubKey = ratingsCount === 1 ? 'admin.rating.subOne' : 'admin.rating.sub';
           return [
-            { title: 'Usuarios',            value: String(users.length),    desc: `${adminCount} admin${adminCount === 1 ? '' : 's'} · plataforma`, icon: '👥' },
-            { title: 'Invitaciones pendientes', value: String(pendingInv),   desc: 'esperando aceptar', icon: '✉️' },
-            { title: 'Pills completadas',   value: String(completedTotal),   desc: `de ${PILLS.length} disponibles`, icon: '✓' },
-            { title: 'Valoración media',    value: avgRating ? avgRating.toFixed(1) + ' ★' : '—', desc: `${stars.length} puntuaci${stars.length === 1 ? 'ón' : 'ones'}`, icon: '★' },
+            { title: T('admin.users'),     value: String(users.length),    desc: T(usersSubKey,'{n} admin · plataforma').replace('{n}', adminCount), icon: '👥' },
+            { title: T('admin.pending'),   value: String(pendingInv),       desc: T('admin.pending.sub','esperando aceptar'), icon: '✉️' },
+            { title: T('admin.completed'), value: String(completedTotal),   desc: T('admin.completed.sub','de {total} disponibles').replace('{total}', PILLS.length), icon: '✓' },
+            { title: T('admin.rating'),    value: avgRating ? avgRating.toFixed(1) + ' ★' : '—', desc: T(ratingsSubKey,'{n} puntuaciones').replace('{n}', ratingsCount), icon: '★' },
           ];
         })().map((s, i) => (
           <div key={i} style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
@@ -1847,12 +1850,12 @@ function AdminView({ setView, openLegacyAdmin }) {
       </div>
 
       <div style={{ marginTop: 32, padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)', marginTop: 0, marginBottom: 8 }}>Para gestionar todo</h2>
-        <p style={{ color: 'var(--fg-muted)', fontSize: 14, marginBottom: 14 }}>El panel completo de admin incluye: invitar usuarios (CSV bulk), revisar submissions de vídeo, audit log, bulk actions, exportar reportes.</p>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)', marginTop: 0, marginBottom: 8 }}>{T('admin.full.title','Para gestionar todo')}</h2>
+        <p style={{ color: 'var(--fg-muted)', fontSize: 14, marginBottom: 14 }}>{T('admin.full.desc','El panel completo de admin incluye: invitar usuarios (CSV bulk), revisar submissions de vídeo, audit log, bulk actions, exportar reportes.')}</p>
         <button onClick={openLegacyAdmin} style={{
           padding: '12px 24px', background: 'var(--accent)', color: '#fff',
           border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', fontWeight: 700, fontSize: 14,
-        }}>Abrir panel admin completo →</button>
+        }}>{T('admin.full.btn','Abrir panel admin completo →')}</button>
       </div>
     </PageShell>
   );
