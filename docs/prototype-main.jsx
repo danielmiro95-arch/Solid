@@ -860,6 +860,189 @@ const SmartScheduling = (function() {
 })();
 window.SmartScheduling = SmartScheduling;
 
+// ── Workspaces · multi-tenant · cada user pertenece a uno o más workspaces ─
+// Un workspace es un tenant (empresa cliente). Los datos del SaaS se scopean
+// por workspace + user. Un user puede ser miembro de varios workspaces con
+// distinto rol en cada uno (owner / admin / member).
+const Workspaces = (function() {
+  const KEY = 'solid-workspaces';
+  const ACTIVE_KEY = 'solid-active-workspace';
+  const MEMBERSHIP_KEY = 'solid-workspace-memberships'; // {userId:[{workspaceId, role, joinedAt}]}
+
+  const ROLES = ['owner', 'admin', 'member'];
+
+  function _gen() { return 'w_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function list() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; }
+  }
+  function _save(arr) {
+    localStorage.setItem(KEY, JSON.stringify(arr));
+    window.dispatchEvent(new Event('workspaces-changed'));
+  }
+
+  function _memberships() {
+    try { return JSON.parse(localStorage.getItem(MEMBERSHIP_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function _saveMemberships(m) { localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify(m)); }
+
+  function get(id) { return list().find(w => w.id === id) || null; }
+
+  function listMine() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      if (!u) return [];
+      // Platform admin ve TODOS los workspaces
+      if (u.systemRole === 'admin') return list();
+      const ms = _memberships()[u.id] || [];
+      return ms.map(m => Object.assign({}, get(m.workspaceId), { _membership: m })).filter(w => w.id);
+    } catch(e) { return []; }
+  }
+
+  function currentId() { return localStorage.getItem(ACTIVE_KEY) || null; }
+  function current() {
+    const id = currentId();
+    if (id) {
+      const w = get(id);
+      if (w) return w;
+    }
+    // Fallback al primer workspace del user
+    const mine = listMine();
+    return mine[0] || null;
+  }
+  function setCurrent(id) {
+    const w = get(id);
+    if (!w) return null;
+    localStorage.setItem(ACTIVE_KEY, id);
+    window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
+    return w;
+  }
+
+  function create(data) {
+    const wsList = list();
+    const ws = {
+      id: _gen(),
+      name: data.name || 'Workspace',
+      slug: (data.slug || data.name || 'ws').toString().toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+      logo: data.logo || null,
+      primaryColor: data.primaryColor || '#6E50EE',
+      ownerId: data.ownerId || (window.Auth && window.Auth.currentUserId && window.Auth.currentUserId()),
+      createdAt: Date.now(),
+      settings: { defaultLang: 'es', allowSignup: false, ...(data.settings || {}) },
+    };
+    wsList.push(ws);
+    _save(wsList);
+    // El creador queda como owner
+    if (ws.ownerId) addMember(ws.id, ws.ownerId, 'owner');
+    return ws;
+  }
+
+  function update(id, patch) {
+    const wsList = list();
+    const idx = wsList.findIndex(w => w.id === id);
+    if (idx < 0) return null;
+    wsList[idx] = Object.assign({}, wsList[idx], patch);
+    _save(wsList);
+    return wsList[idx];
+  }
+
+  function remove(id) {
+    _save(list().filter(w => w.id !== id));
+    // Limpia memberships de ese workspace
+    const m = _memberships();
+    Object.keys(m).forEach(uid => { m[uid] = m[uid].filter(x => x.workspaceId !== id); });
+    _saveMemberships(m);
+    if (currentId() === id) localStorage.removeItem(ACTIVE_KEY);
+    window.dispatchEvent(new Event('workspaces-changed'));
+  }
+
+  function addMember(workspaceId, userId, role) {
+    if (ROLES.indexOf(role) < 0) role = 'member';
+    const m = _memberships();
+    m[userId] = m[userId] || [];
+    if (!m[userId].find(x => x.workspaceId === workspaceId)) {
+      m[userId].push({ workspaceId, role, joinedAt: Date.now() });
+      _saveMemberships(m);
+      window.dispatchEvent(new Event('workspaces-changed'));
+    }
+  }
+
+  function removeMember(workspaceId, userId) {
+    const m = _memberships();
+    if (m[userId]) {
+      m[userId] = m[userId].filter(x => x.workspaceId !== workspaceId);
+      _saveMemberships(m);
+      window.dispatchEvent(new Event('workspaces-changed'));
+    }
+  }
+
+  function setMemberRole(workspaceId, userId, role) {
+    if (ROLES.indexOf(role) < 0) return;
+    const m = _memberships();
+    if (!m[userId]) return;
+    const entry = m[userId].find(x => x.workspaceId === workspaceId);
+    if (entry) {
+      entry.role = role;
+      _saveMemberships(m);
+      window.dispatchEvent(new Event('workspaces-changed'));
+    }
+  }
+
+  function membersOf(workspaceId) {
+    const m = _memberships();
+    const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+    const out = [];
+    Object.keys(m).forEach(uid => {
+      const entry = (m[uid] || []).find(x => x.workspaceId === workspaceId);
+      if (entry) {
+        const user = users.find(u => u.id === uid);
+        if (user) out.push(Object.assign({}, user, { workspaceRole: entry.role, joinedAt: entry.joinedAt }));
+      }
+    });
+    return out;
+  }
+
+  function currentRole() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const wsId = currentId();
+      if (!u || !wsId) return null;
+      if (u.systemRole === 'admin') return 'admin'; // platform admin tiene poder en cualquier ws
+      const entry = (_memberships()[u.id] || []).find(x => x.workspaceId === wsId);
+      return entry ? entry.role : null;
+    } catch(e) { return null; }
+  }
+
+  // ── Seed inicial · si no hay workspaces, crea "Repsol" con el primer user ──
+  function seedIfEmpty() {
+    if (list().length > 0) return;
+    const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+    const firstAdmin = users.find(u => u.systemRole === 'admin' || u.isAdmin) || users[0];
+    if (!firstAdmin) return;
+    const repsol = {
+      id: _gen(),
+      name: 'Repsol',
+      slug: 'repsol',
+      logo: null,
+      primaryColor: '#6E50EE',
+      ownerId: firstAdmin.id,
+      createdAt: Date.now(),
+      settings: { defaultLang: 'es', allowSignup: true },
+    };
+    _save([repsol]);
+    // Todos los usuarios actuales se añaden como member del workspace seed
+    users.forEach(u => {
+      const role = (u.id === firstAdmin.id) ? 'owner' : (u.systemRole === 'manager' ? 'admin' : 'member');
+      addMember(repsol.id, u.id, role);
+    });
+    setCurrent(repsol.id);
+  }
+
+  return { list, listMine, get, current, currentId, setCurrent, create, update, remove,
+           addMember, removeMember, setMemberRole, membersOf, currentRole, seedIfEmpty, ROLES };
+})();
+window.Workspaces = Workspaces;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
@@ -2106,6 +2289,18 @@ const I18n = (function() {
       'manager.kpi.completed':'Pills completadas', 'manager.kpi.completedSub':'total acumulado del equipo',
       'manager.kpi.avg':'Progreso medio', 'manager.kpi.avgSub':'vs total catálogo',
       'manager.kpi.openInvites':'Invitaciones abiertas', 'manager.kpi.openInvitesSub':'enviadas por ti',
+      'workspaces.allWorkspaces':'Tus workspaces',
+      'workspaces.switch':'Cambiar workspace',
+      'workspaces.title':'Workspaces',
+      'workspaces.sub':'Gestiona los tenants de la plataforma. Cada workspace tiene sus propios miembros, canales y configuración.',
+      'workspaces.create':'+ Nuevo workspace',
+      'workspaces.createTitle':'Crear workspace',
+      'workspaces.namePh':'Nombre del workspace',
+      'workspaces.colorLabel':'Color principal',
+      'workspaces.members':'{n} miembro', 'workspaces.membersMulti':'{n} miembros',
+      'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
+      'workspaces.empty':'Aún no hay workspaces. Crea el primero para empezar.',
+      'workspaces.confirmDelete':'¿Eliminar el workspace "{name}"? Esta acción borra todos los miembros del workspace.',
       'common.save':'Guardar', 'common.cancel':'Cancelar', 'common.close':'Cerrar', 'common.edit':'Editar',
       'common.delete':'Borrar', 'common.confirm':'Confirmar', 'common.logout':'Cerrar sesión',
       'common.search':'Buscar', 'common.loading':'Cargando…', 'common.reset':'Restablecer',
@@ -2326,6 +2521,18 @@ const I18n = (function() {
       'manager.kpi.completed':'Pills completed', 'manager.kpi.completedSub':'team accumulated total',
       'manager.kpi.avg':'Average progress', 'manager.kpi.avgSub':'vs full catalog',
       'manager.kpi.openInvites':'Open invitations', 'manager.kpi.openInvitesSub':'sent by you',
+      'workspaces.allWorkspaces':'Your workspaces',
+      'workspaces.switch':'Switch workspace',
+      'workspaces.title':'Workspaces',
+      'workspaces.sub':'Manage platform tenants. Each workspace has its own members, channels and settings.',
+      'workspaces.create':'+ New workspace',
+      'workspaces.createTitle':'Create workspace',
+      'workspaces.namePh':'Workspace name',
+      'workspaces.colorLabel':'Primary color',
+      'workspaces.members':'{n} member', 'workspaces.membersMulti':'{n} members',
+      'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
+      'workspaces.empty':'No workspaces yet. Create the first one to get started.',
+      'workspaces.confirmDelete':'Delete workspace "{name}"? This removes all workspace members.',
       'common.save':'Save', 'common.cancel':'Cancel', 'common.close':'Close', 'common.edit':'Edit',
       'common.delete':'Delete', 'common.confirm':'Confirm', 'common.logout':'Log out',
       'common.search':'Search', 'common.loading':'Loading…', 'common.reset':'Reset',
@@ -2546,6 +2753,18 @@ const I18n = (function() {
       'manager.kpi.completed':'Pills concluídas', 'manager.kpi.completedSub':'total acumulado da equipe',
       'manager.kpi.avg':'Progresso médio', 'manager.kpi.avgSub':'vs catálogo total',
       'manager.kpi.openInvites':'Convites abertos', 'manager.kpi.openInvitesSub':'enviados por você',
+      'workspaces.allWorkspaces':'Seus workspaces',
+      'workspaces.switch':'Trocar workspace',
+      'workspaces.title':'Workspaces',
+      'workspaces.sub':'Gerencie os tenants da plataforma. Cada workspace tem seus próprios membros, canais e configurações.',
+      'workspaces.create':'+ Novo workspace',
+      'workspaces.createTitle':'Criar workspace',
+      'workspaces.namePh':'Nome do workspace',
+      'workspaces.colorLabel':'Cor principal',
+      'workspaces.members':'{n} membro', 'workspaces.membersMulti':'{n} membros',
+      'workspaces.role.owner':'Owner', 'workspaces.role.admin':'Admin', 'workspaces.role.member':'Member',
+      'workspaces.empty':'Ainda não há workspaces. Crie o primeiro para começar.',
+      'workspaces.confirmDelete':'Excluir o workspace "{name}"? Esta ação remove todos os membros do workspace.',
       'common.save':'Salvar', 'common.cancel':'Cancelar', 'common.close':'Fechar', 'common.edit':'Editar',
       'common.delete':'Excluir', 'common.confirm':'Confirmar', 'common.logout':'Sair',
       'common.search':'Buscar', 'common.loading':'Carregando…', 'common.reset':'Redefinir',
@@ -3136,7 +3355,10 @@ function App() {
     window.addEventListener('auth-changed', refresh);
     return () => window.removeEventListener('auth-changed', refresh);
   }, []);
-  useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser?.id]);
+  useEM(() => {
+    if (authUser && window.Inbox) window.Inbox.seedIfEmpty();
+    if (authUser && window.Workspaces) window.Workspaces.seedIfEmpty();
+  }, [authUser?.id]);
 
   // Atajos globales · "Ir a Ajustes" desde otras vistas
   useEM(() => {

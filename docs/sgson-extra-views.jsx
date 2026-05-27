@@ -1866,6 +1866,9 @@ function AdminView({ setView, openLegacyAdmin }) {
           border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', fontWeight: 700, fontSize: 14,
         }}>{T('admin.full.btn','Abrir panel admin completo →')}</button>
       </div>
+
+      {/* Workspaces · multi-tenant management */}
+      <WorkspacesPanel/>
     </PageShell>
   );
 }
@@ -1879,6 +1882,110 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+// ── WorkspacesPanel · admin only · CRUD de tenants ───────────────────────
+function WorkspacesPanel() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const [, setTick] = useEV2(0);
+  const [creating, setCreating] = useEV2(false);
+  const [name, setName] = useEV2('');
+  const [color, setColor] = useEV2('#6E50EE');
+  useEE2(() => {
+    const refresh = () => setTick(x => x + 1);
+    window.addEventListener('workspaces-changed', refresh);
+    window.addEventListener('workspace-changed', refresh);
+    return () => {
+      window.removeEventListener('workspaces-changed', refresh);
+      window.removeEventListener('workspace-changed', refresh);
+    };
+  }, []);
+
+  if (!window.Workspaces || !window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  const list = window.Workspaces.list();
+  const current = window.Workspaces.current();
+
+  const create = () => {
+    if (!name.trim()) return;
+    const ws = window.Workspaces.create({ name: name.trim(), primaryColor: color });
+    if (window.Toast) window.Toast.success('Workspace "' + ws.name + '" creado', { icon:'🏢' });
+    setName(''); setCreating(false);
+  };
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 14, gap: 12, flexWrap:'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', marginTop: 0, marginBottom: 4 }}>🏢 {T('workspaces.title')}</h2>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>{T('workspaces.sub')}</div>
+        </div>
+        <button onClick={() => setCreating(c => !c)} style={{ padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)', cursor:'pointer', fontWeight:700, fontSize: 12.5 }}>
+          {creating ? T('common.cancel') : T('workspaces.create')}
+        </button>
+      </div>
+
+      {creating && (
+        <div style={{ padding: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 10, marginBottom: 14, display:'flex', gap: 10, flexWrap:'wrap', alignItems:'center' }}>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder={T('workspaces.namePh')} autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') create(); }}
+            style={{ flex: 1, minWidth: 180, padding:'9px 12px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 8, fontSize: 13, color:'var(--fg)', outline:'none' }}/>
+          <label style={{ display:'inline-flex', alignItems:'center', gap: 8, fontSize: 12, color:'var(--fg-muted)' }}>
+            <span>{T('workspaces.colorLabel')}</span>
+            <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 36, height: 32, border:'1px solid var(--line)', borderRadius: 6, padding: 2, cursor:'pointer', background:'var(--bg-surface)' }}/>
+          </label>
+          <button onClick={create} disabled={!name.trim()} style={{ padding:'9px 16px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 8, cursor: name.trim() ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 12.5, opacity: name.trim() ? 1 : 0.5 }}>
+            {T('common.save')}
+          </button>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div style={{ padding: 40, textAlign:'center', color:'var(--fg-muted)', fontSize: 13 }}>{T('workspaces.empty')}</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+          {list.map(w => {
+            const members = window.Workspaces.membersOf(w.id);
+            const isActive = current && current.id === w.id;
+            const memberKey = members.length === 1 ? 'workspaces.members' : 'workspaces.membersMulti';
+            return (
+              <div key={w.id} style={{
+                padding:'14px 16px', background: isActive ? `linear-gradient(135deg, ${w.primaryColor}14 0%, var(--bg-surface) 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${isActive ? w.primaryColor : 'var(--line)'}`,
+                borderRadius: 12, position:'relative',
+              }}>
+                <div style={{ display:'flex', alignItems:'center', gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: w.primaryColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+                    {w.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{w.name}</div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{T(memberKey,'{n} miembros').replace('{n}', members.length)}</div>
+                  </div>
+                  {isActive && <span style={{ fontFamily:'var(--font-mono)', fontSize: 9, fontWeight: 800, padding:'3px 7px', background: w.primaryColor, color:'#fff', borderRadius: 4, letterSpacing:'0.06em' }}>✓ ACTIVO</span>}
+                </div>
+                <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
+                  {!isActive && (
+                    <button onClick={() => window.Workspaces.setCurrent(w.id)} style={{ padding:'6px 12px', background:'transparent', border:`1px solid ${w.primaryColor}`, color: w.primaryColor, borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                      Activar
+                    </button>
+                  )}
+                  <button onClick={() => {
+                      if (confirm(T('workspaces.confirmDelete').replace('{name}', w.name))) {
+                        window.Workspaces.remove(w.id);
+                        if (window.Toast) window.Toast.info('Workspace eliminado');
+                      }
+                    }}
+                    style={{ padding:'6px 12px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 600 }}>
+                    {T('common.delete')}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
 
 // ── ManagerView · panel del líder de equipo · KPIs + miembros + invitar ──
 function ManagerView({ setView }) {
