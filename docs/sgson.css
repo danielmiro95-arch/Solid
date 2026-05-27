@@ -2255,3 +2255,7 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
   body div[style*="position:fixed"][style*="z-index:1000"] > div:first-child { padding: 24px 20px !important; flex: 0 0 auto !important; }
   body div[style*="position:fixed"][style*="z-index:1000"] > div:last-child { flex: 1 !important; max-width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.08); padding: 32px 20px !important; }
 }
+
+/* Smart Scheduling · pulse para "Analizando…" */
+@keyframes dotPulse { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
+.dot-pulse { animation: dotPulse 1.2s ease-in-out infinite; }

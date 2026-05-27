@@ -330,6 +330,138 @@ function ChannelsView() {
   );
 }
 
+// ── Smart Scheduling Panel · BeonAI sugiere el mejor horario ─────────────
+function SmartSchedulingPanel() {
+  const [data, setData] = useEV2(() => (window.SmartScheduling ? window.SmartScheduling.get() : null));
+  const [analyzing, setAnalyzing] = useEV2(false);
+  const [applied, setApplied] = useEV2(false);
+
+  useEE2(() => {
+    const onChange = (e) => setData(e.detail || (window.SmartScheduling ? window.SmartScheduling.get() : null));
+    window.addEventListener('smart-scheduling-changed', onChange);
+    return () => window.removeEventListener('smart-scheduling-changed', onChange);
+  }, []);
+
+  // Detecta si DeliveryPrefs ya está en modo smart-ai
+  useEE2(() => {
+    const refreshApplied = () => {
+      const p = window.DeliveryPrefs && window.DeliveryPrefs.get && window.DeliveryPrefs.get();
+      setApplied(!!(p && p.mode === 'smart-ai'));
+    };
+    refreshApplied();
+    window.addEventListener('delivery-prefs-changed', refreshApplied);
+    return () => window.removeEventListener('delivery-prefs-changed', refreshApplied);
+  }, []);
+
+  const reAnalyze = () => {
+    setAnalyzing(true);
+    setTimeout(() => {
+      if (window.SmartScheduling) setData(window.SmartScheduling.analyze());
+      setAnalyzing(false);
+      if (window.Toast) window.Toast.success('BeonAI ha recalculado tu horario óptimo', { icon:'✨' });
+    }, 900);
+  };
+
+  const apply = () => {
+    if (window.SmartScheduling) window.SmartScheduling.applyToDelivery();
+    if (window.Toast) window.Toast.success('Horario óptimo aplicado a tus preferencias de entrega', { icon:'⚡' });
+  };
+
+  if (!data) return null;
+
+  const fmtAgo = (ts) => {
+    const d = Math.floor((Date.now() - ts) / 60000);
+    if (d < 1)   return 'ahora mismo';
+    if (d < 60)  return 'hace ' + d + ' min';
+    const h = Math.floor(d / 60);
+    if (h < 24)  return 'hace ' + h + ' h';
+    return 'hace ' + Math.floor(h / 24) + ' días';
+  };
+
+  return (
+    <section style={{ marginTop: 40, marginBottom: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap: 12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>
+          ✨ Smart Scheduling · <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>BeonAI te recomienda</em>
+        </h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
+          Actualizado {fmtAgo(data.generatedAt || Date.now())}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 20 }}>
+        BeonAI analiza tu historial · horarios de apertura, tiempo de visualización y engagement · para sugerirte el mejor momento para recibir contenido.
+      </div>
+
+      {/* CARD principal · gradiente accent + métricas top */}
+      <div style={{
+        padding:'22px 24px',
+        background:'linear-gradient(135deg, rgba(89,71,255,0.10) 0%, rgba(89,71,255,0.02) 50%, var(--bg-surface) 100%)',
+        border:'1px solid rgba(89,71,255,0.35)',
+        borderRadius: 16,
+        marginBottom: 16,
+        position:'relative', overflow:'hidden',
+      }}>
+        {analyzing && (
+          <div style={{ position:'absolute', top: 12, right: 16, fontFamily:'var(--font-mono)', fontSize: 10.5, color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 6 }}>
+            <span className="dot-pulse" style={{ width: 8, height: 8, borderRadius:'50%', background:'var(--accent)' }}/>
+            Analizando…
+          </div>
+        )}
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap: 24, alignItems:'flex-start' }}>
+          <div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', fontWeight: 700, marginBottom: 8 }}>📨 Best time to watch</div>
+            <div style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontSize: 38, color:'var(--fg)', lineHeight: 1.1, marginBottom: 6 }}>
+              Te llega mejor a las <strong style={{ color:'var(--accent)' }}>{data.time}</strong>
+            </div>
+            <div style={{ fontSize: 13.5, color:'var(--fg-muted)', lineHeight: 1.55, maxWidth: 560 }}>
+              Te abres con más constancia los <strong style={{ color:'var(--fg)' }}>{data.days[data.bestDayIdx].toLowerCase()}</strong>. En tu ventana de pico ({data.peakWindow}) el engagement es del <strong style={{ color:'var(--fg)' }}>{data.engagement}%</strong>, casi el doble de la media. Te recomendamos enviarte el contenido justo antes.
+            </div>
+          </div>
+
+          <div style={{ display:'flex', flexDirection:'column', gap: 10 }}>
+            <button onClick={apply} disabled={applied} style={{
+              padding:'12px 16px', background: applied ? 'var(--bg-elevated)' : 'var(--accent)',
+              color: applied ? 'var(--fg-muted)' : '#fff',
+              border: 'none', borderRadius: 10, cursor: applied ? 'default' : 'pointer',
+              fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13,
+              boxShadow: applied ? 'none' : '0 6px 18px rgba(89,71,255,0.35)',
+              display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
+            }}>
+              {applied ? '✓ Aplicado a Channels' : '⚡ Aplicar este horario'}
+            </button>
+            <button onClick={reAnalyze} disabled={analyzing} style={{
+              padding:'10px 16px', background:'transparent',
+              border:'1px solid var(--line)', color:'var(--fg-muted)',
+              borderRadius: 10, cursor: analyzing ? 'wait' : 'pointer',
+              fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
+            }}>
+              {analyzing ? '⏳ Analizando…' : '🔄 Re-analizar'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* INSIGHTS · grid de métricas */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+        {data.insights.map((ins, i) => (
+          <div key={i} style={{ padding:'14px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
+            <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 8 }}>{ins.icon}</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700, marginBottom: 4 }}>{ins.label}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color:'var(--fg)', marginBottom: 2 }}>{ins.value}</div>
+            <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.4 }}>{ins.hint}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Notas · qué optimiza la IA */}
+      <div style={{ marginTop: 14, padding:'12px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 10, fontSize: 12, color:'var(--fg-muted)', lineHeight: 1.55 }}>
+        <strong style={{ color:'var(--fg)' }}>BeonAI también optimiza por ti</strong> · evita enviarte en quiet hours, agrupa pills en digest si superas tu límite diario, y respeta tu modo vacaciones automáticamente.
+      </div>
+    </section>
+  );
+}
+
 // ── Notification Rules Panel ────────────────────────────────────────────
 function NotificationRulesPanel({ channelColor }) {
   const [rules, setRules] = useEV2(() => (window.NotificationRules ? window.NotificationRules.get() : {}));
@@ -1485,6 +1617,9 @@ function SettingsView({ setView }) {
           </div>
         </div>
       </section>
+
+      {/* SMART SCHEDULING · IA con análisis del mejor horario */}
+      <SmartSchedulingPanel/>
 
       {/* CONTENT PUSH · qué contenido recibir */}
       <ContentPushPanel channelColor={accentColor}/>
