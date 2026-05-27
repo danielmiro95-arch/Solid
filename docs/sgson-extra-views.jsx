@@ -315,7 +315,120 @@ function ChannelsView() {
 
       {/* CONTENT PUSH · qué tipo de contenido recibir */}
       <ContentPushPanel channelColor={channelColor}/>
+
+      {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
+      <SubscriptionsPanel channelColor={channelColor}/>
     </PageShell>
+  );
+}
+
+// ── Subscriptions Panel · seguir categorías, skills, equipos, trainers ───
+function SubscriptionsPanel({ channelColor }) {
+  const [subs, setSubs] = useEV2(() => (window.Subscriptions ? window.Subscriptions.get() : { categories:{}, skills:{}, teams:{}, trainers:{} }));
+  const [activeGroup, setActiveGroup] = useEV2('categories');
+  useEE2(() => {
+    const onChange = (e) => setSubs(e.detail);
+    window.addEventListener('subscriptions-changed', onChange);
+    return () => window.removeEventListener('subscriptions-changed', onChange);
+  }, []);
+
+  const CAT = (window.Subscriptions && window.Subscriptions.CATALOG) || { categories:[], skills:[], teams:[], trainers:[] };
+  const TABS = [
+    { id:'categories', label:'Categorías',  icon:'🗂', items: CAT.categories || [] },
+    { id:'skills',     label:'Skills',      icon:'🧠', items: CAT.skills     || [] },
+    { id:'teams',      label:'Equipos',     icon:'👥', items: CAT.teams      || [] },
+    { id:'trainers',   label:'Trainers',    icon:'🎓', items: CAT.trainers   || [] },
+  ];
+  const active = TABS.find(t => t.id === activeGroup) || TABS[0];
+
+  const toggle = (id) => window.Subscriptions && window.Subscriptions.toggle(activeGroup, id);
+  const total = window.Subscriptions ? window.Subscriptions.totalCount() : 0;
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Lo que sigues</h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
+          {total} suscripci{total === 1 ? 'ón' : 'ones'} activa{total === 1 ? '' : 's'}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 20 }}>
+        Recibirás contenido nuevo de las categorías, skills, equipos y trainers que sigas.
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:'flex', gap: 2, marginBottom: 16, borderBottom:'1px solid var(--line)', flexWrap:'wrap' }}>
+        {TABS.map(t => {
+          const sel = activeGroup === t.id;
+          const c = window.Subscriptions ? window.Subscriptions.count(t.id) : 0;
+          return (
+            <button key={t.id} onClick={() => setActiveGroup(t.id)} style={{
+              padding:'10px 14px 9px', background:'transparent', border:'none',
+              borderBottom: '2px solid ' + (sel ? channelColor : 'transparent'),
+              color: sel ? 'var(--fg)' : 'var(--fg-muted)',
+              fontFamily:'var(--font-sans)', fontWeight: sel ? 700 : 500, fontSize: 13.5,
+              cursor:'pointer', display:'inline-flex', alignItems:'center', gap: 8, marginBottom: -1,
+            }}>
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 9, padding:'1px 6px', background: sel ? channelColor : 'var(--bg-surface)', color: sel ? '#fff' : 'var(--fg-muted)', borderRadius: 999, fontWeight: 700 }}>{c}</span>
+            </button>
+          );
+        })}
+        <div style={{ flex:1 }}/>
+        <button onClick={() => { window.Subscriptions && window.Subscriptions.reset(); setSubs(window.Subscriptions.get()); }}
+          style={{ alignSelf:'center', padding:'6px 12px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 6, cursor:'pointer', fontSize: 11, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
+          ↻ Restablecer
+        </button>
+      </div>
+
+      {/* Items del grupo activo */}
+      <div style={{ display:'grid', gridTemplateColumns: activeGroup === 'skills' ? 'repeat(auto-fill, minmax(180px, 1fr))' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+        {active.items.map(item => {
+          const isActive = !!(subs[activeGroup] && subs[activeGroup][item.id]);
+          const itemColor = item.color || channelColor;
+          return (
+            <button key={item.id} onClick={() => toggle(item.id)}
+              style={{
+                padding:'12px 14px', borderRadius: 10, cursor:'pointer', textAlign:'left',
+                background: isActive ? `linear-gradient(135deg, ${itemColor}12 0%, ${itemColor}04 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${isActive ? itemColor : 'var(--line)'}`,
+                color:'var(--fg)', transition:'all .15s',
+                display:'flex', alignItems:'center', gap: 10, position:'relative',
+              }}>
+              {item.icon && <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{item.icon}</div>}
+              {!item.icon && activeGroup === 'trainers' && (
+                <div style={{ width: 32, height: 32, borderRadius:'50%', background: channelColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
+                  {item.label.split(' ').map(s => s[0]).slice(0,2).join('')}
+                </div>
+              )}
+              <div style={{ flex:1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? itemColor : 'var(--fg)' }}>{item.label}</div>
+                {item.role && <div style={{ fontSize: 11, color:'var(--fg-muted)', marginTop: 2 }}>{item.role}</div>}
+                {item.members != null && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)', marginTop: 2 }}>{item.members} miembros</div>}
+              </div>
+              <div style={{ width: 22, height: 22, borderRadius: 6, border: `1.5px solid ${isActive ? itemColor : 'var(--line)'}`, background: isActive ? itemColor : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                {isActive ? '✓' : ''}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Chips resumen · qué sigues en total (todas las pestañas) */}
+      {total > 0 && (
+        <div style={{ marginTop: 18, padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 10 }}>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700, marginBottom: 8 }}>Resumen de suscripciones</div>
+          <div style={{ display:'flex', flexWrap:'wrap', gap: 6 }}>
+            {TABS.flatMap(t => t.items.filter(i => subs[t.id] && subs[t.id][i.id]).map(i => (
+              <span key={t.id+':'+i.id} style={{ padding:'4px 10px', fontFamily:'var(--font-mono)', fontSize: 10.5, fontWeight: 600, background: (i.color || channelColor)+'15', color: i.color || channelColor, borderRadius: 999, border: `1px solid ${(i.color || channelColor)+'40'}` }}>
+                {t.icon} {i.label}
+              </span>
+            )))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

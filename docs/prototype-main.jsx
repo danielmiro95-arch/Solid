@@ -420,6 +420,132 @@ const ContentPush = (function() {
 })();
 window.ContentPush = ContentPush;
 
+// ── Subscriptions · seguir categorías, skills, equipos y trainers ─────────
+const Subscriptions = (function() {
+  const KEY = 'solid-subscriptions';
+
+  const CATALOG = {
+    categories: [
+      { id:'ia',         label:'Inteligencia Artificial', color:'var(--bn-purple)',   icon:'✨' },
+      { id:'data',       label:'Data & Analytics',        color:'var(--bn-blue)',     icon:'📊' },
+      { id:'cx',         label:'CX · Customer Experience',color:'var(--accent-glow)', icon:'💬' },
+      { id:'sprinklr',   label:'Sprinklr',                color:'#5059C9',            icon:'🟦' },
+      { id:'care',       label:'Care · Soporte',          color:'var(--ok)',          icon:'🛟' },
+      { id:'publish',    label:'Publish · Social',        color:'#25D366',            icon:'📢' },
+      { id:'content',    label:'Content',                 color:'var(--bn-orange)',   icon:'🎨' },
+      { id:'leadership', label:'Leadership',              color:'var(--accent)',      icon:'👥' },
+      { id:'marketing',  label:'Marketing',               color:'var(--bn-lime)',     icon:'📣' },
+    ],
+    skills: [
+      { id:'social_publish',  label:'Social Publishing' },
+      { id:'care_console',    label:'Care Console' },
+      { id:'analytics_sql',   label:'Analytics + SQL' },
+      { id:'campaign_design', label:'Campaign Design' },
+      { id:'crisis_mgmt',     label:'Crisis Management' },
+      { id:'sentiment_ai',    label:'Sentiment AI' },
+      { id:'reporting',       label:'Reporting' },
+      { id:'workflow_automation', label:'Workflow Automation' },
+      { id:'community_mgmt',  label:'Community Management' },
+      { id:'kpis_dashboards', label:'KPIs & Dashboards' },
+      { id:'governance',      label:'Governance & Compliance' },
+      { id:'integrations',    label:'Integraciones (CRM, Salesforce)' },
+    ],
+    teams: [
+      { id:'repsol_iberia',  label:'Repsol Iberia',          members: 124 },
+      { id:'repsol_latam',   label:'Repsol LATAM',           members:  82 },
+      { id:'repsol_global',  label:'Repsol Global',          members: 240 },
+      { id:'beonit_team',    label:'BeonIt · Equipo interno',members:  18 },
+      { id:'sprinklr_csm',   label:'Sprinklr CSM',           members:   6 },
+      { id:'care_squad',     label:'Care Squad',             members:  42 },
+      { id:'publish_squad',  label:'Publish Squad',          members:  38 },
+    ],
+    trainers: [
+      { id:'ana_garcia',    label:'Ana García',     role:'Lead Care · Sprinklr' },
+      { id:'carlos_vega',   label:'Carlos Vega',    role:'Sr. Publish Trainer' },
+      { id:'maria_lopez',   label:'María López',    role:'Analytics & Reporting' },
+      { id:'diego_reyes',   label:'Diego Reyes',    role:'AI · Sentiment' },
+      { id:'sara_molina',   label:'Sara Molina',    role:'Content & Brand' },
+      { id:'lucia_fernan',  label:'Lucía Fernández',role:'Crisis & Governance' },
+    ],
+  };
+
+  const DEFAULTS = {
+    categories: { sprinklr:true, care:true, ia:true },  // arranca con 3 activas
+    skills:     {},
+    teams:      { repsol_iberia:true },
+    trainers:   {},
+    updatedAt: Date.now(),
+  };
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') {
+        return {
+          categories: { ...DEFAULTS.categories, ...(s.categories || {}) },
+          skills:     { ...DEFAULTS.skills,     ...(s.skills     || {}) },
+          teams:      { ...DEFAULTS.teams,      ...(s.teams      || {}) },
+          trainers:   { ...DEFAULTS.trainers,   ...(s.trainers   || {}) },
+          updatedAt:  s.updatedAt || Date.now(),
+        };
+      }
+    } catch(e) {}
+    return {
+      categories: { ...DEFAULTS.categories },
+      skills:     { ...DEFAULTS.skills },
+      teams:      { ...DEFAULTS.teams },
+      trainers:   { ...DEFAULTS.trainers },
+      updatedAt:  Date.now(),
+    };
+  }
+
+  function save(prefs) {
+    const next = { ...prefs, updatedAt: Date.now() };
+    localStorage.setItem(_userKey(), JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('subscriptions-changed', { detail: next }));
+    return next;
+  }
+
+  function toggle(group, id) {
+    const cur = get();
+    cur[group] = { ...cur[group], [id]: !cur[group][id] };
+    return save(cur);
+  }
+
+  function count(group) {
+    const cur = get();
+    return Object.keys(cur[group] || {}).filter(k => cur[group][k]).length;
+  }
+
+  function totalCount() {
+    return count('categories') + count('skills') + count('teams') + count('trainers');
+  }
+
+  function reset() {
+    localStorage.removeItem(_userKey());
+    const d = {
+      categories: { ...DEFAULTS.categories },
+      skills:     { ...DEFAULTS.skills },
+      teams:      { ...DEFAULTS.teams },
+      trainers:   { ...DEFAULTS.trainers },
+      updatedAt:  Date.now(),
+    };
+    window.dispatchEvent(new CustomEvent('subscriptions-changed', { detail: d }));
+    return d;
+  }
+
+  return { CATALOG, get, save, toggle, count, totalCount, reset };
+})();
+window.Subscriptions = Subscriptions;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
