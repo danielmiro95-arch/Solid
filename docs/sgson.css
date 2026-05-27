@@ -185,6 +185,18 @@ html[data-theme="light"] .topnav .workspace-switcher,
 html[data-theme="light"] .topnav .workspace-switcher * { color: #F5F4F1 !important; }
 html[data-theme="light"] .topnav .workspace-switcher button { color: #F5F4F1 !important; border-color: rgba(255,255,255,0.18) !important; background: rgba(255,255,255,0.06) !important; }
 
+/* Avatar dropdown (menú arriba-derecha) · es un panel dark-glass independiente
+ * del tema · forzar contenido claro en ambos temas para evitar texto ilegible
+ * cuando el theme global pinta hijos en color oscuro. */
+.avatar-menu,
+.avatar-menu * { color: #F5F4F1; }
+.avatar-menu button { color: #F5F4F1 !important; }
+.avatar-menu button span { color: inherit !important; }
+.avatar-menu .badge { color: #fff !important; }
+/* El botón "Cerrar sesión" conserva su color acento (lila) */
+.avatar-menu button[data-logout="true"],
+.avatar-menu button[data-logout="true"] span { color: var(--accent, #6E50EE) !important; }
+
 /* ============================================================
    BASE
    ============================================================ */
