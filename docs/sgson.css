@@ -113,6 +113,29 @@ html[data-theme="light"] .ssg-page section[style*="bg-surface"] {
   box-shadow: 0 1px 3px rgba(13,17,23,0.05);
 }
 
+/* CINEMATIC · Home/Player/Onboarding SIEMPRE dark, ignoran data-theme="light".
+ * Body recibe data-cinematic="true" desde el router del App cuando esas vistas
+ * están activas. Sobrescribe todos los tokens de superficie/texto/borde. */
+html[data-theme="light"] body[data-cinematic="true"] {
+  --bg-deep:        #08080B;
+  --bg-canvas:      #0E0E12;
+  --bg-surface:     #16161C;
+  --bg-elevated:    #1F1F27;
+  --bg-glass:       rgba(14, 14, 18, 0.72);
+  --bg-glass-strong:rgba(14, 14, 18, 0.92);
+
+  --line-faint:     rgba(255,255,255,0.06);
+  --line:           rgba(255,255,255,0.10);
+  --line-strong:    rgba(255,255,255,0.18);
+
+  --fg:             #F5F4F1;
+  --fg-muted:       #A8A6A0;
+  --fg-dim:         #6F6D67;
+  --fg-faint:       #46453F;
+}
+/* Body en cinematic: fondo dark forzado independientemente del theme */
+body[data-cinematic="true"] { background: #08080B; }
+
 /* Cards de vídeo (.card) llevan overlay oscuro sobre thumbnail por design,
  * el texto SIEMPRE va blanco. Igual para card-pill-num y card-meta. */
 html[data-theme="light"] .card .card-title  { color: #F5F4F1 !important; }
