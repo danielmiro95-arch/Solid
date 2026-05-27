@@ -343,12 +343,12 @@ function ChannelsView() {
       <div style={{ marginTop: 32, padding:'18px 22px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
         <div style={{ fontSize: 22, lineHeight: 1 }}>⚙️</div>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>¿Quieres elegir qué contenido recibes o tus reglas de notificación?</div>
-          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Tipos de contenido, suscripciones (categorías/skills/equipos/trainers) y reglas (quiet hours, vacation, digest, prioridad) viven en <strong>Ajustes</strong>.</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{T('delivery.toSettings.title')}</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('delivery.toSettings.sub')}</div>
         </div>
         <button onClick={() => window.dispatchEvent(new CustomEvent('__go-settings'))}
           style={{ padding:'10px 16px', background: channelColor, color:'#fff', border:'none', borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:`0 4px 12px ${channelColor}40` }}>
-          Ir a Ajustes →
+          {T('delivery.toSettings.btn')}
         </button>
       </div>
     </PageShell>
@@ -887,6 +887,7 @@ function ContentPushPanel({ channelColor }) {
 
 // ── Channel Notifications Matrix · una columna por canal × tipos comunes ──
 function ChannelNotificationsMatrix({ chState, catalog }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const connected = (catalog || []).filter(c => chState[c.id] && chState[c.id].connected);
   const [state, setState] = useEV2(() => (window.ChannelNotifs ? window.ChannelNotifs.get() : {}));
   const [history, setHistory] = useEV2(() => (window.TestSends ? window.TestSends.list() : []));
@@ -908,8 +909,8 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
     return (
       <section style={{ marginTop: 40, padding:'24px 22px', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius: 14, textAlign:'center' }}>
         <div style={{ fontSize: 32, opacity: 0.45, marginBottom: 8 }}>📱</div>
-        <h3 style={{ margin:'0 0 4px', fontFamily:'var(--font-sans)', fontSize: 16, color:'var(--fg)' }}>Sin canales conectados</h3>
-        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Conecta al menos un canal arriba para configurar tus notificaciones.</div>
+        <h3 style={{ margin:'0 0 4px', fontFamily:'var(--font-sans)', fontSize: 16, color:'var(--fg)' }}>{T('matrix.empty.title')}</h3>
+        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>{T('matrix.empty.desc')}</div>
       </section>
     );
   }
@@ -922,20 +923,20 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
-        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Notificaciones por canal</h2>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>{T('matrix.title')}</h2>
         <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
-          {TYPES.length} tipos · {connected.length} canal{connected.length === 1 ? '' : 'es'}
+          {TYPES.length} · {connected.length}
         </div>
       </div>
       <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 18 }}>
-        Activa el mismo tipo de aviso en uno o varios canales a la vez. Cada columna se configura independientemente.
+        {T('matrix.sub')}
       </div>
 
       {/* MATRIZ · columnas por canal, filas por tipo */}
       <div style={{ display:'grid', gridTemplateColumns: `220px repeat(${connected.length}, minmax(180px, 1fr))`, gap: 0, border:'1px solid var(--line)', borderRadius: 14, overflow:'hidden', background:'var(--bg-surface)' }}>
         {/* HEADER · primera fila */}
         <div style={{ padding:'14px 16px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--line)', fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700 }}>
-          Tipo de notificación
+          {T('matrix.col.type')}
         </div>
         {connected.map(c => {
           const channelOn = window.ChannelNotifs ? window.ChannelNotifs.countForChannel(c.id) : 0;
@@ -946,7 +947,7 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
                 <div style={{ width: 34, height: 34, borderRadius: 8, background: c.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{c.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
-                  <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{channelOn}/{TYPES.length} activas</div>
+                  <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{T('matrix.activeOfTotal').replace('{n}', channelOn).replace('{total}', TYPES.length)}</div>
                 </div>
                 {chState.primary === c.id && (
                   <div title="Canal principal" style={{ fontSize: 12, color: c.color, fontWeight: 800 }}>★</div>
@@ -955,11 +956,11 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
               <div style={{ display:'flex', gap: 4, flexWrap:'wrap' }}>
                 <button onClick={() => setAll(c.id, !allOn)} title={allOn ? 'Desactivar todas' : 'Activar todas'}
                   style={{ flex: 1, padding:'5px 8px', fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.04em', textTransform:'uppercase', fontWeight: 700, background:'transparent', border:`1px solid ${c.color}55`, color: c.color, borderRadius: 6, cursor:'pointer' }}>
-                  {allOn ? '× Desactivar todas' : '✓ Activar todas'}
+                  {allOn ? T('matrix.deactivateAll') : T('matrix.activateAll')}
                 </button>
-                <button onClick={() => sendTest(c)} title={`Enviar test a ${c.label}`}
+                <button onClick={() => sendTest(c)} title={T('common.test') + ' → ' + c.label}
                   style={{ padding:'5px 8px', fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.04em', textTransform:'uppercase', fontWeight: 700, background: c.color, border:'none', color:'#fff', borderRadius: 6, cursor:'pointer' }}>
-                  📨 Test
+                  {T('matrix.testBtn')}
                 </button>
               </div>
             </div>
@@ -999,24 +1000,24 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
       {/* Resumen + historial test */}
       <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'flex-start', flexWrap:'wrap' }}>
         <div style={{ flex: 1, minWidth: 240, fontSize: 11.5, color:'var(--fg-muted)' }}>
-          Tip · activa la misma notificación en varios canales si quieres redundancia (ej: WhatsApp + Email para deadlines críticos).
+          {T('matrix.tip')}
         </div>
         {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && Notification.permission !== 'denied' && (
           <button onClick={() => window.TestSends && window.TestSends.requestPermission()}
             style={{ padding:'7px 12px', background:'transparent', border:'1px solid var(--accent)', color:'var(--accent)', borderRadius: 8, cursor:'pointer', fontSize: 11.5, fontFamily:'var(--font-sans)', fontWeight: 700 }}>
-            🔔 Activar notificaciones nativas
+            {T('matrix.activateNative')}
           </button>
         )}
         <button onClick={() => { window.ChannelNotifs && window.ChannelNotifs.reset(); }}
           style={{ padding:'7px 12px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 11.5, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
-          ↻ Restablecer matriz
+          {T('matrix.reset')}
         </button>
       </div>
 
       {/* Historial de tests · solo si hay envíos */}
       {history.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight: 700, marginBottom: 8 }}>Últimos tests · {history.length}</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight: 700, marginBottom: 8 }}>{T('matrix.lastTests')} · {history.length}</div>
           <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
             {history.slice(0, 8).map(h => (
               <div key={h.id} style={{ padding:'5px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 999, display:'inline-flex', alignItems:'center', gap: 6, fontSize: 11, color:'var(--fg-muted)' }}>
@@ -1034,6 +1035,7 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
 
 // ── Channel Manager Panel ─────────────────────────────────────────────────
 function ChannelManagerPanel({ chState, catalog }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [connecting, setConnecting] = useEV2(null);
 
   const startConnect = (chId) => {
@@ -1051,8 +1053,8 @@ function ChannelManagerPanel({ chState, catalog }) {
     <section>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 16, gap:12, flexWrap:'wrap' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Canales conectados</h2>
-          <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{connectedCount} de {catalog.filter(c => c.available).length} canales disponibles activos · puedes conectar varios a la vez.</div>
+          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{T('channels.connected.title')}</h2>
+          <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{T('channels.connected.sub').replace('{n}', connectedCount).replace('{total}', catalog.filter(c => c.available).length)}</div>
         </div>
       </div>
 
@@ -1074,7 +1076,7 @@ function ChannelManagerPanel({ chState, catalog }) {
               position:'relative',
             }}>
               {primary && (
-                <div style={{ position:'absolute', top: -10, left: 12, padding:'2px 8px', background: c.color, color:'#fff', fontFamily:'var(--font-mono)', fontSize: 9, letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700, borderRadius: 999 }}>★ Principal</div>
+                <div style={{ position:'absolute', top: -10, left: 12, padding:'2px 8px', background: c.color, color:'#fff', fontFamily:'var(--font-mono)', fontSize: 9, letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700, borderRadius: 999 }}>{T('channels.primary')}</div>
               )}
               <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: c.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{c.icon}</div>
@@ -1082,21 +1084,21 @@ function ChannelManagerPanel({ chState, catalog }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
                   <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2, lineHeight:1.4 }}>{c.desc}</div>
                 </div>
-                <div style={{ width: 8, height: 8, borderRadius:'50%', background: connected ? '#22C55E' : 'var(--fg-dim)', boxShadow: connected ? '0 0 0 3px rgba(34,197,94,0.18)' : 'none', flexShrink:0 }} title={connected ? 'Conectado' : 'Desconectado'}/>
+                <div style={{ width: 8, height: 8, borderRadius:'50%', background: connected ? '#22C55E' : 'var(--fg-dim)', boxShadow: connected ? '0 0 0 3px rgba(34,197,94,0.18)' : 'none', flexShrink:0 }} title={connected ? T('rules.active') : T('common.deactivate')}/>
               </div>
 
               {!c.available && (
-                <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.06em', color:'var(--fg-dim)', textTransform:'uppercase', fontWeight:700 }}>Próximamente</div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.06em', color:'var(--fg-dim)', textTransform:'uppercase', fontWeight:700 }}>{T('channels.soon')}</div>
               )}
 
               {connected && (
                 <div style={{ padding: '8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.06em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Cuenta</div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.06em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>{T('channels.account')}</div>
                     <div style={{ fontSize: 12.5, color:'var(--fg)', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{state.account}</div>
                   </div>
                   {since != null && (
-                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', whiteSpace:'nowrap' }}>{since === 0 ? 'hoy' : 'hace ' + since + 'd'}</div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', whiteSpace:'nowrap' }}>{since === 0 ? T('channels.today') : (T('channels.daysAgo','hace {n}d').replace('{n}', since))}</div>
                   )}
                 </div>
               )}
@@ -1108,32 +1110,32 @@ function ChannelManagerPanel({ chState, catalog }) {
                     cursor: isConnecting ? 'wait' : 'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12,
                     opacity: isConnecting ? 0.7 : 1,
                   }}>
-                    {isConnecting ? '⏳ Conectando…' : (c.authType === 'oauth' ? '🔐 Conectar (OAuth)' : c.authType === 'phone' ? '📱 Conectar' : '🔔 Activar permiso')}
+                    {isConnecting ? T('channels.connecting') : (c.authType === 'oauth' ? '🔐 ' + T('channels.connect') + ' (OAuth)' : c.authType === 'phone' ? '📱 ' + T('channels.connect') : '🔔 ' + T('common.activate'))}
                   </button>
                 )}
                 {connected && !primary && (
                   <button onClick={() => window.Channels && window.Channels.setPrimary(c.id)} style={{
                     padding:'7px 10px', background:'transparent', border:`1px solid ${c.color}`, color: c.color, borderRadius: 8,
                     cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 11.5,
-                  }}>⭐ Marcar principal</button>
+                  }}>{T('channels.markPrimary')}</button>
                 )}
                 {connected && (
-                  <button onClick={() => window.Channels && window.Channels.reauth(c.id)} title="Re-autenticar OAuth" style={{
+                  <button onClick={() => window.Channels && window.Channels.reauth(c.id)} title="Re-authenticate OAuth" style={{
                     padding:'7px 10px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8,
                     cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
-                  }}>🔄 Reauth</button>
+                  }}>{T('channels.reauth')}</button>
                 )}
                 {connected && (
-                  <button onClick={() => { if (confirm('¿Desconectar ' + c.label + '?')) window.Channels && window.Channels.disconnect(c.id); }} style={{
+                  <button onClick={() => { if (confirm(T('channels.confirmDisconnect') + ' ' + c.label + '?')) window.Channels && window.Channels.disconnect(c.id); }} style={{
                     padding:'7px 10px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8,
                     cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
-                  }}>Desconectar</button>
+                  }}>{T('channels.disconnect')}</button>
                 )}
                 {!c.available && (
                   <button disabled style={{
                     flex: 1, padding:'9px 12px', background:'var(--bg-surface)', color:'var(--fg-dim)', border:'1px dashed var(--line)', borderRadius: 8,
                     cursor:'not-allowed', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 11.5,
-                  }}>Próximamente</button>
+                  }}>{T('channels.soon')}</button>
                 )}
               </div>
             </div>
@@ -1146,9 +1148,17 @@ function ChannelManagerPanel({ chState, catalog }) {
 
 // ── Delivery Preferences Panel ────────────────────────────────────────────
 function DeliveryPreferencesPanel({ channelColor }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const lang = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
   const [prefs, setPrefs] = useEV2(() => (window.DeliveryPrefs && window.DeliveryPrefs.get()) || {});
-  const dayLabels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const dayLabelsLong = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  // Día abreviado y largo · localizado
+  const DAY_NAMES = {
+    es: { short:['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], long:['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'] },
+    en: { short:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], long:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] },
+    pt: { short:['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'], long:['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'] },
+  };
+  const dayLabels = (DAY_NAMES[lang] || DAY_NAMES.es).short;
+  const dayLabelsLong = (DAY_NAMES[lang] || DAY_NAMES.es).long;
 
   useEE2(() => {
     const onChange = (e) => setPrefs(e.detail || (window.DeliveryPrefs && window.DeliveryPrefs.get()));
@@ -1179,12 +1189,12 @@ function DeliveryPreferencesPanel({ channelColor }) {
   const nextLabel = window.DeliveryPrefs ? window.DeliveryPrefs.formatNext(next) : 'Sin programar';
 
   const MODES = [
-    { id:'daily',    label:'Diario',         icon:'☀️', desc:'Todos los días' },
-    { id:'weekdays', label:'Solo laborales', icon:'💼', desc:'Lunes a viernes' },
-    { id:'weekends', label:'Fines de semana',icon:'🏖',  desc:'Sábado y domingo' },
-    { id:'weekly',   label:'Semanal',        icon:'📅', desc:'Un día a la semana' },
-    { id:'custom',   label:'Personalizado',  icon:'⚙️', desc:'Elige tus días' },
-    { id:'smart-ai', label:'Smart · IA',     icon:'✨', desc:'BeonAI elige el mejor momento' },
+    { id:'daily',    label:T('delivery.mode.daily'),    icon:'☀️', desc:T('delivery.mode.daily.sub') },
+    { id:'weekdays', label:T('delivery.mode.weekdays'), icon:'💼', desc:T('delivery.mode.weekdays.sub') },
+    { id:'weekends', label:T('delivery.mode.weekends'), icon:'🏖',  desc:T('delivery.mode.weekends.sub') },
+    { id:'weekly',   label:T('delivery.mode.weekly'),   icon:'📅', desc:T('delivery.mode.weekly.sub') },
+    { id:'custom',   label:T('delivery.mode.custom'),   icon:'⚙️', desc:T('delivery.mode.custom.sub') },
+    { id:'smart-ai', label:T('delivery.mode.smart'),    icon:'✨', desc:T('delivery.mode.smart.sub') },
   ];
 
   const activeDayCount = (prefs.days || []).filter(Boolean).length;
@@ -1192,15 +1202,15 @@ function DeliveryPreferencesPanel({ channelColor }) {
 
   return (
     <section style={{ marginTop: 40 }}>
-      <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Preferencias de entrega</h2>
-      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>Define cuándo y con qué frecuencia recibes contenido en tu canal.</div>
+      <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{T('delivery.title')}</h2>
+      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>{T('delivery.sub')}</div>
 
       {/* ENABLED toggle + Next delivery card */}
       <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:20, marginBottom: 24 }}>
         <div style={{ padding:'18px 22px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
           <div>
-            <div style={{ fontSize:14.5, fontWeight:700, color:'var(--fg)' }}>Recibir contenido</div>
-            <div style={{ fontSize:12, color:'var(--fg-muted)', marginTop:3 }}>{prefs.enabled ? 'Activo · recibirás contenido según tu programación' : 'Pausado · no se enviará nada hasta reactivar'}</div>
+            <div style={{ fontSize:14.5, fontWeight:700, color:'var(--fg)' }}>{T('delivery.enabled.label')}</div>
+            <div style={{ fontSize:12, color:'var(--fg-muted)', marginTop:3 }}>{prefs.enabled ? T('delivery.enabled.on') : T('delivery.enabled.off')}</div>
           </div>
           <button onClick={() => update({ enabled: !prefs.enabled })} aria-label="Toggle delivery"
             style={{ width:48, height:26, background: prefs.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
@@ -1208,13 +1218,13 @@ function DeliveryPreferencesPanel({ channelColor }) {
           </button>
         </div>
         <div style={{ padding:'18px 22px', background:`linear-gradient(135deg, ${channelColor}14 0%, transparent 100%)`, border:`1px solid ${channelColor}40`, borderRadius:14 }}>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:5 }}>📨 Próximo envío</div>
-          <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>{prefs.enabled ? nextLabel : 'En pausa'}</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:5 }}>{T('delivery.next')}</div>
+          <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>{prefs.enabled ? nextLabel : T('delivery.paused')}</div>
         </div>
       </div>
 
       {/* MODE selector */}
-      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Modo de programación</div>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>{T('delivery.mode.title')}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:10, marginBottom:28 }}>
         {MODES.map(m => {
           const active = prefs.mode === m.id;
@@ -1239,7 +1249,7 @@ function DeliveryPreferencesPanel({ channelColor }) {
 
       {/* DAYS picker · siempre visible, deshabilitado si smart-ai */}
       <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>
-        Días de la semana {isSmart && <span style={{ color: channelColor }}>· gestionado por BeonAI</span>}
+        {T('delivery.days.title')} {isSmart && <span style={{ color: channelColor }}>{T('delivery.days.byBeonai')}</span>}
       </div>
       <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom: 28, opacity: isSmart ? 0.5 : 1, pointerEvents: isSmart ? 'none' : 'auto' }}>
         {dayLabels.map((lbl, i) => {
@@ -1257,14 +1267,14 @@ function DeliveryPreferencesPanel({ channelColor }) {
           );
         })}
         <div style={{ flex:1, alignSelf:'center', textAlign:'right', fontFamily:'var(--font-mono)', fontSize:11, color:'var(--fg-muted)' }}>
-          {activeDayCount} día{activeDayCount === 1 ? '' : 's'} a la semana
+          {T('delivery.days.count').replace('{n}', activeDayCount)}
         </div>
       </div>
 
       {/* TIME + TIMEZONE */}
       <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 200px', gap:16, marginBottom: 24, alignItems:'flex-end' }}>
         <label style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>Hora exacta</span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>{T('delivery.time.title')}</span>
           <input type="time" value={prefs.time || '09:00'} onChange={e => update({ time: e.target.value })} disabled={isSmart}
             style={{ padding:'10px 14px', fontSize:14, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:10, opacity: isSmart ? 0.5 : 1 }}/>
         </label>
@@ -1275,10 +1285,10 @@ function DeliveryPreferencesPanel({ channelColor }) {
           }
         </div>
         <label style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>Zona horaria</span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>{T('delivery.tz.title')}</span>
           <select value={prefs.timezone || 'auto'} onChange={e => update({ timezone: e.target.value })}
             style={{ padding:'10px 14px', fontSize:13, background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:10 }}>
-            <option value="auto">Automática · {Intl.DateTimeFormat().resolvedOptions().timeZone}</option>
+            <option value="auto">{T('delivery.tz.auto')} · {Intl.DateTimeFormat().resolvedOptions().timeZone}</option>
             <option value="Europe/Madrid">Europe/Madrid</option>
             <option value="Europe/Lisbon">Europe/Lisbon</option>
             <option value="Europe/London">Europe/London</option>
@@ -1291,8 +1301,8 @@ function DeliveryPreferencesPanel({ channelColor }) {
       {/* MAX PER DAY · slider de límite diario */}
       <div style={{ padding:'14px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12, marginBottom: 18, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>📊 Límite diario</div>
-          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Máximo de mensajes que recibirás al día por este canal.</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{T('delivery.maxDaily.title')}</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>{T('delivery.maxDaily.sub')}</div>
         </div>
         <input type="range" min="1" max="10" value={prefs.maxPerDay || 1} onChange={e => update({ maxPerDay: parseInt(e.target.value, 10) })}
           style={{ flex: 1, minWidth: 180, accentColor: channelColor }}/>
@@ -1313,14 +1323,14 @@ function DeliveryPreferencesPanel({ channelColor }) {
             const primaryId = ch && ch.primary;
             const def = primaryId && window.Channels && window.Channels.CATALOG.find(c => c.id === primaryId);
             if (def) window.TestSends.send(def.id, def.label);
-            else if (window.Toast) window.Toast.info('Conecta un canal arriba para enviar test', { icon:'⚠️' });
+            else if (window.Toast) window.Toast.info(T('delivery.testWarn'), { icon:'⚠️' });
           }}
             style={{ padding:'8px 14px', background: channelColor, color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:700 }}>
-            📨 Enviar test ahora
+            {T('delivery.testBtn')}
           </button>
         )}
         <div style={{ flex:1, textAlign:'right', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)', letterSpacing:'0.06em' }}>
-          Guardado automático · última actualización {new Date(prefs.updatedAt || Date.now()).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
+          {T('delivery.autoSave','Auto-save · last update')} {new Date(prefs.updatedAt || Date.now()).toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'pt' ? 'pt-BR' : 'es-ES', { hour:'2-digit', minute:'2-digit' })}
         </div>
       </div>
     </section>
