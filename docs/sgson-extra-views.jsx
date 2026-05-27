@@ -122,9 +122,10 @@ function BrowseView({ openDetail }) {
 /* ============================================================
    RutasView · 6 grandes path cards estilo featured
    ============================================================ */
-function RutasView({ setView, openDetail }) {
+function RutasView({ setView, openDetail, openPath }) {
   const D = window.SGS_DATA;
   const paths = (D && D.LEARNING_PATHS) || [];
+  const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
 
   return (
     <PageShell
@@ -136,7 +137,7 @@ function RutasView({ setView, openDetail }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
       }}>
         {paths.map(p => (
-          <article key={p.id} className="card" onClick={() => setView('path')} style={{ cursor: 'pointer', aspectRatio: '4/5' }}>
+          <article key={p.id} className="card" onClick={() => go(p.id)} style={{ cursor: 'pointer', aspectRatio: '4/5' }}>
             <div className={`card-cover ${p.accent || 'cat-publish'}`}/>
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>RUTA · {p.pills} pills · {p.hours}</span>
@@ -146,7 +147,7 @@ function RutasView({ setView, openDetail }) {
                 fontSize: 28, color: 'var(--fg)', margin: 0, marginBottom: 8, lineHeight: 1.1,
               }}>{p.title}</h3>
               <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
-              <button style={{
+              <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
                 marginTop: 14, padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
                 background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
               }}>Empezar ruta →</button>
@@ -161,10 +162,18 @@ function RutasView({ setView, openDetail }) {
 /* ============================================================
    MyPathView · progreso del usuario + próximas pills
    ============================================================ */
-function MyPathView({ openDetail, setView }) {
+function MyPathView({ openDetail, setView, pathId }) {
   const D = window.SGS_DATA;
-  const PILLS = (D && D.PILLS) || [];
+  const ALL_PILLS = (D && D.PILLS) || [];
+  const PATHS = (D && D.LEARNING_PATHS) || [];
   const USER = (D && D.USER) || {};
+
+  // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
+  const path = pathId ? PATHS.find(p => p.id === pathId) : null;
+  const PILLS = path && path.pills
+    ? ALL_PILLS.filter(p => path.pills.includes(p.id))
+    : ALL_PILLS;
+
   const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
   const completed = PILLS.filter(p => p.progress >= 1);
   const next = PILLS.filter(p => p.progress === 0).slice(0, 6);
@@ -172,9 +181,14 @@ function MyPathView({ openDetail, setView }) {
 
   return (
     <PageShell
-      eyebrow={`Mi ruta · ${USER.role || 'Usuario'}`}
-      title={<>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
-      sub={`${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}>
+      eyebrow={path ? `Ruta · ${path.label}` : `Mi ruta · ${USER.role || 'Usuario'}`}
+      title={path
+        ? <>{path.label}{path.badge ? <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, fontSize:24, color:'var(--accent)', marginLeft:12 }}> · {path.badge}</em> : null}</>
+        : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
+      sub={path
+        ? `${path.desc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
+        : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}
+      actions={path && setView ? <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>← Todas las rutas</button> : null}>
 
       {/* Barra de progreso grande */}
       <div style={{
@@ -1066,7 +1080,7 @@ function ChannelMessagePreview({ channel }) {
           <button style={{ padding:'10px 18px', background:'#EA4335', color:'#fff', border:'none', borderRadius: 6, fontSize: 12.5, fontWeight: 700, cursor:'pointer' }}>▶ Ver en SolidStream</button>
         </div>
         <div style={{ padding:'10px 14px', background:'#F9FAFB', borderTop:'1px solid #E5E7EB', fontSize: 10, color:'#6B7280', fontFamily:'var(--font-mono)' }}>
-          ¿Demasiados emails? <a href="#" style={{ color:'#EA4335' }}>Cambia a digest semanal</a> · <a href="#" style={{ color:'#EA4335' }}>Darse de baja</a>
+          ¿Demasiados emails? <a href="#" onClick={(e) => { e.preventDefault(); if (window.NotificationRules) { window.NotificationRules.update({ digest:'weekly' }); window.Toast && window.Toast.success('Cambiado a digest semanal', { icon:'📅' }); } }} style={{ color:'#EA4335' }}>Cambia a digest semanal</a> · <a href="#" onClick={(e) => { e.preventDefault(); if (window.Channels) { window.Channels.disconnect('email'); } }} style={{ color:'#EA4335' }}>Darse de baja</a>
         </div>
       </div>
     );
@@ -1220,10 +1234,15 @@ function ChannelManagerPanel({ chState, catalog }) {
 
 // ── Delivery Preferences Panel ────────────────────────────────────────────
 function DeliveryPreferencesPanel({ channelColor }) {
-  const initial = (window.DeliveryPrefs && window.DeliveryPrefs.get()) || {};
-  const [prefs, setPrefs] = useEV2(initial);
+  const [prefs, setPrefs] = useEV2(() => (window.DeliveryPrefs && window.DeliveryPrefs.get()) || {});
   const dayLabels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const dayLabelsLong = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+  useEE2(() => {
+    const onChange = (e) => setPrefs(e.detail || (window.DeliveryPrefs && window.DeliveryPrefs.get()));
+    window.addEventListener('delivery-prefs-changed', onChange);
+    return () => window.removeEventListener('delivery-prefs-changed', onChange);
+  }, []);
 
   const update = (patch) => {
     const next = window.DeliveryPrefs ? window.DeliveryPrefs.save({ ...prefs, ...patch }) : { ...prefs, ...patch };
@@ -1376,8 +1395,14 @@ function DeliveryPreferencesPanel({ channelColor }) {
           style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:600 }}>
           ↻ Restablecer
         </button>
-        {window.Toast && (
-          <button onClick={() => window.Toast.success('Test enviado · revisa tu canal', { icon:'📨' })}
+        {window.TestSends && (
+          <button onClick={() => {
+            const ch = window.Channels && window.Channels.get && window.Channels.get();
+            const primaryId = ch && ch.primary;
+            const def = primaryId && window.Channels && window.Channels.CATALOG.find(c => c.id === primaryId);
+            if (def) window.TestSends.send(def.id, def.label);
+            else if (window.Toast) window.Toast.info('Conecta un canal arriba para enviar test', { icon:'⚠️' });
+          }}
             style={{ padding:'8px 14px', background: channelColor, color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:700 }}>
             📨 Enviar test ahora
           </button>
@@ -1391,52 +1416,103 @@ function DeliveryPreferencesPanel({ channelColor }) {
 }
 
 /* ============================================================
-   InboxView · listado de notificaciones
+   InboxView · listado de notificaciones · API real Inbox.getAll()
    ============================================================ */
 function InboxView({ openDetail }) {
-  const inbox = (window.Inbox && window.Inbox.list && window.Inbox.list()) || [];
-  const unread = inbox.filter(m => !m.read);
-  const read = inbox.filter(m => m.read);
+  const [data, setData] = useEV2(() => (window.Inbox && window.Inbox.getAll && window.Inbox.getAll()) || { messages:[], notifications:[], releases:[] });
+  const [tab, setTab] = useEV2('messages');
+  useEE2(() => {
+    if (window.Inbox && window.Inbox.seedIfEmpty) window.Inbox.seedIfEmpty();
+    setData(window.Inbox.getAll());
+    const onChange = () => setData(window.Inbox.getAll());
+    window.addEventListener('inbox-changed', onChange);
+    return () => window.removeEventListener('inbox-changed', onChange);
+  }, []);
+
+  const items = (data[tab] || []).slice().sort((a,b) => (b.createdAt || b.ts || 0) - (a.createdAt || a.ts || 0));
+  const unread = items.filter(m => !m.read);
+  const read   = items.filter(m =>  m.read);
+  const totalUnread = (data.messages || []).filter(m => !m.read).length
+                    + (data.notifications || []).filter(m => !m.read).length
+                    + (data.releases || []).filter(m => !m.read).length;
+
+  const TABS = [
+    { id:'messages',      label:'Mensajes',      icon:'💬', count:(data.messages||[]).filter(m => !m.read).length },
+    { id:'notifications', label:'Notificaciones',icon:'🔔', count:(data.notifications||[]).filter(m => !m.read).length },
+    { id:'releases',      label:'Novedades',     icon:'✨', count:(data.releases||[]).filter(m => !m.read).length },
+  ];
 
   const renderItem = (m) => (
     <article key={m.id} style={{
       padding: 18, marginBottom: 10, background: m.read ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-      border: `1px solid ${m.read ? 'var(--line)' : 'var(--line-strong)'}`,
+      border: `1px solid ${m.read ? 'var(--line)' : 'var(--line)'}`,
       borderLeft: m.read ? '1px solid var(--line)' : '3px solid var(--accent)',
       borderRadius: 'var(--r-2)', cursor: 'pointer',
-    }} onClick={() => window.Inbox && window.Inbox.markRead && window.Inbox.markRead(m.id)}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg)' }}>{m.title || m.subject || 'Notificación'}</div>
-        <div style={{ fontSize: 11, color: 'var(--fg-dim)', fontFamily: 'var(--font-mono)' }}>{m.time || (m.createdAt && new Date(m.createdAt).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})) || ''}</div>
+    }} onClick={() => window.Inbox && window.Inbox.markRead && window.Inbox.markRead(tab, m.id)}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 6, gap: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{m.title || m.subject || m.summary || 'Notificación'}</div>
+        <div style={{ fontSize: 11, color:'var(--fg-dim)', fontFamily:'var(--font-mono)', whiteSpace:'nowrap' }}>
+          {m.time || (m.createdAt && new Date(m.createdAt).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })) || ''}
+        </div>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.5 }}>{m.body || m.preview || m.message || ''}</div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', lineHeight: 1.5 }}>
+        {m.body || m.preview || m.message || m.description || ''}
+      </div>
+      {m.from && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>De · {m.from}</div>}
     </article>
   );
 
+  const totalAll = (data.messages||[]).length + (data.notifications||[]).length + (data.releases||[]).length;
+
   return (
     <PageShell
-      eyebrow={`Bandeja · ${inbox.length} mensajes`}
+      eyebrow={`Bandeja · ${totalAll} elementos`}
       title={<>Tus <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>notificaciones</em></>}
-      sub={unread.length > 0 ? `${unread.length} sin leer` : 'Todo al día'}
-      narrow>
+      sub={totalUnread > 0 ? `${totalUnread} sin leer` : 'Todo al día'}
+      actions={items.length > 0 && unread.length > 0 ? (
+        <button onClick={() => window.Inbox && window.Inbox.markAllRead && window.Inbox.markAllRead(tab)}
+          style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>
+          ✓ Marcar todo como leído
+        </button>
+      ) : null}>
 
-      {inbox.length === 0 ? (
-        <div style={{ padding: 60, textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
+      {/* TABS */}
+      <div style={{ display:'flex', gap: 2, marginBottom: 24, borderBottom:'1px solid var(--line)', flexWrap:'wrap' }}>
+        {TABS.map(t => {
+          const sel = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding:'10px 16px 9px', background:'transparent', border:'none',
+              borderBottom: '2px solid ' + (sel ? 'var(--accent)' : 'transparent'),
+              color: sel ? 'var(--fg)' : 'var(--fg-muted)',
+              fontFamily:'var(--font-sans)', fontWeight: sel ? 700 : 500, fontSize: 13.5,
+              cursor:'pointer', display:'inline-flex', alignItems:'center', gap: 8, marginBottom: -1,
+            }}>
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+              {t.count > 0 && <span style={{ fontFamily:'var(--font-mono)', fontSize: 9.5, padding:'1px 7px', background:'var(--accent)', color:'#fff', borderRadius: 999, fontWeight: 700 }}>{t.count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {items.length === 0 ? (
+        <div style={{ padding: 60, textAlign:'center', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>📭</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--fg)', marginBottom: 4 }}>Bandeja vacía</div>
-          <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>Cuando recibas notificaciones, aparecerán aquí.</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>Bandeja vacía</div>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Cuando recibas algo en {TABS.find(t => t.id === tab).label.toLowerCase()}, aparecerá aquí.</div>
         </div>
       ) : (
         <>
           {unread.length > 0 && (
             <section style={{ marginBottom: 32 }}>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Sin leer · {unread.length}</h2>
+              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>Sin leer · {unread.length}</h2>
               {unread.map(renderItem)}
             </section>
           )}
           {read.length > 0 && (
             <section>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Leídos</h2>
+              <h2 style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom: 12 }}>Leídos · {read.length}</h2>
               {read.map(renderItem)}
             </section>
           )}
@@ -1576,13 +1652,13 @@ function ProfileView({ setView }) {
    ============================================================ */
 function SettingsView({ setView }) {
   const [theme, setTheme] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().theme) || 'auto');
-  const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().lang) || 'es');
+  const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
 
   // Color de acento neutro para los paneles dentro de Settings
   const accentColor = 'var(--accent)';
 
   const save = (key, val) => {
-    if (window.Settings && window.Settings.set) window.Settings.set({ [key]: val });
+    if (window.Settings && window.Settings.update) window.Settings.update({ [key]: val });
   };
 
   return (
@@ -1617,7 +1693,7 @@ function SettingsView({ setView }) {
           <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
             <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>Idioma</h3>
             <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>Idioma de interfaz, notificaciones y BeonAI.</p>
-            <select value={lang} onChange={e => { setLang(e.target.value); save('lang', e.target.value); }} style={{
+            <select value={lang} onChange={e => { setLang(e.target.value); save('language', e.target.value); }} style={{
               padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize: 12.5,
               background:'var(--bg-elevated)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 6,
             }}>
@@ -1673,13 +1749,25 @@ function AdminView({ setView, openLegacyAdmin }) {
         }}>Panel completo →</button>
       }>
 
+      {/* KPIs reales · derivados de Auth + Invitations + Activity */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-        {[
-          { title: 'Usuarios', value: '247', desc: 'usuarios activos', icon: '👥' },
-          { title: 'Invitaciones pendientes', value: '8', desc: 'esperando aceptar', icon: '✉️' },
-          { title: 'Completaciones esta semana', value: '142', desc: '+18% vs anterior', icon: '✓' },
-          { title: 'NPS', value: '+58', desc: 'sobre 100', icon: '★' },
-        ].map((s, i) => (
+        {(() => {
+          const users   = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+          const invites = (window.Invitations && window.Invitations.list && window.Invitations.list()) || [];
+          const pendingInv = invites.filter(i => i.status === 'pending' || i.status === 'invited' || !i.status).length;
+          const PILLS = (D && D.PILLS) || [];
+          const completedTotal = PILLS.filter(p => p.progress >= 1).length;
+          const ratingsAll = (window.Ratings && window.Ratings.getAll && window.Ratings.getAll()) || {};
+          const stars = Object.values(ratingsAll).map(r => r && r.stars).filter(n => n > 0);
+          const avgRating = stars.length ? (stars.reduce((a,b) => a+b, 0) / stars.length) : 0;
+          const adminCount = users.filter(u => u.isAdmin || u.role === 'admin').length;
+          return [
+            { title: 'Usuarios',            value: String(users.length),    desc: `${adminCount} admin${adminCount === 1 ? '' : 's'} · plataforma`, icon: '👥' },
+            { title: 'Invitaciones pendientes', value: String(pendingInv),   desc: 'esperando aceptar', icon: '✉️' },
+            { title: 'Pills completadas',   value: String(completedTotal),   desc: `de ${PILLS.length} disponibles`, icon: '✓' },
+            { title: 'Valoración media',    value: avgRating ? avgRating.toFixed(1) + ' ★' : '—', desc: `${stars.length} puntuaci${stars.length === 1 ? 'ón' : 'ones'}`, icon: '★' },
+          ];
+        })().map((s, i) => (
           <div key={i} style={{ padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
             <div style={{ fontSize: 28, marginBottom: 12 }}>{s.icon}</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{s.title}</div>

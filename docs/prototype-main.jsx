@@ -2501,6 +2501,9 @@ window.ActivityFeed = ActivityFeed;
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, setView] = useSM(saved.view || 'home');
+  // pathId activo · seteado por RutasView al pulsar una ruta concreta
+  const [activePathId, setActivePathId] = useSM(saved.activePathId || null);
+  const openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
   // AI oculta por defecto · entra como overlay solo cuando el usuario pulsa la rail-btn
   const [aiMode, setAIMode] = useSM(saved.aiMode || 'collapsed'); // hero | companion | collapsed
   const [shape, setShape] = useSM(saved.shape || 'mixed');
@@ -2560,9 +2563,9 @@ function App() {
   }, []);
 
   useEM(() => {
-    localStorage.setItem('solid-proto', JSON.stringify({ view, aiMode, shape, accent }));
+    localStorage.setItem('solid-proto', JSON.stringify({ view, aiMode, shape, accent, activePathId }));
     document.documentElement.style.setProperty('--accent-glow', accent);
-  }, [view, aiMode, shape, accent]);
+  }, [view, aiMode, shape, accent, activePathId]);
 
   // Tweaks protocol
   useEM(() => {
@@ -2601,7 +2604,7 @@ function App() {
 
   // openDetail abre MODAL (Netflix-style overlay). Antes navegaba a vista 'detail'.
   const openDetail = (it) => { setDetailItem(it); };
-  const openPlayer = (it) => { if (it) setDetailItem(it); setDetailItem(null); setView('player'); };
+  const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
 
   // SIDEBAR NETFLIX-STYLE:
   // - En vistas cinematográficas (home, detail, player, browse, rutas): sidebar
@@ -2633,7 +2636,7 @@ function App() {
   // openDetail · ahora abre MODAL (no navega a vista 'detail')
   const openDetailModal = (it) => { setDetailItem(it); };
   const closeDetailModal = () => { setDetailItem(null); };
-  const openPlayerFromModal = (it) => { if (it) setDetailItem(it); setDetailItem(null); setView('player'); };
+  const openPlayerFromModal = (it) => { if (it) setDetailItem(it); setView('player'); };
 
   if (!authUser) return <LoginScreen/>;
 
@@ -2655,6 +2658,7 @@ function App() {
           pill={detailItem}
           onClose={closeDetailModal}
           openPlayer={openPlayerFromModal}
+          openPill={openDetail}
         />
       )}
 
@@ -2669,8 +2673,8 @@ function App() {
         {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
         {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
         {view === 'dashboard-legacy' && <Dashboard/>}
-        {view === 'rutas' && (window.RutasView_New ? <RutasView_New openDetail={openDetail} setView={setView}/> : <Rutas openPlayer={openPlayer}/>)}
-        {view === 'path' && (window.MyPathView_New ? <MyPathView_New openDetail={openDetail} setView={setView}/> : <PathView openPlayer={openPlayer} setView={setView}/>)}
+        {view === 'rutas' && (window.RutasView_New ? <RutasView_New openDetail={openDetail} setView={setView} openPath={openPath}/> : <Rutas openPlayer={openPlayer}/>)}
+        {view === 'path' && (window.MyPathView_New ? <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId}/> : <PathView openPlayer={openPlayer} setView={setView}/>)}
         {view === 'profile' && (window.ProfileView_New ? <ProfileView_New setView={setView}/> : <Profile setView={setView}/>)}
         {view === 'wa' && (window.ChannelsView_New ? <ChannelsView_New/> : <WhatsApp/>)}
         {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
