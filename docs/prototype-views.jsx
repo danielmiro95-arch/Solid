@@ -47,22 +47,27 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
   const it = item || PILLS[0];
   const chapsByFormat = {
     módulo: [
-      { n: 1, t: 'Introducción y contexto en Repsol', d: 'Por qué este módulo importa.', done: true },
-      { n: 2, t: 'Interfaz y accesos en Sprinklr', d: 'Dónde está cada cosa.', done: true },
-      { n: 3, t: 'Flujo de trabajo paso a paso', d: 'El proceso completo.', current: true },
-      { n: 4, t: 'Casos reales del equipo Repsol', d: 'Ejemplos del día a día.' },
-      { n: 5, t: 'Errores comunes y cómo evitarlos', d: 'Lo que falla al principio.' },
+      { n: 1, t: 'Introducción y contexto en Repsol', d: 'Por qué este módulo importa.', done: true,  start: 0 },
+      { n: 2, t: 'Interfaz y accesos en Sprinklr',   d: 'Dónde está cada cosa.',       done: true,  start: 52 },
+      { n: 3, t: 'Flujo de trabajo paso a paso',     d: 'El proceso completo.',        current: true, start: 122 },
+      { n: 4, t: 'Casos reales del equipo Repsol',   d: 'Ejemplos del día a día.',     start: 200 },
+      { n: 5, t: 'Errores comunes y cómo evitarlos', d: 'Lo que falla al principio.',  start: 245 },
     ],
     serie: [
-      { n: 1, t: 'Fundamentos', d: 'Base conceptual.', done: true },
-      { n: 2, t: 'Configuración inicial', d: 'Setup en entorno Repsol.', done: true },
-      { n: 3, t: 'Flujo principal', d: 'El proceso completo.', current: true },
-      { n: 4, t: 'Casos avanzados', d: 'Escenarios complejos.' },
-      { n: 5, t: 'Integración con otros sistemas', d: 'Herramientas Repsol.' },
-      { n: 6, t: 'Evaluación final', d: 'Verifica lo aprendido.' },
+      { n: 1, t: 'Fundamentos',                       d: 'Base conceptual.',           done: true,  start: 0 },
+      { n: 2, t: 'Configuración inicial',             d: 'Setup en entorno Repsol.',   done: true,  start: 60 },
+      { n: 3, t: 'Flujo principal',                   d: 'El proceso completo.',       current: true, start: 140 },
+      { n: 4, t: 'Casos avanzados',                   d: 'Escenarios complejos.',      start: 220 },
+      { n: 5, t: 'Integración con otros sistemas',    d: 'Herramientas Repsol.',       start: 280 },
+      { n: 6, t: 'Evaluación final',                  d: 'Verifica lo aprendido.',     start: 340 },
     ],
   };
   const chapters = chapsByFormat[it.format] || chapsByFormat['módulo'];
+  const openChapter = (ch) => {
+    // Inyecta startAt en el item · Player lo leerá para arrancar en el timestamp correcto
+    const itemWithStart = Object.assign({}, it, { startAt: ch.start });
+    openPlayer(itemWithStart);
+  };
   const heroBg = it.yt
     ? `url(https://img.youtube.com/vi/${it.yt}/maxresdefault.jpg)`
     : 'linear-gradient(135deg, #003a72 0%, #0072BE 35%, #8A3992 100%)';
@@ -119,10 +124,10 @@ function Detail({ item, openPlayer, back, setView, setAIMode }) {
         <div className="detail-outline">
           <h3>Qué hay dentro</h3>
           {chapters.map(c => (
-            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={() => openPlayer(it)}>
+            <div key={c.n} className={`outline-item ${c.done ? 'done' : ''} ${c.current ? 'current' : ''}`} onClick={() => openChapter(c)} title={`Reproducir desde ${Math.floor(c.start/60)}:${(c.start%60).toString().padStart(2,'0')}`} style={{ cursor:'pointer' }}>
               <span className="n">{String(c.n).padStart(2,'0')}</span>
               <div className="t">{c.t}<em>{c.d}</em></div>
-              <span className="d">3 MIN</span>
+              <span className="d">{Math.floor(c.start/60)}:{(c.start%60).toString().padStart(2,'0')}</span>
             </div>
           ))}
           {/* Examen práctico del módulo · subir vídeo Sprinklr */}
@@ -252,8 +257,9 @@ function StarRating({ pillId, size = 28, showCount = true, label = '¿Qué tal e
 }
 
 function Player({ back, item }) {
+  const startAt = (item && typeof item.startAt === 'number') ? item.startAt : 45;
   const [playing, setPlaying] = useS2(true);
-  const [currentSec, setCurrentSec] = useS2(0);
+  const [currentSec, setCurrentSec] = useS2(startAt);
   const [speed, setSpeed] = useS2(1);
   const [muted, setMuted] = useS2(false);
   const [showSubs, setShowSubs] = useS2(true);
@@ -330,7 +336,7 @@ function Player({ back, item }) {
           <>
             <iframe
               key={it.yt}
-              src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white`}
+              src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white&start=${Math.floor(startAt)}`}
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               allowFullScreen
               style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
