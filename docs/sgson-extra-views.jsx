@@ -1879,3 +1879,96 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+// ── ManagerView · panel del líder de equipo · KPIs + miembros + invitar ──
+function ManagerView({ setView }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const D = window.SGS_DATA;
+  const USER = (D && D.USER) || {};
+  const allUsers = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+  // Miembros del equipo del manager (mismo team)
+  const teamMembers = allUsers.filter(u => u.team && USER.team && u.team === USER.team && u.id !== USER.id);
+  const PILLS = (D && D.PILLS) || [];
+  const completedTotal = PILLS.filter(p => p.progress >= 1).length;
+
+  const KPIS = [
+    { icon:'👥', label: T('manager.kpi.team','Miembros de tu equipo'),    value: String(teamMembers.length),                                desc: USER.team || '—' },
+    { icon:'📚', label: T('manager.kpi.completed','Pills completadas'),    value: String(completedTotal),                                    desc: T('manager.kpi.completedSub','total acumulado del equipo') },
+    { icon:'⚡',  label: T('manager.kpi.avg','Progreso medio'),            value: PILLS.length ? Math.round((completedTotal / PILLS.length) * 100) + '%' : '—', desc: T('manager.kpi.avgSub','vs total catálogo') },
+    { icon:'🎯', label: T('manager.kpi.openInvites','Invitaciones abiertas'),
+      value: (() => {
+        const invs = (window.Invitations && window.Invitations.list && window.Invitations.list()) || [];
+        return String(invs.filter(i => (i.status === 'pending' || i.status === 'invited' || !i.status) && i.invitedBy === USER.id).length);
+      })(),
+      desc: T('manager.kpi.openInvitesSub','enviadas por ti') },
+  ];
+
+  return (
+    <PageShell
+      eyebrow={T('manager.eyebrow','Panel · Manager')}
+      title={<>{T('manager.title','Tu equipo')}</>}
+      sub={T('manager.sub','Visión de progreso, KPIs y gestión de los miembros de tu equipo')}
+      actions={Auth.can && Auth.can('admin.viewPanel') ? (
+        <button onClick={() => setView('admin')} style={{
+          padding:'12px 20px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)',
+          borderRadius:'var(--r-1)', cursor:'pointer', fontWeight:600, fontSize:14,
+        }}>{T('manager.gotoAdmin','Panel admin →')}</button>
+      ) : null}>
+
+      {/* KPIs del equipo */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, marginBottom: 32 }}>
+        {KPIS.map((k, i) => (
+          <div key={i} style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
+            <div style={{ fontSize: 26, marginBottom: 10 }}>{k.icon}</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom: 4 }}>{k.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color:'var(--fg)', fontFamily:'var(--font-sans)', letterSpacing:'-0.02em', marginBottom: 3 }}>{k.value}</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>{k.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Lista de miembros */}
+      <section>
+        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 16, gap:12, flexWrap:'wrap' }}>
+          <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>{T('manager.members','Miembros del equipo')}</h2>
+          {Auth.can && Auth.can('team.inviteUser') && (
+            <button onClick={() => setView('admin')} style={{
+              padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)',
+              cursor:'pointer', fontWeight:700, fontSize: 12.5, boxShadow:'0 4px 12px rgba(110,80,238,0.30)',
+            }}>{T('manager.invite','✉ Invitar miembro')}</button>
+          )}
+        </div>
+
+        {teamMembers.length === 0 ? (
+          <div style={{ padding: 60, textAlign:'center', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.45 }}>👥</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>{T('manager.empty','Aún no tienes miembros en tu equipo')}</div>
+            <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>{T('manager.emptyDesc','Invita a tus colegas usando el botón superior.')}</div>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {teamMembers.map(m => (
+              <div key={m.id} style={{ padding:'14px 16px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12, display:'flex', alignItems:'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius:'50%', background: m.avatarColor || 'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+                  {(m.name || '?').split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{m.name}</div>
+                  <div style={{ fontSize: 11.5, color:'var(--fg-muted)' }}>{m.role}</div>
+                </div>
+                {m.systemRole === 'manager' && (
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize: 9, fontWeight: 800, padding:'3px 7px', background:'var(--accent)', color:'#fff', borderRadius: 4, letterSpacing:'0.08em' }}>MANAGER</span>
+                )}
+                {m.systemRole === 'admin' && (
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize: 9, fontWeight: 800, padding:'3px 7px', background:'var(--warn)', color:'#fff', borderRadius: 4, letterSpacing:'0.08em' }}>ADMIN</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+window.ManagerView_New = ManagerView;

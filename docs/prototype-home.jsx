@@ -163,6 +163,8 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const userName = (D && D.USER && D.USER.name) || 'Usuario';
   const userRole = (D && D.USER && D.USER.role) || '';
   const isAdmin = !!(D && D.USER && D.USER.isAdmin);
+  const canManager = !!(window.Auth && window.Auth.hasRole && window.Auth.hasRole('manager'));
+  const canAdmin   = !!(window.Auth && window.Auth.can     && window.Auth.can('admin.viewPanel'));
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
   const menuItems = [
@@ -172,7 +174,8 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     { k:'inbox',    label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
     { k:'settings', label:T('nav.settings'), icon:'gear' },
   ];
-  if (isAdmin) menuItems.push({ k:'admin', label:T('nav.admin'), icon:'shield' });
+  if (canManager) menuItems.push({ k:'manager', label: T('nav.manager','Mi equipo'), icon:'users' });
+  if (canAdmin)   menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });
 
   return (
     <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>

@@ -30,6 +30,7 @@ const Ico = ({ name, size=18, stroke=1.7 }) => {
     case 'user':       return (<svg {...p}><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>);
     case 'gear':       return (<svg {...p}><circle cx="12" cy="12" r="3"/><path d="M19 12h2M3 12h2M12 3v2M12 19v2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>);
     case 'shield':     return (<svg {...p}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>);
+    case 'users':      return (<svg {...p}><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M14 20c0-2.5 2-4 4.5-4"/></svg>);
     case 'volume':     return (<svg {...p}><path d="M4 10v4h3l5 4V6L7 10H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>);
     case 'mute':       return (<svg {...p}><path d="M4 10v4h3l5 4V6L7 10H4zM17 10l4 4M21 10l-4 4"/></svg>);
     case 'send':       return (<svg {...p}><path d="M3 12l18-8-8 18-2-7z"/></svg>);
