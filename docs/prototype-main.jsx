@@ -2580,13 +2580,27 @@ function _activateSupabaseData() {
   console.log('[SolidStream] Datos → Supabase backend activo · audit log + realtime activos');
 }
 
-// Activa adapters cuando el bootstrap del HTML termina
+// Activa adapters cuando el bootstrap del HTML termina.
+// IMPORTANTE: _activateSupabaseData() referencia Bookmarks, ChatHistory,
+// RouteExams, Submissions — todos definidos más abajo en este mismo archivo.
+// Si el evento `sgson-backend-ready` se dispara antes de que el archivo
+// termine de evaluarse (puede pasar si /api/config respondió rápido y el
+// JS del prototype es largo), accederíamos a esos módulos como `undefined`
+// y .get = fn lanzaría TypeError. Por eso esperamos a que todos existan.
 if (typeof window !== 'undefined') {
+  function _modulesReady() {
+    return !!(window.Bookmarks && window.ChatHistory && window.RouteExams
+           && window.Submissions && window.Workspaces && window.Inbox);
+  }
   function _activateAll() {
-    if (window.SGSON_BACKEND === 'supabase') {
-      _activateSupabaseAuth();
-      _activateSupabaseData();
+    if (window.SGSON_BACKEND !== 'supabase') return;
+    if (!_modulesReady()) {
+      // Reintenta tras el siguiente tick · cuando el resto del archivo haya cargado
+      setTimeout(_activateAll, 30);
+      return;
     }
+    _activateSupabaseAuth();
+    _activateSupabaseData();
   }
   if (window.SGSON_BACKEND_READY) _activateAll();
   else window.addEventListener('sgson-backend-ready', _activateAll);
