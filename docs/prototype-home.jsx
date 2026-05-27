@@ -378,6 +378,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 function HomeHero({ onPlay, onMore }) {
   const D = window.SGS_DATA;
   const PILLS = (D && D.PILLS) || [];
+  const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
     const withVid = PILLS.filter(p => p.yt);
@@ -428,7 +429,7 @@ function HomeHero({ onPlay, onMore }) {
         {p.yt && (
           <iframe
             key={'video-'+p.id}
-            src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
+            src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
             style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
             allow="autoplay; encrypted-media"
             aria-hidden="true"
@@ -471,8 +472,8 @@ function HomeHero({ onPlay, onMore }) {
           <button className="btn btn-secondary" onClick={() => onMore(p)}>
             <Ico name="info" size={16}/> Más información
           </button>
-          <button className="btn btn-icon btn-ghost" aria-label="Sonido">
-            <Ico name="mute" size={16}/>
+          <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}>
+            <Ico name={muted ? 'mute' : 'volume'} size={16}/>
           </button>
         </div>
       </div>
@@ -490,6 +491,35 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
   const D = window.SGS_DATA;
   const cat = (D && D.CATS && (D.CATS[pill.category] || D.CATS[_catSlugFix(pill.category)])) || { label: pill.category || 'Módulo' };
   const slug = _catSlugFix(pill.category);
+
+  const [saved, setSaved] = React.useState(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
+  const [rated, setRated]  = React.useState(() => {
+    const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
+    return r && r.stars >= 4;
+  });
+  React.useEffect(() => {
+    const onB = () => setSaved(window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
+    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setRated(e.detail.stars >= 4); };
+    window.addEventListener('bookmarks-changed', onB);
+    window.addEventListener('ratings-changed', onR);
+    return () => { window.removeEventListener('bookmarks-changed', onB); window.removeEventListener('ratings-changed', onR); };
+  }, [pill.id]);
+
+  const toggleSave = (e) => {
+    e.stopPropagation();
+    if (window.Bookmarks) {
+      const isNowSaved = window.Bookmarks.toggle(pill.id);
+      if (window.Toast) window.Toast[isNowSaved ? 'success' : 'info'](isNowSaved ? 'Añadido a tu lista' : 'Quitado de tu lista', { icon: isNowSaved ? '➕' : '➖' });
+    }
+  };
+  const toggleLike = (e) => {
+    e.stopPropagation();
+    if (window.Ratings) {
+      const next = rated ? 0 : 5;
+      window.Ratings.set(pill.id, next);
+      if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Sin valoración', { icon: next ? '👍' : '○' });
+    }
+  };
 
   return (
     <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
@@ -520,10 +550,10 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
         <button className="card-action primary" aria-label="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
           <Ico name="play" size={12}/>
         </button>
-        <button className="card-action" aria-label="Añadir a mi lista" onClick={(e) => e.stopPropagation()}>
-          <Ico name="plus" size={14}/>
+        <button className={`card-action${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} title={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} onClick={toggleSave}>
+          <Ico name={saved ? 'check' : 'plus'} size={14}/>
         </button>
-        <button className="card-action" aria-label="Me gusta" onClick={(e) => e.stopPropagation()}>
+        <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
           <Ico name="thumb" size={13}/>
         </button>
         <button className="card-action" aria-label="Más info" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
@@ -561,7 +591,7 @@ function NxPathCard({ path, onOpen }) {
   );
 }
 
-function NxRow({ row, onOpen, onOpenPath }) {
+function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   const railRef = React.useRef(null);
   const D = window.SGS_DATA;
 
@@ -599,7 +629,7 @@ function NxRow({ row, onOpen, onOpenPath }) {
         <header className="row-header">
           <h2 className="row-title">{row.title}</h2>
           <span className="row-sub">— {row.sub}</span>
-          <button className="row-explore">Ranking completo <Ico name="chev-right" size={12}/></button>
+          <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ranking completo <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
           <div className="rail-track">
@@ -626,7 +656,7 @@ function NxRow({ row, onOpen, onOpenPath }) {
       <header className="row-header">
         <h2 className="row-title">{row.title}</h2>
         <span className="row-sub">— {row.sub}</span>
-        <button className="row-explore">Ver todo <Ico name="chev-right" size={12}/></button>
+        <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ver todo <Ico name="chev-right" size={12}/></button>
       </header>
       <div className="rail no-scrollbar" ref={railRef}>
         <div className="rail-track">
@@ -662,13 +692,14 @@ function Home({ openDetail, openPlayer, setView }) {
   }
 
   const onOpenPath = () => setView('rutas');
+  const onSeeAll = () => setView('browse');
 
   return (
     <div data-screen-label="Home">
       <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
       <div className="rows">
         {D.ROWS.map(row => (
-          <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath}/>
+          <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
       </div>
       <footer className="footer-strip">

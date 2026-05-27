@@ -72,7 +72,7 @@ function SidebarOverlay({ open, onClose, view, onView }) {
 /* ============================================================
    Detail modal · slide-up cinematográfico
    ============================================================ */
-function DetailModal({ pill, onClose, openPlayer }) {
+function DetailModal({ pill, onClose, openPlayer, openPill }) {
   if (!pill) return null;
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
   const PILLS = (D && D.PILLS) || [];
@@ -95,6 +95,32 @@ function DetailModal({ pill, onClose, openPlayer }) {
 
   const goPlay = () => { onClose(); openPlayer && openPlayer(pill); };
 
+  // Bookmark + Like (Ratings 5★) reactivos al state global
+  const [saved, setSaved] = useSV(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
+  const [liked, setLiked] = useSV(() => {
+    const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
+    return !!(r && r.stars >= 4);
+  });
+  // muted del video del modal media (controla iframe via key change si hubiera; aquí no hay iframe)
+  const [muted, setMuted] = useSV(true);
+  useEV(() => {
+    const onB = () => setSaved(window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
+    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setLiked(e.detail.stars >= 4); };
+    window.addEventListener('bookmarks-changed', onB);
+    window.addEventListener('ratings-changed', onR);
+    return () => { window.removeEventListener('bookmarks-changed', onB); window.removeEventListener('ratings-changed', onR); };
+  }, [pill.id]);
+  const toggleSave = () => {
+    if (!window.Bookmarks) return;
+    const isNow = window.Bookmarks.toggle(pill.id);
+    if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Añadido a tu lista' : 'Quitado de tu lista', { icon: isNow ? '➕' : '➖' });
+  };
+  const toggleLike = () => {
+    if (!window.Ratings) return;
+    window.Ratings.set(pill.id, liked ? 0 : 5);
+    if (window.Toast) window.Toast[liked ? 'info' : 'success'](liked ? 'Sin valoración' : '👍 Me gusta', { icon: liked ? '○' : '👍' });
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} data-screen-label="Detail modal">
@@ -113,9 +139,9 @@ function DetailModal({ pill, onClose, openPlayer }) {
             <p className="q">"{pill.one}."</p>
             <div className="actions">
               <button className="btn btn-primary" onClick={goPlay}><Ico name="play" size={16}/> Reproducir</button>
-              <button className="btn btn-icon btn-ghost" aria-label="Añadir"><Ico name="plus" size={18}/></button>
-              <button className="btn btn-icon btn-ghost" aria-label="Me gusta"><Ico name="thumb" size={16}/></button>
-              <button className="btn btn-icon btn-ghost" aria-label="Sonido"><Ico name="mute" size={16}/></button>
+              <button className={`btn btn-icon btn-ghost${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} title={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} onClick={toggleSave}><Ico name={saved ? 'check' : 'plus'} size={18}/></button>
+              <button className={`btn btn-icon btn-ghost${liked ? ' is-active' : ''}`} aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'} title={liked ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}><Ico name="thumb" size={16}/></button>
+              <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}><Ico name={muted ? 'mute' : 'volume'} size={16}/></button>
             </div>
           </div>
         </div>
@@ -166,7 +192,7 @@ function DetailModal({ pill, onClose, openPlayer }) {
               {related.map(p => {
                 const ps = catSlugFix(p.category);
                 return (
-                  <article key={p.id} className="mini" onClick={(e) => e.stopPropagation()}>
+                  <article key={p.id} className="mini" style={{ cursor: openPill ? 'pointer' : 'default' }} onClick={(e) => { e.stopPropagation(); if (openPill) openPill(p); }}>
                     <div className={`thumb cover-${ps}`}/>
                     <div className="info">
                       <div className="t">{p.title}</div>

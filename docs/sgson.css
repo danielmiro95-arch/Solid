@@ -516,6 +516,8 @@ img { display: block; max-width: 100%; }
   border: 1px solid var(--line-strong);
 }
 .btn-ghost:hover { background: var(--bg-elevated); }
+.btn-ghost.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-ghost.is-active:hover { background: var(--accent-hover, var(--accent)); }
 
 .btn-icon { width: 48px; padding: 0; justify-content: center; }
 
@@ -826,6 +828,11 @@ img { display: block; max-width: 100%; }
   transition: background var(--t-fast);
 }
 .card-action:hover { background: rgba(255,255,255,0.25); }
+.card-action.is-active {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
+}
+.card-action.is-active:hover { background: var(--accent-hover, var(--accent)); }
 .card-action.primary {
   background: var(--fg); color: #0B0B0E;
   border-color: transparent;
