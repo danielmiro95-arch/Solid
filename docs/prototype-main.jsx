@@ -891,22 +891,38 @@ const Auth = (function() {
   function isAuthenticated() { return !!currentUser(); }
   function isAdmin() { var u = currentUser(); return !!(u && u.isAdmin); }
 
+  // ── Sistema de 3 roles · admin · manager · user ──────────────────────────
+  // - admin   · platform owner · gestiona usuarios + audit log + invita managers
+  // - manager · líder de equipo · ve KPIs de equipo + invita users a su scope
+  // - user    · alumno estándar · consume contenido + canales propios
+  // Cualquier nivel inferior NO puede invocar acciones de nivel superior.
+  // `isAdmin` legacy se mantiene como espejo: isAdmin === (systemRole === 'admin').
+  const SYSTEM_ROLES = ['admin', 'manager', 'user'];
+  function _inferSystemRole(data, users) {
+    if (data.systemRole && SYSTEM_ROLES.indexOf(data.systemRole) >= 0) return data.systemRole;
+    if (data.isAdmin || users.length === 0) return 'admin';
+    if (/admin/i.test(data.email) || /@beonit\./i.test(data.email)) return 'admin';
+    // Heurística: roles funcionales con "Lead" / "Manager" / "Director" → manager
+    if (/lead|manager|director|jefe|head/i.test(data.role || '')) return 'manager';
+    return 'user';
+  }
   function signup(data) {
     var users = listUsers();
     if (!data.email || !data.email.includes('@')) throw new Error('Email no válido');
     if (!data.name || data.name.trim().length < 2) throw new Error('Nombre demasiado corto');
     var existing = users.find(function(u){ return u.email === data.email.toLowerCase(); });
     if (existing) throw new Error('Ya existe un usuario con ese email');
+    var systemRole = _inferSystemRole(data, users);
     var user = {
       id: _genId(),
       email: data.email.toLowerCase(),
       name: data.name.trim(),
-      role: data.role || 'Publish Agent',
+      role: data.role || 'Publish Agent',          // rol funcional (Publish Agent, Care Agent…)
+      systemRole: systemRole,                       // rol del sistema (admin/manager/user)
       team: data.team || 'Repsol',
       avatarColor: data.avatarColor || COLORS[users.length % COLORS.length],
-      // El primer usuario registrado es admin por defecto.
-      // Si el email contiene 'admin' o termina en @beonit, también es admin.
-      isAdmin: !!data.isAdmin || users.length === 0 || /admin/i.test(data.email) || /@beonit\./i.test(data.email),
+      // Espejo legacy para componentes que aún usan isAdmin
+      isAdmin: systemRole === 'admin',
       createdAt: Date.now(),
       lastLoginAt: Date.now(),
     };
@@ -955,7 +971,67 @@ const Auth = (function() {
     if (currentUserId() === id) logout();
   }
 
-  function setAdmin(id, value) { return updateUser(id, { isAdmin: !!value }); }
+  function setAdmin(id, value) {
+    return updateUser(id, { isAdmin: !!value, systemRole: value ? 'admin' : 'user' });
+  }
+  function setSystemRole(id, role) {
+    if (SYSTEM_ROLES.indexOf(role) < 0) throw new Error('Rol inválido');
+    return updateUser(id, { systemRole: role, isAdmin: role === 'admin' });
+  }
+
+  // ── Permission matrix · single source of truth ─────────────────────────
+  // Llaves de acciones que requieren un rol mínimo.
+  // El nivel `admin` engloba a `manager` y éste a `user`.
+  const ROLE_LEVEL = { user: 0, manager: 1, admin: 2 };
+  const PERMISSIONS = {
+    // user
+    'content.view':       'user',
+    'content.bookmark':   'user',
+    'content.rate':       'user',
+    'channel.connectSelf':'user',
+    'profile.edit':       'user',
+    // manager (líder de equipo)
+    'team.viewMembers':   'manager',
+    'team.viewKpis':      'manager',
+    'team.inviteUser':    'manager',
+    'submissions.review': 'manager',
+    'campaigns.create':   'manager',
+    // admin (plataforma)
+    'admin.viewPanel':    'admin',
+    'admin.inviteAny':    'admin',
+    'admin.bulkInvite':   'admin',
+    'admin.changeRoles':  'admin',
+    'admin.auditLog':     'admin',
+    'admin.exportData':   'admin',
+    'admin.platformKpis': 'admin',
+  };
+  function _migrateLegacyRole(u) {
+    if (u && !u.systemRole) {
+      u.systemRole = u.isAdmin ? 'admin' : (/lead|manager|director|jefe|head/i.test(u.role || '') ? 'manager' : 'user');
+    }
+    if (u && u.systemRole === 'admin') u.isAdmin = true;
+    return u;
+  }
+  function currentSystemRole() {
+    var u = currentUser();
+    if (!u) return null;
+    _migrateLegacyRole(u);
+    return u.systemRole || 'user';
+  }
+  function can(action) {
+    var u = currentUser();
+    if (!u) return false;
+    _migrateLegacyRole(u);
+    var required = PERMISSIONS[action];
+    if (!required) return false;
+    return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[required];
+  }
+  function hasRole(role) {
+    var u = currentUser();
+    if (!u) return false;
+    _migrateLegacyRole(u);
+    return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[role];
+  }
 
   // Seed: si no hay usuarios, crea un admin demo para arrancar la primera vez
   function seedIfEmpty() {
@@ -985,6 +1061,7 @@ const Auth = (function() {
   return {
     listUsers, currentUser, currentUserId, isAuthenticated, isAdmin,
     signup, login, logout, updateUser, deleteUser, setAdmin, seedIfEmpty,
+    setSystemRole, currentSystemRole, can, hasRole, SYSTEM_ROLES, PERMISSIONS,
     USERS_KEY, SESSION_KEY,
   };
 })();
@@ -1305,6 +1382,7 @@ function _activateSupabaseAuth() {
       team: row.team || 'Repsol',
       avatarColor: row.avatar_color || 'var(--bn-blue)',
       isAdmin: !!row.is_admin,
+      systemRole: row.system_role || (row.is_admin ? 'admin' : 'user'),
       createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
       lastLoginAt: row.last_login_at ? new Date(row.last_login_at).getTime() : Date.now(),
     };
@@ -1396,7 +1474,33 @@ function _activateSupabaseAuth() {
     window.dispatchEvent(new Event('auth-users-changed'));
   };
 
-  Auth.setAdmin = async function(id, value) { return Auth.updateUser(id, { isAdmin: !!value }); };
+  Auth.setAdmin = async function(id, value) { return Auth.updateUser(id, { isAdmin: !!value, systemRole: value ? 'admin' : 'user' }); };
+  Auth.setSystemRole = async function(id, role) {
+    if (Auth.SYSTEM_ROLES.indexOf(role) < 0) throw new Error('Rol inválido');
+    return Auth.updateUser(id, { systemRole: role, isAdmin: role === 'admin' });
+  };
+  Auth.currentSystemRole = function() {
+    var u = (typeof cachedProfile !== 'undefined' && cachedProfile) || (Auth.currentUser && Auth.currentUser());
+    if (!u) return null;
+    if (!u.systemRole) u.systemRole = u.isAdmin ? 'admin' : 'user';
+    return u.systemRole;
+  };
+  Auth.can = function(action) {
+    var u = Auth.currentUser && Auth.currentUser();
+    if (!u) return false;
+    if (!u.systemRole) u.systemRole = u.isAdmin ? 'admin' : 'user';
+    var required = Auth.PERMISSIONS && Auth.PERMISSIONS[action];
+    if (!required) return false;
+    var LEVEL = { user:0, manager:1, admin:2 };
+    return LEVEL[u.systemRole] >= LEVEL[required];
+  };
+  Auth.hasRole = function(role) {
+    var u = Auth.currentUser && Auth.currentUser();
+    if (!u) return false;
+    if (!u.systemRole) u.systemRole = u.isAdmin ? 'admin' : 'user';
+    var LEVEL = { user:0, manager:1, admin:2 };
+    return LEVEL[u.systemRole] >= LEVEL[role];
+  };
 
   Auth.seedIfEmpty = async function() {
     // Recupera la sesión activa de Supabase (si la hay)
@@ -1988,7 +2092,20 @@ const I18n = (function() {
     es: {
       'nav.home':'Inicio', 'nav.browse':'Catálogo', 'nav.rutas':'Rutas', 'nav.path':'Mi ruta',
       'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Bandeja',
-      'nav.saved':'Mi lista', 'nav.profile':'Mi perfil', 'nav.settings':'Ajustes', 'nav.admin':'Admin',
+      'nav.saved':'Mi lista', 'nav.profile':'Mi perfil', 'nav.settings':'Ajustes',
+      'nav.admin':'Admin', 'nav.manager':'Mi equipo',
+      'manager.eyebrow':'Panel · Manager', 'manager.title':'Tu equipo',
+      'manager.sub':'Visión de progreso, KPIs y gestión de los miembros de tu equipo',
+      'manager.members':'Miembros del equipo', 'manager.invite':'✉ Invitar miembro',
+      'manager.empty':'Aún no tienes miembros en tu equipo',
+      'manager.emptyDesc':'Invita a tus colegas usando el botón superior.',
+      'manager.gotoAdmin':'Panel admin →',
+      'manager.locked':'Acceso restringido',
+      'manager.lockedDesc':'Solo managers y administradores pueden ver este panel.',
+      'manager.kpi.team':'Miembros de tu equipo',
+      'manager.kpi.completed':'Pills completadas', 'manager.kpi.completedSub':'total acumulado del equipo',
+      'manager.kpi.avg':'Progreso medio', 'manager.kpi.avgSub':'vs total catálogo',
+      'manager.kpi.openInvites':'Invitaciones abiertas', 'manager.kpi.openInvitesSub':'enviadas por ti',
       'common.save':'Guardar', 'common.cancel':'Cancelar', 'common.close':'Cerrar', 'common.edit':'Editar',
       'common.delete':'Borrar', 'common.confirm':'Confirmar', 'common.logout':'Cerrar sesión',
       'common.search':'Buscar', 'common.loading':'Cargando…', 'common.reset':'Restablecer',
@@ -2195,7 +2312,20 @@ const I18n = (function() {
     en: {
       'nav.home':'Home', 'nav.browse':'Catalog', 'nav.rutas':'Paths', 'nav.path':'My path',
       'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Inbox',
-      'nav.saved':'My list', 'nav.profile':'My profile', 'nav.settings':'Settings', 'nav.admin':'Admin',
+      'nav.saved':'My list', 'nav.profile':'My profile', 'nav.settings':'Settings',
+      'nav.admin':'Admin', 'nav.manager':'My team',
+      'manager.eyebrow':'Panel · Manager', 'manager.title':'Your team',
+      'manager.sub':'Progress overview, KPIs and management of your team members',
+      'manager.members':'Team members', 'manager.invite':'✉ Invite member',
+      'manager.empty':'You don\'t have team members yet',
+      'manager.emptyDesc':'Invite your colleagues using the top button.',
+      'manager.gotoAdmin':'Admin panel →',
+      'manager.locked':'Access restricted',
+      'manager.lockedDesc':'Only managers and administrators can view this panel.',
+      'manager.kpi.team':'Team members',
+      'manager.kpi.completed':'Pills completed', 'manager.kpi.completedSub':'team accumulated total',
+      'manager.kpi.avg':'Average progress', 'manager.kpi.avgSub':'vs full catalog',
+      'manager.kpi.openInvites':'Open invitations', 'manager.kpi.openInvitesSub':'sent by you',
       'common.save':'Save', 'common.cancel':'Cancel', 'common.close':'Close', 'common.edit':'Edit',
       'common.delete':'Delete', 'common.confirm':'Confirm', 'common.logout':'Log out',
       'common.search':'Search', 'common.loading':'Loading…', 'common.reset':'Reset',
@@ -2402,7 +2532,20 @@ const I18n = (function() {
     pt: {
       'nav.home':'Início', 'nav.browse':'Catálogo', 'nav.rutas':'Trilhas', 'nav.path':'Minha trilha',
       'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Canais', 'nav.inbox':'Caixa',
-      'nav.saved':'Minha lista', 'nav.profile':'Meu perfil', 'nav.settings':'Ajustes', 'nav.admin':'Admin',
+      'nav.saved':'Minha lista', 'nav.profile':'Meu perfil', 'nav.settings':'Ajustes',
+      'nav.admin':'Admin', 'nav.manager':'Minha equipe',
+      'manager.eyebrow':'Painel · Manager', 'manager.title':'Sua equipe',
+      'manager.sub':'Visão de progresso, KPIs e gestão dos membros de sua equipe',
+      'manager.members':'Membros da equipe', 'manager.invite':'✉ Convidar membro',
+      'manager.empty':'Ainda não tem membros em sua equipe',
+      'manager.emptyDesc':'Convide seus colegas usando o botão superior.',
+      'manager.gotoAdmin':'Painel admin →',
+      'manager.locked':'Acesso restrito',
+      'manager.lockedDesc':'Apenas managers e administradores podem ver este painel.',
+      'manager.kpi.team':'Membros da equipe',
+      'manager.kpi.completed':'Pills concluídas', 'manager.kpi.completedSub':'total acumulado da equipe',
+      'manager.kpi.avg':'Progresso médio', 'manager.kpi.avgSub':'vs catálogo total',
+      'manager.kpi.openInvites':'Convites abertos', 'manager.kpi.openInvitesSub':'enviados por você',
       'common.save':'Salvar', 'common.cancel':'Cancelar', 'common.close':'Fechar', 'common.edit':'Editar',
       'common.delete':'Excluir', 'common.confirm':'Confirmar', 'common.logout':'Sair',
       'common.search':'Buscar', 'common.loading':'Carregando…', 'common.reset':'Redefinir',
@@ -3139,10 +3282,13 @@ function App() {
         {view === 'profile' && <ProfileView_New setView={setView}/>}
         {view === 'wa' && <ChannelsView_New/>}
         {view === 'saved' && <SavedView_New openDetail={openDetail}/>}
-        {view === 'admin' && (Auth.isAdmin()
+        {view === 'admin' && (Auth.can && Auth.can('admin.viewPanel')
           ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/>
-          : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
-        {view === 'admin-legacy' && Auth.isAdmin() && <AdminPanel setView={setView}/>}
+          : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>{window.I18n ? window.I18n.t('admin.locked') : 'Acceso restringido'}</h3><p>{window.I18n ? window.I18n.t('admin.lockedDesc') : 'Solo administradores pueden ver este panel.'}</p></div></div>)}
+        {view === 'admin-legacy' && Auth.can && Auth.can('admin.viewPanel') && <AdminPanel setView={setView}/>}
+        {view === 'manager' && (Auth.hasRole && Auth.hasRole('manager')
+          ? <ManagerView_New setView={setView}/>
+          : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>{window.I18n ? window.I18n.t('manager.locked','Acceso restringido') : 'Acceso restringido'}</h3><p>{window.I18n ? window.I18n.t('manager.lockedDesc','Solo managers y administradores pueden ver este panel.') : 'Solo managers y administradores pueden ver este panel.'}</p></div></div>)}
         {view === 'inbox' && <InboxView_New openDetail={openDetail}/>}
         {view === 'settings' && <SettingsView_New setView={setView}/>}
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
