@@ -146,13 +146,16 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     return () => window.removeEventListener('inbox-changed', refresh);
   }, []);
 
+  // Re-render cuando cambia el idioma
+  const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
+
   const items = [
-    { k:'home',      label:'Inicio' },
-    { k:'browse',    label:'Catálogo' },
-    { k:'rutas',     label:'Rutas' },
-    { k:'path',      label:'Mi ruta' },
-    { k:'dashboard', label:'Analytics' },
-    { k:'coach',     label:'BeonAI' },
+    { k:'home',      label:T('nav.home') },
+    { k:'browse',    label:T('nav.browse') },
+    { k:'rutas',     label:T('nav.rutas') },
+    { k:'path',      label:T('nav.path') },
+    { k:'dashboard', label:T('nav.dashboard') },
+    { k:'coach',     label:T('nav.coach') },
   ];
 
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
@@ -163,13 +166,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
   const menuItems = [
-    { k:'profile',  label:'Mi perfil',     icon:'user' },
-    { k:'saved',    label:'Mi lista',      icon:'bookmark' },
-    { k:'wa',       label:'Channels',      icon:'broadcast' },
-    { k:'inbox',    label:'Bandeja',       icon:'inbox', badge: inboxCount },
-    { k:'settings', label:'Ajustes',       icon:'gear' },
+    { k:'profile',  label:T('nav.profile'),  icon:'user' },
+    { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },
+    { k:'wa',       label:T('nav.wa'),       icon:'broadcast' },
+    { k:'inbox',    label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
+    { k:'settings', label:T('nav.settings'), icon:'gear' },
   ];
-  if (isAdmin) menuItems.push({ k:'admin', label:'Admin', icon:'shield' });
+  if (isAdmin) menuItems.push({ k:'admin', label:T('nav.admin'), icon:'shield' });
 
   return (
     <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>

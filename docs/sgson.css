@@ -113,6 +113,32 @@ html[data-theme="light"] .ssg-page section[style*="bg-surface"] {
   box-shadow: 0 1px 3px rgba(13,17,23,0.05);
 }
 
+/* Cards de vídeo (.card) llevan overlay oscuro sobre thumbnail por design,
+ * el texto SIEMPRE va blanco. Igual para card-pill-num y card-meta. */
+html[data-theme="light"] .card .card-title  { color: #F5F4F1 !important; }
+html[data-theme="light"] .card .card-meta   { color: rgba(245,244,241,0.78) !important; }
+html[data-theme="light"] .card .card-meta .sep { color: rgba(245,244,241,0.45) !important; }
+html[data-theme="light"] .card .card-pill-num,
+html[data-theme="light"] .card .card-badge { color: #fff !important; }
+html[data-theme="light"] .card .card-match  { color: rgba(245,244,241,0.72) !important; }
+html[data-theme="light"] .card .card-action { color: #fff; }
+html[data-theme="light"] .card-progress    { background: rgba(255,255,255,0.18); }
+
+/* Modal de detalle · el hero del modal también lleva overlay oscuro */
+html[data-theme="light"] .modal-media,
+html[data-theme="light"] .modal-hero-body { color: #F5F4F1; }
+html[data-theme="light"] .modal-hero-body .h { color: #F5F4F1 !important; }
+html[data-theme="light"] .modal-hero-body .q { color: rgba(245,244,241,0.85) !important; }
+
+/* TopNav sticky se queda en glass-dark (cinematic) en ambos modos */
+html[data-theme="light"] .topnav {
+  background: rgba(20, 20, 26, 0.72);
+  backdrop-filter: blur(12px);
+  color: #F5F4F1;
+}
+html[data-theme="light"] .topnav .top-nav-item { color: #F5F4F1; }
+html[data-theme="light"] .topnav .menu-trigger { color: #F5F4F1; }
+
 /* ============================================================
    BASE
    ============================================================ */
