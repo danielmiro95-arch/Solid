@@ -153,14 +153,25 @@ html[data-theme="light"] .modal-hero-body { color: #F5F4F1; }
 html[data-theme="light"] .modal-hero-body .h { color: #F5F4F1 !important; }
 html[data-theme="light"] .modal-hero-body .q { color: rgba(245,244,241,0.85) !important; }
 
-/* TopNav sticky se queda en glass-dark (cinematic) en ambos modos */
+/* TopNav sticky se queda en glass-dark (cinematic) en ambos modos.
+ * En light mode necesita opacity alta para contraste con el fondo claro,
+ * sino los items del nav central quedan ilegibles. */
 html[data-theme="light"] .topnav {
-  background: rgba(20, 20, 26, 0.72);
-  backdrop-filter: blur(12px);
+  background: rgba(14, 14, 18, 0.94);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
   color: #F5F4F1;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-html[data-theme="light"] .topnav .top-nav-item { color: #F5F4F1; }
+/* Items de nav central · selector real es .nav-item (no .top-nav-item) */
+html[data-theme="light"] .topnav .nav-item,
+html[data-theme="light"] .topnav .top-nav-item { color: rgba(245,244,241,0.78); }
+html[data-theme="light"] .topnav .nav-item:hover,
+html[data-theme="light"] .topnav .top-nav-item:hover { color: #F5F4F1; }
+html[data-theme="light"] .topnav .nav-item.active { color: #F5F4F1; font-weight: 700; }
 html[data-theme="light"] .topnav .menu-trigger { color: #F5F4F1; }
+/* TopNav scrolled mantiene solidez en light · evita degradación visual */
+html[data-theme="light"] .topnav.scrolled { background: rgba(14, 14, 18, 0.98); }
 
 /* ============================================================
    BASE
@@ -2248,13 +2259,52 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
 }
 
 /* ─── 768px y abajo (tablet portrait + phone landscape) ─── */
+/* Hamburger · oculto en desktop, visible solo en mobile */
+.topnav-hamburger { display: none; }
+
+/* Mobile nav drawer · overlay full screen al pulsar hamburger */
+.topnav-mobile-drawer {
+  position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+  background: rgba(8, 8, 11, 0.85);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 60; animation: fadeIn .15s ease;
+}
+.topnav-mobile-panel {
+  background: rgba(14, 14, 18, 0.98);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 12px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: calc(100vh - 56px); overflow-y: auto;
+}
+.mobile-nav-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; background: transparent; border: none;
+  color: var(--fg-muted); font-family: var(--font-sans);
+  font-size: 15px; font-weight: 500; text-align: left;
+  cursor: pointer; border-radius: 8px;
+  transition: background .12s, color .12s;
+}
+.mobile-nav-item:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
+.mobile-nav-item.active { background: rgba(110,80,238,0.12); color: var(--fg); font-weight: 700; }
+.mobile-nav-badge {
+  background: var(--accent); color: #fff;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 999px;
+}
+.mobile-nav-divider { height: 1px; background: var(--line); margin: 8px 0; }
+.mobile-nav-logout { color: var(--accent); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 @media (max-width: 768px) {
-  /* TopNav · oculta items del centro, solo hamburguesa + logo + avatar */
+  /* TopNav · oculta items del centro, muestra hamburguesa */
   .topnav { padding: 0 16px; height: 56px; }
   .topnav-center { display: none; }
-  .topnav-right { gap: 8px; }
+  .topnav-right { gap: 6px; }
   .topnav-right .icon-btn { width: 36px; height: 36px; }
   .topnav-right .avatar { width: 32px; height: 32px; font-size: 12px; }
+  .topnav-hamburger { display: inline-flex; }
+  /* Avatar trigger se oculta en mobile · su contenido está en el drawer */
+  .topnav-right .avatar-trigger { display: none; }
 
   /* Hero · más compacto */
   .hero { min-height: 440px; height: 70vh; }
