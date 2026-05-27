@@ -1761,12 +1761,15 @@ function _activateSupabaseData() {
   const sb = window.supabaseClient;
   if (!sb) return;
   const _uid = function(){ return window.Auth && window.Auth.currentUser() ? window.Auth.currentUser().id : null; };
+  const _wsid = function(){ return window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId(); };
 
-  // ── Bookmarks ────────────────────────────────────────────
+  // ── Bookmarks (scoped por workspace) ─────────────────────
   let bmCache = [];
   async function _loadBookmarks() {
-    const u = _uid(); if (!u) { bmCache = []; return; }
-    const { data, error } = await sb.from('bookmarks').select('pill_id').eq('user_id', u);
+    const u = _uid(); const w = _wsid(); if (!u) { bmCache = []; return; }
+    let q = sb.from('bookmarks').select('pill_id').eq('user_id', u);
+    if (w) q = q.eq('workspace_id', w);
+    const { data, error } = await q;
     if (error) { console.warn('[supa] bookmarks', error.message); return; }
     bmCache = (data || []).map(r => r.pill_id);
     window.dispatchEvent(new Event('bookmarks-changed'));
@@ -1774,22 +1777,26 @@ function _activateSupabaseData() {
   Bookmarks.get = function() { return bmCache.slice(); };
   Bookmarks.has = function(id) { return bmCache.indexOf(id) >= 0; };
   Bookmarks.toggle = function(id) {
-    const u = _uid(); if (!u || !id) return false;
+    const u = _uid(); const w = _wsid(); if (!u || !id) return false;
     const exists = bmCache.indexOf(id) >= 0;
     if (exists) {
       bmCache = bmCache.filter(x => x !== id);
-      sb.from('bookmarks').delete().eq('user_id', u).eq('pill_id', id).then(()=>{});
+      let q = sb.from('bookmarks').delete().eq('user_id', u).eq('pill_id', id);
+      if (w) q = q.eq('workspace_id', w);
+      q.then(()=>{});
     } else {
       bmCache = [id].concat(bmCache);
-      sb.from('bookmarks').insert({ user_id: u, pill_id: id }).then(()=>{});
+      sb.from('bookmarks').insert({ user_id: u, workspace_id: w, pill_id: id }).then(()=>{});
     }
     window.dispatchEvent(new Event('bookmarks-changed'));
     return !exists;
   };
   Bookmarks.clear = function() {
-    const u = _uid(); if (!u) return;
+    const u = _uid(); const w = _wsid(); if (!u) return;
     bmCache = [];
-    sb.from('bookmarks').delete().eq('user_id', u).then(()=>{});
+    let q = sb.from('bookmarks').delete().eq('user_id', u);
+    if (w) q = q.eq('workspace_id', w);
+    q.then(()=>{});
     window.dispatchEvent(new Event('bookmarks-changed'));
   };
 
@@ -2067,15 +2074,140 @@ function _activateSupabaseData() {
   };
   Inbox.seedIfEmpty = function() { _loadInbox(); /* el seed real viene del schema.sql */ };
 
+  // ── Workspaces (multi-tenant · DB-backed) ────────────────
+  let wsCache = [];
+  let wsMembersCache = {}; // {workspaceId: [...users]}
+  async function _loadWorkspaces() {
+    const u = _uid(); if (!u) { wsCache = []; return; }
+    // Lista los workspaces donde el user es member (RLS hace el resto)
+    const { data: wss, error } = await sb.from('workspaces')
+      .select('id, name, slug, logo_url, primary_color, owner_id, settings, created_at');
+    if (error) { console.warn('[supa] workspaces', error.message); return; }
+    wsCache = (wss || []).map(w => ({
+      id: w.id, name: w.name, slug: w.slug, logo: w.logo_url,
+      primaryColor: w.primary_color, ownerId: w.owner_id,
+      settings: w.settings || {}, createdAt: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
+    }));
+    window.dispatchEvent(new Event('workspaces-changed'));
+  }
+  async function _loadMembers(workspaceId) {
+    if (!workspaceId) return;
+    const { data, error } = await sb.from('workspace_members')
+      .select('user_id, role, joined_at, profiles(id, email, name, role, system_role, team, avatar_color)')
+      .eq('workspace_id', workspaceId);
+    if (error) { console.warn('[supa] members', error.message); return; }
+    wsMembersCache[workspaceId] = (data || []).map(row => Object.assign({}, row.profiles, {
+      workspaceRole: row.role, joinedAt: row.joined_at ? new Date(row.joined_at).getTime() : Date.now(),
+    }));
+  }
+  // Overrides síncronos (datos del cache)
+  Workspaces.list = function() { return wsCache.slice(); };
+  Workspaces.listMine = function() {
+    // En Supabase mode, RLS ya filtra · la lista que recibes ES la del usuario
+    return wsCache.map(w => Object.assign({}, w));
+  };
+  Workspaces.get = function(id) { return wsCache.find(w => w.id === id) || null; };
+  Workspaces.membersOf = function(wsId) { return (wsMembersCache[wsId] || []).slice(); };
+  Workspaces.create = async function(data) {
+    const u = _uid(); if (!u) return null;
+    const payload = {
+      name: data.name || 'Workspace',
+      slug: (data.slug || data.name || 'ws').toString().toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+      logo_url: data.logo || null,
+      primary_color: data.primaryColor || '#6E50EE',
+      owner_id: u,
+      settings: data.settings || {},
+    };
+    const { data: ws, error } = await sb.from('workspaces').insert(payload).select().single();
+    if (error) { console.warn('[supa] create ws', error.message); return null; }
+    // Añade al owner como miembro owner
+    await sb.from('workspace_members').insert({ workspace_id: ws.id, user_id: u, role: 'owner' });
+    await _loadWorkspaces();
+    if (window.Toast) window.Toast.success('Workspace "' + ws.name + '" creado', { icon:'🏢' });
+    return ws;
+  };
+  Workspaces.update = async function(id, patch) {
+    const dbPatch = {};
+    if (patch.name != null)         dbPatch.name = patch.name;
+    if (patch.primaryColor != null) dbPatch.primary_color = patch.primaryColor;
+    if (patch.logo != null)         dbPatch.logo_url = patch.logo;
+    if (patch.settings != null)     dbPatch.settings = patch.settings;
+    const { error } = await sb.from('workspaces').update(dbPatch).eq('id', id);
+    if (error) { console.warn('[supa] update ws', error.message); return null; }
+    await _loadWorkspaces();
+    return Workspaces.get(id);
+  };
+  Workspaces.remove = async function(id) {
+    const { error } = await sb.from('workspaces').delete().eq('id', id);
+    if (error) { console.warn('[supa] remove ws', error.message); return; }
+    if (Workspaces.currentId() === id) localStorage.removeItem('solid-active-workspace');
+    await _loadWorkspaces();
+    if (window.Toast) window.Toast.info('Workspace eliminado');
+  };
+  Workspaces.addMember = async function(workspaceId, userId, role) {
+    if (Workspaces.ROLES.indexOf(role) < 0) role = 'member';
+    const { error } = await sb.from('workspace_members')
+      .upsert({ workspace_id: workspaceId, user_id: userId, role });
+    if (error) { console.warn('[supa] addMember', error.message); return; }
+    await _loadMembers(workspaceId);
+    window.dispatchEvent(new Event('workspaces-changed'));
+  };
+  Workspaces.removeMember = async function(workspaceId, userId) {
+    const { error } = await sb.from('workspace_members')
+      .delete().eq('workspace_id', workspaceId).eq('user_id', userId);
+    if (error) { console.warn('[supa] removeMember', error.message); return; }
+    await _loadMembers(workspaceId);
+    window.dispatchEvent(new Event('workspaces-changed'));
+  };
+  Workspaces.setMemberRole = async function(workspaceId, userId, role) {
+    if (Workspaces.ROLES.indexOf(role) < 0) return;
+    const { error } = await sb.from('workspace_members').update({ role })
+      .eq('workspace_id', workspaceId).eq('user_id', userId);
+    if (error) { console.warn('[supa] setMemberRole', error.message); return; }
+    await _loadMembers(workspaceId);
+    window.dispatchEvent(new Event('workspaces-changed'));
+  };
+  Workspaces.currentRole = function() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const wsId = Workspaces.currentId();
+      if (!u || !wsId) return null;
+      if (u.systemRole === 'admin') return 'admin';
+      const list = wsMembersCache[wsId] || [];
+      const me = list.find(m => m.id === u.id);
+      return me ? me.workspaceRole : null;
+    } catch(e) { return null; }
+  };
+  // seedIfEmpty en Supabase: si no hay workspaces accesibles, crear "Repsol" como owner
+  Workspaces.seedIfEmpty = async function() {
+    await _loadWorkspaces();
+    if (wsCache.length > 0) { Workspaces.setCurrent(Workspaces.currentId() || wsCache[0].id); return; }
+    const u = _uid(); if (!u) return;
+    const repsol = await Workspaces.create({ name:'Repsol', slug:'repsol', primaryColor:'#6E50EE' });
+    if (repsol) Workspaces.setCurrent(repsol.id);
+  };
+
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
   async function _syncAll() {
     if (!_uid()) return;
+    // Workspaces primero · el resto puede depender del workspace activo
+    await _loadWorkspaces();
+    const curWs = Workspaces.currentId();
+    if (curWs) await _loadMembers(curWs);
     await Promise.all([
       _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
   if (_uid()) _syncAll();
+
+  // Cambio de workspace · recarga datos scopeados (bookmarks, members, etc.)
+  window.addEventListener('workspace-changed', async () => {
+    if (!_uid()) return;
+    const curWs = Workspaces.currentId();
+    if (curWs) await _loadMembers(curWs);
+    await Promise.all([_loadBookmarks(), _loadInbox()]);
+  });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
   let actCache = [];
