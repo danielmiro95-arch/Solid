@@ -1104,6 +1104,65 @@ const Workspaces = (function() {
 })();
 window.Workspaces = Workspaces;
 
+// ── Resources · documentos externos (Loop, SharePoint, PDFs) ──────────────
+// El user los ve como cards dentro de Solid pero el click abre la URL en
+// pestaña nueva. CRUD local-first con sync opcional a Supabase si está activo.
+const Resources = (function() {
+  function _key() {
+    const ws = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+    return ws ? 'sgson-resources:' + ws : 'sgson-resources';
+  }
+  function _load() { try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch (e) { return []; } }
+  function _save(items) {
+    localStorage.setItem(_key(), JSON.stringify(items));
+    window.dispatchEvent(new Event('resources-changed'));
+  }
+  function list() { return _load().slice().sort((a,b) => (a.order_index || 0) - (b.order_index || 0)); }
+  function get(id) { return _load().find(r => r.id === id) || null; }
+  function _genId() { return 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function create(data) {
+    const items = _load();
+    const ws = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+    const r = {
+      id: _genId(),
+      workspace_id: ws || null,
+      title: String(data.title || '').trim(),
+      description: String(data.description || '').trim(),
+      url: String(data.url || '').trim(),
+      category: String(data.category || '').trim(),
+      thumbnail_url: data.thumbnail_url || null,
+      source: data.source || 'other',
+      order_index: items.length,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
+    if (!r.title || !r.url) throw new Error('Título y URL son obligatorios');
+    items.push(r);
+    _save(items);
+    return r;
+  }
+  function update(id, patch) {
+    const items = _load();
+    const i = items.findIndex(r => r.id === id);
+    if (i < 0) return null;
+    items[i] = Object.assign({}, items[i], patch, { updated_at: Date.now() });
+    _save(items);
+    return items[i];
+  }
+  function remove(id) {
+    const items = _load().filter(r => r.id !== id);
+    _save(items);
+  }
+  function reorder(orderedIds) {
+    const items = _load();
+    const byId = Object.fromEntries(items.map(r => [r.id, r]));
+    const reordered = orderedIds.map((id, i) => byId[id] ? Object.assign({}, byId[id], { order_index: i }) : null).filter(Boolean);
+    _save(reordered);
+  }
+  return { list, get, create, update, remove, reorder };
+})();
+window.Resources = Resources;
+
 // ── PushNotifications · Web Push API · suscripción + envío ─────────────────
 // Gestión completa de notificaciones push del navegador. El SW ya tiene listener
 // `push` que muestra la notificación · este store maneja el lifecycle:
@@ -2714,7 +2773,7 @@ const I18n = (function() {
   const DICTIONARIES = {
     es: {
       'nav.home':'Inicio', 'nav.browse':'Catálogo', 'nav.rutas':'Rutas', 'nav.path':'Mi ruta',
-      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Bandeja',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Bandeja', 'nav.resources':'Recursos',
       'nav.saved':'Mi lista', 'nav.profile':'Mi perfil', 'nav.settings':'Ajustes',
       'nav.admin':'Admin', 'nav.manager':'Mi equipo',
       'manager.eyebrow':'Panel · Manager', 'manager.title':'Tu equipo',
@@ -2961,7 +3020,7 @@ const I18n = (function() {
     },
     en: {
       'nav.home':'Home', 'nav.browse':'Catalog', 'nav.rutas':'Paths', 'nav.path':'My path',
-      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Inbox',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Channels', 'nav.inbox':'Inbox', 'nav.resources':'Resources',
       'nav.saved':'My list', 'nav.profile':'My profile', 'nav.settings':'Settings',
       'nav.admin':'Admin', 'nav.manager':'My team',
       'manager.eyebrow':'Panel · Manager', 'manager.title':'Your team',
@@ -3208,7 +3267,7 @@ const I18n = (function() {
     },
     pt: {
       'nav.home':'Início', 'nav.browse':'Catálogo', 'nav.rutas':'Trilhas', 'nav.path':'Minha trilha',
-      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Canais', 'nav.inbox':'Caixa',
+      'nav.dashboard':'Analytics', 'nav.coach':'BeonAI', 'nav.wa':'Canais', 'nav.inbox':'Caixa', 'nav.resources':'Recursos',
       'nav.saved':'Minha lista', 'nav.profile':'Meu perfil', 'nav.settings':'Ajustes',
       'nav.admin':'Admin', 'nav.manager':'Minha equipe',
       'manager.eyebrow':'Painel · Manager', 'manager.title':'Sua equipe',
@@ -3989,6 +4048,7 @@ function App() {
         {view === 'profile' && <ProfileView_New setView={setView}/>}
         {view === 'wa' && <ChannelsView_New/>}
         {view === 'saved' && <SavedView_New openDetail={openDetail}/>}
+        {view === 'resources' && <ResourcesView_New/>}
         {view === 'admin' && (Auth.can && Auth.can('admin.viewPanel')
           ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/>
           : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>{window.I18n ? window.I18n.t('admin.locked') : 'Acceso restringido'}</h3><p>{window.I18n ? window.I18n.t('admin.lockedDesc') : 'Solo administradores pueden ver este panel.'}</p></div></div>)}

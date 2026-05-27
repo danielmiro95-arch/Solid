@@ -247,6 +247,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     { k:'browse',    label:T('nav.browse') },
     { k:'rutas',     label:T('nav.rutas') },
     { k:'path',      label:T('nav.path') },
+    { k:'resources', label:T('nav.resources','Recursos') },
     { k:'dashboard', label:T('nav.dashboard') },
     { k:'coach',     label:T('nav.coach') },
   ];

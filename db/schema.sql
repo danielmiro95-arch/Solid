@@ -365,6 +365,58 @@ create policy push_subs_admin_read on public.push_subscriptions
   for select using (public.is_platform_admin());
 
 -- =====================================================================
+-- 18d. resources · documentos externos (Loop, SharePoint, PDFs)
+-- · Cards launcher: el user los ve dentro de Solid pero el click abre la
+--   URL original en pestaña nueva (fuente de verdad sigue siendo el origen).
+-- · BeonAI puede buscarlos para sugerirlos en respuestas relevantes.
+-- =====================================================================
+create table if not exists public.resources (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references public.workspaces(id) on delete cascade,
+  title text not null,
+  description text default '',
+  url text not null,
+  category text default '',
+  thumbnail_url text,
+  source text default 'other',                        -- loop | sharepoint | web | pdf | other
+  order_index integer default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  created_by uuid references public.profiles(id) on delete set null
+);
+create index if not exists resources_workspace_idx on public.resources(workspace_id, order_index);
+
+alter table public.resources enable row level security;
+
+drop policy if exists resources_read on public.resources;
+create policy resources_read on public.resources
+  for select using (public.is_workspace_member(workspace_id));
+
+drop policy if exists resources_write on public.resources;
+create policy resources_write on public.resources
+  for all using (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = resources.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  ) with check (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = resources.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  );
+
+drop trigger if exists resources_updated_at on public.resources;
+create trigger resources_updated_at before update on public.resources
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
 -- 18c. beonai_config · configuración del agente Claude por workspace
 -- · system_prompt: instrucciones que un admin edita desde el panel
 -- · knowledge_docs: array de { name, content } concatenado al system con

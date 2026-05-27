@@ -2027,6 +2027,206 @@ window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
 
+// ── ResourcesView · cards launcher a documentación externa (Loop, etc.) ───
+// Los users ven y filtran; los admin pueden añadir/editar/borrar.
+// Click en card → abre URL original en pestaña nueva.
+function ResourcesView({ openLegacyAdmin }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const [tick, setTick] = useEV2(0);
+  const [cat, setCat] = useEV2('Todos');
+  const [editing, setEditing] = useEV2(null); // null | 'new' | resource.id
+  const [form, setForm] = useEV2({ title: '', description: '', url: '', category: '', source: 'loop' });
+
+  useEE2(() => {
+    const refresh = () => setTick(t => t + 1);
+    window.addEventListener('resources-changed', refresh);
+    window.addEventListener('workspace-changed', refresh);
+    return () => {
+      window.removeEventListener('resources-changed', refresh);
+      window.removeEventListener('workspace-changed', refresh);
+    };
+  }, []);
+
+  const isAdmin = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  const items = (window.Resources && window.Resources.list && window.Resources.list()) || [];
+  const cats = ['Todos', ...Array.from(new Set(items.map(r => r.category).filter(Boolean)))];
+  const filtered = cat === 'Todos' ? items : items.filter(r => r.category === cat);
+
+  const SOURCES = {
+    loop:       { label: 'Microsoft Loop',  icon: '🔁', color: '#7B83EB' },
+    sharepoint: { label: 'SharePoint',      icon: '📂', color: '#0078D4' },
+    web:        { label: 'Web',             icon: '🌐', color: '#22C55E' },
+    pdf:        { label: 'PDF',             icon: '📄', color: '#EF4444' },
+    other:      { label: 'Otro',            icon: '🔗', color: '#A8A6A0' },
+  };
+
+  const openEditor = (resource) => {
+    if (resource) {
+      setEditing(resource.id);
+      setForm({ title: resource.title, description: resource.description || '', url: resource.url, category: resource.category || '', source: resource.source || 'other' });
+    } else {
+      setEditing('new');
+      setForm({ title: '', description: '', url: '', category: '', source: 'loop' });
+    }
+  };
+  const closeEditor = () => { setEditing(null); setForm({ title: '', description: '', url: '', category: '', source: 'loop' }); };
+
+  const saveForm = () => {
+    if (!form.title.trim() || !form.url.trim()) return;
+    try {
+      if (editing === 'new') window.Resources.create(form);
+      else window.Resources.update(editing, form);
+      if (window.Toast && window.Toast.show) window.Toast.show(editing === 'new' ? 'Recurso añadido' : 'Recurso actualizado', { type: 'success' });
+      closeEditor();
+    } catch (e) {
+      if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+    }
+  };
+  const deleteResource = (id) => {
+    if (!confirm('¿Borrar este recurso? No se puede deshacer.')) return;
+    window.Resources.remove(id);
+    if (window.Toast && window.Toast.show) window.Toast.show('Recurso borrado', { type: 'info' });
+  };
+
+  return (
+    <PageShell
+      eyebrow="Recursos · documentación"
+      title={<>Documentación <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>Repsol × Sprinklr</em></>}
+      sub={`${items.length} recursos · click abre el original en pestaña nueva`}
+      actions={isAdmin ? (
+        <button onClick={() => openEditor(null)} style={{
+          padding: '10px 18px', background: 'var(--accent)', color: '#fff',
+          border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13,
+        }}>+ Añadir recurso</button>
+      ) : null}>
+
+      {/* Filtro por categoría */}
+      {cats.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 28, padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', width: 'fit-content' }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)} style={{
+              padding: '8px 16px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+              background: c === cat ? 'var(--fg)' : 'transparent', color: c === cat ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+              border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', transition: 'all .15s',
+            }}>{c}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Grid de cards-launcher */}
+      {filtered.length === 0 ? (
+        <div style={{ padding: 60, textAlign: 'center', background: 'var(--bg-surface)', border: '1px dashed var(--line)', borderRadius: 12 }}>
+          <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📚</div>
+          <h3 style={{ fontSize: 18, margin: 0, marginBottom: 6 }}>Aún no hay recursos</h3>
+          <p style={{ color: 'var(--fg-muted)', fontSize: 14, margin: 0, marginBottom: 16 }}>
+            {isAdmin ? 'Añade enlaces a documentación de Loop, SharePoint o cualquier web relevante.' : 'Pide al admin que añada recursos a este workspace.'}
+          </p>
+          {isAdmin && (
+            <button onClick={() => openEditor(null)} style={{
+              padding: '10px 20px', background: 'var(--accent)', color: '#fff',
+              border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13,
+            }}>+ Añadir el primer recurso</button>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          {filtered.map(r => {
+            const src = SOURCES[r.source] || SOURCES.other;
+            return (
+              <div key={r.id} style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 18, transition: 'all .15s', cursor: 'pointer' }}
+                onClick={() => window.open(r.url, '_blank', 'noopener,noreferrer')}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                {/* Source chip */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 18 }}>{src.icon}</span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: src.color, fontWeight: 700 }}>
+                    {src.label}
+                  </span>
+                  {r.category && (
+                    <>
+                      <span style={{ color: 'var(--fg-dim)' }}>·</span>
+                      <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
+                        {r.category}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--fg)', lineHeight: 1.3 }}>{r.title}</h3>
+                {r.description && <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, marginBottom: 14, lineHeight: 1.5 }}>{r.description}</p>}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 600 }}>Abrir →</span>
+                  {isAdmin && (
+                    <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => openEditor(r)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Editar</button>
+                      <button onClick={() => deleteResource(r.id)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--err, #DC2626)', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Borrar</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal editor */}
+      {editing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }} onClick={closeEditor}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 28, maxWidth: 560, width: '90%', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: 0, marginBottom: 20, fontSize: 22 }}>{editing === 'new' ? 'Añadir recurso' : 'Editar recurso'}</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Título *</label>
+                <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Procedimiento de aprobación de campañas" autoFocus
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}/>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>URL *</label>
+                <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://loop.cloud.microsoft/..."
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 13, fontFamily: 'var(--font-mono, monospace)' }}/>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Descripción</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Para qué sirve este recurso y cuándo usarlo"
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14, minHeight: 80, resize: 'vertical' }}/>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Categoría</label>
+                  <input type="text" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Procedimientos / Plantillas / Care"
+                    list="resource-categories-list"
+                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}/>
+                  <datalist id="resource-categories-list">
+                    {Array.from(new Set(items.map(r => r.category).filter(Boolean))).map(c => <option key={c} value={c}/>)}
+                  </datalist>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Origen</label>
+                  <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}>
+                    <option value="loop">🔁 Microsoft Loop</option>
+                    <option value="sharepoint">📂 SharePoint</option>
+                    <option value="web">🌐 Web pública</option>
+                    <option value="pdf">📄 PDF</option>
+                    <option value="other">🔗 Otro</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
+              <button onClick={closeEditor} style={{ padding: '10px 18px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={saveForm} disabled={!form.title.trim() || !form.url.trim()} style={{ padding: '10px 18px', background: (!form.title.trim() || !form.url.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                {editing === 'new' ? 'Añadir' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+window.ResourcesView_New = ResourcesView;
+
 // ── BeonAIConfigPanel · admin only · editor del system prompt + KB ────────
 // Lee /api/beonai-config?workspaceId=... y permite editar:
 //   - system_prompt (textarea grande)
@@ -2050,8 +2250,8 @@ function BeonAIConfigPanel() {
   const [newDocContent, setNewDocContent] = useEV2('');
   const [toolReadProgress, setToolReadProgress] = useEV2(false);
   const [toolSearchPills, setToolSearchPills] = useEV2(false);
+  const [toolSearchResources, setToolSearchResources] = useEV2(false);
   const [toolWebSprinklr, setToolWebSprinklr] = useEV2(false);
-  const [toolSearchLoop, setToolSearchLoop] = useEV2(false);
 
   const wsId = (window.Workspaces.current() && window.Workspaces.current().id) || null;
 
@@ -2077,8 +2277,8 @@ function BeonAIConfigPanel() {
         const tools = c.tools_enabled || {};
         setToolReadProgress(!!tools.read_user_progress);
         setToolSearchPills(!!tools.search_pill_catalog);
+        setToolSearchResources(!!tools.search_resources);
         setToolWebSprinklr(!!tools.web_search_sprinklr);
-        setToolSearchLoop(!!tools.search_microsoft_loop);
       } catch (e) {
         if (!cancelled) setError('No se pudo cargar la configuración: ' + e.message);
       } finally {
@@ -2121,8 +2321,8 @@ function BeonAIConfigPanel() {
           tools_enabled: {
             read_user_progress: toolReadProgress,
             search_pill_catalog: toolSearchPills,
+            search_resources: toolSearchResources,
             web_search_sprinklr: toolWebSprinklr,
-            search_microsoft_loop: toolSearchLoop,
           },
         }),
       });
@@ -2148,8 +2348,8 @@ function BeonAIConfigPanel() {
       tools_enabled: {
         read_user_progress: toolReadProgress,
         search_pill_catalog: toolSearchPills,
+        search_resources: toolSearchResources,
         web_search_sprinklr: toolWebSprinklr,
-        search_microsoft_loop: toolSearchLoop,
       },
       exported_at: new Date().toISOString(),
     };
@@ -2174,8 +2374,8 @@ function BeonAIConfigPanel() {
         if (d.tools_enabled) {
           setToolReadProgress(!!d.tools_enabled.read_user_progress);
           setToolSearchPills(!!d.tools_enabled.search_pill_catalog);
+          setToolSearchResources(!!d.tools_enabled.search_resources);
           setToolWebSprinklr(!!d.tools_enabled.web_search_sprinklr);
-          setToolSearchLoop(!!d.tools_enabled.search_microsoft_loop);
         }
         if (window.Toast && window.Toast.show) window.Toast.show('Configuración importada · revisa y guarda', { type: 'info' });
       } catch (e) { setError('JSON inválido: ' + e.message); }
@@ -2290,12 +2490,12 @@ function BeonAIConfigPanel() {
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={toolSearchLoop} onChange={e => setToolSearchLoop(e.target.checked)}/>
+                <input type="checkbox" checked={toolSearchResources} onChange={e => setToolSearchResources(e.target.checked)}/>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en Microsoft Loop</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Requiere registro de app en Azure AD + permisos Microsoft Graph (Sites.Read.All, Files.Read.All)</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en Recursos del workspace</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Loop / SharePoint / PDFs que hayas añadido en la vista <code>Recursos</code> · el agente puede sugerirlos con link</div>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--warn, #B45309)' }}>Stub · setup pendiente</span>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
               </label>
             </div>
           </div>

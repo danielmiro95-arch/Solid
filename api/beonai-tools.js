@@ -55,25 +55,26 @@ export function buildTools(toolsEnabled = {}, allowedDomains) {
       },
     });
   }
+  if (toolsEnabled.search_resources) {
+    tools.push({
+      name: 'search_resources',
+      description: 'Busca documentos externos (Microsoft Loop, SharePoint, PDFs, webs) que los admins han añadido al workspace. Devuelve título, descripción, URL y origen. Úsala cuando el usuario pregunte por procedimientos, plantillas, o "dónde está X". El frontend mostrará cards clicables.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Palabras clave a buscar en título/descripción/categoría.' },
+          category: { type: 'string', description: 'Categoría opcional para filtrar (ej. Procedimientos, Plantillas).' },
+        },
+        required: ['query'],
+      },
+    });
+  }
   if (toolsEnabled.web_search_sprinklr) {
     tools.push({
       type: 'web_search_20250305',
       name: 'web_search',
       max_uses: 3,
       allowed_domains: allowedDomains || ['help.sprinklr.com'],
-    });
-  }
-  if (toolsEnabled.search_microsoft_loop) {
-    // Stub · requiere Azure AD app registration y permisos Graph (Sites.Read.All).
-    // Cuando esté implementado, leerá de Microsoft Graph search/query API.
-    tools.push({
-      name: 'search_microsoft_loop',
-      description: 'Busca en el workspace de Microsoft Loop de Repsol. ATENCIÓN: aún no está conectado. Si la llamas, devolverá una nota explicando que falta la configuración OAuth de Azure AD.',
-      input_schema: {
-        type: 'object',
-        properties: { query: { type: 'string', description: 'Texto a buscar en Loop.' } },
-        required: ['query'],
-      },
     });
   }
   return tools;
@@ -85,10 +86,7 @@ export async function handleToolCall(name, input, ctx) {
   try {
     if (name === 'read_user_progress') return await readUserProgress(ctx);
     if (name === 'search_pill_catalog') return await searchPillCatalog(input, ctx);
-    if (name === 'search_microsoft_loop') return {
-      ok: false,
-      message: 'La integración con Microsoft Loop aún no está activa. Falta registrar la app en Azure AD y configurar permisos Graph (Sites.Read.All, Files.Read.All). Avisa al admin de la plataforma para que complete el setup.',
-    };
+    if (name === 'search_resources') return await searchResources(input, ctx);
     return { ok: false, error: `Tool desconocido: ${name}` };
   } catch (e) {
     console.error('[beonai-tool]', name, 'failed:', e.message);
@@ -177,3 +175,40 @@ async function searchPillCatalog(input) {
     count: scored.length,
   };
 }
+
+async function searchResources(input, ctx) {
+  const { supa, workspaceId } = ctx || {};
+  if (!supa) return { ok: false, error: 'Supabase no disponible · los recursos están sólo en local.' };
+  if (!workspaceId) return { ok: false, error: 'No hay workspace activo.' };
+  const query = String(input?.query || '').toLowerCase().trim();
+  const category = input?.category ? String(input.category).toLowerCase() : null;
+
+  let q = supa.from('resources').select('id,title,description,url,category,source,thumbnail_url').eq('workspace_id', workspaceId);
+  if (category) q = q.ilike('category', '%' + category + '%');
+  const { data: rows, error } = await q.limit(50);
+  if (error) return { ok: false, error: error.message };
+
+  const tokens = query.split(/\s+/).filter(Boolean);
+  const scored = (rows || []).map(r => {
+    const hay = ((r.title || '') + ' ' + (r.description || '') + ' ' + (r.category || '')).toLowerCase();
+    let score = 0;
+    for (const t of tokens) {
+      if ((r.title || '').toLowerCase().includes(t)) score += 3;
+      else if ((r.category || '').toLowerCase().includes(t)) score += 2;
+      else if (hay.includes(t)) score += 1;
+    }
+    return score > 0 ? { r, score } : null;
+  }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 6);
+
+  return {
+    ok: true,
+    query,
+    category: category || null,
+    results: scored.map(({ r }) => ({
+      id: r.id, title: r.title, description: r.description,
+      url: r.url, category: r.category, source: r.source,
+    })),
+    count: scored.length,
+  };
+}
+
