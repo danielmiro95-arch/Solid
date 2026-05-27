@@ -4,7 +4,7 @@ const { useState: useS2, useEffect: useE2 } = React;
 
 const CAT_COLORS = {
   'Fundamentos': '#0072BE', 'Estructura': '#005a96', 'Gobernanza': '#3d31cc',
-  'Social Publish': '#EB0029', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
+  'Social Publish': '#6E50EE', 'Activos': '#036837', 'Aprobaciones': '#8A3992',
   'Compliance': '#1a1a2e', 'Calendario': '#0072BE', 'Analytics': '#004d8a',
   'Care': '#B8001F', 'Integraciones': '#3d31cc',
 };
@@ -13,7 +13,7 @@ const RepsolDetailCover = ({ pill, category, title }) => {
   const accent = CAT_COLORS[category] || '#0D1117';
   return (
     <div style={{position:'absolute', inset:0, background:`linear-gradient(160deg, ${accent} 0%, #080e1a 100%)`, overflow:'hidden'}}>
-      <div style={{position:'absolute', top:0, left:0, right:0, height:4, background:'#EB0029'}}/>
+      <div style={{position:'absolute', top:0, left:0, right:0, height:4, background:'#6E50EE'}}/>
       <div style={{position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 28px)'}}/>
       <div style={{position:'absolute', right:-20, bottom:-20, fontSize:160, fontWeight:800, fontFamily:'var(--mono)', color:'rgba(255,255,255,0.04)', lineHeight:1, letterSpacing:'-0.05em', userSelect:'none'}}>
         {pill != null ? String(pill).padStart(2,'0') : ''}
@@ -780,7 +780,7 @@ const LEARNING_PATHS = [
   {
     id: 'publish-agent', label: 'Publish Agent', roleTag: 'Publicación y contenido',
     desc: 'Operativa de publicación multicanal, gestión de campañas, aprobaciones y calendario editorial en Social Publish.',
-    color: '#EB0029', bg: 'linear-gradient(135deg,#EB0029,#9b0018)', icon: '📢',
+    color: '#6E50EE', bg: 'linear-gradient(135deg,#6E50EE,#4E36C5)', icon: '📢',
     pills: ['p0','p11','p13','p14','p17','p18','p19','p20','p21','p22','p23','p24'], duration: '52 min', badge: 'rol',
   },
   {

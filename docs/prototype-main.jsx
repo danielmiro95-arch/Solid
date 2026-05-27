@@ -1114,7 +1114,7 @@ function InviteUsersModal({ onClose }) {
                 <input value={team} onChange={e => setTeam(e.target.value)} style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
               </label>
             </div>
-            {error && <div style={{padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5, marginBottom:12}}>{error}</div>}
+            {error && <div style={{padding:'9px 12px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5, marginBottom:12}}>{error}</div>}
             <button type="submit" className="btn glow" style={{width:'100%', justifyContent:'center'}}>Crear invitación →</button>
           </form>
         )}
@@ -1129,7 +1129,7 @@ function InviteUsersModal({ onClose }) {
               <button type="button" onClick={() => setCsv(csvSample)} style={{padding:'6px 12px', border:'1px solid var(--line)', borderRadius:8, background:'var(--paper-2)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-3)'}}>Pegar ejemplo</button>
               <button type="button" onClick={submitBulk} className="btn glow" style={{marginLeft:'auto'}}>Importar CSV →</button>
             </div>
-            {error && <div style={{marginTop:12, padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>}
+            {error && <div style={{marginTop:12, padding:'9px 12px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>}
           </div>
         )}
 
@@ -3173,7 +3173,7 @@ function LoginScreen() {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:1000, display:'flex',
-      background:'radial-gradient(circle at 20% 30%, rgba(236,28,36,0.18), transparent 50%), radial-gradient(circle at 80% 70%, rgba(91,141,239,0.15), transparent 50%), linear-gradient(135deg, #08080B 0%, #0E0E12 50%, #16161C 100%)',
+      background:'radial-gradient(circle at 20% 30%, rgba(110,80,238,0.18), transparent 50%), radial-gradient(circle at 80% 70%, rgba(91,141,239,0.15), transparent 50%), linear-gradient(135deg, #08080B 0%, #0E0E12 50%, #16161C 100%)',
       overflow:'auto', color:'#F5F4F1',
     }}>
       {/* Lado visual izquierdo */}
@@ -3187,7 +3187,7 @@ function LoginScreen() {
         <div>
           <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:24}}>★ Plataforma de formación cinematográfica · 2026</div>
           <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#F5F4F1'}}>
-            Domina<br/>Sprinklr<br/>como <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#EC1C24'}}>experto</em>.
+            Domina<br/>Sprinklr<br/>como <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#6E50EE'}}>experto</em>.
           </h1>
           <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(245,244,241,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
             41 Think Pills · 3 talleres · BeonAI con contexto Repsol · certificado oficial al completar tu ruta.
@@ -3216,8 +3216,8 @@ function LoginScreen() {
       }}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
-            <div style={{padding:'16px 18px', background:'rgba(236,28,36,0.08)', border:'1px solid rgba(236,28,36,0.3)', borderRadius:10, marginBottom:24}}>
-              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#EC1C24', fontWeight:700, marginBottom:5}}>✉ Invitación recibida</div>
+            <div style={{padding:'16px 18px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.3)', borderRadius:10, marginBottom:24}}>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#6E50EE', fontWeight:700, marginBottom:5}}>✉ Invitación recibida</div>
               <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>Hola <strong style={{color:'#fff'}}>{invitation.name}</strong>, te han invitado a SolidStream como <strong style={{color:'#fff'}}>{invitation.role}</strong>. Completa tu cuenta y accede.</div>
             </div>
           )}
@@ -3239,7 +3239,7 @@ function LoginScreen() {
               <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Email</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
                 style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
-                onFocus={e => e.target.style.borderColor='#EC1C24'}
+                onFocus={e => e.target.style.borderColor='#6E50EE'}
                 onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
             </label>
             {isSupabase && (
@@ -3247,7 +3247,7 @@ function LoginScreen() {
                 <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Password</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
                   style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                  onFocus={e => e.target.style.borderColor='#EC1C24'}
+                  onFocus={e => e.target.style.borderColor='#6E50EE'}
                   onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
               </label>
             )}
@@ -3257,7 +3257,7 @@ function LoginScreen() {
                   <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Nombre completo</div>
                   <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#EC1C24'}
+                    onFocus={e => e.target.style.borderColor='#6E50EE'}
                     onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
                 </label>
                 <label style={{display:'block', marginBottom:14}}>
@@ -3271,20 +3271,20 @@ function LoginScreen() {
                   <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>Equipo</div>
                   <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
                     style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#EC1C24'}
+                    onFocus={e => e.target.style.borderColor='#6E50EE'}
                     onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
                 </label>
               </>
             )}
             {error && (
-              <div style={{padding:'10px 14px', background:'rgba(236,28,36,0.1)', border:'1px solid rgba(236,28,36,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
+              <div style={{padding:'10px 14px', background:'rgba(110,80,238,0.1)', border:'1px solid rgba(110,80,238,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
               </div>
             )}
             <button type="submit" disabled={submitting}
-              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(236,28,36,0.5)' : '#EC1C24', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
-              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#FF3037'; }}
-              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#EC1C24'; }}>
+              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(110,80,238,0.5)' : '#6E50EE', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
+              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#8467FF'; }}
+              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#6E50EE'; }}>
               {submitting ? 'Cargando…' : (mode === 'login' ? 'Entrar →' : 'Crear cuenta →')}
             </button>
           </form>
@@ -3321,14 +3321,14 @@ function LoginScreen() {
                     style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, background:'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
                     onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.18)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; }}>
-                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#EC1C24', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
+                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#6E50EE', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
                       {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
                       <div style={{fontSize:13.5, fontWeight:600, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
                       <div style={{fontSize:10.5, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
                     </div>
-                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#EC1C24', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
+                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#6E50EE', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
                   </button>
                 ))}
               </div>
@@ -3594,7 +3594,7 @@ function AdminPanel({ setView }) {
               targets.forEach(u => Auth.deleteUser(u.id));
               if (window.Toast) window.Toast.info(targets.length + ' usuarios eliminados');
               setSelectedIds([]);
-            }} style={{padding:'5px 10px', border:'1px solid rgba(235,0,41,0.4)', borderRadius:6, background:'rgba(235,0,41,0.08)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>× borrar</button>
+            }} style={{padding:'5px 10px', border:'1px solid rgba(110,80,238,0.4)', borderRadius:6, background:'rgba(110,80,238,0.08)', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>× borrar</button>
             <span style={{marginLeft:'auto'}}>
               <button onClick={() => setSelectedIds([])} style={{padding:'5px 10px', border:'1px solid var(--line)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-3)', letterSpacing:'0.06em'}}>Limpiar</button>
             </span>
@@ -3658,7 +3658,7 @@ function AdminPanel({ setView }) {
                         {u.isAdmin ? '− admin' : '+ admin'}
                       </button>
                       <button onClick={() => removeUser(u)} title="Borrar usuario"
-                        style={{padding:'5px 10px', borderRadius:6, border:'1px solid rgba(235,0,41,0.3)', background:'transparent', cursor:'pointer', fontSize:11, color:'var(--repsol-red)', fontFamily:'var(--mono)', letterSpacing:'0.06em'}}>
+                        style={{padding:'5px 10px', borderRadius:6, border:'1px solid rgba(110,80,238,0.3)', background:'transparent', cursor:'pointer', fontSize:11, color:'var(--repsol-red)', fontFamily:'var(--mono)', letterSpacing:'0.06em'}}>
                         × borrar
                       </button>
                     </div>
@@ -3759,7 +3759,7 @@ function PendingInvitationsBlock({ invitations }) {
                 Link
               </button>
               <button onClick={() => remove(inv.token, inv.email)} title="Borrar invitación"
-                style={{padding:'6px 10px', border:'1px solid rgba(235,0,41,0.3)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>
+                style={{padding:'6px 10px', border:'1px solid rgba(110,80,238,0.3)', borderRadius:6, background:'transparent', cursor:'pointer', fontFamily:'var(--mono)', fontSize:10, color:'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em'}}>
                 ×
               </button>
             </div>
@@ -3876,7 +3876,7 @@ function AdminSubmissionsQueue() {
             <div style={{display:'flex', gap:8, justifyContent:'space-between'}}>
               <button className="btn ghost" onClick={() => setReviewing(null)}>Cancelar</button>
               <div style={{display:'flex', gap:8}}>
-                <button onClick={() => review('rejected')} style={{padding:'8px 14px', borderRadius:8, border:'1px solid rgba(235,0,41,0.3)', background:'rgba(235,0,41,0.06)', color:'var(--repsol-red)', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600}}>Rechazar</button>
+                <button onClick={() => review('rejected')} style={{padding:'8px 14px', borderRadius:8, border:'1px solid rgba(110,80,238,0.3)', background:'rgba(110,80,238,0.06)', color:'var(--repsol-red)', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600}}>Rechazar</button>
                 <button onClick={() => review('approved')} className="btn glow" style={{background:'var(--bn-lime)', color:'var(--ink)'}}>Aprobar ✓</button>
               </div>
             </div>
@@ -3957,7 +3957,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
           <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--bn-blue)', fontWeight:700}}>EXAMEN FINAL</span>
           {submitted && result && (
-            <span style={{fontFamily:'var(--mono)', fontSize:10, padding:'3px 10px', borderRadius:999, background: result.passed ? 'var(--bn-lime)' : 'rgba(235,0,41,0.12)', color: result.passed ? 'var(--ink)' : 'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, padding:'3px 10px', borderRadius:999, background: result.passed ? 'var(--bn-lime)' : 'rgba(110,80,238,0.12)', color: result.passed ? 'var(--ink)' : 'var(--repsol-red)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase'}}>
               {result.passed ? '✓ Aprobado' : '✗ No aprobado'}
             </span>
           )}
@@ -3969,7 +3969,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
           const userAns = answers[qi];
           const isCorrect = submitted && userAns === q.answer;
           return (
-            <div key={qi} style={{marginBottom:20, padding:'16px 18px', border:'1px solid var(--line)', borderRadius:12, background: submitted ? (isCorrect ? 'rgba(188,214,48,0.08)' : 'rgba(235,0,41,0.06)') : 'var(--paper-2)'}}>
+            <div key={qi} style={{marginBottom:20, padding:'16px 18px', border:'1px solid var(--line)', borderRadius:12, background: submitted ? (isCorrect ? 'rgba(188,214,48,0.08)' : 'rgba(110,80,238,0.06)') : 'var(--paper-2)'}}>
               <div style={{display:'flex', alignItems:'flex-start', gap:10, marginBottom:12}}>
                 <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)', fontWeight:700, marginTop:3}}>P{qi + 1}</span>
                 <div style={{flex:1, fontSize:14, fontWeight:600, color:'var(--ink)', lineHeight:1.4}}>{q.q}</div>
@@ -3981,7 +3981,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
                   const showWrong = submitted && isUserChoice && oi !== q.answer;
                   return (
                     <button key={oi} disabled={submitted} onClick={() => setAnswers(a => ({...a, [qi]: oi}))}
-                      style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', border:'1px solid ' + (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : isUserChoice ? 'var(--bn-blue)' : 'var(--line)'), borderRadius:8, background: showCorrect ? 'rgba(188,214,48,0.15)' : showWrong ? 'rgba(235,0,41,0.08)' : isUserChoice ? 'rgba(0,114,190,0.06)' : 'var(--paper)', cursor: submitted ? 'default' : 'pointer', textAlign:'left', fontFamily:'var(--sans)', fontSize:13, color:'var(--ink)'}}>
+                      style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', border:'1px solid ' + (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : isUserChoice ? 'var(--bn-blue)' : 'var(--line)'), borderRadius:8, background: showCorrect ? 'rgba(188,214,48,0.15)' : showWrong ? 'rgba(110,80,238,0.08)' : isUserChoice ? 'rgba(0,114,190,0.06)' : 'var(--paper)', cursor: submitted ? 'default' : 'pointer', textAlign:'left', fontFamily:'var(--sans)', fontSize:13, color:'var(--ink)'}}>
                       <span style={{width:18, height:18, borderRadius:'50%', border:'2px solid ' + (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : isUserChoice ? 'var(--bn-blue)' : 'var(--line)'), background: (isUserChoice || showCorrect) ? (showCorrect ? 'var(--bn-lime)' : showWrong ? 'var(--repsol-red)' : 'var(--bn-blue)') : 'transparent', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff', fontWeight:700}}>
                         {showCorrect ? '✓' : showWrong ? '✗' : isUserChoice ? '●' : ''}
                       </span>
@@ -4118,7 +4118,7 @@ function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
             <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-4)'}}>{fmtDur(existing.durationSec)} · {fmtSize(existing.fileSize)}</div>
             <div style={{fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink-4)', marginTop:6}}>Enviado: {new Date(existing.submittedAt).toLocaleString('es-ES', {dateStyle:'short', timeStyle:'short'})}</div>
             {existing.feedback && (
-              <div style={{marginTop:10, padding:'8px 10px', background: existing.status === 'approved' ? 'rgba(188,214,48,0.1)' : 'rgba(235,0,41,0.06)', borderLeft:'3px solid ' + statusColor, borderRadius:'0 6px 6px 0', fontSize:12.5, color:'var(--ink-2)', lineHeight:1.5}}>
+              <div style={{marginTop:10, padding:'8px 10px', background: existing.status === 'approved' ? 'rgba(188,214,48,0.1)' : 'rgba(110,80,238,0.06)', borderLeft:'3px solid ' + statusColor, borderRadius:'0 6px 6px 0', fontSize:12.5, color:'var(--ink-2)', lineHeight:1.5}}>
                 <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:3}}>Feedback {existing.reviewedBy ? '· ' + existing.reviewedBy.name : ''}</div>
                 {existing.feedback}
               </div>
@@ -4163,7 +4163,7 @@ function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
       )}
 
       {error && (
-        <div style={{marginTop:12, padding:'9px 12px', background:'rgba(235,0,41,0.08)', border:'1px solid rgba(235,0,41,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>
+        <div style={{marginTop:12, padding:'9px 12px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.25)', borderRadius:8, color:'var(--repsol-red)', fontSize:12.5}}>{error}</div>
       )}
 
       <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:14}}>

@@ -1402,7 +1402,7 @@ body.cinematic-mode { background: #0D1117 !important; }
   display: inline-flex; align-items: center; gap: 4px; width: fit-content;
 }
 .kpi-delta.up { background: rgba(188,214,48,0.15); color: #3d5600; }
-.kpi-delta.down { background: rgba(235,0,41,0.1); color: var(--repsol-red); }
+.kpi-delta.down { background: rgba(110,80,238,0.1); color: var(--repsol-red); }
 
 .dash-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; margin-bottom: 20px; }
 .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
@@ -1606,7 +1606,7 @@ body.cinematic-mode { background: #0D1117 !important; }
   border-left: 1px solid var(--line);
 }
 .cron-week.milestone-start { background: rgba(188,214,48,0.12); color: var(--beonit-lime); font-weight: 700; }
-.cron-week.milestone-end { background: rgba(235,0,41,0.08); color: var(--repsol-red); font-weight: 700; }
+.cron-week.milestone-end { background: rgba(110,80,238,0.08); color: var(--repsol-red); font-weight: 700; }
 .cron-phase-block { border-bottom: 1px solid var(--line); }
 .cron-phase-block:last-child { border-bottom: none; }
 .cron-row {
@@ -2723,7 +2723,7 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
   background: linear-gradient(135deg, var(--repsol-red), #B8001F);
   padding: 5px 11px;
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(235,0,41,0.4);
+  box-shadow: 0 4px 12px rgba(110,80,238,0.4);
 }
 .cine-hero-badge-cat {
   font-family: var(--mono);
@@ -3561,7 +3561,7 @@ h1 em, h2 em, .lms-hero h1 em, .fb-content h2 em, .row-head h2 em,
 .coach-v2-status.status-live   span { background: var(--bn-lime); box-shadow: 0 0 6px rgba(188,214,48,0.6); }
 .coach-v2-status.status-demo   { color: #7a4400; border-color: rgba(243,165,37,0.4); background: rgba(243,165,37,0.08); }
 .coach-v2-status.status-demo   span { background: var(--bn-orange); }
-.coach-v2-status.status-error  { color: var(--repsol-red); border-color: rgba(235,0,41,0.3); background: rgba(235,0,41,0.06); }
+.coach-v2-status.status-error  { color: var(--repsol-red); border-color: rgba(110,80,238,0.3); background: rgba(110,80,238,0.06); }
 .coach-v2-status.status-error  span { background: var(--repsol-red); }
 
 /* Welcome panel · cuando aún no has charlado */

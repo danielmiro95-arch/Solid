@@ -8,7 +8,7 @@ const CATEGORY_COLORS = {
   'Fundamentos':    '#0072BE',
   'Estructura':     '#005a96',
   'Gobernanza':     '#3d31cc',
-  'Social Publish': '#EB0029',
+  'Social Publish': '#6E50EE',
   'Activos':        '#036837',
   'Aprobaciones':   '#8A3992',
   'Compliance':     '#1a1a2e',
