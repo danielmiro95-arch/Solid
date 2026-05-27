@@ -1860,7 +1860,9 @@ function SettingsView({ setView }) {
   const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
 
   // Color de acento neutro para los paneles dentro de Settings
-  const accentColor = 'var(--accent)';
+  // IMPORTANTE: usar hex directo (no CSS var) porque varios panels hacen
+  // concatenación como `${channelColor}12` para alpha · CSS var() rompe ahí.
+  const accentColor = '#6E50EE';
 
   const save = (key, val) => {
     if (window.Settings && window.Settings.update) window.Settings.update({ [key]: val });

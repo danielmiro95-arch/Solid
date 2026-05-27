@@ -210,6 +210,9 @@ function WorkspaceSwitcher() {
 }
 
 function TopNav({ view, onView, onSearch, onLogout }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Close mobile nav al navegar
+  useEffect(() => { setMobileNavOpen(false); }, [view]);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(() => (window.Inbox && window.Inbox.unreadCount && window.Inbox.unreadCount()) || 0);
@@ -289,6 +292,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
       </div>
 
       <div className="topnav-right" ref={menuRef} style={{position:'relative'}}>
+        {/* Hamburger · solo visible en mobile via CSS */}
+        <button className="topnav-hamburger icon-btn" onClick={() => setMobileNavOpen(o => !o)} aria-label="Menú" title="Menú">
+          <Ico name={mobileNavOpen ? 'close' : 'menu'} size={20}/>
+        </button>
         <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
         <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
           <Ico name="bell" size={18}/>
@@ -365,6 +372,29 @@ function TopNav({ view, onView, onSearch, onLogout }) {
           </div>
         )}
       </div>
+
+      {/* Mobile nav drawer · visible solo en móvil cuando hamburger está abierto */}
+      {mobileNavOpen && (
+        <div className="topnav-mobile-drawer" onClick={() => setMobileNavOpen(false)}>
+          <div className="topnav-mobile-panel" onClick={e => e.stopPropagation()}>
+            {items.map(it => (
+              <button key={it.k} className={`mobile-nav-item ${view === it.k ? 'active' : ''}`} onClick={() => { onView(it.k); setMobileNavOpen(false); }}>
+                {it.label}
+              </button>
+            ))}
+            <div className="mobile-nav-divider"/>
+            {menuItems.map(mi => (
+              <button key={mi.k} className={`mobile-nav-item ${view === mi.k ? 'active' : ''}`} onClick={() => { onView(mi.k); setMobileNavOpen(false); }}>
+                {mi.label} {mi.badge ? <span className="mobile-nav-badge">{mi.badge}</span> : null}
+              </button>
+            ))}
+            <div className="mobile-nav-divider"/>
+            <button className="mobile-nav-item mobile-nav-logout" onClick={() => { onLogout && onLogout(); setMobileNavOpen(false); }}>
+              {(window.I18n ? window.I18n.t('common.logout') : 'Cerrar sesión')}
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

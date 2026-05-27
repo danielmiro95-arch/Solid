@@ -75,7 +75,18 @@
 
     const ROWS = [];
     if (inProgress.length > 0) {
-      ROWS.push({ key:'continue', title:'Continúa, Inés', sub:'donde lo dejaste', pillIds: inProgress, showProgress: true });
+      // Nombre del user actual · fallback genérico si no hay sesión
+      const userProf = window.UserProfile ? window.UserProfile.get() : null;
+      const firstName = (userProf && userProf.name && userProf.name !== 'Sin sesión')
+        ? String(userProf.name).split(/\s+/)[0]
+        : (window.I18n ? window.I18n.t('home.continue.fallback', 'tú') : 'tú');
+      const T = window.I18n ? window.I18n.t.bind(window.I18n) : (k, f) => f;
+      ROWS.push({
+        key: 'continue',
+        title: T('home.continue.title','Continúa, {name}').replace('{name}', firstName),
+        sub:   T('home.continue.sub','donde lo dejaste'),
+        pillIds: inProgress, showProgress: true,
+      });
     }
     if (withVideo.length > 0) {
       ROWS.push({ key:'available', title:'Disponibles ahora', sub:'reproducir directamente', pillIds: withVideo });
@@ -115,16 +126,31 @@
     }));
 
     // ── USER · del Auth/UserProfile actual ──
-    const profile = (window.UserProfile && window.UserProfile.get()) || { name: 'Usuario', role: 'Publish Agent', team: 'Repsol' };
-    const fullName = profile.name || 'Usuario SGS';
+    // Triple fallback · UserProfile → Auth.currentUser directo → datos del SGS_DATA viejo
+    const profile = (window.UserProfile && window.UserProfile.get()) || null;
+    const sessionUser = (window.Auth && window.Auth.currentUser && window.Auth.currentUser()) || null;
+    function _firstNameOrEmail(p, fallback) {
+      if (!p) return fallback;
+      if (p.name && p.name !== 'Sin sesión') return p.name;
+      // Si el name es default, usa la parte local del email capitalizada
+      if (p.email) {
+        const local = String(p.email).split('@')[0];
+        return local.charAt(0).toUpperCase() + local.slice(1);
+      }
+      return fallback;
+    }
+    const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
     const USER = {
+      id:       (profile && profile.id) || (sessionUser && sessionUser.id),
       name:     fullName,
       initials: initials,
-      role:     profile.role || 'Publish Agent',
-      team:     profile.team || 'Repsol',
+      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent',
+      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || 'Repsol',
+      email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
-      isAdmin:  !!profile.isAdmin,
+      isAdmin:  !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin'))),
+      systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 
     // ── SIDEBAR_LINKS · usa los items de tu sidebar actual ──

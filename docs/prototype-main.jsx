@@ -1452,12 +1452,21 @@ const Auth = (function() {
     _migrateLegacyRole(u);
     var required = PERMISSIONS[action];
     if (!required) return false;
+    // Fallback robusto: si user.isAdmin es true o el email contiene admin/@beonit.,
+    // promueve in-flight a admin. Evita "Acceso restringido" cuando systemRole
+    // no se persistió correctamente en signup viejo.
+    if (u.isAdmin || /admin/i.test(u.email || '') || /@beonit\./i.test(u.email || '')) {
+      u.systemRole = 'admin';
+    }
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[required];
   }
   function hasRole(role) {
     var u = currentUser();
     if (!u) return false;
     _migrateLegacyRole(u);
+    if (u.isAdmin || /admin/i.test(u.email || '') || /@beonit\./i.test(u.email || '')) {
+      u.systemRole = 'admin';
+    }
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[role];
   }
 
@@ -2864,6 +2873,7 @@ const I18n = (function() {
       'admin.full':'Panel completo →',
       'admin.locked':'Acceso restringido',
       'hero.play':'Reproducir', 'hero.more':'Más información', 'hero.sound':'Sonido',
+      'home.continue.title':'Continúa, {name}', 'home.continue.sub':'donde lo dejaste', 'home.continue.fallback':'tú',
       'coach.greeting':'Hola', 'coach.askYou':'¿qué quieres dominar hoy?',
       'coach.subtitle':'Pregunta sobre Sprinklr, tu ruta, métricas de Care, flujos de aprobación o cualquier pill.',
       'coach.placeholder':'Pregunta a BeonAI…',
@@ -3109,6 +3119,7 @@ const I18n = (function() {
       'admin.full':'Full panel →',
       'admin.locked':'Access restricted',
       'hero.play':'Play', 'hero.more':'More info', 'hero.sound':'Sound',
+      'home.continue.title':'Keep going, {name}', 'home.continue.sub':'where you left off', 'home.continue.fallback':'you',
       'coach.greeting':'Hi', 'coach.askYou':'what do you want to master today?',
       'coach.subtitle':'Ask about Sprinklr, your path, Care metrics, approval flows or any pill.',
       'coach.placeholder':'Ask BeonAI…',
@@ -3354,6 +3365,7 @@ const I18n = (function() {
       'admin.full':'Painel completo →',
       'admin.locked':'Acesso restrito',
       'hero.play':'Reproduzir', 'hero.more':'Mais informações', 'hero.sound':'Som',
+      'home.continue.title':'Continue, {name}', 'home.continue.sub':'de onde parou', 'home.continue.fallback':'você',
       'coach.greeting':'Olá', 'coach.askYou':'o que quer dominar hoje?',
       'coach.subtitle':'Pergunte sobre Sprinklr, sua trilha, métricas de Care, fluxos de aprovação ou qualquer pill.',
       'coach.placeholder':'Pergunte ao BeonAI…',
