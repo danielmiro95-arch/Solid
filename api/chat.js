@@ -180,7 +180,9 @@ export default async function handler(req, res) {
         return res.end();
       }
       setCors(res);
-      return res.status(500).json({ error: 'Claude API error', detail: process.env.NODE_ENV === 'development' ? err.message : undefined });
+      // Detail incluido SIEMPRE temporalmente para diagnosticar 500s en producción.
+      // TODO: quitar el detail tras debug terminado (vuelve a `NODE_ENV === 'development'`).
+      return res.status(500).json({ error: 'Claude API error', detail: err.message, stack: err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : undefined });
     }
 
     if (stream) {
@@ -268,6 +270,8 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('[beonai] api error:', err.message);
     setCors(res);
-    return res.status(500).json({ error: 'Claude API error', detail: process.env.NODE_ENV === 'development' ? err.message : undefined });
+    // Detail incluido SIEMPRE temporalmente para diagnosticar 500s en producción.
+    // TODO: quitar el detail tras debug terminado.
+    return res.status(500).json({ error: 'Claude API error', detail: err.message, stack: err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : undefined });
   }
 }
