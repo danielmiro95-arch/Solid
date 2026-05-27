@@ -697,6 +697,92 @@ const NotificationRules = (function() {
 })();
 window.NotificationRules = NotificationRules;
 
+// ── ChannelNotifs · matriz Sprinklr-style · por tipo × por canal ─────────
+// Estructura: { <notifTypeId>: { whatsapp: bool, teams: bool, email: bool, slack: bool, push: bool } }
+const ChannelNotifs = (function() {
+  const KEY = 'solid-channel-notifs';
+
+  // Tipos de notificación · independientes del canal
+  const TYPES = [
+    { id:'daily_module',  icon:'📚', label:'Módulo diario',          desc:'Tu pill del día a primera hora' },
+    { id:'meeting_brief', icon:'🗓', label:'Brief antes de reunión', desc:'30 min antes · contexto Sprinklr relacionado' },
+    { id:'weekly_recap',  icon:'📈', label:'Resumen semanal',        desc:'Tu progreso de la semana · viernes 17:00' },
+    { id:'beonai_chat',   icon:'✨', label:'Respuestas de BeonAI',   desc:'Si preguntas algo desde el canal, te responde aquí' },
+    { id:'new_workshop',  icon:'🛠', label:'Nuevo taller',            desc:'Aviso cuando se publica un workshop relevante' },
+    { id:'deadlines',     icon:'⏰', label:'Deadlines y recordatorios', desc:'Certificaciones, talleres en directo, fechas límite' },
+    { id:'ai_recs',       icon:'🎯', label:'Recomendaciones IA',     desc:'BeonAI te sugiere contenido cuando detecta uno relevante' },
+  ];
+
+  // Por defecto · WhatsApp activo para módulo diario y briefs
+  const DEFAULTS = {
+    daily_module:  { whatsapp:true,  teams:false, email:false, slack:false, push:false },
+    meeting_brief: { whatsapp:true,  teams:false, email:false, slack:false, push:false },
+    weekly_recap:  { whatsapp:false, teams:false, email:true,  slack:false, push:false },
+    beonai_chat:   { whatsapp:false, teams:false, email:false, slack:false, push:false },
+    new_workshop:  { whatsapp:false, teams:false, email:true,  slack:false, push:false },
+    deadlines:     { whatsapp:true,  teams:false, email:true,  slack:false, push:false },
+    ai_recs:       { whatsapp:false, teams:false, email:false, slack:false, push:false },
+  };
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') {
+        const merged = {};
+        TYPES.forEach(t => { merged[t.id] = { ...DEFAULTS[t.id], ...(s[t.id] || {}) }; });
+        return merged;
+      }
+    } catch(e) {}
+    // deep copy de DEFAULTS
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  function save(state) {
+    localStorage.setItem(_userKey(), JSON.stringify(state));
+    window.dispatchEvent(new CustomEvent('channel-notifs-changed', { detail: state }));
+    return state;
+  }
+
+  function toggle(typeId, channelId) {
+    const cur = get();
+    if (!cur[typeId]) cur[typeId] = {};
+    cur[typeId][channelId] = !cur[typeId][channelId];
+    return save(cur);
+  }
+
+  function setAll(channelId, value) {
+    const cur = get();
+    TYPES.forEach(t => {
+      if (!cur[t.id]) cur[t.id] = {};
+      cur[t.id][channelId] = !!value;
+    });
+    return save(cur);
+  }
+
+  function countForChannel(channelId) {
+    const cur = get();
+    return TYPES.filter(t => cur[t.id] && cur[t.id][channelId]).length;
+  }
+
+  function reset() {
+    localStorage.removeItem(_userKey());
+    const d = JSON.parse(JSON.stringify(DEFAULTS));
+    window.dispatchEvent(new CustomEvent('channel-notifs-changed', { detail: d }));
+    return d;
+  }
+
+  return { TYPES, get, save, toggle, setAll, countForChannel, reset };
+})();
+window.ChannelNotifs = ChannelNotifs;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy

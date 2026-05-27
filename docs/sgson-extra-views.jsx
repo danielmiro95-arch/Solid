@@ -288,8 +288,8 @@ function ChannelsView() {
       {/* CHANNEL MANAGER · conectar / desconectar / re-autenticar / marcar principal */}
       <ChannelManagerPanel chState={chState} catalog={catalog}/>
 
-      {/* PREVIEW MULTI-CANAL · vista previa específica por canal + test */}
-      <ChannelPreviewPanel chState={chState} catalog={catalog}/>
+      {/* MATRIZ DE NOTIFICACIONES · una columna por canal conectado · estilo Sprinklr */}
+      <ChannelNotificationsMatrix chState={chState} catalog={catalog}/>
 
       {/* DELIVERY PREFERENCES · cuándo recibir contenido (con max/día) */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
@@ -704,6 +704,146 @@ function ContentPushPanel({ channelColor }) {
           Auto-save · {new Date(prefs.updatedAt || Date.now()).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
         </div>
       </div>
+    </section>
+  );
+}
+
+// ── Channel Notifications Matrix · una columna por canal × tipos comunes ──
+function ChannelNotificationsMatrix({ chState, catalog }) {
+  const connected = (catalog || []).filter(c => chState[c.id] && chState[c.id].connected);
+  const [state, setState] = useEV2(() => (window.ChannelNotifs ? window.ChannelNotifs.get() : {}));
+  const [history, setHistory] = useEV2(() => (window.TestSends ? window.TestSends.list() : []));
+
+  useEE2(() => {
+    const onChange = (e) => setState(e.detail);
+    window.addEventListener('channel-notifs-changed', onChange);
+    return () => window.removeEventListener('channel-notifs-changed', onChange);
+  }, []);
+  useEE2(() => {
+    const onChange = (e) => setHistory(e.detail);
+    window.addEventListener('test-sends-changed', onChange);
+    return () => window.removeEventListener('test-sends-changed', onChange);
+  }, []);
+
+  const TYPES = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
+
+  if (connected.length === 0) {
+    return (
+      <section style={{ marginTop: 40, padding:'24px 22px', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius: 14, textAlign:'center' }}>
+        <div style={{ fontSize: 32, opacity: 0.45, marginBottom: 8 }}>📱</div>
+        <h3 style={{ margin:'0 0 4px', fontFamily:'var(--font-sans)', fontSize: 16, color:'var(--fg)' }}>Sin canales conectados</h3>
+        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Conecta al menos un canal arriba para configurar tus notificaciones.</div>
+      </section>
+    );
+  }
+
+  const toggle = (typeId, channelId) => window.ChannelNotifs && window.ChannelNotifs.toggle(typeId, channelId);
+  const setAll = (channelId, value) => window.ChannelNotifs && window.ChannelNotifs.setAll(channelId, value);
+  const isOn = (typeId, channelId) => !!(state[typeId] && state[typeId][channelId]);
+  const sendTest = (c) => window.TestSends && window.TestSends.send(c.id, c.label);
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Notificaciones por canal</h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
+          {TYPES.length} tipos · {connected.length} canal{connected.length === 1 ? '' : 'es'}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 18 }}>
+        Activa el mismo tipo de aviso en uno o varios canales a la vez. Cada columna se configura independientemente.
+      </div>
+
+      {/* MATRIZ · columnas por canal, filas por tipo */}
+      <div style={{ display:'grid', gridTemplateColumns: `220px repeat(${connected.length}, minmax(180px, 1fr))`, gap: 0, border:'1px solid var(--line)', borderRadius: 14, overflow:'hidden', background:'var(--bg-surface)' }}>
+        {/* HEADER · primera fila */}
+        <div style={{ padding:'14px 16px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--line)', fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700 }}>
+          Tipo de notificación
+        </div>
+        {connected.map(c => {
+          const channelOn = window.ChannelNotifs ? window.ChannelNotifs.countForChannel(c.id) : 0;
+          const allOn = channelOn === TYPES.length;
+          return (
+            <div key={c.id} style={{ padding:'12px 14px', background:`linear-gradient(180deg, ${c.color}18 0%, ${c.color}06 100%)`, borderBottom:'1px solid var(--line)', borderLeft:'1px solid var(--line)', display:'flex', flexDirection:'column', gap: 8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: c.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{c.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
+                  <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{channelOn}/{TYPES.length} activas</div>
+                </div>
+                {chState.primary === c.id && (
+                  <div title="Canal principal" style={{ fontSize: 12, color: c.color, fontWeight: 800 }}>★</div>
+                )}
+              </div>
+              <div style={{ display:'flex', gap: 4, flexWrap:'wrap' }}>
+                <button onClick={() => setAll(c.id, !allOn)} title={allOn ? 'Desactivar todas' : 'Activar todas'}
+                  style={{ flex: 1, padding:'5px 8px', fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.04em', textTransform:'uppercase', fontWeight: 700, background:'transparent', border:`1px solid ${c.color}55`, color: c.color, borderRadius: 6, cursor:'pointer' }}>
+                  {allOn ? '× Desactivar todas' : '✓ Activar todas'}
+                </button>
+                <button onClick={() => sendTest(c)} title={`Enviar test a ${c.label}`}
+                  style={{ padding:'5px 8px', fontFamily:'var(--font-mono)', fontSize: 9.5, letterSpacing:'0.04em', textTransform:'uppercase', fontWeight: 700, background: c.color, border:'none', color:'#fff', borderRadius: 6, cursor:'pointer' }}>
+                  📨 Test
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* FILAS · tipo de notificación × cada columna */}
+        {TYPES.map((t, ri) => (
+          <React.Fragment key={t.id}>
+            <div style={{ padding:'14px 16px', borderTop: ri > 0 ? '1px solid var(--line)' : 'none', background:'var(--bg-surface)', display:'flex', alignItems:'flex-start', gap: 10 }}>
+              <div style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{t.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color:'var(--fg)' }}>{t.label}</div>
+                <div style={{ fontSize: 11, color:'var(--fg-muted)', marginTop: 2, lineHeight: 1.4 }}>{t.desc}</div>
+              </div>
+            </div>
+            {connected.map(c => {
+              const on = isOn(t.id, c.id);
+              return (
+                <div key={c.id} onClick={() => toggle(t.id, c.id)}
+                  style={{
+                    padding:'14px 16px', borderTop: ri > 0 ? '1px solid var(--line)' : 'none', borderLeft:'1px solid var(--line)',
+                    background: on ? `${c.color}08` : 'var(--bg-surface)',
+                    cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                    transition:'background .12s',
+                  }}>
+                  <div style={{ width: 44, height: 24, background: on ? c.color : 'rgba(15,23,42,0.18)', borderRadius: 12, position:'relative', transition:'background .2s', flexShrink: 0 }}>
+                    <div style={{ width: 18, height: 18, background:'#fff', borderRadius:'50%', position:'absolute', top: 3, left: on ? 23 : 3, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
+                  </div>
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Resumen + historial test */}
+      <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'flex-start', flexWrap:'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240, fontSize: 11.5, color:'var(--fg-muted)' }}>
+          Tip · activa la misma notificación en varios canales si quieres redundancia (ej: WhatsApp + Email para deadlines críticos).
+        </div>
+        <button onClick={() => { window.ChannelNotifs && window.ChannelNotifs.reset(); }}
+          style={{ padding:'7px 12px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 11.5, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
+          ↻ Restablecer matriz
+        </button>
+      </div>
+
+      {/* Historial de tests · solo si hay envíos */}
+      {history.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight: 700, marginBottom: 8 }}>Últimos tests · {history.length}</div>
+          <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
+            {history.slice(0, 8).map(h => (
+              <div key={h.id} style={{ padding:'5px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 999, display:'inline-flex', alignItems:'center', gap: 6, fontSize: 11, color:'var(--fg-muted)' }}>
+                <span style={{ width: 5, height: 5, borderRadius:'50%', background:'var(--ok)' }}/>
+                {h.channelLabel} · {new Date(h.ts).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
