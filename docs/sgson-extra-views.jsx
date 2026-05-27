@@ -163,6 +163,7 @@ function RutasView({ setView, openPath }) {
    MyPathView · progreso del usuario + próximas pills
    ============================================================ */
 function MyPathView({ openDetail, setView, pathId }) {
+  const [showExam, setShowExam] = useEV2(false);
   const D = window.SGS_DATA;
   const ALL_PILLS = (D && D.PILLS) || [];
   const PATHS = (D && D.LEARNING_PATHS) || [];
@@ -194,7 +195,16 @@ function MyPathView({ openDetail, setView, pathId }) {
       sub={path
         ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
         : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}
-      actions={path && setView ? <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>← Todas las rutas</button> : null}>
+      actions={path && setView ? (
+        <div style={{ display:'flex', gap: 10 }}>
+          {totalProgress >= 70 && window.RouteExamModal && (
+            <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 4px 12px rgba(89,71,255,0.30)' }}>
+              🎓 Hacer examen final
+            </button>
+          )}
+          <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>← Todas las rutas</button>
+        </div>
+      ) : null}>
 
       {/* Barra de progreso grande */}
       <div style={{
@@ -277,6 +287,16 @@ function MyPathView({ openDetail, setView, pathId }) {
             })}
           </div>
         </section>
+      )}
+
+      {/* Examen final · solo si hay path y el modal global está disponible */}
+      {showExam && path && window.RouteExamModal && (
+        <window.RouteExamModal
+          routeId={path.id}
+          routeLabel={pTitle}
+          onClose={() => setShowExam(false)}
+          onPassed={() => { setShowExam(false); if (window.Toast) window.Toast.success('¡Examen aprobado! Certificado generado.', { icon:'🏆' }); }}
+        />
       )}
     </PageShell>
   );
@@ -976,6 +996,12 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
         <div style={{ flex: 1, minWidth: 240, fontSize: 11.5, color:'var(--fg-muted)' }}>
           Tip · activa la misma notificación en varios canales si quieres redundancia (ej: WhatsApp + Email para deadlines críticos).
         </div>
+        {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && Notification.permission !== 'denied' && (
+          <button onClick={() => window.TestSends && window.TestSends.requestPermission()}
+            style={{ padding:'7px 12px', background:'transparent', border:'1px solid var(--accent)', color:'var(--accent)', borderRadius: 8, cursor:'pointer', fontSize: 11.5, fontFamily:'var(--font-sans)', fontWeight: 700 }}>
+            🔔 Activar notificaciones nativas
+          </button>
+        )}
         <button onClick={() => { window.ChannelNotifs && window.ChannelNotifs.reset(); }}
           style={{ padding:'7px 12px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 11.5, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
           ↻ Restablecer matriz
@@ -1366,6 +1392,13 @@ function InboxView({ openDetail }) {
           {m.from && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>De · {m.from}</div>}
           {m.version && <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 6 }}>v{m.version}</div>}
         </div>
+        {tab !== 'releases' && (
+          <button onClick={(e) => { e.stopPropagation(); if (confirm('¿Borrar este elemento?')) { window.Inbox && window.Inbox.deleteItem && window.Inbox.deleteItem(tab, m.id); } }}
+            title="Borrar" aria-label="Borrar"
+            style={{ width: 28, height: 28, padding: 0, flexShrink: 0, background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 6, cursor:'pointer', fontSize: 14, alignSelf:'flex-start' }}>
+            ×
+          </button>
+        )}
       </article>
     );
   };
@@ -1487,10 +1520,31 @@ function ProfileView({ setView }) {
   const PILLS = (D && D.PILLS) || [];
   const completed = PILLS.filter(p => p.progress >= 1).length;
   const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1).length;
+  const [editing, setEditing] = useEV2(false);
+  const [name, setName] = useEV2(USER.name || '');
+  const [role, setRole] = useEV2(USER.role || '');
+  const [team, setTeam] = useEV2(USER.team || '');
+
+  // Reset cuando el usuario cambia (login/logout)
+  useEE2(() => {
+    setName(USER.name || ''); setRole(USER.role || ''); setTeam(USER.team || '');
+  }, [USER.id]);
 
   const handleLogout = () => {
     if (!confirm('¿Cerrar sesión de ' + USER.name + '?')) return;
     if (window.Auth && window.Auth.logout) window.Auth.logout();
+  };
+
+  const saveEdits = () => {
+    if (window.UserProfile && window.UserProfile.update) {
+      window.UserProfile.update({ name, role, team });
+      if (window.Toast) window.Toast.success('Perfil actualizado', { icon:'✓' });
+    }
+    setEditing(false);
+  };
+  const cancelEdits = () => {
+    setName(USER.name || ''); setRole(USER.role || ''); setTeam(USER.team || '');
+    setEditing(false);
   };
 
   return (
@@ -1512,11 +1566,31 @@ function ProfileView({ setView }) {
           fontSize: 38, fontWeight: 800, fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em',
           flexShrink: 0,
         }}>{USER.initials || 'U'}</div>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 24, fontWeight: 700, color: 'var(--fg)', margin: 0, marginBottom: 4 }}>{USER.name}</h2>
-          <div style={{ fontSize: 14, color: 'var(--fg-muted)', marginBottom: 12 }}>{USER.role} · {USER.team}</div>
-          {USER.isAdmin && <span style={{ display:'inline-block', fontFamily:'var(--font-mono)', fontSize:9.5, fontWeight:800, letterSpacing:'0.12em', textTransform:'uppercase', padding:'4px 9px', background:'var(--accent)', color:'#fff', borderRadius:4 }}>ADMIN</span>}
-        </div>
+        {!editing && (
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 24, fontWeight: 700, color: 'var(--fg)', margin: 0, marginBottom: 4 }}>{USER.name}</h2>
+            <div style={{ fontSize: 14, color: 'var(--fg-muted)', marginBottom: 12 }}>{USER.role} · {USER.team}</div>
+            {USER.isAdmin && <span style={{ display:'inline-block', fontFamily:'var(--font-mono)', fontSize:9.5, fontWeight:800, letterSpacing:'0.12em', textTransform:'uppercase', padding:'4px 9px', background:'var(--accent)', color:'#fff', borderRadius:4 }}>ADMIN</span>}
+          </div>
+        )}
+        {editing && (
+          <div style={{ flex: 1, display:'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
+            <label style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Nombre</span>
+              <input value={name} onChange={e => setName(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}/>
+            </label>
+            <label style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Equipo</span>
+              <input value={team} onChange={e => setTeam(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}/>
+            </label>
+            <label style={{ display:'flex', flexDirection:'column', gap:4, gridColumn:'1 / -1' }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight: 700 }}>Rol</span>
+              <select value={role} onChange={e => setRole(e.target.value)} style={{ padding:'10px 12px', fontSize: 14, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)' }}>
+                {['Publish Agent','Care Agent','Reporting Agent','Manager','Analyst','Content Lead','Otro'].map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -1535,6 +1609,28 @@ function ProfileView({ setView }) {
 
       {/* Acciones */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {!editing && (
+          <button onClick={() => setEditing(true)} style={{
+            padding: '12px 20px', background: 'var(--accent)', color: '#fff',
+            border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14,
+            boxShadow:'0 4px 12px rgba(89,71,255,0.30)',
+          }}>✎ Editar perfil</button>
+        )}
+        {editing && (
+          <>
+            <button onClick={saveEdits} style={{
+              padding: '12px 20px', background: 'var(--ok)', color: '#fff',
+              border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14,
+            }}>✓ Guardar</button>
+            <button onClick={cancelEdits} style={{
+              padding: '12px 20px', background: 'transparent', color: 'var(--fg-muted)',
+              border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
+            }}>Cancelar</button>
+          </>
+        )}
         <button onClick={() => setView('settings')} style={{
           padding: '12px 20px', background: 'var(--bg-elevated)', color: 'var(--fg)',
           border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
@@ -1673,9 +1769,9 @@ function AdminView({ setView, openLegacyAdmin }) {
           const pendingInv = invites.filter(i => i.status === 'pending' || i.status === 'invited' || !i.status).length;
           const PILLS = (D && D.PILLS) || [];
           const completedTotal = PILLS.filter(p => p.progress >= 1).length;
-          const ratingsAll = (window.Ratings && window.Ratings.getAll && window.Ratings.getAll()) || {};
-          const stars = Object.values(ratingsAll).map(r => r && r.stars).filter(n => n > 0);
-          const avgRating = stars.length ? (stars.reduce((a,b) => a+b, 0) / stars.length) : 0;
+          const ratingStats = (window.Ratings && window.Ratings.globalStats && window.Ratings.globalStats()) || { avg: 0, count: 0 };
+          const avgRating = ratingStats.avg || 0;
+          const stars = { length: ratingStats.count || 0 };
           const adminCount = users.filter(u => u.isAdmin || u.role === 'admin').length;
           return [
             { title: 'Usuarios',            value: String(users.length),    desc: `${adminCount} admin${adminCount === 1 ? '' : 's'} · plataforma`, icon: '👥' },

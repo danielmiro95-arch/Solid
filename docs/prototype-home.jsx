@@ -392,7 +392,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
   const [saved, setSaved] = React.useState(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
   const [rated, setRated]  = React.useState(() => {
     const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
-    return r && r.stars >= 4;
+    return typeof r === 'number' ? r >= 4 : !!(r && r.stars >= 4);
   });
   React.useEffect(() => {
     const onB = () => setSaved(window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
@@ -456,7 +456,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
         <button className="card-action" aria-label="Más info" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
           <Ico name="chev-down" size={14}/>
         </button>
-        <span className="card-match">{Math.round(78 + (pill.id * 17) % 22)}% match</span>
+        <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
       </div>
 
       {showProgress && pill.progress > 0 && (
@@ -570,7 +570,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   );
 }
 
-function Home({ openDetail, openPlayer, setView }) {
+function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
   useEffect(() => {
     const refresh = () => force(x => x + 1);
@@ -588,7 +588,7 @@ function Home({ openDetail, openPlayer, setView }) {
     );
   }
 
-  const onOpenPath = () => setView('rutas');
+  const onOpenPath = (p) => { if (p && p.id && openPath) openPath(p.id); else setView('rutas'); };
   const onSeeAll = () => setView('browse');
 
   return (

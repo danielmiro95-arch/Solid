@@ -193,7 +193,7 @@ function Player({ back, item }) {
                 <Icon name="back" size={12}/> Volver al módulo
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
-                <button className="back" style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
+                <button className="back" onClick={() => { const setAIMode = window.__setAIMode; if (setAIMode) setAIMode('hero'); else if (window.Toast) window.Toast.info('Abre BeonAI desde el botón inferior', { icon:'✦' }); }} style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
                   ✦ BeonAI activo
                 </button>
               </div>
@@ -210,8 +210,8 @@ function Player({ back, item }) {
             <div className="player-overlay-top">
               <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
               <div style={{display:'flex', gap:8}}>
-                <button className="back"><Icon name="caption" size={12}/> SUB</button>
-                <button className="back">BeonAI activo</button>
+                <button className="back" onClick={() => setShowSubs(s => !s)} title={showSubs ? 'Desactivar subtítulos' : 'Activar subtítulos'} style={{background: showSubs ? 'rgba(108,95,252,0.18)' : 'transparent'}}><Icon name="caption" size={12}/> SUB</button>
+                <button className="back" onClick={() => { const setAIMode = window.__setAIMode; if (setAIMode) setAIMode('hero'); else if (window.Toast) window.Toast.info('Abre BeonAI desde el botón inferior', { icon:'✦' }); }}>BeonAI activo</button>
               </div>
             </div>
             <div className="player-overlay-bottom">
@@ -263,7 +263,7 @@ function Player({ back, item }) {
           </div>
         </div>
         {PILLS.filter(p => p.yt && p.id !== it.id).slice(0, 4).map(c => (
-          <div key={c.id} className="pchap" onClick={() => { window.__playerItem = c; back(); setTimeout(() => window.dispatchEvent(new CustomEvent('__openPlayer', {detail: c})), 50); }}>
+          <div key={c.id} className="pchap" onClick={() => { back(); setTimeout(() => window.dispatchEvent(new CustomEvent('__openPlayer', {detail: c})), 50); }}>
             <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
               <div className="n">CON VÍDEO</div>
@@ -273,7 +273,10 @@ function Player({ back, item }) {
           </div>
         ))}
         {!hasVideo && chapters.map(c => (
-          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`} onClick={() => setPlaying(true)}>
+          <div key={c.n} className={`pchap ${c.active ? 'active' : ''}`}
+            onClick={() => { setCurrentSec(c.start || 0); setPlaying(true); }}
+            title={`Saltar a ${Math.floor((c.start||0)/60)}:${((c.start||0)%60).toString().padStart(2,'0')}`}
+            style={{ cursor:'pointer' }}>
             <div className="thumb"><div className={`ph ${c.tone}`}/></div>
             <div>
               <div className="n">LECCIÓN {String(c.n).padStart(2,'0')}</div>
@@ -342,7 +345,6 @@ function AISidekick({ setAIMode, aiMode, view }) {
     'default': 'Entendido. Puedo ayudarte con Social Publish, Care, Analytics, aprobaciones y tu certificación Sprinklr × Repsol. ¿Qué necesitas?',
   };
 
-  useS2.length; // noop to avoid unused
   React.useEffect(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [dynMsgs.length, loading]);
