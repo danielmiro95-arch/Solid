@@ -606,6 +606,97 @@ const TestSends = (function() {
 })();
 window.TestSends = TestSends;
 
+// ── NotificationRules · quiet hours · vacation · digest · límites ─────────
+const NotificationRules = (function() {
+  const KEY = 'solid-notif-rules';
+
+  const DEFAULTS = {
+    digest: 'instant',      // 'instant' | 'daily' | 'weekly'
+    quietHours: {
+      enabled: true,
+      from: '22:00',
+      to:   '08:00',
+    },
+    vacation: {
+      enabled: false,
+      until: '',            // YYYY-MM-DD
+    },
+    maxPerDay: 3,
+    priority: 'all',        // 'all' | 'high' | 'relevant'
+    smartReminder: true,    // omitir si ya viste el contenido
+    updatedAt: Date.now(),
+  };
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') {
+        return {
+          ...DEFAULTS,
+          ...s,
+          quietHours: { ...DEFAULTS.quietHours, ...(s.quietHours || {}) },
+          vacation:   { ...DEFAULTS.vacation,   ...(s.vacation   || {}) },
+        };
+      }
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  function save(rules) {
+    const next = { ...rules, updatedAt: Date.now() };
+    localStorage.setItem(_userKey(), JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('notif-rules-changed', { detail: next }));
+    return next;
+  }
+
+  function update(patch) {
+    const cur = get();
+    return save({ ...cur, ...patch });
+  }
+
+  function reset() {
+    localStorage.removeItem(_userKey());
+    const d = JSON.parse(JSON.stringify(DEFAULTS));
+    window.dispatchEvent(new CustomEvent('notif-rules-changed', { detail: d }));
+    return d;
+  }
+
+  // Comprueba si AHORA estamos en quiet hours o vacation
+  function isMuted() {
+    const r = get();
+    if (r.vacation && r.vacation.enabled) {
+      if (!r.vacation.until) return true;
+      try {
+        const until = new Date(r.vacation.until + 'T23:59:59');
+        if (Date.now() <= until.getTime()) return true;
+      } catch(e) {}
+    }
+    if (r.quietHours && r.quietHours.enabled) {
+      const now = new Date();
+      const curMin = now.getHours() * 60 + now.getMinutes();
+      const [fh, fm] = (r.quietHours.from || '00:00').split(':').map(Number);
+      const [th, tm] = (r.quietHours.to   || '00:00').split(':').map(Number);
+      const fMin = fh*60 + fm, tMin = th*60 + tm;
+      // Quiet hours pueden cruzar la medianoche
+      if (fMin === tMin) return false;
+      if (fMin < tMin)   return curMin >= fMin && curMin < tMin;
+      return curMin >= fMin || curMin < tMin;
+    }
+    return false;
+  }
+
+  return { get, save, update, reset, isMuted };
+})();
+window.NotificationRules = NotificationRules;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy

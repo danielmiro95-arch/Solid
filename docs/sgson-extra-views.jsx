@@ -299,7 +299,191 @@ function ChannelsView() {
 
       {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
       <SubscriptionsPanel channelColor={channelColor}/>
+
+      {/* NOTIFICATION RULES · quiet hours, vacation, digest, límites */}
+      <NotificationRulesPanel channelColor={channelColor}/>
     </PageShell>
+  );
+}
+
+// ── Notification Rules Panel ────────────────────────────────────────────
+function NotificationRulesPanel({ channelColor }) {
+  const [rules, setRules] = useEV2(() => (window.NotificationRules ? window.NotificationRules.get() : {}));
+  useEE2(() => {
+    const onChange = (e) => setRules(e.detail);
+    window.addEventListener('notif-rules-changed', onChange);
+    return () => window.removeEventListener('notif-rules-changed', onChange);
+  }, []);
+
+  const update = (patch) => window.NotificationRules && window.NotificationRules.update(patch);
+  const muted = window.NotificationRules ? window.NotificationRules.isMuted() : false;
+
+  const DIGEST = [
+    { id:'instant', label:'Instantáneo', desc:'En cuanto haya algo, te llega' },
+    { id:'daily',   label:'Digest diario', desc:'Un único mensaje agrupado al día' },
+    { id:'weekly',  label:'Digest semanal', desc:'Un único mensaje los lunes a las 9:00' },
+  ];
+
+  const PRIORITY = [
+    { id:'all',      label:'Todo',                 desc:'Cualquier contenido nuevo' },
+    { id:'relevant', label:'Solo relevante',       desc:'BeonAI filtra por tu rol y objetivos' },
+    { id:'high',     label:'Solo prioridad alta',  desc:'Sólo alertas y deadlines' },
+  ];
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Reglas de notificación</h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color: muted ? 'var(--warn)' : 'var(--ok)', fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius:'50%', background: muted ? 'var(--warn)' : 'var(--ok)' }}/>
+          {muted ? 'En silencio ahora' : 'Activas'}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color:'var(--fg-muted)', marginBottom: 24 }}>
+        Controla cuándo y con qué prioridad te llegan las notificaciones.
+      </div>
+
+      {/* DIGEST · cómo agrupar */}
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Frecuencia de envío</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10, marginBottom:28 }}>
+        {DIGEST.map(d => {
+          const active = rules.digest === d.id;
+          return (
+            <button key={d.id} onClick={() => update({ digest: d.id })}
+              style={{
+                padding:'12px 14px', borderRadius: 12, cursor:'pointer', textAlign:'left',
+                background: active ? `linear-gradient(135deg, ${channelColor}12 0%, ${channelColor}04 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${active ? channelColor : 'var(--line)'}`,
+                color:'var(--fg)', transition:'all .15s',
+              }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: active ? channelColor : 'var(--fg)' }}>{d.label}</div>
+              <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 3, lineHeight: 1.35 }}>{d.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* QUIET HOURS · franja horaria sin notificaciones */}
+      <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:`1px solid ${rules.quietHours && rules.quietHours.enabled ? channelColor : 'var(--line)'}`, borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>🌙 Horas de silencio</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>No te llegará nada en esta franja horaria. Útil para dormir o concentrarte.</div>
+          </div>
+          <button onClick={() => update({ quietHours: { ...rules.quietHours, enabled: !rules.quietHours.enabled } })} aria-label="Toggle quiet hours"
+            style={{ width:48, height:26, background: rules.quietHours && rules.quietHours.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: rules.quietHours && rules.quietHours.enabled ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
+          </button>
+        </div>
+        {rules.quietHours && rules.quietHours.enabled && (
+          <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'center', flexWrap:'wrap' }}>
+            <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Desde</span>
+              <input type="time" value={rules.quietHours.from} onChange={e => update({ quietHours: { ...rules.quietHours, from: e.target.value } })}
+                style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
+            </label>
+            <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Hasta</span>
+              <input type="time" value={rules.quietHours.to} onChange={e => update({ quietHours: { ...rules.quietHours, to: e.target.value } })}
+                style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
+            </label>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', alignSelf:'center' }}>
+              {(() => {
+                const [fh, fm] = rules.quietHours.from.split(':').map(Number);
+                const [th, tm] = rules.quietHours.to.split(':').map(Number);
+                const f = fh*60+fm, t = th*60+tm;
+                const diff = f === t ? 0 : (f < t ? t - f : (1440 - f) + t);
+                const h = Math.floor(diff/60), m = diff % 60;
+                return diff === 0 ? 'Sin franja' : (h ? h + 'h ' : '') + (m ? m + 'min' : '') + ' en silencio';
+              })()}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* VACATION MODE · pausa con fecha de fin */}
+      <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:`1px solid ${rules.vacation && rules.vacation.enabled ? channelColor : 'var(--line)'}`, borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)' }}>🏖 Modo vacaciones</div>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 3 }}>Pausa todas las notificaciones hasta la fecha que elijas.</div>
+          </div>
+          <button onClick={() => update({ vacation: { ...rules.vacation, enabled: !rules.vacation.enabled } })} aria-label="Toggle vacation"
+            style={{ width:48, height:26, background: rules.vacation && rules.vacation.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: rules.vacation && rules.vacation.enabled ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
+          </button>
+        </div>
+        {rules.vacation && rules.vacation.enabled && (
+          <div style={{ marginTop: 14, display:'flex', gap: 14, alignItems:'center', flexWrap:'wrap' }}>
+            <label style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--fg-muted)', textTransform:'uppercase', fontWeight:700 }}>Hasta</span>
+              <input type="date" value={rules.vacation.until || ''} onChange={e => update({ vacation: { ...rules.vacation, until: e.target.value } })}
+                min={new Date().toISOString().slice(0,10)}
+                style={{ padding:'8px 12px', fontSize:13, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:8 }}/>
+            </label>
+            {rules.vacation.until && (
+              <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>Te reactivamos automáticamente el {new Date(rules.vacation.until).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'short' })}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* MAX PER DAY · slider de límite + Priority */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>📊 Límite diario</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginBottom: 10 }}>Máximo de notificaciones que recibirás al día.</div>
+          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+            <input type="range" min="1" max="10" value={rules.maxPerDay || 3} onChange={e => update({ maxPerDay: parseInt(e.target.value, 10) })}
+              style={{ flex: 1, accentColor: channelColor }}/>
+            <div style={{ minWidth: 56, textAlign:'right' }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 20, fontWeight: 800, color: channelColor }}>{rules.maxPerDay || 3}</span>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)', marginLeft: 4 }}>/día</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding:'16px 18px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 12 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>🤖 Recordatorio inteligente</div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14 }}>
+            <div style={{ fontSize: 12, color:'var(--fg-muted)', flex: 1 }}>BeonAI evita recordarte contenido que ya viste.</div>
+            <button onClick={() => update({ smartReminder: !rules.smartReminder })} aria-label="Toggle smart reminder"
+              style={{ width:48, height:26, background: rules.smartReminder ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+              <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: rules.smartReminder ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* PRIORITY */}
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Filtro por prioridad</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10, marginBottom: 18 }}>
+        {PRIORITY.map(p => {
+          const active = rules.priority === p.id;
+          return (
+            <button key={p.id} onClick={() => update({ priority: p.id })}
+              style={{
+                padding:'12px 14px', borderRadius: 10, cursor:'pointer', textAlign:'left',
+                background: active ? `linear-gradient(135deg, ${channelColor}12 0%, ${channelColor}04 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${active ? channelColor : 'var(--line)'}`,
+                color:'var(--fg)', transition:'all .15s',
+              }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: active ? channelColor : 'var(--fg)' }}>{p.label}</div>
+              <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2, lineHeight: 1.35 }}>{p.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+        <button onClick={() => { window.NotificationRules && window.NotificationRules.reset(); setRules(window.NotificationRules.get()); }}
+          style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 12, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
+          ↻ Restablecer
+        </button>
+        <div style={{ flex: 1, textAlign:'right', fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.06em' }}>
+          Auto-save · {new Date(rules.updatedAt || Date.now()).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
+        </div>
+      </div>
+    </section>
   );
 }
 
