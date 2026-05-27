@@ -349,7 +349,168 @@ function ChannelsView() {
           </div>
         </div>
       </div>
+
+      {/* DELIVERY PREFERENCES · cuándo recibir contenido */}
+      <DeliveryPreferencesPanel channelColor={channelColor}/>
     </PageShell>
+  );
+}
+
+// ── Delivery Preferences Panel ────────────────────────────────────────────
+function DeliveryPreferencesPanel({ channelColor }) {
+  const initial = (window.DeliveryPrefs && window.DeliveryPrefs.get()) || {};
+  const [prefs, setPrefs] = useEV2(initial);
+  const dayLabels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const dayLabelsLong = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+  const update = (patch) => {
+    const next = window.DeliveryPrefs ? window.DeliveryPrefs.save({ ...prefs, ...patch }) : { ...prefs, ...patch };
+    setPrefs(next);
+  };
+
+  const setMode = (mode) => update({ mode });
+  const toggleDay = (i) => {
+    if (prefs.mode !== 'custom') {
+      // si se modifica un día y el modo no es custom, pasar a custom
+      const days = [...(prefs.days || [false,false,false,false,false,false,false])];
+      days[i] = !days[i];
+      update({ mode:'custom', days });
+    } else {
+      const days = [...(prefs.days || [false,false,false,false,false,false,false])];
+      days[i] = !days[i];
+      update({ days });
+    }
+  };
+
+  const next = window.DeliveryPrefs ? window.DeliveryPrefs.nextDelivery(prefs) : null;
+  const nextLabel = window.DeliveryPrefs ? window.DeliveryPrefs.formatNext(next) : 'Sin programar';
+
+  const MODES = [
+    { id:'daily',    label:'Diario',         icon:'☀️', desc:'Todos los días' },
+    { id:'weekdays', label:'Solo laborales', icon:'💼', desc:'Lunes a viernes' },
+    { id:'weekends', label:'Fines de semana',icon:'🏖',  desc:'Sábado y domingo' },
+    { id:'weekly',   label:'Semanal',        icon:'📅', desc:'Un día a la semana' },
+    { id:'custom',   label:'Personalizado',  icon:'⚙️', desc:'Elige tus días' },
+    { id:'smart-ai', label:'Smart · IA',     icon:'✨', desc:'BeonAI elige el mejor momento' },
+  ];
+
+  const activeDayCount = (prefs.days || []).filter(Boolean).length;
+  const isSmart = prefs.mode === 'smart-ai';
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Preferencias de entrega</h2>
+      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>Define cuándo y con qué frecuencia recibes contenido en tu canal.</div>
+
+      {/* ENABLED toggle + Next delivery card */}
+      <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:20, marginBottom: 24 }}>
+        <div style={{ padding:'18px 22px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+          <div>
+            <div style={{ fontSize:14.5, fontWeight:700, color:'var(--fg)' }}>Recibir contenido</div>
+            <div style={{ fontSize:12, color:'var(--fg-muted)', marginTop:3 }}>{prefs.enabled ? 'Activo · recibirás contenido según tu programación' : 'Pausado · no se enviará nada hasta reactivar'}</div>
+          </div>
+          <button onClick={() => update({ enabled: !prefs.enabled })} aria-label="Toggle delivery"
+            style={{ width:48, height:26, background: prefs.enabled ? channelColor : 'rgba(15,23,42,0.18)', borderRadius:13, border:'none', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+            <div style={{ width:20, height:20, background:'#fff', borderRadius:'50%', position:'absolute', top:3, left: prefs.enabled ? 25 : 3, transition:'left .2s', boxShadow:'0 2px 4px rgba(0,0,0,0.18)' }}/>
+          </button>
+        </div>
+        <div style={{ padding:'18px 22px', background:`linear-gradient(135deg, ${channelColor}14 0%, transparent 100%)`, border:`1px solid ${channelColor}40`, borderRadius:14 }}>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:5 }}>📨 Próximo envío</div>
+          <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>{prefs.enabled ? nextLabel : 'En pausa'}</div>
+        </div>
+      </div>
+
+      {/* MODE selector */}
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Modo de programación</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:10, marginBottom:28 }}>
+        {MODES.map(m => {
+          const active = prefs.mode === m.id;
+          return (
+            <button key={m.id} onClick={() => setMode(m.id)}
+              style={{
+                padding:'14px 16px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                background: active ? `linear-gradient(135deg, ${channelColor}15 0%, ${channelColor}05 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${active ? channelColor : 'var(--line)'}`,
+                color: 'var(--fg)', transition:'all .15s',
+                display:'flex', alignItems:'flex-start', gap:10,
+              }}>
+              <div style={{ fontSize:22, lineHeight:1, flexShrink:0 }}>{m.icon}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13.5, fontWeight:700, color: active ? channelColor : 'var(--fg)' }}>{m.label}</div>
+                <div style={{ fontSize:11.5, color:'var(--fg-muted)', marginTop:2, lineHeight:1.35 }}>{m.desc}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* DAYS picker · siempre visible, deshabilitado si smart-ai */}
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>
+        Días de la semana {isSmart && <span style={{ color: channelColor }}>· gestionado por BeonAI</span>}
+      </div>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom: 28, opacity: isSmart ? 0.5 : 1, pointerEvents: isSmart ? 'none' : 'auto' }}>
+        {dayLabels.map((lbl, i) => {
+          const active = (prefs.days || [])[i];
+          return (
+            <button key={i} onClick={() => toggleDay(i)} title={dayLabelsLong[i]}
+              style={{
+                width:54, padding:'12px 0', borderRadius:10, cursor:'pointer', textAlign:'center',
+                background: active ? channelColor : 'var(--bg-surface)',
+                color: active ? '#fff' : 'var(--fg-muted)',
+                border: `1px solid ${active ? channelColor : 'var(--line)'}`,
+                fontWeight: 700, fontSize:13, fontFamily:'var(--font-sans)',
+                transition:'all .12s',
+              }}>{lbl}</button>
+          );
+        })}
+        <div style={{ flex:1, alignSelf:'center', textAlign:'right', fontFamily:'var(--font-mono)', fontSize:11, color:'var(--fg-muted)' }}>
+          {activeDayCount} día{activeDayCount === 1 ? '' : 's'} a la semana
+        </div>
+      </div>
+
+      {/* TIME + TIMEZONE */}
+      <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 200px', gap:16, marginBottom: 24, alignItems:'flex-end' }}>
+        <label style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>Hora exacta</span>
+          <input type="time" value={prefs.time || '09:00'} onChange={e => update({ time: e.target.value })} disabled={isSmart}
+            style={{ padding:'10px 14px', fontSize:14, fontFamily:'var(--font-mono)', background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:10, opacity: isSmart ? 0.5 : 1 }}/>
+        </label>
+        <div style={{ alignSelf:'center', fontSize:12, color:'var(--fg-muted)', padding:'10px 14px', background:`${channelColor}08`, border:`1px solid ${channelColor}25`, borderRadius:10 }}>
+          {isSmart
+            ? <span>✨ <strong style={{color:channelColor}}>BeonAI</strong> elige el horario óptimo según tu historial: cuando más interactúas, evitando bloques de reuniones y respetando tus quiet hours.</span>
+            : <span>Recibirás el contenido a las <strong style={{color:channelColor}}>{prefs.time || '09:00'}</strong>. {prefs.maxPerDay > 1 ? `Hasta ${prefs.maxPerDay} mensajes/día.` : '1 mensaje al día como máximo.'}</span>
+          }
+        </div>
+        <label style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700 }}>Zona horaria</span>
+          <select value={prefs.timezone || 'auto'} onChange={e => update({ timezone: e.target.value })}
+            style={{ padding:'10px 14px', fontSize:13, background:'var(--bg-surface)', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:10 }}>
+            <option value="auto">Automática · {Intl.DateTimeFormat().resolvedOptions().timeZone}</option>
+            <option value="Europe/Madrid">Europe/Madrid</option>
+            <option value="Europe/Lisbon">Europe/Lisbon</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="America/Mexico_City">America/Mexico_City</option>
+            <option value="America/Bogota">America/Bogota</option>
+          </select>
+        </label>
+      </div>
+
+      <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+        <button onClick={() => { window.DeliveryPrefs && window.DeliveryPrefs.reset(); setPrefs(window.DeliveryPrefs.get()); }}
+          style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:600 }}>
+          ↻ Restablecer
+        </button>
+        {window.Toast && (
+          <button onClick={() => window.Toast.success('Test enviado · revisa tu canal', { icon:'📨' })}
+            style={{ padding:'8px 14px', background: channelColor, color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--font-sans)', fontWeight:700 }}>
+            📨 Enviar test ahora
+          </button>
+        )}
+        <div style={{ flex:1, textAlign:'right', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)', letterSpacing:'0.06em' }}>
+          Guardado automático · última actualización {new Date(prefs.updatedAt || Date.now()).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
+        </div>
+      </div>
+    </section>
   );
 }
 
