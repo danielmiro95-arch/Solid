@@ -188,7 +188,8 @@ const DeliveryPrefs = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -271,7 +272,8 @@ const Channels = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -379,7 +381,8 @@ const ContentPush = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -481,7 +484,8 @@ const Subscriptions = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -555,7 +559,8 @@ const TestSends = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -631,7 +636,8 @@ const NotificationRules = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -728,7 +734,8 @@ const ChannelNotifs = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -793,7 +800,8 @@ const SmartScheduling = (function() {
     try {
       const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
       const email = (u && u.email) || 'guest';
-      return KEY + ':' + email;
+      const wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+      return KEY + ':' + email + ':' + wsId;
     } catch(e) { return KEY + ':guest'; }
   }
 
@@ -915,6 +923,12 @@ const Workspaces = (function() {
     if (!w) return null;
     localStorage.setItem(ACTIVE_KEY, id);
     window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
+    // Refresca todas las UIs reactivas a los stores per-workspace
+    var STORE_EVENTS = ['bookmarks-changed','ratings-changed','channels-changed',
+      'delivery-prefs-changed','content-push-changed','subscriptions-changed',
+      'notif-rules-changed','channel-notifs-changed','test-sends-changed',
+      'smart-scheduling-changed','chats-changed','inbox-changed'];
+    STORE_EVENTS.forEach(function(ev){ window.dispatchEvent(new Event(ev)); });
     return w;
   }
 
@@ -1036,6 +1050,35 @@ const Workspaces = (function() {
       addMember(repsol.id, u.id, role);
     });
     setCurrent(repsol.id);
+    // Migración suave · copia datos legacy <KEY>:<email> a <KEY>:<email>:<wsId>
+    _migrateLegacyDataIntoWorkspace(repsol.id);
+  }
+
+  // Migra datos pre-multi-tenant: si el user tenía bookmarks/ratings/channels…
+  // bajo el key viejo <prefix>:<id_or_email>, los copia al nuevo scoping con
+  // el workspaceId para que sobrevivan al cambio. Sólo corre 1 vez por user.
+  function _migrateLegacyDataIntoWorkspace(wsId) {
+    try {
+      const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+      const PREFIXES = ['solid-bookmarks','solid-chats','solid-active-chat',
+        'solid-channels','solid-delivery-prefs','solid-content-push',
+        'solid-subscriptions','solid-notif-rules','solid-channel-notifs',
+        'solid-test-sends','solid-smart-scheduling','sgson-inbox','sgson-route-exams'];
+      const RATING_PREFIX = 'solid-ratings:'; // ratings es global con userId interno, no migra
+      users.forEach(u => {
+        const idents = [u.id, u.email]; // ambos formatos en uso histórico
+        PREFIXES.forEach(p => {
+          idents.forEach(idn => {
+            const oldKey = p + ':' + idn;
+            const newKey = p + ':' + u.id + ':' + wsId;
+            const val = localStorage.getItem(oldKey);
+            if (val != null && localStorage.getItem(newKey) == null) {
+              localStorage.setItem(newKey, val);
+            }
+          });
+        });
+      });
+    } catch(e) {}
   }
 
   return { list, listMine, get, current, currentId, setCurrent, create, update, remove,
@@ -2111,11 +2154,18 @@ if (typeof window !== 'undefined') {
   else window.addEventListener('sgson-backend-ready', _activateAll);
 }
 
-// Helper: namespacing de localStorage por usuario actual
-// Para keys que dependen del usuario (bookmarks, chats, progreso, etc.)
-function _userScopedKey(baseKey) {
+// Helper: namespacing de localStorage por usuario + workspace activo.
+// Para keys que dependen del usuario (bookmarks, chats, etc.). Si hay un
+// workspace activo (multi-tenant), añade :wsId al final · de modo que cada
+// tenant tenga su propio set de datos para el mismo usuario.
+function _userScopedKey(baseKey, opts) {
   var id = Auth.currentUserId();
-  return id ? baseKey + ':' + id : baseKey;
+  if (!id) return baseKey;
+  // `opts.global` salta el scoping por workspace (Settings, UserProfile…
+  // viven cross-workspace porque son del USUARIO, no del tenant).
+  if (opts && opts.global) return baseKey + ':' + id;
+  var wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+  return baseKey + ':' + id + ':' + wsId;
 }
 window.userKey = _userScopedKey;
 
@@ -2237,7 +2287,8 @@ if (typeof window !== 'undefined') {
 // ── Settings · configuración del usuario ──────────────────────────────────
 const Settings = (function() {
   const KEY_PREFIX = 'sgson-settings';
-  function _key() { return _userScopedKey(KEY_PREFIX); }
+  // Settings (theme, language) son del USUARIO · cross-workspace
+  function _key() { return _userScopedKey(KEY_PREFIX, { global: true }); }
   const DEFAULT = {
     theme: 'auto',          // 'light' | 'dark' | 'auto'
     language: 'es',         // 'es' | 'en'
