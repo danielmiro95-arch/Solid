@@ -27,6 +27,9 @@ create extension if not exists "pgcrypto";
 -- =====================================================================
 -- 1. profiles · extiende auth.users con campos del usuario
 -- =====================================================================
+-- profiles.ingest_token · token personal opaco para autenticar el bookmarklet
+-- de KB sin necesitar OAuth desde el browser. Se genera lazy la primera vez
+-- que el user pide su bookmarklet desde el panel admin · rotable.
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   email text unique not null,
@@ -40,9 +43,15 @@ create table if not exists public.profiles (
   current_workspace_id uuid,                          -- workspace activo (FK añadida abajo)
   language text default 'es' check (language in ('es','en','pt')),
   theme text default 'auto' check (theme in ('light','dark','auto')),
+  ingest_token uuid,                                  -- token opaco para el bookmarklet
+  ingest_token_created_at timestamptz,
   created_at timestamptz default now(),
   last_login_at timestamptz default now()
 );
+-- Si la tabla ya existía con esquema viejo, añadimos columnas nuevas idempotente
+alter table public.profiles add column if not exists ingest_token uuid;
+alter table public.profiles add column if not exists ingest_token_created_at timestamptz;
+create unique index if not exists profiles_ingest_token_uniq on public.profiles(ingest_token) where ingest_token is not null;
 
 -- =====================================================================
 -- 2. workspaces · tenants (empresa cliente)

@@ -2248,6 +2248,14 @@ function BeonAIConfigPanel() {
   const [docs, setDocs] = useEV2([]);
   const [newDocName, setNewDocName] = useEV2('');
   const [newDocContent, setNewDocContent] = useEV2('');
+  // Modos de import: 'manual' | 'bulk' | 'files' | 'bookmarklet'
+  const [addMode, setAddMode] = useEV2('manual');
+  const [bulkText, setBulkText] = useEV2('');
+  const [bulkSplit, setBulkSplit] = useEV2('## ');       // delimitador de troceo
+  const [bulkPreview, setBulkPreview] = useEV2(null);    // array de { name, content } previsualizado
+  const [dragOver, setDragOver] = useEV2(false);
+  const [ingestToken, setIngestToken] = useEV2(null);
+  const [ingestLoading, setIngestLoading] = useEV2(false);
   const [toolReadProgress, setToolReadProgress] = useEV2(false);
   const [toolSearchPills, setToolSearchPills] = useEV2(false);
   const [toolSearchResources, setToolSearchResources] = useEV2(false);
@@ -2453,13 +2461,236 @@ function BeonAIConfigPanel() {
                 </div>
               ))}
             </div>
-            <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
-              <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Sprinklr Macros)" style={{ ...inputStyle, marginBottom: 8 }}/>
-              <textarea value={newDocContent} onChange={e => setNewDocContent(e.target.value)} placeholder="Pega aquí el texto del documento…"
-                style={{ ...inputStyle, minHeight: 100, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
-              <button onClick={addDoc} disabled={!newDocName.trim() || !newDocContent.trim()}
-                style={{ padding: '8px 16px', background: (!newDocName.trim() || !newDocContent.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>+ Añadir documento</button>
+            {/* Tabs · modo de añadir documentos */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10, padding: 4, background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, width: 'fit-content' }}>
+              {[
+                { k: 'manual',      label: 'Manual'      },
+                { k: 'bulk',        label: 'Pegado masivo' },
+                { k: 'files',       label: 'Archivos'    },
+                { k: 'bookmarklet', label: 'Bookmarklet' },
+              ].map(t => (
+                <button key={t.k} onClick={() => setAddMode(t.k)} style={{
+                  padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                  background: addMode === t.k ? 'var(--accent)' : 'transparent',
+                  color: addMode === t.k ? '#fff' : 'var(--fg-muted)',
+                  border: 'none', borderRadius: 6, cursor: 'pointer',
+                }}>{t.label}</button>
+              ))}
             </div>
+
+            {addMode === 'manual' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
+                <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Sprinklr Macros)" style={{ ...inputStyle, marginBottom: 8 }}/>
+                <textarea value={newDocContent} onChange={e => setNewDocContent(e.target.value)} placeholder="Pega aquí el texto del documento…"
+                  style={{ ...inputStyle, minHeight: 100, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
+                <button onClick={addDoc} disabled={!newDocName.trim() || !newDocContent.trim()}
+                  style={{ padding: '8px 16px', background: (!newDocName.trim() || !newDocContent.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>+ Añadir documento</button>
+              </div>
+            )}
+
+            {addMode === 'bulk' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
+                <p style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 8 }}>
+                  Pega aquí muchas páginas de Loop/SharePoint juntas. La primera línea de cada bloque se usa como nombre. El bloque empieza con el delimitador.
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <label style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Delimitador:</label>
+                  <select value={bulkSplit} onChange={e => { setBulkSplit(e.target.value); setBulkPreview(null); }} style={{ padding: '6px 10px', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg)', fontSize: 12 }}>
+                    <option value="## ">## (markdown H2)</option>
+                    <option value="# ">#  (markdown H1)</option>
+                    <option value="---">--- (línea horizontal)</option>
+                    <option value="\n\n\n">Triple línea en blanco</option>
+                  </select>
+                </div>
+                <textarea value={bulkText} onChange={e => { setBulkText(e.target.value); setBulkPreview(null); }}
+                  placeholder={`## Título de la primera página\nContenido de la primera página…\n\n## Título de la segunda página\nContenido de la segunda página…`}
+                  style={{ ...inputStyle, minHeight: 220, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => {
+                    const sep = bulkSplit === '\\n\\n\\n' ? '\n\n\n' : bulkSplit;
+                    const parts = bulkText.split(new RegExp('(?:^|\\n)' + sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))
+                      .map(s => s.trim()).filter(Boolean);
+                    const items = parts.map(part => {
+                      const lines = part.split('\n');
+                      const name = (lines.shift() || 'Sin título').trim().slice(0, 100);
+                      const content = lines.join('\n').trim();
+                      return { name, content };
+                    }).filter(p => p.content.length > 0);
+                    setBulkPreview(items);
+                  }} disabled={!bulkText.trim()}
+                    style={{ padding: '8px 14px', background: !bulkText.trim() ? 'rgba(110,80,238,0.3)' : 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                    Previsualizar troceo
+                  </button>
+                  {bulkPreview && bulkPreview.length > 0 && (
+                    <button onClick={() => {
+                      setDocs(d => [...d, ...bulkPreview]);
+                      setBulkText('');
+                      setBulkPreview(null);
+                      if (window.Toast && window.Toast.show) window.Toast.show(`${bulkPreview.length} documentos añadidos`, { type: 'success' });
+                    }} style={{ padding: '8px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                      + Añadir {bulkPreview.length} documentos
+                    </button>
+                  )}
+                </div>
+                {bulkPreview && (
+                  <div style={{ marginTop: 12, padding: 10, background: 'var(--bg-surface)', borderRadius: 6, border: '1px solid var(--line)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 6, fontFamily: 'var(--font-mono, monospace)' }}>
+                      Preview · {bulkPreview.length} bloques detectados
+                    </div>
+                    <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {bulkPreview.map((p, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--line-faint)', fontSize: 12 }}>
+                          <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
+                          <span style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--fg-dim)', fontSize: 10 }}>{p.content.length} chars</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {addMode === 'files' && (
+              <div onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => {
+                  e.preventDefault(); setDragOver(false);
+                  const files = Array.from(e.dataTransfer.files || []);
+                  let added = 0;
+                  let pending = files.length;
+                  if (pending === 0) return;
+                  files.forEach(f => {
+                    const ext = (f.name.split('.').pop() || '').toLowerCase();
+                    if (!['md', 'txt', 'markdown'].includes(ext)) {
+                      pending--;
+                      if (pending === 0 && window.Toast) window.Toast.show(added ? `${added} archivos añadidos` : 'Sólo .md y .txt en client-side', { type: added ? 'success' : 'warn' });
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const name = f.name.replace(/\.(md|txt|markdown)$/i, '');
+                      setDocs(d => [...d, { name, content: String(reader.result || '') }]);
+                      added++;
+                      pending--;
+                      if (pending === 0 && window.Toast) window.Toast.show(`${added} archivos añadidos`, { type: 'success' });
+                    };
+                    reader.readAsText(f);
+                  });
+                }}
+                style={{
+                  background: dragOver ? 'rgba(110,80,238,0.08)' : 'var(--bg-canvas)',
+                  border: '2px dashed ' + (dragOver ? 'var(--accent)' : 'var(--line)'),
+                  borderRadius: 8, padding: 32, textAlign: 'center', transition: 'all .15s',
+                }}>
+                <div style={{ fontSize: 40, marginBottom: 8, opacity: 0.6 }}>📁</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Arrastra archivos .md o .txt aquí</div>
+                <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>O usa el botón debajo para seleccionar</div>
+                <label style={{ display: 'inline-block', marginTop: 12, padding: '8px 16px', background: 'var(--accent)', color: '#fff', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  Seleccionar archivos
+                  <input type="file" multiple accept=".md,.txt,.markdown,text/plain,text/markdown" style={{ display: 'none' }}
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      let added = 0; let pending = files.length;
+                      files.forEach(f => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const name = f.name.replace(/\.(md|txt|markdown)$/i, '');
+                          setDocs(d => [...d, { name, content: String(reader.result || '') }]);
+                          added++; pending--;
+                          if (pending === 0 && window.Toast) window.Toast.show(`${added} archivos añadidos`, { type: 'success' });
+                        };
+                        reader.readAsText(f);
+                      });
+                    }}/>
+                </label>
+                <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 14 }}>
+                  PDF/DOCX: conviértelos a .md o .txt primero (o pega el texto en el modo Manual).
+                </div>
+              </div>
+            )}
+
+            {addMode === 'bookmarklet' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 16 }}>
+                <h4 style={{ margin: 0, marginBottom: 8, fontSize: 14 }}>🔖 Bookmarklet · 1 click desde Loop</h4>
+                <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.6, marginTop: 0, marginBottom: 14 }}>
+                  <li>Pulsa <b>Generar mi bookmarklet</b> abajo</li>
+                  <li>Arrastra el botón <b>"BeonAI · Importar"</b> a tu barra de favoritos del browser</li>
+                  <li>Cuando estés en una página de Loop (o cualquier web), pulsa el favorito → el contenido se manda a la KB de BeonAI</li>
+                  <li>Si rotas el token, el bookmarklet viejo deja de funcionar y tienes que volver a generar</li>
+                </ol>
+                {!ingestToken ? (
+                  <button onClick={async () => {
+                    setIngestLoading(true);
+                    try {
+                      let token = '';
+                      if (window.supabaseClient && window.supabaseClient.auth) {
+                        const { data } = await window.supabaseClient.auth.getSession();
+                        token = data?.session?.access_token || '';
+                      }
+                      const res = await fetch('/api/kb/token', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+                      if (!res.ok) throw new Error('No se pudo generar el token (' + res.status + ')');
+                      const data = await res.json();
+                      setIngestToken(data.token);
+                    } catch (e) {
+                      if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+                    } finally { setIngestLoading(false); }
+                  }} disabled={ingestLoading} style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                    {ingestLoading ? 'Generando…' : 'Generar mi bookmarklet'}
+                  </button>
+                ) : (
+                  <>
+                    {(() => {
+                      const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || '';
+                      const code = `javascript:(async()=>{const t=document.title.replace(/\\s*[-|·].*$/,'').trim()||'Sin título';const c=(document.body.innerText||'').replace(/\\n{3,}/g,'\\n\\n').trim().slice(0,90000);try{const r=await fetch('${origin}/api/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-Ingest-Token':'${ingestToken}'},body:JSON.stringify({title:t,content:c,source_url:location.href})});const d=await r.json();if(d.ok)alert('✓ Importado a BeonAI: '+d.title+(d.replaced?' (reemplazado)':' (nuevo)')+' · '+d.doc_count+' docs en total');else alert('Error: '+(d.error||r.status));}catch(e){alert('Error: '+e.message);}})();`;
+                      return (
+                        <div>
+                          <a href={code} onClick={e => e.preventDefault()} draggable="true"
+                            style={{ display: 'inline-block', padding: '10px 18px', background: '#6E50EE', color: '#fff', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 13, cursor: 'grab' }}>
+                            🔖 BeonAI · Importar
+                          </a>
+                          <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fg-muted)' }}>
+                            ↑ Arrastra ESE botón a la barra de favoritos (no copies el texto, drag-drop).
+                          </div>
+                          <details style={{ marginTop: 14 }}>
+                            <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--fg-muted)' }}>Ver código (por si tu browser no permite drag)</summary>
+                            <textarea readOnly value={code} onClick={e => e.target.select()}
+                              style={{ width: '100%', minHeight: 100, marginTop: 8, padding: 8, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono, monospace)', fontSize: 11, resize: 'vertical' }}/>
+                            <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 6 }}>
+                              Click derecho en favoritos → Añadir página → Pega esto en URL.
+                            </div>
+                          </details>
+                          <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button onClick={async () => {
+                              if (!confirm('Rotar el token invalida el bookmarklet viejo. ¿Continuar?')) return;
+                              setIngestLoading(true);
+                              try {
+                                let token = '';
+                                if (window.supabaseClient && window.supabaseClient.auth) {
+                                  const { data } = await window.supabaseClient.auth.getSession();
+                                  token = data?.session?.access_token || '';
+                                }
+                                const res = await fetch('/api/kb/token', { method: 'POST', headers: token ? { Authorization: 'Bearer ' + token } : {} });
+                                if (!res.ok) throw new Error(String(res.status));
+                                const data = await res.json();
+                                setIngestToken(data.token);
+                                if (window.Toast && window.Toast.show) window.Toast.show('Token rotado · re-arrastra el bookmarklet', { type: 'info' });
+                              } catch (e) {
+                                if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+                              } finally { setIngestLoading(false); }
+                            }} style={{ padding: '6px 12px', background: 'transparent', color: 'var(--warn, #B45309)', border: '1px solid var(--warn, #B45309)', borderRadius: 6, cursor: 'pointer', fontSize: 11.5 }}>
+                              Rotar token
+                            </button>
+                            <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, color: 'var(--fg-dim)' }}>
+                              token: {ingestToken.slice(0, 8)}…
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 24 }}>
