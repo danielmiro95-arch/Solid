@@ -2078,6 +2078,11 @@ const I18n = (function() {
       'content.sub':'Activa los formatos que quieres que te lleguen por tu canal principal.',
       'content.count':'{n}/{total} tipos activos',
       'content.format.title':'Formato del mensaje',
+      'content.preview.title':'Programar posts y calendario',
+      'content.preview.desc':'Aprende a agendar publicaciones en Sprinklr Publish y revisar tu calendario semanal.',
+      'content.preview.cta.solid':'▶ Ver en SolidStream',
+      'content.preview.cta.web':'Abrir en web',
+      'content.preview.pushManual':'9:00 · push manual',
       'subs.title':'Lo que sigues',
       'subs.sub':'Recibirás contenido nuevo de las categorías, skills, equipos y trainers que sigas.',
       'subs.activeCount':'{n} suscripciones activas',
@@ -2280,6 +2285,11 @@ const I18n = (function() {
       'content.sub':'Enable the formats you want delivered through your main channel.',
       'content.count':'{n}/{total} types active',
       'content.format.title':'Message format',
+      'content.preview.title':'Schedule posts and calendar',
+      'content.preview.desc':'Learn how to schedule publications in Sprinklr Publish and review your weekly calendar.',
+      'content.preview.cta.solid':'▶ Watch on SolidStream',
+      'content.preview.cta.web':'Open on web',
+      'content.preview.pushManual':'9:00 · manual push',
       'subs.title':'What you follow',
       'subs.sub':'You\'ll receive new content from the categories, skills, teams and trainers you follow.',
       'subs.activeCount':'{n} active subscriptions',
@@ -2482,6 +2492,11 @@ const I18n = (function() {
       'content.sub':'Ative os formatos que quer que cheguem pelo seu canal principal.',
       'content.count':'{n}/{total} tipos ativos',
       'content.format.title':'Formato da mensagem',
+      'content.preview.title':'Agendar posts e calendário',
+      'content.preview.desc':'Aprenda a agendar publicações no Sprinklr Publish e revisar seu calendário semanal.',
+      'content.preview.cta.solid':'▶ Ver no SolidStream',
+      'content.preview.cta.web':'Abrir na web',
+      'content.preview.pushManual':'9:00 · push manual',
       'subs.title':'O que você segue',
       'subs.sub':'Você receberá conteúdo novo das categorias, skills, equipes e trainers que segue.',
       'subs.activeCount':'{n} assinaturas ativas',
@@ -4458,6 +4473,7 @@ function PendingInvitationsBlock({ invitations }) {
 }
 
 function AdminSubmissionsQueue() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [subs, setSubs] = useSM(Submissions.listAll());
   const [filter, setFilter] = useSM('pending'); // 'pending' | 'all' | 'approved' | 'rejected'
   const [reviewing, setReviewing] = useSM(null);
@@ -4561,7 +4577,7 @@ function AdminSubmissionsQueue() {
                 style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:13, outline:'none', resize:'vertical', boxSizing:'border-box'}}/>
             </label>
             <div style={{display:'flex', gap:8, justifyContent:'space-between'}}>
-              <button className="btn ghost" onClick={() => setReviewing(null)}>Cancelar</button>
+              <button className="btn ghost" onClick={() => setReviewing(null)}>{T('common.cancel')}</button>
               <div style={{display:'flex', gap:8}}>
                 <button onClick={() => review('rejected')} style={{padding:'8px 14px', borderRadius:8, border:'1px solid rgba(110,80,238,0.3)', background:'rgba(110,80,238,0.06)', color:'var(--repsol-red)', cursor:'pointer', fontFamily:'var(--sans)', fontSize:13, fontWeight:600}}>Rechazar</button>
                 <button onClick={() => review('approved')} className="btn glow" style={{background:'var(--bn-lime)', color:'var(--ink)'}}>Aprobar ✓</button>
@@ -4578,6 +4594,7 @@ function AdminSubmissionsQueue() {
 
 // ── Examen final de ruta · modal con 3 preguntas + cert al pasar ──────────
 function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const bank = RouteExams.bank(routeId);
   const [answers, setAnswers] = useSM({}); // {qIdx: optionIdx}
   const [submitted, setSubmitted] = useSM(false);
@@ -4589,7 +4606,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
         <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, padding:32, maxWidth:420}}>
           <h2 style={{margin:'0 0 12px'}}>Examen no disponible</h2>
           <p style={{color:'var(--ink-3)', marginBottom:18}}>Esta ruta aún no tiene examen final configurado.</p>
-          <button className="btn ghost" onClick={onClose}>Cerrar</button>
+          <button className="btn ghost" onClick={onClose}>{T('common.close')}</button>
         </div>
       </div>
     );
@@ -4683,7 +4700,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
 
         {!submitted ? (
           <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:8}}>
-            <button className="btn ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn ghost" onClick={onClose}>{T('common.cancel')}</button>
             <button className="btn glow" onClick={submit} disabled={!allAnswered} style={{opacity: allAnswered ? 1 : 0.5}}>Enviar respuestas →</button>
           </div>
         ) : (
@@ -4696,7 +4713,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
             </div>
             <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
               {!result.passed && <button className="btn ghost" onClick={() => { setAnswers({}); setSubmitted(false); setResult(null); }}>Reintentar</button>}
-              <button className="btn ghost" onClick={onClose}>Cerrar</button>
+              <button className="btn ghost" onClick={onClose}>{T('common.close')}</button>
               {result.passed && <button className="btn glow" onClick={downloadCert}>↓ Descargar certificado</button>}
             </div>
           </div>
@@ -4709,6 +4726,7 @@ window.RouteExamModal = RouteExamModal;
 
 // ── Video submission · entrega de examen práctico por módulo ───────────────
 function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [file, setFile] = useSM(null);
   const [duration, setDuration] = useSM(0);
   const [thumb, setThumb] = useSM(null);
@@ -4854,7 +4872,7 @@ function VideoSubmissionForm({ pillId, pillTitle, onClose }) {
       )}
 
       <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:14}}>
-        {onClose && <button className="btn ghost" onClick={onClose}>Cancelar</button>}
+        {onClose && <button className="btn ghost" onClick={onClose}>{T('common.cancel')}</button>}
         <button className="btn glow" onClick={submit} disabled={!file || !!error || submitting} style={{opacity: !file || error || submitting ? 0.5 : 1}}>
           {submitting ? 'Enviando…' : 'Enviar entrega →'}
         </button>

@@ -2266,7 +2266,9 @@ function WidgetPicker({ onAdd, onClose }) {
 }
 
 // ---------- Modal genérico (create / rename / edit widget meta) ----------
-function PromptModal({ title, fields, initial, onSave, onClose, saveLabel = 'Guardar' }) {
+function PromptModal({ title, fields, initial, onSave, onClose, saveLabel }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  if (!saveLabel) saveLabel = T('common.save');
   const [vals, setVals] = useS2(() => initial || {});
   return (
     <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
@@ -2283,7 +2285,7 @@ function PromptModal({ title, fields, initial, onSave, onClose, saveLabel = 'Gua
           ))}
         </div>
         <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-          <button onClick={onClose} style={{padding:'9px 16px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>Cancelar</button>
+          <button onClick={onClose} style={{padding:'9px 16px', background:'var(--paper-2)', color:'var(--ink-2)', border:'1px solid var(--line)', borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, fontSize:12}}>{T('common.cancel')}</button>
           <button onClick={() => { onSave(vals); onClose(); }} style={{padding:'9px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--sans)', fontWeight:700, fontSize:12, boxShadow:'0 4px 14px rgba(0,89,150,0.25)'}}>{saveLabel}</button>
         </div>
       </div>
@@ -2293,6 +2295,7 @@ function PromptModal({ title, fields, initial, onSave, onClose, saveLabel = 'Gua
 
 // ---------- Modal · editar widget con type/metric/dimension ----------
 function WidgetEditModal({ widget, onSave, onClose }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const [vals, setVals] = useS2({
     title: widget.title || '',
     subtitle: widget.subtitle || '',
@@ -2358,8 +2361,8 @@ function WidgetEditModal({ widget, onSave, onClose }) {
           )}
         </div>
         <div style={{padding:'12px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'flex-end', gap:8, background:'var(--paper-2)'}}>
-          <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>Cancelar</button>
-          <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>Guardar</button>
+          <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>{T('common.cancel')}</button>
+          <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>{T('common.save')}</button>
         </div>
       </div>
     </div>
@@ -2368,6 +2371,7 @@ function WidgetEditModal({ widget, onSave, onClose }) {
 
 // ---------- Modal · filtros propios de una pestaña ----------
 function TabFiltersModal({ tab, dashboardDefaults, onSave, onClose }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const initial = tab.filters || dashboardDefaults;
   const [vals, setVals] = useS2(initial);
   return (
@@ -2394,10 +2398,10 @@ function TabFiltersModal({ tab, dashboardDefaults, onSave, onClose }) {
           </label>
         </div>
         <div style={{padding:'12px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'space-between', gap:8, background:'var(--paper-2)'}}>
-          <button onClick={() => onSave(null)} style={{padding:'8px 14px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-4)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--sans)', fontWeight:600}}>Heredar del dashboard</button>
+          <button onClick={() => onSave(null)} style={{padding:'8px 14px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-4)', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--sans)', fontWeight:600}}>{T('common.reset')}</button>
           <div style={{display:'flex', gap:8}}>
-            <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>Cancelar</button>
-            <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>Aplicar</button>
+            <button onClick={onClose} style={{padding:'8px 16px', background:'transparent', border:'1px solid var(--line-2)', color:'var(--ink-3)', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:600}}>{T('common.cancel')}</button>
+            <button onClick={() => onSave(vals)} style={{padding:'8px 18px', background:'var(--accent-glow)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:'var(--sans)', fontWeight:700, boxShadow:'0 3px 10px rgba(0,89,150,0.25)'}}>{T('common.apply')}</button>
           </div>
         </div>
       </div>

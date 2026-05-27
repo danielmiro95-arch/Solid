@@ -896,14 +896,14 @@ function ContentPushPanel({ channelColor }) {
                 )}
               </div>
             )}
-            <div style={{ fontSize: 12.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>Programar posts y calendario</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>{T('content.preview.title')}</div>
             {prefs.showSummary && (
-              <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.45, marginBottom: 8 }}>Aprende a agendar publicaciones en Sprinklr Publish y revisar tu calendario semanal.</div>
+              <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.45, marginBottom: 8 }}>{T('content.preview.desc')}</div>
             )}
             <button style={{ padding:'7px 12px', background: channelColor, color:'#fff', border:'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor:'pointer', width:'100%' }}>
-              {prefs.openInSolid ? '▶ Ver en SolidStream' : 'Abrir en web'}
+              {prefs.openInSolid ? T('content.preview.cta.solid') : T('content.preview.cta.web')}
             </button>
-            <div style={{ fontSize: 9, color:'var(--fg-dim)', marginTop: 6, fontFamily:'var(--font-mono)' }}>9:00 · push automático</div>
+            <div style={{ fontSize: 9, color:'var(--fg-dim)', marginTop: 6, fontFamily:'var(--font-mono)' }}>{T('content.preview.pushManual')}</div>
           </div>
         </div>
       </div>
@@ -1316,8 +1316,17 @@ function DeliveryPreferencesPanel({ channelColor }) {
         </label>
         <div style={{ alignSelf:'center', fontSize:12, color:'var(--fg-muted)', padding:'10px 14px', background:`${channelColor}08`, border:`1px solid ${channelColor}25`, borderRadius:10 }}>
           {isSmart
-            ? <span>✨ <strong style={{color:channelColor}}>BeonAI</strong> elige el horario óptimo según tu historial: cuando más interactúas, evitando bloques de reuniones y respetando tus quiet hours.</span>
-            : <span>Recibirás el contenido a las <strong style={{color:channelColor}}>{prefs.time || '09:00'}</strong>. {prefs.maxPerDay > 1 ? `Hasta ${prefs.maxPerDay} mensajes/día.` : '1 mensaje al día como máximo.'}</span>
+            ? <span>✨ <strong style={{color:channelColor}}>BeonAI</strong> {T('delivery.smartExplain','elige el horario óptimo según tu historial: cuando más interactúas, evitando bloques de reuniones y respetando tus quiet hours.').replace('✨ BeonAI ', '').replace('✨ ', '')}</span>
+            : (() => {
+                const limit = prefs.maxPerDay > 1
+                  ? T('delivery.maxPerDayMulti','Hasta {n} mensajes/día.').replace('{n}', prefs.maxPerDay)
+                  : T('delivery.maxPerDay','1 mensaje al día como máximo');
+                const tpl = T('delivery.recvExplain','Recibirás el contenido a las {time}. {limit}');
+                const parts = tpl.split('{time}');
+                const before = parts[0];
+                const afterRaw = (parts[1] || '').replace('{limit}', limit);
+                return <span>{before}<strong style={{color:channelColor}}>{prefs.time || '09:00'}</strong>{afterRaw}</span>;
+              })()
           }
         </div>
         <label style={{ display:'flex', flexDirection:'column', gap:6 }}>
@@ -1493,7 +1502,7 @@ function InboxView({ openDetail }) {
         <div style={{ padding: 60, textAlign:'center', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>📭</div>
           <div style={{ fontSize: 16, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>{T('inbox.empty')}</div>
-          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Cuando recibas algo en {TABS.find(t => t.id === tab).label.toLowerCase()}, aparecerá aquí.</div>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>{T('inbox.emptyDesc')}</div>
         </div>
       ) : (
         <>
