@@ -1190,10 +1190,11 @@ const Invitations = (function() {
   function resend(token) {
     const inv = getByToken(token);
     if (!inv) return null;
-    // En demo mode no se envía email real, sólo mostramos el link.
-    // En Supabase mode → llamará a /api/send-invite (commit G)
-    if (window.SGSON_BACKEND === 'supabase') {
-      // TODO commit G: fetch('/api/send-invite', {body: JSON.stringify({email: inv.email, token})})
+    // En demo no se envía email real, sólo devolvemos el link. La llamada real
+    // a /api/send-invite vive en SupabaseSync.sendInviteEmail() cuando el
+    // backend está activo.
+    if (window.SGSON_BACKEND === 'supabase' && window.SupabaseSync && window.SupabaseSync.sendInviteEmail) {
+      window.SupabaseSync.sendInviteEmail({ email: inv.email, token: inv.token }).catch(() => {});
     }
     return inv;
   }
@@ -2528,25 +2529,12 @@ function App() {
   }, []);
   useEM(() => { if (authUser && window.Inbox) window.Inbox.seedIfEmpty(); }, [authUser && authUser.id]);
 
-  // Top nav items · sincroniza active class + click handlers con vanilla nav HTML
-  useEM(() => {
-    const items = document.querySelectorAll('.top-nav-item');
-    const onClick = (e) => { setView(e.currentTarget.dataset.view); };
-    items.forEach(b => b.addEventListener('click', onClick));
-    return () => items.forEach(b => b.removeEventListener('click', onClick));
-  }, []);
-
   // Atajos globales · "Ir a Ajustes" desde otras vistas
   useEM(() => {
     const goSettings = () => setView('settings');
     window.addEventListener('__go-settings', goSettings);
     return () => window.removeEventListener('__go-settings', goSettings);
   }, []);
-  useEM(() => {
-    document.querySelectorAll('.top-nav-item').forEach(b => {
-      b.classList.toggle('active', b.dataset.view === view);
-    });
-  }, [view]);
 
   // Initialize tracker and handle tracked URL opens
   useEM(() => {
@@ -2676,19 +2664,19 @@ function App() {
         {view === 'coach' && (window.CoachView ? <CoachView/> : <Coach/>)}
         {view === 'dashboard' && (window.AnalyticsView ? <AnalyticsView openLegacyDashboard={() => setView('dashboard-legacy')}/> : <Dashboard/>)}
         {view === 'dashboard-legacy' && <Dashboard/>}
-        {view === 'rutas' && (window.RutasView_New ? <RutasView_New openDetail={openDetail} setView={setView} openPath={openPath}/> : <Rutas openPlayer={openPlayer}/>)}
-        {view === 'path' && (window.MyPathView_New ? <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId}/> : <PathView openPlayer={openPlayer} setView={setView}/>)}
-        {view === 'profile' && (window.ProfileView_New ? <ProfileView_New setView={setView}/> : <Profile setView={setView}/>)}
-        {view === 'wa' && (window.ChannelsView_New ? <ChannelsView_New/> : <WhatsApp/>)}
+        {view === 'rutas' && <RutasView_New openDetail={openDetail} setView={setView} openPath={openPath}/>}
+        {view === 'path' && <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId}/>}
+        {view === 'profile' && <ProfileView_New setView={setView}/>}
+        {view === 'wa' && <ChannelsView_New/>}
         {view === 'cronograma' && <div className="main-inner"><Cronograma/></div>}
-        {view === 'saved' && (window.SavedView_New ? <SavedView_New openDetail={openDetail}/> : <SavedView openDetail={openDetail} setView={setView}/>)}
+        {view === 'saved' && <SavedView_New openDetail={openDetail}/>}
         {view === 'admin' && (Auth.isAdmin()
-          ? (window.AdminView_New ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/> : <AdminPanel setView={setView}/>)
+          ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/>
           : <div className="main-inner"><div className="empty-state"><div className="empty-icon">🔒</div><h3>Acceso restringido</h3><p>Solo los administradores pueden acceder a este panel.</p></div></div>)}
         {view === 'admin-legacy' && Auth.isAdmin() && <AdminPanel setView={setView}/>}
-        {view === 'inbox' && (window.InboxView_New ? <InboxView_New openDetail={openDetail}/> : <InboxView openDetail={openDetail} setView={setView}/>)}
-        {view === 'settings' && (window.SettingsView_New ? <SettingsView_New setView={setView}/> : <SettingsView setView={setView}/>)}
-        {view === 'browse' && (window.BrowseView_New ? <BrowseView_New openDetail={openDetail}/> : <BrowseView openDetail={openDetail} setView={setView}/>)}
+        {view === 'inbox' && <InboxView_New openDetail={openDetail}/>}
+        {view === 'settings' && <SettingsView_New setView={setView}/>}
+        {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && (
