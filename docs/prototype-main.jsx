@@ -783,6 +783,83 @@ const ChannelNotifs = (function() {
 })();
 window.ChannelNotifs = ChannelNotifs;
 
+// ── SmartScheduling · análisis IA del mejor horario para recibir contenido ─
+// Genera insights mock realistas basados en heurísticas: hora más activa, día
+// más interactivo, ventana óptima. En backend real esto vendrá de analytics.
+const SmartScheduling = (function() {
+  const KEY = 'solid-smart-scheduling';
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  // Construye un análisis a partir de heurísticas + un toque pseudoaleatorio
+  // estable por usuario para que cambie entre cuentas pero no entre recargas.
+  function _hash(s) { let h = 0; for (let i = 0; i < (s||'').length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return Math.abs(h); }
+
+  function analyze() {
+    try {
+      const u = (window.Auth && window.Auth.currentUser && window.Auth.currentUser()) || { email:'guest' };
+      const seed = _hash(u.email || 'guest');
+
+      // Hora óptima · entre 8:00 y 18:00, sesgada a media mañana
+      const baseHour = 8 + (seed % 6);     // 8..13
+      const minute   = ((seed >> 3) % 4) * 15; // 0/15/30/45
+      const time = String(baseHour).padStart(2,'0') + ':' + String(minute).padStart(2,'0');
+
+      // Día más activo · favoreciendo Mar/Mié/Jue
+      const candidates = [1, 2, 3, 0, 4]; // mar, mié, jue, lun, vie
+      const bestDayIdx = candidates[seed % candidates.length];
+      const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+      const engagement = 62 + (seed % 32);  // 62-94%
+      const avgWatch   = 3 + ((seed >> 5) % 4); // 3-6 min
+      const peakWindow = baseHour + ':00 – ' + (baseHour + 2) + ':00';
+
+      const insights = [
+        { icon:'⏰', label:'Hora óptima',          value: time,                 hint:'Cuando más interactúas con el contenido' },
+        { icon:'📅', label:'Día más activo',        value: days[bestDayIdx],     hint:'Más completaciones que el resto de días' },
+        { icon:'⚡',  label:'Ventana de atención',  value: peakWindow,           hint:'Tu pico de concentración' },
+        { icon:'📊', label:'Tiempo medio por pill',value: avgWatch + ' min',    hint:'Cuánto suele costarte completarla' },
+        { icon:'❤️', label:'Engagement',           value: engagement + '%',     hint:'% de pills que terminas vs. abandonadas' },
+      ];
+
+      const result = { time, bestDayIdx, days, engagement, avgWatch, peakWindow, insights, generatedAt: Date.now() };
+      localStorage.setItem(_userKey(), JSON.stringify(result));
+      window.dispatchEvent(new CustomEvent('smart-scheduling-changed', { detail: result }));
+      return result;
+    } catch(e) { return null; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') return s;
+    } catch(e) {}
+    return analyze();
+  }
+
+  function applyToDelivery() {
+    const r = get();
+    if (!r) return;
+    if (window.DeliveryPrefs && window.DeliveryPrefs.save) {
+      const prev = window.DeliveryPrefs.get();
+      const days = [false,false,false,false,false,false,false];
+      // Mantener un patrón coherente: laborales + el día más activo siempre on
+      for (let i = 0; i < 5; i++) days[i] = true;
+      days[r.bestDayIdx] = true;
+      window.DeliveryPrefs.save({ ...prev, mode:'smart-ai', time: r.time, days });
+    }
+  }
+
+  return { get, analyze, applyToDelivery };
+})();
+window.SmartScheduling = SmartScheduling;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
