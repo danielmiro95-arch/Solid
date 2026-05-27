@@ -312,7 +312,129 @@ function ChannelsView() {
 
       {/* DELIVERY PREFERENCES · cuándo recibir contenido */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
+
+      {/* CONTENT PUSH · qué tipo de contenido recibir */}
+      <ContentPushPanel channelColor={channelColor}/>
     </PageShell>
+  );
+}
+
+// ── Content Push Panel · tipos de contenido + formato de mensaje ─────────
+function ContentPushPanel({ channelColor }) {
+  const [prefs, setPrefs] = useEV2(() => (window.ContentPush ? window.ContentPush.get() : {}));
+  useEE2(() => {
+    const onChange = (e) => setPrefs(e.detail);
+    window.addEventListener('content-push-changed', onChange);
+    return () => window.removeEventListener('content-push-changed', onChange);
+  }, []);
+
+  const types = (window.ContentPush && window.ContentPush.TYPES) || [];
+  const enabledCount = types.filter(t => prefs.types && prefs.types[t.id]).length;
+
+  const FLAGS = [
+    { key:'autoReceive',   label:'Recibir automáticamente',  desc:'Llega solo, sin que pidas que te lo envíen.' },
+    { key:'showSummary',   label:'Resumen previo del contenido', desc:'Antes del enlace, una línea con lo que vas a aprender.' },
+    { key:'showThumbnail', label:'Thumbnail + CTA',          desc:'Imagen de portada con botón "Ver ahora".' },
+    { key:'showDuration',  label:'Ver duración',             desc:'Muestra cuánto dura antes de que abras.' },
+    { key:'openInSolid',   label:'Abrir en SolidStream',     desc:'Al hacer click, abrir dentro de la plataforma (no en web pública).' },
+  ];
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 6, gap:12, flexWrap:'wrap' }}>
+        <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>Qué contenido quieres recibir</h2>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10.5, letterSpacing:'0.06em', color:'var(--fg-muted)', fontWeight: 600 }}>
+          {enabledCount}/{types.length} tipos activos
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 24 }}>Activa los formatos que quieres que te lleguen por tu canal principal.</div>
+
+      {/* Grid de tipos de contenido */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginBottom: 32 }}>
+        {types.map(t => {
+          const active = !!(prefs.types && prefs.types[t.id]);
+          return (
+            <button key={t.id} onClick={() => window.ContentPush && window.ContentPush.toggleType(t.id)}
+              style={{
+                padding:'14px 16px', borderRadius: 12, cursor:'pointer', textAlign:'left',
+                background: active ? `linear-gradient(135deg, ${channelColor}12 0%, ${channelColor}04 100%)` : 'var(--bg-surface)',
+                border: `1.5px solid ${active ? channelColor : 'var(--line)'}`,
+                color:'var(--fg)', transition:'all .15s',
+                display:'flex', alignItems:'flex-start', gap: 10, position:'relative',
+              }}>
+              <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{t.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: active ? channelColor : 'var(--fg)' }}>{t.label}</div>
+                <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2, lineHeight: 1.35 }}>{t.desc}</div>
+              </div>
+              <div style={{ width: 22, height: 22, borderRadius: 6, border: `1.5px solid ${active ? channelColor : 'var(--line)'}`, background: active ? channelColor : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                {active ? '✓' : ''}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Opciones de formato + preview */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap: 24, alignItems:'flex-start' }}>
+        <div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight:700, marginBottom:10 }}>Formato del mensaje</div>
+          {FLAGS.map(f => {
+            const active = !!prefs[f.key];
+            return (
+              <div key={f.key} onClick={() => window.ContentPush && window.ContentPush.setFlag(f.key, !active)} style={{
+                padding:'12px 14px', marginBottom: 8, background: active ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                border: `1px solid ${active ? channelColor : 'var(--line)'}`, borderRadius: 10,
+                cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 14,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color:'var(--fg)' }}>{f.label}</div>
+                  <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2 }}>{f.desc}</div>
+                </div>
+                <div style={{ width: 34, height: 18, background: active ? channelColor : 'rgba(15,23,42,0.18)', borderRadius: 9, position:'relative', transition:'background .2s', flexShrink: 0 }}>
+                  <div style={{ width: 14, height: 14, background:'#fff', borderRadius:'50%', position:'absolute', top: 2, left: active ? 18 : 2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* PREVIEW dinámico del mensaje en el canal principal */}
+        <div style={{ background:'#000', border:'1px solid var(--line)', borderRadius: 20, padding: 10 }}>
+          <div style={{ padding:'10px 12px', background: channelColor, color:'#fff', borderRadius: 10, marginBottom: 6, fontSize: 12, fontWeight: 700, display:'flex', alignItems:'center', gap: 6 }}>
+            <span>✦</span><span>SolidStream</span>
+          </div>
+          <div style={{ padding: 12, background:'var(--bg-canvas)', borderRadius: 10, color:'var(--fg)' }}>
+            {prefs.showThumbnail && (
+              <div style={{ aspectRatio:'16/9', borderRadius: 8, background:`linear-gradient(135deg, ${channelColor}, ${channelColor}99)`, marginBottom: 8, position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 32 }}>▶</div>
+                {prefs.showDuration && (
+                  <div style={{ position:'absolute', bottom: 6, right: 6, padding:'2px 6px', background:'rgba(0,0,0,0.6)', color:'#fff', fontFamily:'var(--font-mono)', fontSize: 9, borderRadius: 4 }}>4:32</div>
+                )}
+              </div>
+            )}
+            <div style={{ fontSize: 12.5, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>Programar posts y calendario</div>
+            {prefs.showSummary && (
+              <div style={{ fontSize: 11, color:'var(--fg-muted)', lineHeight: 1.45, marginBottom: 8 }}>Aprende a agendar publicaciones en Sprinklr Publish y revisar tu calendario semanal.</div>
+            )}
+            <button style={{ padding:'7px 12px', background: channelColor, color:'#fff', border:'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor:'pointer', width:'100%' }}>
+              {prefs.openInSolid ? '▶ Ver en SolidStream' : 'Abrir en web'}
+            </button>
+            <div style={{ fontSize: 9, color:'var(--fg-dim)', marginTop: 6, fontFamily:'var(--font-mono)' }}>9:00 · push automático</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18, display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+        <button onClick={() => { window.ContentPush && window.ContentPush.reset(); setPrefs(window.ContentPush.get()); }}
+          style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontSize: 12, fontFamily:'var(--font-sans)', fontWeight: 600 }}>
+          ↻ Restablecer
+        </button>
+        <div style={{ flex: 1, textAlign:'right', fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.06em' }}>
+          Auto-save · {new Date(prefs.updatedAt || Date.now()).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -350,6 +350,76 @@ const Channels = (function() {
 })();
 window.Channels = Channels;
 
+// ── ContentPush · qué tipo de contenido recibir + formato de entrega ───────
+const ContentPush = (function() {
+  const KEY = 'solid-content-push';
+
+  const TYPES = [
+    { id:'videos',    label:'Vídeos',             icon:'🎬', desc:'Episodios y lecciones grabadas' },
+    { id:'pills',     label:'Learning pills',     icon:'⚡',  desc:'Cápsulas cortas de 3-5 min' },
+    { id:'workshops', label:'Talleres',           icon:'🛠',  desc:'Sesiones en vivo o híbridas' },
+    { id:'courses',   label:'Cursos completos',   icon:'🎓', desc:'Rutas de certificación' },
+    { id:'news',      label:'Noticias',           icon:'📰', desc:'Actualizaciones Sprinklr y producto' },
+    { id:'docs',      label:'Documentación',      icon:'📚', desc:'Guías técnicas y referencias' },
+    { id:'podcasts',  label:'Podcasts',           icon:'🎙',  desc:'Audio long-form · escucha en ruta' },
+    { id:'ia_recs',   label:'IA recommendations', icon:'✨', desc:'BeonAI te sugiere contenido relevante' },
+  ];
+
+  const DEFAULTS = {
+    types: { videos:true, pills:true, workshops:true, courses:false, news:false, docs:false, podcasts:false, ia_recs:true },
+    autoReceive: true,
+    showSummary: true,
+    showThumbnail: true,
+    openInSolid: true,
+    showDuration: true,
+    updatedAt: Date.now(),
+  };
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') return { ...DEFAULTS, ...s, types: { ...DEFAULTS.types, ...(s.types || {}) } };
+    } catch(e) {}
+    return { ...DEFAULTS, types: { ...DEFAULTS.types } };
+  }
+
+  function save(prefs) {
+    const next = { ...prefs, updatedAt: Date.now() };
+    localStorage.setItem(_userKey(), JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('content-push-changed', { detail: next }));
+    return next;
+  }
+
+  function toggleType(typeId) {
+    const cur = get();
+    cur.types = { ...cur.types, [typeId]: !cur.types[typeId] };
+    return save(cur);
+  }
+
+  function setFlag(flag, value) {
+    const cur = get();
+    cur[flag] = !!value;
+    return save(cur);
+  }
+
+  function reset() {
+    localStorage.removeItem(_userKey());
+    window.dispatchEvent(new CustomEvent('content-push-changed', { detail: DEFAULTS }));
+    return { ...DEFAULTS, types: { ...DEFAULTS.types } };
+  }
+
+  return { TYPES, get, save, toggleType, setFlag, reset };
+})();
+window.ContentPush = ContentPush;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
