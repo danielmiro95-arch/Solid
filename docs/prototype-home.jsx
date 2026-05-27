@@ -218,7 +218,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
               display:'flex', alignItems:'center', gap:12, padding:'12px 14px 14px',
               borderBottom:'1px solid rgba(255,255,255,0.08)', marginBottom:6,
             }}>
-              <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #EC1C24), var(--accent-deep, #B30A11))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
+              <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
               <div style={{flex:1, minWidth:0}}>
                 <div style={{fontSize:14, fontWeight:700, color:'var(--fg, #F5F4F1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
                 {userRole && <div style={{fontSize:11, color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}
@@ -243,7 +243,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
                   <Ico name={item.icon} size={16}/>
                 </span>
                 <span style={{flex:1}}>{item.label}</span>
-                {item.badge ? <span style={{padding:'2px 7px', fontSize:10, fontWeight:700, background:'var(--accent, #EC1C24)', color:'#fff', borderRadius:999, fontFamily:'var(--font-mono, monospace)'}}>{item.badge}</span> : null}
+                {item.badge ? <span style={{padding:'2px 7px', fontSize:10, fontWeight:700, background:'var(--accent, #6E50EE)', color:'#fff', borderRadius:999, fontFamily:'var(--font-mono, monospace)'}}>{item.badge}</span> : null}
               </button>
             ))}
 
@@ -255,10 +255,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
               style={{
                 display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 14px',
                 background:'transparent', border:'none', borderRadius:8, cursor:'pointer',
-                color:'var(--accent, #EC1C24)', textAlign:'left',
+                color:'var(--accent, #6E50EE)', textAlign:'left',
                 fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
               }}
-              onMouseEnter={e => e.currentTarget.style.background='rgba(236,28,36,0.1)'}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(110,80,238,0.1)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
               <span style={{display:'flex', alignItems:'center', justifyContent:'center', width:18}}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>

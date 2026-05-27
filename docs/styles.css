@@ -36,9 +36,9 @@
   --accent-primary: var(--bn-blue);   /* acciones principales */
   --accent-success: var(--bn-lime);   /* progreso / completado */
 
-  /* ── Repsol ──────────────────────────────────── */
-  --repsol-red:      #EB0029;
-  --repsol-red-dark: #B8001F;
+  /* ── BeonAI brand · accent principal (era Repsol red) ── */
+  --repsol-red:      #6E50EE;
+  --repsol-red-dark: #4E36C5;
 
   /* ── Alias legacy (no romper código existente) ── */
   --beonit-orange:  var(--bn-orange);
