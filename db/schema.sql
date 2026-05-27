@@ -24,9 +24,55 @@
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 
+-- Desactivar validación del cuerpo de las funciones durante esta migración.
+-- Necesario porque is_platform_admin() referencia public.profiles antes de
+-- que la tabla exista. Postgres permite esto explícitamente vía este flag.
+-- Una vez ejecutado el script entero, las funciones quedan registradas con
+-- sus tablas ya existentes y todo funciona normal.
+set check_function_bodies = off;
+
+-- =====================================================================
+-- 0b. RLS helpers · funciones que se referencian en políticas inline
+-- =====================================================================
+-- Estas funciones se definen ANTES que cualquier tabla/policy para que el
+-- planner las encuentre cuando ejecuta `create policy ... using (...)`.
+-- Las tablas que referencian (profiles, workspace_members) se crean después;
+-- como las funciones son `language sql`, el cuerpo se resuelve lazy en
+-- runtime, no en parse time, así que el forward reference es seguro.
+create or replace function public.is_platform_admin()
+returns boolean language sql security definer stable as $$
+  select coalesce((select system_role = 'admin' from public.profiles where id = auth.uid()), false);
+$$;
+
+-- Trigger genérico para auto-actualizar columna `updated_at`.
+-- Necesita estar definido antes que cualquier `create trigger` que lo referencie.
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end; $$;
+
+create or replace function public.is_workspace_member(ws_id uuid, min_role text default 'member')
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.workspace_members
+    where workspace_id = ws_id
+      and user_id = auth.uid()
+      and (
+        min_role = 'member' or
+        (min_role = 'admin' and role in ('owner','admin')) or
+        (min_role = 'owner' and role = 'owner')
+      )
+  );
+$$;
+
 -- =====================================================================
 -- 1. profiles · extiende auth.users con campos del usuario
 -- =====================================================================
+-- profiles.ingest_token · token personal opaco para autenticar el bookmarklet
+-- de KB sin necesitar OAuth desde el browser. Se genera lazy la primera vez
+-- que el user pide su bookmarklet desde el panel admin · rotable.
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   email text unique not null,
@@ -40,9 +86,15 @@ create table if not exists public.profiles (
   current_workspace_id uuid,                          -- workspace activo (FK añadida abajo)
   language text default 'es' check (language in ('es','en','pt')),
   theme text default 'auto' check (theme in ('light','dark','auto')),
+  ingest_token uuid,                                  -- token opaco para el bookmarklet
+  ingest_token_created_at timestamptz,
   created_at timestamptz default now(),
   last_login_at timestamptz default now()
 );
+-- Si la tabla ya existía con esquema viejo, añadimos columnas nuevas idempotente
+alter table public.profiles add column if not exists ingest_token uuid;
+alter table public.profiles add column if not exists ingest_token_created_at timestamptz;
+create unique index if not exists profiles_ingest_token_uniq on public.profiles(ingest_token) where ingest_token is not null;
 
 -- =====================================================================
 -- 2. workspaces · tenants (empresa cliente)
@@ -365,6 +417,112 @@ create policy push_subs_admin_read on public.push_subscriptions
   for select using (public.is_platform_admin());
 
 -- =====================================================================
+-- 18d. resources · documentos externos (Loop, SharePoint, PDFs)
+-- · Cards launcher: el user los ve dentro de Solid pero el click abre la
+--   URL original en pestaña nueva (fuente de verdad sigue siendo el origen).
+-- · BeonAI puede buscarlos para sugerirlos en respuestas relevantes.
+-- =====================================================================
+create table if not exists public.resources (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references public.workspaces(id) on delete cascade,
+  title text not null,
+  description text default '',
+  url text not null,
+  category text default '',
+  thumbnail_url text,
+  source text default 'other',                        -- loop | sharepoint | web | pdf | other
+  order_index integer default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  created_by uuid references public.profiles(id) on delete set null
+);
+create index if not exists resources_workspace_idx on public.resources(workspace_id, order_index);
+
+alter table public.resources enable row level security;
+
+drop policy if exists resources_read on public.resources;
+create policy resources_read on public.resources
+  for select using (public.is_workspace_member(workspace_id));
+
+drop policy if exists resources_write on public.resources;
+create policy resources_write on public.resources
+  for all using (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = resources.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  ) with check (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = resources.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  );
+
+drop trigger if exists resources_updated_at on public.resources;
+create trigger resources_updated_at before update on public.resources
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
+-- 18c. beonai_config · configuración del agente Claude por workspace
+-- · system_prompt: instrucciones que un admin edita desde el panel
+-- · knowledge_docs: array de { name, content } concatenado al system con
+--   cache_control breakpoint para que el SDK de Claude aplique prompt cache
+-- · tools_enabled: feature flags por tool name
+-- · Singleton por workspace (pk = workspace_id)
+-- =====================================================================
+create table if not exists public.beonai_config (
+  workspace_id uuid primary key references public.workspaces(id) on delete cascade,
+  system_prompt text not null default '',
+  model text not null default 'claude-sonnet-4-6',
+  temperature numeric not null default 0.7,
+  max_tokens integer not null default 1024,
+  knowledge_docs jsonb not null default '[]'::jsonb,
+  guardrails jsonb not null default '{}'::jsonb,
+  tools_enabled jsonb not null default '{"read_solid_data":false,"web_search":false}'::jsonb,
+  updated_at timestamptz default now(),
+  updated_by uuid references public.profiles(id) on delete set null
+);
+
+alter table public.beonai_config enable row level security;
+
+-- Cualquier miembro del workspace puede LEER (el agente usa la config)
+drop policy if exists beonai_config_read on public.beonai_config;
+create policy beonai_config_read on public.beonai_config
+  for select using (public.is_workspace_member(workspace_id));
+
+-- Solo admins de la plataforma o del workspace pueden ESCRIBIR
+drop policy if exists beonai_config_write on public.beonai_config;
+create policy beonai_config_write on public.beonai_config
+  for all using (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = beonai_config.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  ) with check (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = beonai_config.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  );
+
+-- updated_at automático
+drop trigger if exists beonai_config_updated_at on public.beonai_config;
+create trigger beonai_config_updated_at before update on public.beonai_config
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
 -- 19. Storage bucket · pill-submissions
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -408,12 +566,7 @@ create trigger on_auth_user_created
 -- =====================================================================
 -- 21. Trigger · auto-update updated_at en tablas con esa columna
 -- =====================================================================
-create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
-begin
-  new.updated_at := now();
-  return new;
-end; $$;
+-- (función set_updated_at() definida en sección 0b arriba)
 
 do $$
 declare
@@ -457,27 +610,8 @@ alter table public.activity_log        enable row level security;
 alter table public.test_sends          enable row level security;
 
 -- =====================================================================
--- 23. RLS helper · es admin de plataforma?
+-- 23. RLS helpers · (definidos arriba en sección 0b, antes de las tablas)
 -- =====================================================================
-create or replace function public.is_platform_admin()
-returns boolean language sql security definer stable as $$
-  select coalesce((select system_role = 'admin' from public.profiles where id = auth.uid()), false);
-$$;
-
--- Es miembro del workspace? (con role mínimo opcional)
-create or replace function public.is_workspace_member(ws_id uuid, min_role text default 'member')
-returns boolean language sql security definer stable as $$
-  select exists (
-    select 1 from public.workspace_members
-    where workspace_id = ws_id
-      and user_id = auth.uid()
-      and (
-        min_role = 'member' or
-        (min_role = 'admin' and role in ('owner','admin')) or
-        (min_role = 'owner' and role = 'owner')
-      )
-  );
-$$;
 
 -- =====================================================================
 -- 24. RLS policies · profiles

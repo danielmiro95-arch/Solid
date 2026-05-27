@@ -153,7 +153,7 @@ function WorkspaceSwitcher() {
   const T_SWITCH = T('workspaces.switch','Cambiar workspace');
 
   return (
-    <div ref={ref} style={{ position:'relative', marginLeft: 10 }}>
+    <div ref={ref} className="workspace-switcher" style={{ position:'relative', marginLeft: 10 }}>
       <button onClick={() => setOpen(o => !o)}
         title={T_SWITCH}
         style={{
@@ -164,7 +164,7 @@ function WorkspaceSwitcher() {
           borderRadius: 999,
           fontFamily:'var(--font-mono, "JetBrains Mono", monospace)',
           fontSize: 10.5, letterSpacing:'0.06em', fontWeight: 600,
-          color:'var(--fg, #F5F4F1)',
+          color:'#F5F4F1',
           cursor:'pointer',
           maxWidth: 220, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
         }}>
@@ -176,13 +176,14 @@ function WorkspaceSwitcher() {
         <div style={{
           position:'absolute', top:'calc(100% + 6px)', left: 0, zIndex: 80,
           minWidth: 260,
-          background:'var(--bg-glass-strong, rgba(14,14,18,0.95))',
+          background:'rgba(14,14,18,0.96)',
           backdropFilter:'blur(20px)',
-          border:'1px solid var(--line, rgba(255,255,255,0.10))',
+          WebkitBackdropFilter:'blur(20px)',
+          border:'1px solid rgba(255,255,255,0.10)',
           borderRadius: 10, padding: 6,
           boxShadow:'0 20px 60px rgba(0,0,0,0.40)',
         }}>
-          <div style={{ padding:'8px 12px', fontFamily:'var(--font-mono, monospace)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', fontWeight: 700 }}>
+          <div style={{ padding:'8px 12px', fontFamily:'var(--font-mono, monospace)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(245,244,241,0.6)', fontWeight: 700 }}>
             {T_ALL}
           </div>
           {mine.map(w => (
@@ -191,14 +192,14 @@ function WorkspaceSwitcher() {
                 display:'flex', alignItems:'center', gap: 10, width:'100%',
                 padding:'8px 12px', border:'none', background: w.id === current.id ? 'rgba(110,80,238,0.16)' : 'transparent',
                 cursor:'pointer', textAlign:'left', borderRadius: 6,
-                fontFamily:'var(--font-sans, Inter)', fontSize: 13, color:'var(--fg)',
+                fontFamily:'var(--font-sans, Inter)', fontSize: 13, color:'#F5F4F1',
               }}>
               <span style={{ width: 24, height: 24, borderRadius: 6, background: w.primaryColor || 'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
                 {(w.name || '?').slice(0, 2).toUpperCase()}
               </span>
               <span style={{ flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{w.name}</span>
               {w._membership && (
-                <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize: 9, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{w._membership.role}</span>
+                <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize: 9, color:'rgba(245,244,241,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{w._membership.role}</span>
               )}
               {w.id === current.id && <span style={{ color:'var(--accent)', fontSize: 14 }}>✓</span>}
             </button>
@@ -246,6 +247,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     { k:'browse',    label:T('nav.browse') },
     { k:'rutas',     label:T('nav.rutas') },
     { k:'path',      label:T('nav.path') },
+    { k:'resources', label:T('nav.resources','Recursos') },
     { k:'dashboard', label:T('nav.dashboard') },
     { k:'coach',     label:T('nav.coach') },
   ];
@@ -324,8 +326,8 @@ function TopNav({ view, onView, onSearch, onLogout }) {
             }}>
               <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:14, fontWeight:700, color:'var(--fg, #F5F4F1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
-                {userRole && <div style={{fontSize:11, color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}
+                <div style={{fontSize:14, fontWeight:700, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
+                {userRole && <div style={{fontSize:11, color:'rgba(245,244,241,0.7)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}
               </div>
             </div>
 
@@ -337,13 +339,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
                   display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 14px',
                   background: view === item.k ? 'rgba(255,255,255,0.08)' : 'transparent',
                   border:'none', borderRadius:8, cursor:'pointer',
-                  color:'var(--fg, #F5F4F1)', textAlign:'left',
+                  color:'#F5F4F1', textAlign:'left',
                   fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:500,
                   transition:'background .12s',
                 }}
                 onMouseEnter={e => { if (view !== item.k) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
                 onMouseLeave={e => { if (view !== item.k) e.currentTarget.style.background='transparent'; }}>
-                <span style={{display:'flex', alignItems:'center', justifyContent:'center', width:18, color:'var(--fg-muted, #A8A6A0)'}}>
+                <span style={{display:'flex', alignItems:'center', justifyContent:'center', width:18, color:'rgba(245,244,241,0.7)'}}>
                   <Ico name={item.icon} size={16}/>
                 </span>
                 <span style={{flex:1}}>{item.label}</span>

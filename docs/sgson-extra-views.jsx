@@ -1940,7 +1940,10 @@ function AdminView({ setView, openLegacyAdmin }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
   const D = window.SGS_DATA;
   const USER = (D && D.USER) || {};
-  if (!USER.isAdmin) {
+  // Lectura directa desde Auth · evita falsos negativos si SGS_DATA todavía
+  // tiene el USER del primer build (cuando Auth aún no existía).
+  const _canAdmin = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  if (!_canAdmin) {
     return (
       <PageShell title={T('admin.locked')} sub={T('admin.lockedDesc','Solo administradores pueden ver este panel.')}>
         <div style={{ padding: 60, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', textAlign: 'center' }}>
@@ -2007,6 +2010,9 @@ function AdminView({ setView, openLegacyAdmin }) {
 
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
+
+      {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
+      <BeonAIConfigPanel/>
     </PageShell>
   );
 }
@@ -2020,6 +2026,731 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+// ── ResourcesView · cards launcher a documentación externa (Loop, etc.) ───
+// Los users ven y filtran; los admin pueden añadir/editar/borrar.
+// Click en card → abre URL original en pestaña nueva.
+function ResourcesView({ openLegacyAdmin }) {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const [tick, setTick] = useEV2(0);
+  const [cat, setCat] = useEV2('Todos');
+  const [editing, setEditing] = useEV2(null); // null | 'new' | resource.id
+  const [form, setForm] = useEV2({ title: '', description: '', url: '', category: '', source: 'loop' });
+
+  useEE2(() => {
+    const refresh = () => setTick(t => t + 1);
+    window.addEventListener('resources-changed', refresh);
+    window.addEventListener('workspace-changed', refresh);
+    return () => {
+      window.removeEventListener('resources-changed', refresh);
+      window.removeEventListener('workspace-changed', refresh);
+    };
+  }, []);
+
+  const isAdmin = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  const items = (window.Resources && window.Resources.list && window.Resources.list()) || [];
+  const cats = ['Todos', ...Array.from(new Set(items.map(r => r.category).filter(Boolean)))];
+  const filtered = cat === 'Todos' ? items : items.filter(r => r.category === cat);
+
+  const SOURCES = {
+    loop:       { label: 'Microsoft Loop',  icon: '🔁', color: '#7B83EB' },
+    sharepoint: { label: 'SharePoint',      icon: '📂', color: '#0078D4' },
+    web:        { label: 'Web',             icon: '🌐', color: '#22C55E' },
+    pdf:        { label: 'PDF',             icon: '📄', color: '#EF4444' },
+    other:      { label: 'Otro',            icon: '🔗', color: '#A8A6A0' },
+  };
+
+  const openEditor = (resource) => {
+    if (resource) {
+      setEditing(resource.id);
+      setForm({ title: resource.title, description: resource.description || '', url: resource.url, category: resource.category || '', source: resource.source || 'other' });
+    } else {
+      setEditing('new');
+      setForm({ title: '', description: '', url: '', category: '', source: 'loop' });
+    }
+  };
+  const closeEditor = () => { setEditing(null); setForm({ title: '', description: '', url: '', category: '', source: 'loop' }); };
+
+  const saveForm = () => {
+    if (!form.title.trim() || !form.url.trim()) return;
+    try {
+      if (editing === 'new') window.Resources.create(form);
+      else window.Resources.update(editing, form);
+      if (window.Toast && window.Toast.show) window.Toast.show(editing === 'new' ? 'Recurso añadido' : 'Recurso actualizado', { type: 'success' });
+      closeEditor();
+    } catch (e) {
+      if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+    }
+  };
+  const deleteResource = (id) => {
+    if (!confirm('¿Borrar este recurso? No se puede deshacer.')) return;
+    window.Resources.remove(id);
+    if (window.Toast && window.Toast.show) window.Toast.show('Recurso borrado', { type: 'info' });
+  };
+
+  return (
+    <PageShell
+      eyebrow="Recursos · documentación"
+      title={<>Documentación <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>Repsol × Sprinklr</em></>}
+      sub={`${items.length} recursos · click abre el original en pestaña nueva`}
+      actions={isAdmin ? (
+        <button onClick={() => openEditor(null)} style={{
+          padding: '10px 18px', background: 'var(--accent)', color: '#fff',
+          border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13,
+        }}>+ Añadir recurso</button>
+      ) : null}>
+
+      {/* Filtro por categoría */}
+      {cats.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 28, padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', width: 'fit-content' }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)} style={{
+              padding: '8px 16px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+              background: c === cat ? 'var(--fg)' : 'transparent', color: c === cat ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+              border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', transition: 'all .15s',
+            }}>{c}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Grid de cards-launcher */}
+      {filtered.length === 0 ? (
+        <div style={{ padding: 60, textAlign: 'center', background: 'var(--bg-surface)', border: '1px dashed var(--line)', borderRadius: 12 }}>
+          <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📚</div>
+          <h3 style={{ fontSize: 18, margin: 0, marginBottom: 6 }}>Aún no hay recursos</h3>
+          <p style={{ color: 'var(--fg-muted)', fontSize: 14, margin: 0, marginBottom: 16 }}>
+            {isAdmin ? 'Añade enlaces a documentación de Loop, SharePoint o cualquier web relevante.' : 'Pide al admin que añada recursos a este workspace.'}
+          </p>
+          {isAdmin && (
+            <button onClick={() => openEditor(null)} style={{
+              padding: '10px 20px', background: 'var(--accent)', color: '#fff',
+              border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13,
+            }}>+ Añadir el primer recurso</button>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          {filtered.map(r => {
+            const src = SOURCES[r.source] || SOURCES.other;
+            return (
+              <div key={r.id} style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 18, transition: 'all .15s', cursor: 'pointer' }}
+                onClick={() => window.open(r.url, '_blank', 'noopener,noreferrer')}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                {/* Source chip */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 18 }}>{src.icon}</span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: src.color, fontWeight: 700 }}>
+                    {src.label}
+                  </span>
+                  {r.category && (
+                    <>
+                      <span style={{ color: 'var(--fg-dim)' }}>·</span>
+                      <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
+                        {r.category}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--fg)', lineHeight: 1.3 }}>{r.title}</h3>
+                {r.description && <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, marginBottom: 14, lineHeight: 1.5 }}>{r.description}</p>}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 600 }}>Abrir →</span>
+                  {isAdmin && (
+                    <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => openEditor(r)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Editar</button>
+                      <button onClick={() => deleteResource(r.id)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--err, #DC2626)', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Borrar</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal editor */}
+      {editing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }} onClick={closeEditor}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 28, maxWidth: 560, width: '90%', maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: 0, marginBottom: 20, fontSize: 22 }}>{editing === 'new' ? 'Añadir recurso' : 'Editar recurso'}</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Título *</label>
+                <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Procedimiento de aprobación de campañas" autoFocus
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}/>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>URL *</label>
+                <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://loop.cloud.microsoft/..."
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 13, fontFamily: 'var(--font-mono, monospace)' }}/>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Descripción</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Para qué sirve este recurso y cuándo usarlo"
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14, minHeight: 80, resize: 'vertical' }}/>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Categoría</label>
+                  <input type="text" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Procedimientos / Plantillas / Care"
+                    list="resource-categories-list"
+                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}/>
+                  <datalist id="resource-categories-list">
+                    {Array.from(new Set(items.map(r => r.category).filter(Boolean))).map(c => <option key={c} value={c}/>)}
+                  </datalist>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6 }}>Origen</label>
+                  <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontSize: 14 }}>
+                    <option value="loop">🔁 Microsoft Loop</option>
+                    <option value="sharepoint">📂 SharePoint</option>
+                    <option value="web">🌐 Web pública</option>
+                    <option value="pdf">📄 PDF</option>
+                    <option value="other">🔗 Otro</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
+              <button onClick={closeEditor} style={{ padding: '10px 18px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={saveForm} disabled={!form.title.trim() || !form.url.trim()} style={{ padding: '10px 18px', background: (!form.title.trim() || !form.url.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                {editing === 'new' ? 'Añadir' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+window.ResourcesView_New = ResourcesView;
+
+// ── BeonAIConfigPanel · admin only · editor del system prompt + KB ────────
+// Lee /api/beonai-config?workspaceId=... y permite editar:
+//   - system_prompt (textarea grande)
+//   - model · temperature · max_tokens
+//   - knowledge_docs (lista de { name, content })
+//   - tools_enabled (toggles · stubs)
+// Guarda con el access_token del usuario para que el endpoint valide admin.
+function BeonAIConfigPanel() {
+  if (!window.Workspaces || !window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  const [config, setConfig] = useEV2(null);
+  const [loading, setLoading] = useEV2(true);
+  const [saving, setSaving] = useEV2(false);
+  const [error, setError] = useEV2('');
+  const [open, setOpen] = useEV2(true);
+  const [systemPrompt, setSystemPrompt] = useEV2('');
+  const [model, setModel] = useEV2('claude-sonnet-4-6');
+  const [temperature, setTemperature] = useEV2(0.7);
+  const [maxTokens, setMaxTokens] = useEV2(1024);
+  const [docs, setDocs] = useEV2([]);
+  const [newDocName, setNewDocName] = useEV2('');
+  const [newDocContent, setNewDocContent] = useEV2('');
+  // Modos de import: 'manual' | 'bulk' | 'files' | 'bookmarklet'
+  const [addMode, setAddMode] = useEV2('manual');
+  const [bulkText, setBulkText] = useEV2('');
+  const [bulkSplit, setBulkSplit] = useEV2('## ');       // delimitador de troceo
+  const [bulkPreview, setBulkPreview] = useEV2(null);    // array de { name, content } previsualizado
+  const [dragOver, setDragOver] = useEV2(false);
+  const [ingestToken, setIngestToken] = useEV2(null);
+  const [ingestLoading, setIngestLoading] = useEV2(false);
+  const [toolReadProgress, setToolReadProgress] = useEV2(false);
+  const [toolSearchPills, setToolSearchPills] = useEV2(false);
+  const [toolSearchResources, setToolSearchResources] = useEV2(false);
+  const [toolWebSprinklr, setToolWebSprinklr] = useEV2(false);
+
+  const wsId = (window.Workspaces.current() && window.Workspaces.current().id) || null;
+
+  useEE2(() => {
+    if (!wsId) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/beonai-config?workspaceId=${encodeURIComponent(wsId)}`);
+        if (!res.ok) {
+          if (res.status === 503) { setError('Supabase no está configurado · usando defaults locales'); setLoading(false); return; }
+          throw new Error(String(res.status));
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        const c = data.config || {};
+        setConfig(c);
+        setSystemPrompt(c.system_prompt || '');
+        setModel(c.model || 'claude-sonnet-4-6');
+        setTemperature(typeof c.temperature === 'number' ? c.temperature : 0.7);
+        setMaxTokens(c.max_tokens || 1024);
+        setDocs(Array.isArray(c.knowledge_docs) ? c.knowledge_docs : []);
+        const tools = c.tools_enabled || {};
+        setToolReadProgress(!!tools.read_user_progress);
+        setToolSearchPills(!!tools.search_pill_catalog);
+        setToolSearchResources(!!tools.search_resources);
+        setToolWebSprinklr(!!tools.web_search_sprinklr);
+      } catch (e) {
+        if (!cancelled) setError('No se pudo cargar la configuración: ' + e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [wsId]);
+
+  const addDoc = () => {
+    const name = (newDocName || '').trim();
+    const content = (newDocContent || '').trim();
+    if (!name || !content) return;
+    setDocs(d => [...d, { name, content }]);
+    setNewDocName('');
+    setNewDocContent('');
+  };
+  const removeDoc = (i) => setDocs(d => d.filter((_, idx) => idx !== i));
+
+  const save = async () => {
+    if (!wsId) return;
+    setSaving(true);
+    setError('');
+    try {
+      let token = '';
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data } = await window.supabaseClient.auth.getSession();
+        token = data?.session?.access_token || '';
+      }
+      const res = await fetch('/api/beonai-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          workspaceId: wsId,
+          system_prompt: systemPrompt,
+          model,
+          temperature: Number(temperature),
+          max_tokens: Number(maxTokens),
+          knowledge_docs: docs,
+          tools_enabled: {
+            read_user_progress: toolReadProgress,
+            search_pill_catalog: toolSearchPills,
+            search_resources: toolSearchResources,
+            web_search_sprinklr: toolWebSprinklr,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || String(res.status));
+      }
+      const data = await res.json();
+      setConfig(data.config);
+      if (window.Toast && window.Toast.show) window.Toast.show('Configuración guardada', { type: 'success' });
+    } catch (e) {
+      setError('Error al guardar: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const exportJSON = () => {
+    const payload = {
+      system_prompt: systemPrompt, model,
+      temperature: Number(temperature), max_tokens: Number(maxTokens),
+      knowledge_docs: docs,
+      tools_enabled: {
+        read_user_progress: toolReadProgress,
+        search_pill_catalog: toolSearchPills,
+        search_resources: toolSearchResources,
+        web_search_sprinklr: toolWebSprinklr,
+      },
+      exported_at: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `beonai-config-${wsId || 'workspace'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const importJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (typeof d.system_prompt === 'string') setSystemPrompt(d.system_prompt);
+        if (typeof d.model === 'string') setModel(d.model);
+        if (typeof d.temperature === 'number') setTemperature(d.temperature);
+        if (typeof d.max_tokens === 'number') setMaxTokens(d.max_tokens);
+        if (Array.isArray(d.knowledge_docs)) setDocs(d.knowledge_docs);
+        if (d.tools_enabled) {
+          setToolReadProgress(!!d.tools_enabled.read_user_progress);
+          setToolSearchPills(!!d.tools_enabled.search_pill_catalog);
+          setToolSearchResources(!!d.tools_enabled.search_resources);
+          setToolWebSprinklr(!!d.tools_enabled.web_search_sprinklr);
+        }
+        if (window.Toast && window.Toast.show) window.Toast.show('Configuración importada · revisa y guarda', { type: 'info' });
+      } catch (e) { setError('JSON inválido: ' + e.message); }
+    };
+    reader.readAsText(file);
+  };
+
+  if (!wsId) return null;
+
+  const labelStyle = { fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6, display: 'block' };
+  const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontFamily: 'var(--font-sans)', fontSize: 13.5 };
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, gap: 12 }}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>🤖 BeonAI · Configuración</h2>
+        <button onClick={() => setOpen(o => !o)} style={{ background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          {open ? 'Ocultar' : 'Mostrar'}
+        </button>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: open ? 20 : 0 }}>
+        Edita el system prompt, el modelo y la base de conocimiento del agente. Los cambios se aplican al instante (cache server-side de 60s).
+      </p>
+
+      {!open ? null : loading ? (
+        <div style={{ padding: 24, color: 'var(--fg-muted)' }}>Cargando configuración…</div>
+      ) : (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 24 }}>
+          {error && (
+            <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: 'var(--err, #DC2626)', fontSize: 13, marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>System prompt · instrucciones base</label>
+            <textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
+              placeholder="Eres BeonAI, el asistente del programa de formación…"
+              style={{ ...inputStyle, minHeight: 200, fontFamily: 'var(--font-mono, monospace)', fontSize: 12.5, lineHeight: 1.5, resize: 'vertical' }}/>
+            <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 4, fontFamily: 'var(--font-mono, monospace)' }}>
+              {systemPrompt.length} caracteres · ~{Math.round(systemPrompt.length / 4)} tokens
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div>
+              <label style={labelStyle}>Modelo</label>
+              <select value={model} onChange={e => setModel(e.target.value)} style={inputStyle}>
+                <option value="claude-opus-4-7">Opus 4.7 · máxima calidad</option>
+                <option value="claude-sonnet-4-6">Sonnet 4.6 · recomendado</option>
+                <option value="claude-haiku-4-5-20251001">Haiku 4.5 · más rápido</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Temperature · {Number(temperature).toFixed(2)}</label>
+              <input type="range" min="0" max="1" step="0.05" value={temperature} onChange={e => setTemperature(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }}/>
+            </div>
+            <div>
+              <label style={labelStyle}>Max tokens</label>
+              <input type="number" min="256" max="8192" step="128" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} style={inputStyle}/>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>Knowledge base · documentos ({docs.length})</label>
+            <div style={{ fontSize: 12, color: 'var(--fg-dim)', marginBottom: 10 }}>
+              Cada documento se concatena al system prompt con prompt caching. Primer hit calienta cache, siguientes pagan ~10% del coste de input.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {docs.map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8 }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13 }}>{d.name}</span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--fg-dim)' }}>{(d.content || '').length} chars</span>
+                  <button onClick={() => removeDoc(i)} style={{ background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            {/* Tabs · modo de añadir documentos */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10, padding: 4, background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, width: 'fit-content' }}>
+              {[
+                { k: 'manual',      label: 'Manual'      },
+                { k: 'bulk',        label: 'Pegado masivo' },
+                { k: 'files',       label: 'Archivos'    },
+                { k: 'bookmarklet', label: 'Bookmarklet' },
+              ].map(t => (
+                <button key={t.k} onClick={() => setAddMode(t.k)} style={{
+                  padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                  background: addMode === t.k ? 'var(--accent)' : 'transparent',
+                  color: addMode === t.k ? '#fff' : 'var(--fg-muted)',
+                  border: 'none', borderRadius: 6, cursor: 'pointer',
+                }}>{t.label}</button>
+              ))}
+            </div>
+
+            {addMode === 'manual' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
+                <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Sprinklr Macros)" style={{ ...inputStyle, marginBottom: 8 }}/>
+                <textarea value={newDocContent} onChange={e => setNewDocContent(e.target.value)} placeholder="Pega aquí el texto del documento…"
+                  style={{ ...inputStyle, minHeight: 100, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
+                <button onClick={addDoc} disabled={!newDocName.trim() || !newDocContent.trim()}
+                  style={{ padding: '8px 16px', background: (!newDocName.trim() || !newDocContent.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>+ Añadir documento</button>
+              </div>
+            )}
+
+            {addMode === 'bulk' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
+                <p style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 8 }}>
+                  Pega aquí muchas páginas de Loop/SharePoint juntas. La primera línea de cada bloque se usa como nombre. El bloque empieza con el delimitador.
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <label style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Delimitador:</label>
+                  <select value={bulkSplit} onChange={e => { setBulkSplit(e.target.value); setBulkPreview(null); }} style={{ padding: '6px 10px', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg)', fontSize: 12 }}>
+                    <option value="## ">## (markdown H2)</option>
+                    <option value="# ">#  (markdown H1)</option>
+                    <option value="---">--- (línea horizontal)</option>
+                    <option value="\n\n\n">Triple línea en blanco</option>
+                  </select>
+                </div>
+                <textarea value={bulkText} onChange={e => { setBulkText(e.target.value); setBulkPreview(null); }}
+                  placeholder={`## Título de la primera página\nContenido de la primera página…\n\n## Título de la segunda página\nContenido de la segunda página…`}
+                  style={{ ...inputStyle, minHeight: 220, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => {
+                    const sep = bulkSplit === '\\n\\n\\n' ? '\n\n\n' : bulkSplit;
+                    const parts = bulkText.split(new RegExp('(?:^|\\n)' + sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))
+                      .map(s => s.trim()).filter(Boolean);
+                    const items = parts.map(part => {
+                      const lines = part.split('\n');
+                      const name = (lines.shift() || 'Sin título').trim().slice(0, 100);
+                      const content = lines.join('\n').trim();
+                      return { name, content };
+                    }).filter(p => p.content.length > 0);
+                    setBulkPreview(items);
+                  }} disabled={!bulkText.trim()}
+                    style={{ padding: '8px 14px', background: !bulkText.trim() ? 'rgba(110,80,238,0.3)' : 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                    Previsualizar troceo
+                  </button>
+                  {bulkPreview && bulkPreview.length > 0 && (
+                    <button onClick={() => {
+                      setDocs(d => [...d, ...bulkPreview]);
+                      setBulkText('');
+                      setBulkPreview(null);
+                      if (window.Toast && window.Toast.show) window.Toast.show(`${bulkPreview.length} documentos añadidos`, { type: 'success' });
+                    }} style={{ padding: '8px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                      + Añadir {bulkPreview.length} documentos
+                    </button>
+                  )}
+                </div>
+                {bulkPreview && (
+                  <div style={{ marginTop: 12, padding: 10, background: 'var(--bg-surface)', borderRadius: 6, border: '1px solid var(--line)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 6, fontFamily: 'var(--font-mono, monospace)' }}>
+                      Preview · {bulkPreview.length} bloques detectados
+                    </div>
+                    <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {bulkPreview.map((p, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--line-faint)', fontSize: 12 }}>
+                          <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
+                          <span style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--fg-dim)', fontSize: 10 }}>{p.content.length} chars</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {addMode === 'files' && (
+              <div onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => {
+                  e.preventDefault(); setDragOver(false);
+                  const files = Array.from(e.dataTransfer.files || []);
+                  let added = 0;
+                  let pending = files.length;
+                  if (pending === 0) return;
+                  files.forEach(f => {
+                    const ext = (f.name.split('.').pop() || '').toLowerCase();
+                    if (!['md', 'txt', 'markdown'].includes(ext)) {
+                      pending--;
+                      if (pending === 0 && window.Toast) window.Toast.show(added ? `${added} archivos añadidos` : 'Sólo .md y .txt en client-side', { type: added ? 'success' : 'warn' });
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const name = f.name.replace(/\.(md|txt|markdown)$/i, '');
+                      setDocs(d => [...d, { name, content: String(reader.result || '') }]);
+                      added++;
+                      pending--;
+                      if (pending === 0 && window.Toast) window.Toast.show(`${added} archivos añadidos`, { type: 'success' });
+                    };
+                    reader.readAsText(f);
+                  });
+                }}
+                style={{
+                  background: dragOver ? 'rgba(110,80,238,0.08)' : 'var(--bg-canvas)',
+                  border: '2px dashed ' + (dragOver ? 'var(--accent)' : 'var(--line)'),
+                  borderRadius: 8, padding: 32, textAlign: 'center', transition: 'all .15s',
+                }}>
+                <div style={{ fontSize: 40, marginBottom: 8, opacity: 0.6 }}>📁</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Arrastra archivos .md o .txt aquí</div>
+                <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>O usa el botón debajo para seleccionar</div>
+                <label style={{ display: 'inline-block', marginTop: 12, padding: '8px 16px', background: 'var(--accent)', color: '#fff', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  Seleccionar archivos
+                  <input type="file" multiple accept=".md,.txt,.markdown,text/plain,text/markdown" style={{ display: 'none' }}
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      let added = 0; let pending = files.length;
+                      files.forEach(f => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const name = f.name.replace(/\.(md|txt|markdown)$/i, '');
+                          setDocs(d => [...d, { name, content: String(reader.result || '') }]);
+                          added++; pending--;
+                          if (pending === 0 && window.Toast) window.Toast.show(`${added} archivos añadidos`, { type: 'success' });
+                        };
+                        reader.readAsText(f);
+                      });
+                    }}/>
+                </label>
+                <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 14 }}>
+                  PDF/DOCX: conviértelos a .md o .txt primero (o pega el texto en el modo Manual).
+                </div>
+              </div>
+            )}
+
+            {addMode === 'bookmarklet' && (
+              <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 16 }}>
+                <h4 style={{ margin: 0, marginBottom: 8, fontSize: 14 }}>🔖 Bookmarklet · 1 click desde Loop</h4>
+                <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.6, marginTop: 0, marginBottom: 14 }}>
+                  <li>Pulsa <b>Generar mi bookmarklet</b> abajo</li>
+                  <li>Arrastra el botón <b>"BeonAI · Importar"</b> a tu barra de favoritos del browser</li>
+                  <li>Cuando estés en una página de Loop (o cualquier web), pulsa el favorito → el contenido se manda a la KB de BeonAI</li>
+                  <li>Si rotas el token, el bookmarklet viejo deja de funcionar y tienes que volver a generar</li>
+                </ol>
+                {!ingestToken ? (
+                  <button onClick={async () => {
+                    setIngestLoading(true);
+                    try {
+                      let token = '';
+                      if (window.supabaseClient && window.supabaseClient.auth) {
+                        const { data } = await window.supabaseClient.auth.getSession();
+                        token = data?.session?.access_token || '';
+                      }
+                      const res = await fetch('/api/kb/token', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+                      if (!res.ok) throw new Error('No se pudo generar el token (' + res.status + ')');
+                      const data = await res.json();
+                      setIngestToken(data.token);
+                    } catch (e) {
+                      if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+                    } finally { setIngestLoading(false); }
+                  }} disabled={ingestLoading} style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                    {ingestLoading ? 'Generando…' : 'Generar mi bookmarklet'}
+                  </button>
+                ) : (
+                  <>
+                    {(() => {
+                      const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || '';
+                      const code = `javascript:(async()=>{const t=document.title.replace(/\\s*[-|·].*$/,'').trim()||'Sin título';const c=(document.body.innerText||'').replace(/\\n{3,}/g,'\\n\\n').trim().slice(0,90000);try{const r=await fetch('${origin}/api/kb/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-Ingest-Token':'${ingestToken}'},body:JSON.stringify({title:t,content:c,source_url:location.href})});const d=await r.json();if(d.ok)alert('✓ Importado a BeonAI: '+d.title+(d.replaced?' (reemplazado)':' (nuevo)')+' · '+d.doc_count+' docs en total');else alert('Error: '+(d.error||r.status));}catch(e){alert('Error: '+e.message);}})();`;
+                      return (
+                        <div>
+                          <a href={code} onClick={e => e.preventDefault()} draggable="true"
+                            style={{ display: 'inline-block', padding: '10px 18px', background: '#6E50EE', color: '#fff', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 13, cursor: 'grab' }}>
+                            🔖 BeonAI · Importar
+                          </a>
+                          <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fg-muted)' }}>
+                            ↑ Arrastra ESE botón a la barra de favoritos (no copies el texto, drag-drop).
+                          </div>
+                          <details style={{ marginTop: 14 }}>
+                            <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--fg-muted)' }}>Ver código (por si tu browser no permite drag)</summary>
+                            <textarea readOnly value={code} onClick={e => e.target.select()}
+                              style={{ width: '100%', minHeight: 100, marginTop: 8, padding: 8, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono, monospace)', fontSize: 11, resize: 'vertical' }}/>
+                            <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 6 }}>
+                              Click derecho en favoritos → Añadir página → Pega esto en URL.
+                            </div>
+                          </details>
+                          <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button onClick={async () => {
+                              if (!confirm('Rotar el token invalida el bookmarklet viejo. ¿Continuar?')) return;
+                              setIngestLoading(true);
+                              try {
+                                let token = '';
+                                if (window.supabaseClient && window.supabaseClient.auth) {
+                                  const { data } = await window.supabaseClient.auth.getSession();
+                                  token = data?.session?.access_token || '';
+                                }
+                                const res = await fetch('/api/kb/token', { method: 'POST', headers: token ? { Authorization: 'Bearer ' + token } : {} });
+                                if (!res.ok) throw new Error(String(res.status));
+                                const data = await res.json();
+                                setIngestToken(data.token);
+                                if (window.Toast && window.Toast.show) window.Toast.show('Token rotado · re-arrastra el bookmarklet', { type: 'info' });
+                              } catch (e) {
+                                if (window.Toast && window.Toast.show) window.Toast.show('Error: ' + e.message, { type: 'error' });
+                              } finally { setIngestLoading(false); }
+                            }} style={{ padding: '6px 12px', background: 'transparent', color: 'var(--warn, #B45309)', border: '1px solid var(--warn, #B45309)', borderRadius: 6, cursor: 'pointer', fontSize: 11.5 }}>
+                              Rotar token
+                            </button>
+                            <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, color: 'var(--fg-dim)' }}>
+                              token: {ingestToken.slice(0, 8)}…
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>Tools · capacidades del agente</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolReadProgress} onChange={e => setToolReadProgress(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Leer progreso del usuario</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Nombre, rol, pills completadas, en curso, % global · respuestas personalizadas</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolSearchPills} onChange={e => setToolSearchPills(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en el catálogo de pills</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>El agente puede buscar por tema/categoría y recomendar pills concretas</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolWebSprinklr} onChange={e => setToolWebSprinklr(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web · Sprinklr Help</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Restringido a help.sprinklr.com vía web_search nativo de Anthropic · máx 3 búsquedas/turno</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolSearchResources} onChange={e => setToolSearchResources(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda en Recursos del workspace</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Loop / SharePoint / PDFs que hayas añadido en la vista <code>Recursos</code> · el agente puede sugerirlos con link</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>
+              </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+            <button onClick={save} disabled={saving} style={{ padding: '10px 20px', background: saving ? 'rgba(110,80,238,0.4)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 700, fontSize: 13 }}>
+              {saving ? 'Guardando…' : 'Guardar configuración'}
+            </button>
+            <button onClick={exportJSON} style={{ padding: '10px 16px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>Exportar JSON</button>
+            <label style={{ padding: '10px 16px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
+              Importar JSON
+              <input type="file" accept="application/json" onChange={e => e.target.files[0] && importJSON(e.target.files[0])} style={{ display: 'none' }}/>
+            </label>
+            {config && config.updated_at && (
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, color: 'var(--fg-dim)' }}>
+                Última edición · {new Date(config.updated_at).toLocaleString('es-ES')}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // ── WorkspacesPanel · admin only · CRUD de tenants ───────────────────────
 function WorkspacesPanel() {
