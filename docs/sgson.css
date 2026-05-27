@@ -77,6 +77,43 @@
 }
 
 /* ============================================================
+   LIGHT THEME · sobrescribe tokens cuando html[data-theme="light"]
+   El Home / Player se mantiene dark cinematic (overrides inferiores)
+   ============================================================ */
+html[data-theme="light"] {
+  /* Superficies claras */
+  --bg-deep:        #F1EFE9;
+  --bg-canvas:      #F8F6F1;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #F1EEE6;
+  --bg-glass:       rgba(248, 246, 241, 0.82);
+  --bg-glass-strong:rgba(248, 246, 241, 0.95);
+
+  /* Bordes contrastados */
+  --line-faint:     rgba(13, 17, 23, 0.06);
+  --line:           rgba(13, 17, 23, 0.10);
+  --line-strong:    rgba(13, 17, 23, 0.20);
+
+  /* Texto */
+  --fg:             #0F172A;
+  --fg-muted:       #475569;
+  --fg-dim:         #64748B;
+  --fg-faint:       #94A3B8;
+  --fg-on-accent:   #FFFFFF;
+
+  /* Sombras suaves para destacar cards */
+  --shadow-card:    0 2px 8px rgba(13,17,23,0.06);
+  --shadow-pop:     0 12px 32px rgba(13,17,23,0.10);
+}
+
+/* Cards y modales con sombra suave en modo claro */
+html[data-theme="light"] .card,
+html[data-theme="light"] .modal,
+html[data-theme="light"] .ssg-page section[style*="bg-surface"] {
+  box-shadow: 0 1px 3px rgba(13,17,23,0.05);
+}
+
+/* ============================================================
    BASE
    ============================================================ */
 
