@@ -169,6 +169,91 @@ window.Ratings = Ratings;
 // Inicializa puntuaciones demo
 try { Ratings.seedIfEmpty(); } catch(e) {}
 
+// ── DeliveryPrefs · preferencias de recepción de contenido ─────────────────
+// Modos: 'daily' | 'weekly' | 'custom' | 'smart-ai' | 'weekdays' | 'weekends'
+const DeliveryPrefs = (function() {
+  const KEY = 'solid-delivery-prefs';
+
+  const DEFAULTS = {
+    enabled: true,
+    mode: 'weekdays',                      // por defecto: solo días laborales
+    days: [true,true,true,true,true,false,false], // Lun..Dom
+    time: '09:00',
+    timezone: 'auto',                      // 'auto' | 'Europe/Madrid' | ...
+    maxPerDay: 1,                          // límite suave
+    updatedAt: Date.now(),
+  };
+
+  function _userKey() {
+    try {
+      const u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+      const email = (u && u.email) || 'guest';
+      return KEY + ':' + email;
+    } catch(e) { return KEY + ':guest'; }
+  }
+
+  function get() {
+    try {
+      const s = JSON.parse(localStorage.getItem(_userKey()) || 'null');
+      if (s && typeof s === 'object') return { ...DEFAULTS, ...s };
+    } catch(e) {}
+    return { ...DEFAULTS };
+  }
+
+  function save(prefs) {
+    const next = { ...DEFAULTS, ...prefs, updatedAt: Date.now() };
+    // Derivar días según modo
+    if (next.mode === 'daily')    next.days = [true,true,true,true,true,true,true];
+    if (next.mode === 'weekdays') next.days = [true,true,true,true,true,false,false];
+    if (next.mode === 'weekends') next.days = [false,false,false,false,false,true,true];
+    if (next.mode === 'weekly')   { next.days = [false,false,false,false,false,false,false]; next.days[0] = true; }
+    localStorage.setItem(_userKey(), JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('delivery-prefs-changed', { detail: next }));
+    return next;
+  }
+
+  function reset() {
+    localStorage.removeItem(_userKey());
+    window.dispatchEvent(new CustomEvent('delivery-prefs-changed', { detail: DEFAULTS }));
+    return { ...DEFAULTS };
+  }
+
+  // Calcula el próximo envío real según prefs.days y prefs.time
+  function nextDelivery(prefs) {
+    const p = prefs || get();
+    if (!p.enabled) return null;
+    const activeDays = p.days || DEFAULTS.days;
+    if (!activeDays.some(d => d)) return null;
+    const [hh, mm] = (p.time || '09:00').split(':').map(n => parseInt(n, 10));
+    const now = new Date();
+    for (let offset = 0; offset < 8; offset++) {
+      const d = new Date(now.getTime() + offset * 86400000);
+      // jsDay: 0=Sun .. 6=Sat. Prefs days: 0=Mon .. 6=Sun
+      const jsDay = d.getDay();
+      const idx = jsDay === 0 ? 6 : jsDay - 1;
+      if (!activeDays[idx]) continue;
+      const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh || 9, mm || 0, 0);
+      if (offset === 0 && candidate.getTime() <= now.getTime()) continue;
+      return candidate;
+    }
+    return null;
+  }
+
+  function formatNext(date) {
+    if (!date) return 'Sin envíos programados';
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 86400000);
+    const sameDate = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    const time = date.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+    if (sameDate(date, today))    return 'Hoy a las ' + time;
+    if (sameDate(date, tomorrow)) return 'Mañana a las ' + time;
+    return date.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'short' }) + ' · ' + time;
+  }
+
+  return { get, save, reset, nextDelivery, formatNext };
+})();
+window.DeliveryPrefs = DeliveryPrefs;
+
 // ── Auth · gestor de sesión multi-usuario con rol admin ────────────────────
 // Modelo "demo auth": guarda usuarios en localStorage, sesión local. Sin backend
 // ni passwords reales — pensado para enseñar el flujo SaaS multi-usuario hoy
