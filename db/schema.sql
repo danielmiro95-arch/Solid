@@ -365,6 +365,60 @@ create policy push_subs_admin_read on public.push_subscriptions
   for select using (public.is_platform_admin());
 
 -- =====================================================================
+-- 18c. beonai_config · configuración del agente Claude por workspace
+-- · system_prompt: instrucciones que un admin edita desde el panel
+-- · knowledge_docs: array de { name, content } concatenado al system con
+--   cache_control breakpoint para que el SDK de Claude aplique prompt cache
+-- · tools_enabled: feature flags por tool name
+-- · Singleton por workspace (pk = workspace_id)
+-- =====================================================================
+create table if not exists public.beonai_config (
+  workspace_id uuid primary key references public.workspaces(id) on delete cascade,
+  system_prompt text not null default '',
+  model text not null default 'claude-sonnet-4-6',
+  temperature numeric not null default 0.7,
+  max_tokens integer not null default 1024,
+  knowledge_docs jsonb not null default '[]'::jsonb,
+  guardrails jsonb not null default '{}'::jsonb,
+  tools_enabled jsonb not null default '{"read_solid_data":false,"web_search":false}'::jsonb,
+  updated_at timestamptz default now(),
+  updated_by uuid references public.profiles(id) on delete set null
+);
+
+alter table public.beonai_config enable row level security;
+
+-- Cualquier miembro del workspace puede LEER (el agente usa la config)
+drop policy if exists beonai_config_read on public.beonai_config;
+create policy beonai_config_read on public.beonai_config
+  for select using (public.is_workspace_member(workspace_id));
+
+-- Solo admins de la plataforma o del workspace pueden ESCRIBIR
+drop policy if exists beonai_config_write on public.beonai_config;
+create policy beonai_config_write on public.beonai_config
+  for all using (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = beonai_config.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  ) with check (
+    public.is_platform_admin() or
+    exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = beonai_config.workspace_id
+        and wm.user_id = auth.uid()
+        and wm.role in ('owner','admin')
+    )
+  );
+
+-- updated_at automático
+drop trigger if exists beonai_config_updated_at on public.beonai_config;
+create trigger beonai_config_updated_at before update on public.beonai_config
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
 -- 19. Storage bucket · pill-submissions
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

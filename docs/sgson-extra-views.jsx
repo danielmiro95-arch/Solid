@@ -2010,6 +2010,9 @@ function AdminView({ setView, openLegacyAdmin }) {
 
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
+
+      {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
+      <BeonAIConfigPanel/>
     </PageShell>
   );
 }
@@ -2023,6 +2026,268 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+// ── BeonAIConfigPanel · admin only · editor del system prompt + KB ────────
+// Lee /api/beonai-config?workspaceId=... y permite editar:
+//   - system_prompt (textarea grande)
+//   - model · temperature · max_tokens
+//   - knowledge_docs (lista de { name, content })
+//   - tools_enabled (toggles · stubs)
+// Guarda con el access_token del usuario para que el endpoint valide admin.
+function BeonAIConfigPanel() {
+  if (!window.Workspaces || !window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  const [config, setConfig] = useEV2(null);
+  const [loading, setLoading] = useEV2(true);
+  const [saving, setSaving] = useEV2(false);
+  const [error, setError] = useEV2('');
+  const [open, setOpen] = useEV2(true);
+  const [systemPrompt, setSystemPrompt] = useEV2('');
+  const [model, setModel] = useEV2('claude-sonnet-4-6');
+  const [temperature, setTemperature] = useEV2(0.7);
+  const [maxTokens, setMaxTokens] = useEV2(1024);
+  const [docs, setDocs] = useEV2([]);
+  const [newDocName, setNewDocName] = useEV2('');
+  const [newDocContent, setNewDocContent] = useEV2('');
+  const [toolReadSolid, setToolReadSolid] = useEV2(false);
+  const [toolWebSearch, setToolWebSearch] = useEV2(false);
+
+  const wsId = (window.Workspaces.current() && window.Workspaces.current().id) || null;
+
+  useEE2(() => {
+    if (!wsId) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/beonai-config?workspaceId=${encodeURIComponent(wsId)}`);
+        if (!res.ok) {
+          if (res.status === 503) { setError('Supabase no está configurado · usando defaults locales'); setLoading(false); return; }
+          throw new Error(String(res.status));
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        const c = data.config || {};
+        setConfig(c);
+        setSystemPrompt(c.system_prompt || '');
+        setModel(c.model || 'claude-sonnet-4-6');
+        setTemperature(typeof c.temperature === 'number' ? c.temperature : 0.7);
+        setMaxTokens(c.max_tokens || 1024);
+        setDocs(Array.isArray(c.knowledge_docs) ? c.knowledge_docs : []);
+        const tools = c.tools_enabled || {};
+        setToolReadSolid(!!tools.read_solid_data);
+        setToolWebSearch(!!tools.web_search);
+      } catch (e) {
+        if (!cancelled) setError('No se pudo cargar la configuración: ' + e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [wsId]);
+
+  const addDoc = () => {
+    const name = (newDocName || '').trim();
+    const content = (newDocContent || '').trim();
+    if (!name || !content) return;
+    setDocs(d => [...d, { name, content }]);
+    setNewDocName('');
+    setNewDocContent('');
+  };
+  const removeDoc = (i) => setDocs(d => d.filter((_, idx) => idx !== i));
+
+  const save = async () => {
+    if (!wsId) return;
+    setSaving(true);
+    setError('');
+    try {
+      let token = '';
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data } = await window.supabaseClient.auth.getSession();
+        token = data?.session?.access_token || '';
+      }
+      const res = await fetch('/api/beonai-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          workspaceId: wsId,
+          system_prompt: systemPrompt,
+          model,
+          temperature: Number(temperature),
+          max_tokens: Number(maxTokens),
+          knowledge_docs: docs,
+          tools_enabled: { read_solid_data: toolReadSolid, web_search: toolWebSearch },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || String(res.status));
+      }
+      const data = await res.json();
+      setConfig(data.config);
+      if (window.Toast && window.Toast.show) window.Toast.show('Configuración guardada', { type: 'success' });
+    } catch (e) {
+      setError('Error al guardar: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const exportJSON = () => {
+    const payload = {
+      system_prompt: systemPrompt, model,
+      temperature: Number(temperature), max_tokens: Number(maxTokens),
+      knowledge_docs: docs,
+      tools_enabled: { read_solid_data: toolReadSolid, web_search: toolWebSearch },
+      exported_at: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `beonai-config-${wsId || 'workspace'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const importJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (typeof d.system_prompt === 'string') setSystemPrompt(d.system_prompt);
+        if (typeof d.model === 'string') setModel(d.model);
+        if (typeof d.temperature === 'number') setTemperature(d.temperature);
+        if (typeof d.max_tokens === 'number') setMaxTokens(d.max_tokens);
+        if (Array.isArray(d.knowledge_docs)) setDocs(d.knowledge_docs);
+        if (d.tools_enabled) {
+          setToolReadSolid(!!d.tools_enabled.read_solid_data);
+          setToolWebSearch(!!d.tools_enabled.web_search);
+        }
+        if (window.Toast && window.Toast.show) window.Toast.show('Configuración importada · revisa y guarda', { type: 'info' });
+      } catch (e) { setError('JSON inválido: ' + e.message); }
+    };
+    reader.readAsText(file);
+  };
+
+  if (!wsId) return null;
+
+  const labelStyle = { fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', fontWeight: 700, marginBottom: 6, display: 'block' };
+  const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--fg)', fontFamily: 'var(--font-sans)', fontSize: 13.5 };
+
+  return (
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, gap: 12 }}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: 0 }}>🤖 BeonAI · Configuración</h2>
+        <button onClick={() => setOpen(o => !o)} style={{ background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          {open ? 'Ocultar' : 'Mostrar'}
+        </button>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: open ? 20 : 0 }}>
+        Edita el system prompt, el modelo y la base de conocimiento del agente. Los cambios se aplican al instante (cache server-side de 60s).
+      </p>
+
+      {!open ? null : loading ? (
+        <div style={{ padding: 24, color: 'var(--fg-muted)' }}>Cargando configuración…</div>
+      ) : (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12, padding: 24 }}>
+          {error && (
+            <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: 'var(--err, #DC2626)', fontSize: 13, marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>System prompt · instrucciones base</label>
+            <textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
+              placeholder="Eres BeonAI, el asistente del programa de formación…"
+              style={{ ...inputStyle, minHeight: 200, fontFamily: 'var(--font-mono, monospace)', fontSize: 12.5, lineHeight: 1.5, resize: 'vertical' }}/>
+            <div style={{ fontSize: 11, color: 'var(--fg-dim)', marginTop: 4, fontFamily: 'var(--font-mono, monospace)' }}>
+              {systemPrompt.length} caracteres · ~{Math.round(systemPrompt.length / 4)} tokens
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div>
+              <label style={labelStyle}>Modelo</label>
+              <select value={model} onChange={e => setModel(e.target.value)} style={inputStyle}>
+                <option value="claude-opus-4-7">Opus 4.7 · máxima calidad</option>
+                <option value="claude-sonnet-4-6">Sonnet 4.6 · recomendado</option>
+                <option value="claude-haiku-4-5-20251001">Haiku 4.5 · más rápido</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Temperature · {Number(temperature).toFixed(2)}</label>
+              <input type="range" min="0" max="1" step="0.05" value={temperature} onChange={e => setTemperature(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }}/>
+            </div>
+            <div>
+              <label style={labelStyle}>Max tokens</label>
+              <input type="number" min="256" max="8192" step="128" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} style={inputStyle}/>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>Knowledge base · documentos ({docs.length})</label>
+            <div style={{ fontSize: 12, color: 'var(--fg-dim)', marginBottom: 10 }}>
+              Cada documento se concatena al system prompt con prompt caching. Primer hit calienta cache, siguientes pagan ~10% del coste de input.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {docs.map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8 }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13 }}>{d.name}</span>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--fg-dim)' }}>{(d.content || '').length} chars</span>
+                  <button onClick={() => removeDoc(i)} style={{ background: 'transparent', border: '1px solid var(--line)', color: 'var(--fg-muted)', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
+              <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Sprinklr Macros)" style={{ ...inputStyle, marginBottom: 8 }}/>
+              <textarea value={newDocContent} onChange={e => setNewDocContent(e.target.value)} placeholder="Pega aquí el texto del documento…"
+                style={{ ...inputStyle, minHeight: 100, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
+              <button onClick={addDoc} disabled={!newDocName.trim() || !newDocContent.trim()}
+                style={{ padding: '8px 16px', background: (!newDocName.trim() || !newDocContent.trim()) ? 'rgba(110,80,238,0.3)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>+ Añadir documento</button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>Tools · capacidades del agente</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolReadSolid} onChange={e => setToolReadSolid(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Leer datos del usuario en Solid</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Pills vistas, ruta actual, ratings · respuestas personalizadas</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-dim)' }}>Próximamente</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={toolWebSearch} onChange={e => setToolWebSearch(e.target.checked)}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Para info actualizada que no está en la KB</div>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-dim)' }}>Próximamente</span>
+              </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+            <button onClick={save} disabled={saving} style={{ padding: '10px 20px', background: saving ? 'rgba(110,80,238,0.4)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 700, fontSize: 13 }}>
+              {saving ? 'Guardando…' : 'Guardar configuración'}
+            </button>
+            <button onClick={exportJSON} style={{ padding: '10px 16px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>Exportar JSON</button>
+            <label style={{ padding: '10px 16px', background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
+              Importar JSON
+              <input type="file" accept="application/json" onChange={e => e.target.files[0] && importJSON(e.target.files[0])} style={{ display: 'none' }}/>
+            </label>
+            {config && config.updated_at && (
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, color: 'var(--fg-dim)' }}>
+                Última edición · {new Date(config.updated_at).toLocaleString('es-ES')}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // ── WorkspacesPanel · admin only · CRUD de tenants ───────────────────────
 function WorkspacesPanel() {

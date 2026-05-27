@@ -233,18 +233,35 @@ function CoachView() {
       try { window.ChatHistory.appendMessage(chatId, userMsg); } catch(e) {}
     }
 
+    // Mensaje placeholder vacío para que el streaming actualice in-place.
+    const aiTs = Date.now();
+    setMsgs(m => [...m, { role: 'assistant', text: '', ts: aiTs, streaming: true }]);
+
+    let fullReply = '';
     try {
-      const reply = await (typeof callMentorAPI === 'function'
-        ? callMentorAPI([...msgs, userMsg])
-        : Promise.resolve('BeonAI no disponible · revisa la conexión.'));
-      const aiMsg = { role: 'assistant', text: reply, ts: Date.now() };
-      setMsgs(m => [...m, aiMsg]);
+      if (typeof callMentorAPI !== 'function') throw new Error('BeonAI no disponible');
+      fullReply = await callMentorAPI([...msgs, userMsg], (delta, full) => {
+        // Actualiza el último mensaje (el placeholder) con el texto acumulado.
+        setMsgs(m => {
+          const out = m.slice();
+          for (let i = out.length - 1; i >= 0; i--) {
+            if (out[i].ts === aiTs && out[i].role === 'assistant') {
+              out[i] = { ...out[i], text: full };
+              break;
+            }
+          }
+          return out;
+        });
+      });
+      // Persiste el mensaje final (con streaming=false) en el historial.
+      const aiMsg = { role: 'assistant', text: fullReply, ts: aiTs };
+      setMsgs(m => m.map(x => x.ts === aiTs && x.role === 'assistant' ? aiMsg : x));
       if (chatId && window.ChatHistory && window.ChatHistory.appendMessage) {
         try { window.ChatHistory.appendMessage(chatId, aiMsg); } catch(e) {}
       }
     } catch (e) {
-      const errMsg = { role: 'assistant', text: 'No he podido procesar la consulta. Inténtalo de nuevo en unos segundos.', ts: Date.now() };
-      setMsgs(m => [...m, errMsg]);
+      const errMsg = { role: 'assistant', text: 'No he podido procesar la consulta. Inténtalo de nuevo en unos segundos.', ts: aiTs };
+      setMsgs(m => m.map(x => x.ts === aiTs && x.role === 'assistant' ? errMsg : x));
       if (chatId && window.ChatHistory && window.ChatHistory.appendMessage) {
         try { window.ChatHistory.appendMessage(chatId, errMsg); } catch(e) {}
       }

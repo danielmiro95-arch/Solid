@@ -546,26 +546,70 @@ const USER_PROFILE = {
   currentPill: 4,
 };
 
-async function callMentorAPI(messages) {
+// callMentorAPI · llama al endpoint /api/chat de BeonAI.
+// Si recibe onDelta, abre una conexión SSE y va emitiendo deltas según llegan
+// (UX streaming: el texto aparece a medida que se genera). Si no, hace fetch
+// normal y devuelve la respuesta completa de una vez.
+async function callMentorAPI(messages, onDelta) {
   const url = window.MENTOR_IA_API_URL || '/api/chat';
+  const u = (window.UserProfile && window.UserProfile.get && window.UserProfile.get()) || null;
+  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || null;
+  const profile = {
+    name: (u && u.name) || (USER_PROFILE && USER_PROFILE.name),
+    role: (u && u.role) || (USER_PROFILE && USER_PROFILE.role),
+    progress: USER_PROFILE && USER_PROFILE.progress,
+    currentPill: USER_PROFILE && USER_PROFILE.currentPill,
+    workspace: ws && ws.name,
+  };
+  const payload = {
+    messages: messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.text || m.content || '',
+    })),
+    userProfile: profile,
+    workspaceId: ws && ws.id,
+    stream: !!onDelta,
+  };
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: messages.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.text || m.content || '',
-      })),
-      userProfile: USER_PROFILE,
-    }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const err = await res.text().catch(() => res.status);
     console.error('[BeonAI] error:', res.status, err);
-    throw new Error(`${res.status}`);
+    throw new Error(String(res.status));
   }
-  const data = await res.json();
-  return data.content || '';
+
+  // Modo no-streaming · respuesta JSON completa.
+  if (!onDelta) {
+    const data = await res.json();
+    return data.content || '';
+  }
+
+  // Modo streaming · parsea Server-Sent Events `data: {json}\n\n`.
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let full = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n\n');
+    buf = lines.pop() || '';
+    for (const line of lines) {
+      const m = line.match(/^data:\s*(.+)$/);
+      if (!m) continue;
+      try {
+        const evt = JSON.parse(m[1]);
+        if (evt.delta) { full += evt.delta; onDelta(evt.delta, full); }
+        if (evt.error) throw new Error(evt.error);
+      } catch (e) { /* ignore parse errors on partial lines */ }
+    }
+  }
+  return full;
 }
 
 
