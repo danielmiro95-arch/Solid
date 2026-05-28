@@ -3,16 +3,11 @@
   "manifestVersion": "1.17",
   "version": "1.0.0",
   "id": "0f2f382b-43ec-4900-aa58-57c2aa5e71ac",
-  "packageName": "es.beonit.solidstream",
   "developer": {
     "name": "BeonIt",
     "websiteUrl": "https://solid-zeta.vercel.app",
     "privacyUrl": "https://solid-zeta.vercel.app",
     "termsOfUseUrl": "https://solid-zeta.vercel.app"
-  },
-  "icons": {
-    "color": "color.png",
-    "outline": "outline.png"
   },
   "name": {
     "short": "SolidStream",
@@ -21,6 +16,10 @@
   "description": {
     "short": "Plataforma de formación Sprinklr para Repsol.",
     "full": "SolidStream es la plataforma de microlearning de BeonIt para la formación en Sprinklr de Repsol: Think Pills en vídeo, rutas de aprendizaje, BeonAI (asistente IA) y seguimiento de progreso, todo dentro de Teams."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
   },
   "accentColor": "#6E50EE",
   "staticTabs": [
