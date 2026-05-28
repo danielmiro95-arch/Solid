@@ -47,6 +47,61 @@
   })();
 </script>
 
+<!-- Microsoft Teams · SDK + bootstrap. Solo se activa si la app corre embebida
+     dentro de Teams (tab). Si se abre en navegador normal, no hace nada. -->
+<script src="https://res.cdn.office.net/teams-js/2.24.0/js/MicrosoftTeams.min.js" crossorigin="anonymous"></script>
+<script>
+(function(){
+  window.IN_TEAMS = false;
+  // Heurística rápida: el manifest abre la tab con ?teams=1, o estamos dentro
+  // de un iframe (Teams siempre embebe). Si ninguna aplica, no intentamos init.
+  var params = new URLSearchParams(window.location.search);
+  var maybeTeams = params.get('teams') === '1' || (window.self !== window.top);
+  if (!maybeTeams || !window.microsoftTeams) {
+    console.log('[SolidStream] Teams SDK: no embebido · modo navegador');
+    return;
+  }
+  try {
+    window.microsoftTeams.app.initialize().then(function(){
+      window.IN_TEAMS = true;
+      document.documentElement.setAttribute('data-in-teams', '1');
+      console.log('[SolidStream] Teams SDK: inicializado ✓');
+      // Sincroniza el tema de Teams (default/dark/contrast) con el de la app
+      window.microsoftTeams.app.getContext().then(function(ctx){
+        var theme = (ctx && ctx.app && ctx.app.theme) || 'default';
+        applyTeamsTheme(theme);
+      }).catch(function(){});
+      // Reacciona a cambios de tema en Teams
+      window.microsoftTeams.app.registerOnThemeChangeHandler(applyTeamsTheme);
+      // Notifica a Teams que la app cargó OK (quita el spinner de Teams)
+      try { window.microsoftTeams.app.notifySuccess(); } catch(e){}
+    }).catch(function(err){
+      console.warn('[SolidStream] Teams SDK init falló:', err && err.message);
+    });
+  } catch(e) {
+    console.warn('[SolidStream] Teams SDK no disponible:', e && e.message);
+  }
+  function applyTeamsTheme(theme){
+    // Teams: 'default' (claro) · 'dark' · 'contrast'. La app usa data-theme
+    // gestionado por el módulo Settings (clave sgson-settings). Persistimos a
+    // través de Settings.update() para que el theme-controller de la app lo
+    // respete; si Settings aún no cargó, aplicamos data-theme directo y
+    // reintentamos unas pocas veces.
+    var appTheme = (theme === 'dark' || theme === 'contrast') ? 'dark' : 'light';
+    window._teamsTheme = appTheme;
+    var tries = 0;
+    (function persist(){
+      if (window.Settings && window.Settings.update) {
+        window.Settings.update({ theme: appTheme });
+      } else {
+        document.documentElement.setAttribute('data-theme', appTheme);
+        if (tries++ < 15) setTimeout(persist, 200);
+      }
+    })();
+  }
+})();
+</script>
+
 <style>
   /* Deck-stage slide set lives in its own panel */
   #deck-panel deck-stage { width: 100%; display: block; }

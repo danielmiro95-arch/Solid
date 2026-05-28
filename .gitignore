@@ -1,5 +1,6 @@
 .DS_Store
 *.zip
+!teams/solidstream-teams.zip
 *.pptx
 _incoming/
 node_modules/
