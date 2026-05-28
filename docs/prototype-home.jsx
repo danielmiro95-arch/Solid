@@ -56,7 +56,7 @@ const PILLS = [
   { id: 'p40', pill: 40, title: 'Cómo interpretar la información de los paneles para priorizar la operativa',               one: 'Analizar los widgets te permite decidir qué atender primero.',                     teacher: 'Ana García',    duration: '5 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 135, category: 'Analytics' },
   // ── Think Pills con vídeo real (YouTube) ─────────────────────────────────
   { id: 'p41', pill: 41, title: 'Qué es una macro',                                                                          one: 'Una macro automatiza respuestas repetitivas y acelera la atención al cliente.',    teacher: 'Luis Romero',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Care',         yt: 'PGGFv3FXQc4' },
-  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg' },
+  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg', featured: true },
   { id: 'p43', pill: 43, title: 'Publicar añadiendo emojis y etiquetando a terceros',                                        one: 'Los emojis y etiquetas aumentan el alcance orgánico de cada publicación.',         teacher: 'Sara Molina',   duration: '3 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'Fsdm5GzEu-8' },
   // ── Nuevos vídeos (catálogo Sprinklr Repsol, abril 2026) ─────────────────
   { id: 'p44', pill: 44, title: 'Ping ID',                                                                                   one: 'El sistema de autenticación corporativa que da acceso a Sprinklr en Repsol.',      teacher: 'IT Repsol',     duration: '2 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 0,   category: 'Integraciones', yt: 'hSof6jg5N1I' },
@@ -417,7 +417,11 @@ function HomeHero({ onPlay, onMore }) {
   const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
-    const withVid = PILLS.filter(p => p.yt);
+    // Pills con flag `featured: true` van primero (decisión del admin sobre
+    // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
+    // si no hay suficientes, las más populares por `enrolled`.
+    const withVid = PILLS.filter(p => p.yt)
+      .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     if (withVid.length >= 4) return withVid.slice(0, 4);
     const fill = PILLS.slice().sort((a,b) => (b.enrolled||0)-(a.enrolled||0));
     const ids = new Set(withVid.map(p => p.id));

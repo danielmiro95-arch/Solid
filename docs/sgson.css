@@ -519,12 +519,19 @@ img { display: block; max-width: 100%; }
 .hero-content {
   position: relative;
   z-index: 2;
-  max-width: 720px;
-  padding: calc(var(--nav-h) + 80px) var(--row-pad) 120px;
+  max-width: 640px;
+  padding: calc(var(--nav-h) + 80px) var(--row-pad) 90px;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+}
+
+/* Botones del hero · un pelín más compactos para que el vídeo respire */
+.hero-actions .btn {
+  height: 42px;
+  font-size: 13.5px;
+  padding: 0 20px;
 }
 
 .hero-eyebrow {
@@ -553,32 +560,32 @@ img { display: block; max-width: 100%; }
 
 .hero-title {
   font-family: var(--font-sans);
-  font-size: 76px;
+  font-size: 60px;
   font-weight: 800;
   line-height: 0.96;
   letter-spacing: -0.035em;
   color: var(--fg);
-  margin: 0 0 var(--s-6) 0;
+  margin: 0 0 14px 0;
   text-wrap: balance;
 }
 
 .hero-quote {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 400;
-  line-height: 1.3;
+  line-height: 1.35;
   letter-spacing: -0.01em;
   color: var(--fg-muted);
-  margin: 0 0 var(--s-8) 0;
-  max-width: 560px;
+  margin: 0 0 22px 0;
+  max-width: 520px;
 }
 
 .hero-meta {
   display: flex; align-items: center; gap: var(--s-3);
-  margin-bottom: var(--s-8);
+  margin-bottom: 22px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--fg-muted);
   flex-wrap: wrap;
@@ -844,7 +851,12 @@ img { display: block; max-width: 100%; }
 .card-grad {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+  /* Gradient más agresivo · garantiza contraste para el título blanco aunque
+   * el thumbnail YouTube tenga fondo claro (screenshots Sprinklr con UI clara). */
+  background: linear-gradient(180deg,
+    transparent 25%,
+    rgba(0,0,0,0.55) 55%,
+    rgba(0,0,0,0.92) 100%);
 }
 
 .card-pill-num {
@@ -884,13 +896,16 @@ img { display: block; max-width: 100%; }
 
 .card-title {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--fg);
   margin: 0 0 4px 0;
-  line-height: 1.2;
+  line-height: 1.25;
   text-wrap: balance;
+  /* Text-shadow garantiza legibilidad del título blanco si el thumbnail
+   * de YouTube tiene fondo claro (screenshots Sprinklr en blanco). */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5);
   /* clamp to 2 lines */
   display: -webkit-box;
   -webkit-line-clamp: 2;
