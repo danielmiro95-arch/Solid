@@ -81,7 +81,7 @@ const PILLS = [
   { id: 'p49', pill: 49, title: 'Flujo de publicación para colaboraciones en Instagram',                                     one: 'Lanza contenido colaborativo entre cuentas para multiplicar el alcance.',           teacher: 'Sara Molina',   duration: '3 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'JpyD0rJYoj4' },
   { id: 'p50', pill: 50, title: 'Campaña y subcampaña',                                                                      one: 'Organiza tu actividad en campañas jerárquicas para medir impacto agregado.',        teacher: 'Equipo BeonIt', duration: '3 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 0,   category: 'Estructura',    yt: 'eHrZf1d43d0' },
   // ── Pill principal · vídeo MP4 propio en Supabase Storage (hero al inicio) ──
-  { id: 'p51', pill: 51, title: 'Release',                                                                                   one: 'Lo último de Sprinklr en Repsol: novedades y mejoras del último release.',         teacher: 'Equipo BeonIt', duration: '2 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 5.0, enrolled: 0,   category: 'Fundamentos',   mp4: 'Release.mp4', featured: true },
+  { id: 'p51', pill: 51, title: 'Release',                                                                                   one: 'Lo último de Sprinklr en Repsol: novedades y mejoras del último release.',         teacher: 'Equipo BeonIt', duration: '2 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 5.0, enrolled: 0,   category: 'Fundamentos',   mp4: 'https://ymhwsdmbddyudepbjfpk.supabase.co/storage/v1/object/public/pill-videos/Release.mp4', featured: true },
 ];
 
 // ── Bloques formativos (series) ───────────────────────────────────────────
@@ -473,9 +473,15 @@ function HomeHero({ onPlay, onMore }) {
         {pMp4 ? (
           <video
             key={'video-'+p.id}
+            ref={el => {
+              if (!el) return;
+              el.muted = muted;          // forzar property (no solo attribute) · autoplay policy
+              const play = el.play();
+              if (play && play.catch) play.catch(() => {});  // ignora rechazo de autoplay
+            }}
             src={pMp4}
             autoPlay
-            muted={muted}
+            muted
             loop
             playsInline
             poster={p.poster || undefined}
