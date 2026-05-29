@@ -529,6 +529,13 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('pill-submissions', 'pill-submissions', false, 524288000, array['video/mp4','video/quicktime','video/webm'])
 on conflict (id) do nothing;
 
+-- Bucket público para los vídeos de las propias pills (contenido formativo).
+-- Público para que el <video> los reproduzca por streaming sin auth · la
+-- escritura sigue restringida a admins por las RLS policies de storage.objects.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('pill-videos', 'pill-videos', true, 1073741824, array['video/mp4','video/quicktime','video/webm'])
+on conflict (id) do nothing;
+
 -- =====================================================================
 -- 20. Trigger · auto-crea profile cuando se crea un auth.user
 -- =====================================================================
@@ -811,6 +818,23 @@ create policy subm_owner_delete on storage.objects
       or public.is_platform_admin()
     )
   );
+
+-- pill-videos · lectura pública (bucket public=true), escritura solo admins.
+drop policy if exists pillvid_public_read on storage.objects;
+create policy pillvid_public_read on storage.objects
+  for select using (bucket_id = 'pill-videos');
+
+drop policy if exists pillvid_admin_insert on storage.objects;
+create policy pillvid_admin_insert on storage.objects
+  for insert with check (bucket_id = 'pill-videos' and public.is_platform_admin());
+
+drop policy if exists pillvid_admin_update on storage.objects;
+create policy pillvid_admin_update on storage.objects
+  for update using (bucket_id = 'pill-videos' and public.is_platform_admin());
+
+drop policy if exists pillvid_admin_delete on storage.objects;
+create policy pillvid_admin_delete on storage.objects
+  for delete using (bucket_id = 'pill-videos' and public.is_platform_admin());
 
 -- =====================================================================
 -- 32. Realtime · publica eventos para sync cross-device

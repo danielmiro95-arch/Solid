@@ -2,6 +2,20 @@
 
 const { useState, useEffect } = React;
 
+// Resuelve la URL de vídeo de una pill. Acepta:
+//  - URL completa (https://...)  → se usa tal cual (YouTube, Vimeo, CDN, etc.)
+//  - nombre de archivo (p44.mp4) → se construye la URL pública del bucket
+//    `pill-videos` de Supabase Storage usando window.SUPABASE_URL.
+// Devuelve null si no hay valor.
+function pillVideoUrl(mp4) {
+  if (!mp4) return null;
+  if (/^https?:\/\//i.test(mp4)) return mp4;
+  var base = (typeof window !== 'undefined' && window.SUPABASE_URL) || '';
+  if (!base) return null; // sin Supabase configurado no podemos resolver el nombre
+  return base.replace(/\/$/, '') + '/storage/v1/object/public/pill-videos/' + mp4;
+}
+if (typeof window !== 'undefined') window.pillVideoUrl = pillVideoUrl;
+
 // ── Repsol · Sprinklr · 41 Think Pills (currículum real) ──────────────────
 const PILLS = [
   // Bloque 1 · Introducción
@@ -443,6 +457,7 @@ function HomeHero({ onPlay, onMore }) {
   const p = featured[idx];
   if (!p) return null;
 
+  const pMp4 = (p.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(p.mp4) : null;
   const slug = _catSlugFix(p.category);
   const cat = (D && D.CATS && (D.CATS[p.category] || D.CATS[slug])) || { label: p.category };
 
@@ -453,29 +468,46 @@ function HomeHero({ onPlay, onMore }) {
       data-screen-label="Hero">
       <div className="hero-media">
         <div className={`hero-media-placeholder cover-${slug}`}/>
-        {p.yt && (
-          <img
-            key={'thumb-'+p.id}
-            src={`https://img.youtube.com/vi/${p.yt}/maxresdefault.jpg`}
-            alt=""
-            aria-hidden="true"
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
-            onError={e => {
-              if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb='1'; e.currentTarget.src = `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`; }
-              else { e.currentTarget.style.display = 'none'; }
-            }}
-          />
-        )}
-        {p.yt && (
-          <iframe
+        {pMp4 ? (
+          <video
             key={'video-'+p.id}
-            src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
-            allow="autoplay; encrypted-media"
+            src={pMp4}
+            autoPlay
+            muted={muted}
+            loop
+            playsInline
+            poster={p.poster || undefined}
             aria-hidden="true"
             tabIndex={-1}
-            title=""
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none'}}
           />
+        ) : (
+          <>
+            {p.yt && (
+              <img
+                key={'thumb-'+p.id}
+                src={`https://img.youtube.com/vi/${p.yt}/maxresdefault.jpg`}
+                alt=""
+                aria-hidden="true"
+                style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
+                onError={e => {
+                  if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb='1'; e.currentTarget.src = `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`; }
+                  else { e.currentTarget.style.display = 'none'; }
+                }}
+              />
+            )}
+            {p.yt && (
+              <iframe
+                key={'video-'+p.id}
+                src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
+                style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
+                allow="autoplay; encrypted-media"
+                aria-hidden="true"
+                tabIndex={-1}
+                title=""
+              />
+            )}
+          </>
         )}
       </div>
       <div className="hero-overlay"/>
@@ -564,14 +596,21 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
   return (
     <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
       <div className={`card-cover cat-${slug}`}/>
-      {pill.yt && (
+      {pill.poster ? (
+        <img
+          src={pill.poster}
+          alt=""
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          onError={e => { e.currentTarget.style.display='none'; }}
+        />
+      ) : pill.yt ? (
         <img
           src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
           alt=""
           style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
-      )}
+      ) : null}
       <div className="card-grad"/>
 
       <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
