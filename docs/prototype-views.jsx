@@ -111,7 +111,8 @@ function Player({ back, item }) {
   const [muted, setMuted] = useS2(false);
   const [showSubs, setShowSubs] = useS2(true);
   const it = item || PILLS.find(p => p.yt) || PILLS[0];
-  const hasVideo = !!it.yt;
+  const mp4Url = (it && it.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(it.mp4) : null;
+  const hasVideo = !!(it.yt || mp4Url);
 
   const chapters = [
     { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
@@ -181,6 +182,17 @@ function Player({ back, item }) {
         </button>
         {hasVideo ? (
           <>
+            {mp4Url ? (
+              <video
+                key={it.id}
+                src={mp4Url + '#t=' + Math.floor(startAt)}
+                controls
+                autoPlay
+                playsInline
+                poster={it.poster || undefined}
+                style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1, background:'#000', objectFit:'contain'}}
+              />
+            ) : (
             <iframe
               key={it.yt}
               src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white&start=${Math.floor(startAt)}`}
@@ -188,6 +200,7 @@ function Player({ back, item }) {
               allowFullScreen
               style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
             />
+            )}
             <div className="player-overlay-top" style={{zIndex:2, pointerEvents:'none'}}>
               <button onClick={back} style={{pointerEvents:'all'}} className="back">
                 <Icon name="back" size={12}/> Volver al módulo

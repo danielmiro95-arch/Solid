@@ -2,6 +2,20 @@
 
 const { useState, useEffect } = React;
 
+// Resuelve la URL de vídeo de una pill. Acepta:
+//  - URL completa (https://...)  → se usa tal cual (YouTube, Vimeo, CDN, etc.)
+//  - nombre de archivo (p44.mp4) → se construye la URL pública del bucket
+//    `pill-videos` de Supabase Storage usando window.SUPABASE_URL.
+// Devuelve null si no hay valor.
+function pillVideoUrl(mp4) {
+  if (!mp4) return null;
+  if (/^https?:\/\//i.test(mp4)) return mp4;
+  var base = (typeof window !== 'undefined' && window.SUPABASE_URL) || '';
+  if (!base) return null; // sin Supabase configurado no podemos resolver el nombre
+  return base.replace(/\/$/, '') + '/storage/v1/object/public/pill-videos/' + mp4;
+}
+if (typeof window !== 'undefined') window.pillVideoUrl = pillVideoUrl;
+
 // ── Repsol · Sprinklr · 41 Think Pills (currículum real) ──────────────────
 const PILLS = [
   // Bloque 1 · Introducción
@@ -56,7 +70,7 @@ const PILLS = [
   { id: 'p40', pill: 40, title: 'Cómo interpretar la información de los paneles para priorizar la operativa',               one: 'Analizar los widgets te permite decidir qué atender primero.',                     teacher: 'Ana García',    duration: '5 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 135, category: 'Analytics' },
   // ── Think Pills con vídeo real (YouTube) ─────────────────────────────────
   { id: 'p41', pill: 41, title: 'Qué es una macro',                                                                          one: 'Una macro automatiza respuestas repetitivas y acelera la atención al cliente.',    teacher: 'Luis Romero',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Care',         yt: 'PGGFv3FXQc4' },
-  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg', featured: true },
+  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg' },
   { id: 'p43', pill: 43, title: 'Publicar añadiendo emojis y etiquetando a terceros',                                        one: 'Los emojis y etiquetas aumentan el alcance orgánico de cada publicación.',         teacher: 'Sara Molina',   duration: '3 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'Fsdm5GzEu-8' },
   // ── Nuevos vídeos (catálogo Sprinklr Repsol, abril 2026) ─────────────────
   { id: 'p44', pill: 44, title: 'Ping ID',                                                                                   one: 'El sistema de autenticación corporativa que da acceso a Sprinklr en Repsol.',      teacher: 'IT Repsol',     duration: '2 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 0,   category: 'Integraciones', yt: 'hSof6jg5N1I' },
@@ -66,6 +80,8 @@ const PILLS = [
   { id: 'p48', pill: 48, title: 'Flujo de publicación vía App para Stories y Reels en Instagram',                            one: 'Crea y programa Stories y Reels de Instagram directamente desde la app móvil.',     teacher: 'Sara Molina',   duration: '4 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'zmHtcIXj-rM' },
   { id: 'p49', pill: 49, title: 'Flujo de publicación para colaboraciones en Instagram',                                     one: 'Lanza contenido colaborativo entre cuentas para multiplicar el alcance.',           teacher: 'Sara Molina',   duration: '3 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'JpyD0rJYoj4' },
   { id: 'p50', pill: 50, title: 'Campaña y subcampaña',                                                                      one: 'Organiza tu actividad en campañas jerárquicas para medir impacto agregado.',        teacher: 'Equipo BeonIt', duration: '3 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 0,   category: 'Estructura',    yt: 'eHrZf1d43d0' },
+  // ── Pill principal · vídeo MP4 propio en Supabase Storage (hero al inicio) ──
+  { id: 'p51', pill: 51, title: 'Release',                                                                                   one: 'Lo último de Sprinklr en Repsol: novedades y mejoras del último release.',         teacher: 'Equipo BeonIt', duration: '2 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 5.0, enrolled: 0,   category: 'Fundamentos',   mp4: 'Release.mp4', featured: true },
 ];
 
 // ── Bloques formativos (series) ───────────────────────────────────────────
@@ -420,7 +436,7 @@ function HomeHero({ onPlay, onMore }) {
     // Pills con flag `featured: true` van primero (decisión del admin sobre
     // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
     // si no hay suficientes, las más populares por `enrolled`.
-    const withVid = PILLS.filter(p => p.yt)
+    const withVid = PILLS.filter(p => p.yt || p.mp4)
       .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     if (withVid.length >= 4) return withVid.slice(0, 4);
     const fill = PILLS.slice().sort((a,b) => (b.enrolled||0)-(a.enrolled||0));
@@ -443,6 +459,7 @@ function HomeHero({ onPlay, onMore }) {
   const p = featured[idx];
   if (!p) return null;
 
+  const pMp4 = (p.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(p.mp4) : null;
   const slug = _catSlugFix(p.category);
   const cat = (D && D.CATS && (D.CATS[p.category] || D.CATS[slug])) || { label: p.category };
 
@@ -453,29 +470,46 @@ function HomeHero({ onPlay, onMore }) {
       data-screen-label="Hero">
       <div className="hero-media">
         <div className={`hero-media-placeholder cover-${slug}`}/>
-        {p.yt && (
-          <img
-            key={'thumb-'+p.id}
-            src={`https://img.youtube.com/vi/${p.yt}/maxresdefault.jpg`}
-            alt=""
-            aria-hidden="true"
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
-            onError={e => {
-              if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb='1'; e.currentTarget.src = `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`; }
-              else { e.currentTarget.style.display = 'none'; }
-            }}
-          />
-        )}
-        {p.yt && (
-          <iframe
+        {pMp4 ? (
+          <video
             key={'video-'+p.id}
-            src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
-            style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
-            allow="autoplay; encrypted-media"
+            src={pMp4}
+            autoPlay
+            muted={muted}
+            loop
+            playsInline
+            poster={p.poster || undefined}
             aria-hidden="true"
             tabIndex={-1}
-            title=""
+            style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none'}}
           />
+        ) : (
+          <>
+            {p.yt && (
+              <img
+                key={'thumb-'+p.id}
+                src={`https://img.youtube.com/vi/${p.yt}/maxresdefault.jpg`}
+                alt=""
+                aria-hidden="true"
+                style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85}}
+                onError={e => {
+                  if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb='1'; e.currentTarget.src = `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`; }
+                  else { e.currentTarget.style.display = 'none'; }
+                }}
+              />
+            )}
+            {p.yt && (
+              <iframe
+                key={'video-'+p.id}
+                src={`https://www.youtube.com/embed/${p.yt}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${p.yt}&playsinline=1&start=45&iv_load_policy=3&disablekb=1`}
+                style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', pointerEvents:'none', transform:'scale(1.3)'}}
+                allow="autoplay; encrypted-media"
+                aria-hidden="true"
+                tabIndex={-1}
+                title=""
+              />
+            )}
+          </>
         )}
       </div>
       <div className="hero-overlay"/>
@@ -564,14 +598,21 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
   return (
     <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
       <div className={`card-cover cat-${slug}`}/>
-      {pill.yt && (
+      {pill.poster ? (
+        <img
+          src={pill.poster}
+          alt=""
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          onError={e => { e.currentTarget.style.display='none'; }}
+        />
+      ) : pill.yt ? (
         <img
           src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
           alt=""
           style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
-      )}
+      ) : null}
       <div className="card-grad"/>
 
       <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
