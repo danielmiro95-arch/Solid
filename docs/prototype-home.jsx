@@ -70,7 +70,7 @@ const PILLS = [
   { id: 'p40', pill: 40, title: 'Cómo interpretar la información de los paneles para priorizar la operativa',               one: 'Analizar los widgets te permite decidir qué atender primero.',                     teacher: 'Ana García',    duration: '5 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 135, category: 'Analytics' },
   // ── Think Pills con vídeo real (YouTube) ─────────────────────────────────
   { id: 'p41', pill: 41, title: 'Qué es una macro',                                                                          one: 'Una macro automatiza respuestas repetitivas y acelera la atención al cliente.',    teacher: 'Luis Romero',   duration: '3 min', tone: 'warm',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Care',         yt: 'PGGFv3FXQc4' },
-  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg', featured: true },
+  { id: 'p42', pill: 42, title: 'Uso de macros en Sprinklr Service',                                                         one: 'Aplicar macros en el flujo diario reduce tiempos y mejora la consistencia.',       teacher: 'Luis Romero',   duration: '4 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Care',         yt: '-ztcftORQRg' },
   { id: 'p43', pill: 43, title: 'Publicar añadiendo emojis y etiquetando a terceros',                                        one: 'Los emojis y etiquetas aumentan el alcance orgánico de cada publicación.',         teacher: 'Sara Molina',   duration: '3 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'Fsdm5GzEu-8' },
   // ── Nuevos vídeos (catálogo Sprinklr Repsol, abril 2026) ─────────────────
   { id: 'p44', pill: 44, title: 'Ping ID',                                                                                   one: 'El sistema de autenticación corporativa que da acceso a Sprinklr en Repsol.',      teacher: 'IT Repsol',     duration: '2 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'principiante', rating: 4.8, enrolled: 0,   category: 'Integraciones', yt: 'hSof6jg5N1I' },
@@ -80,6 +80,8 @@ const PILLS = [
   { id: 'p48', pill: 48, title: 'Flujo de publicación vía App para Stories y Reels en Instagram',                            one: 'Crea y programa Stories y Reels de Instagram directamente desde la app móvil.',     teacher: 'Sara Molina',   duration: '4 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'zmHtcIXj-rM' },
   { id: 'p49', pill: 49, title: 'Flujo de publicación para colaboraciones en Instagram',                                     one: 'Lanza contenido colaborativo entre cuentas para multiplicar el alcance.',           teacher: 'Sara Molina',   duration: '3 min', tone: 'noir',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.9, enrolled: 0,   category: 'Social Publish', yt: 'JpyD0rJYoj4' },
   { id: 'p50', pill: 50, title: 'Campaña y subcampaña',                                                                      one: 'Organiza tu actividad en campañas jerárquicas para medir impacto agregado.',        teacher: 'Equipo BeonIt', duration: '3 min', tone: 'teal',  format: 'módulo', progress: 0,   level: 'intermedio',  rating: 4.8, enrolled: 0,   category: 'Estructura',    yt: 'eHrZf1d43d0' },
+  // ── Pill principal · vídeo MP4 propio en Supabase Storage (hero al inicio) ──
+  { id: 'p51', pill: 51, title: 'Release',                                                                                   one: 'Lo último de Sprinklr en Repsol: novedades y mejoras del último release.',         teacher: 'Equipo BeonIt', duration: '2 min', tone: 'plum',  format: 'módulo', progress: 0,   level: 'principiante', rating: 5.0, enrolled: 0,   category: 'Fundamentos',   mp4: 'Release.mp4', featured: true },
 ];
 
 // ── Bloques formativos (series) ───────────────────────────────────────────
@@ -434,7 +436,7 @@ function HomeHero({ onPlay, onMore }) {
     // Pills con flag `featured: true` van primero (decisión del admin sobre
     // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
     // si no hay suficientes, las más populares por `enrolled`.
-    const withVid = PILLS.filter(p => p.yt)
+    const withVid = PILLS.filter(p => p.yt || p.mp4)
       .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     if (withVid.length >= 4) return withVid.slice(0, 4);
     const fill = PILLS.slice().sort((a,b) => (b.enrolled||0)-(a.enrolled||0));
