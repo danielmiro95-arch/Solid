@@ -101,7 +101,7 @@
       ROWS.push({ key:'available', title:'Disponibles ahora', sub:'reproducir directamente', pillIds: withVideo });
     }
     ROWS.push({ key:'paths', title:'Rutas recomendadas para ti', sub:'según tu rol', isPaths: true });
-    ROWS.push({ key:'trending', title:'Tendencia esta semana', sub:'en Repsol', pillIds: trending, trending: true });
+    ROWS.push({ key:'trending', title:'Tendencia esta semana', sub:(window.WORKSPACE_NAME ? ('en ' + window.WORKSPACE_NAME) : 'en tu workspace'), pillIds: trending, trending: true });
     if (careIds.length > 0) {
       ROWS.push({ key:'care', title:'Care', sub:'atención al cliente que de verdad funciona', pillIds: careIds });
     }

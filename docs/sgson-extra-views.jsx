@@ -1746,7 +1746,7 @@ function ProfileView({ setView }) {
     <PageShell
       eyebrow={T('profile.title')}
       title={USER.name || 'Usuario'}
-      sub={`${USER.role || 'Publish Agent'} · ${USER.team || 'Repsol'}`}
+      sub={[USER.role, USER.team || window.WORKSPACE_NAME].filter(Boolean).join(' · ') || 'Sin equipo asignado'}
       narrow>
 
       {/* Avatar + info card */}
@@ -2100,7 +2100,7 @@ function ResourcesView({ openLegacyAdmin }) {
   return (
     <PageShell
       eyebrow="Recursos · documentación"
-      title={<>Documentación <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>Repsol × Sprinklr</em></>}
+      title={<>Documentación <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{window.WORKSPACE_NAME || 'de tu workspace'}</em></>}
       sub={`${items.length} recursos · click abre el original en pestaña nueva`}
       actions={isAdmin ? (
         <button onClick={() => openEditor(null)} style={{

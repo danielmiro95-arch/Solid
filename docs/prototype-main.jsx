@@ -2706,6 +2706,12 @@ function _activateSupabaseData() {
     window.SERIES = [];
     window.REELS = [];
     window.PODCASTS = [];
+    // LEARNING_PATHS · array hardcoded en prototype-views.jsx con las 6
+    // rutas de Repsol (fundamentals/managers/publish-agent/care-agent/
+    // content-lead/analytics-lead). El adapter lo lee como SRC_PATHS y lo
+    // muestra en RutasView. Sin resetearlo, cualquier workspace seguía
+    // viendo las 6 rutas de Repsol.
+    window.LEARNING_PATHS = [];
     // Disparo pills-changed (que ya escucha sgson-adapter y App) para
     // forzar reconstrucción de SGS_DATA + re-render del árbol React.
     window.dispatchEvent(new Event('pills-changed'));
@@ -2792,6 +2798,27 @@ function _activateSupabaseData() {
       _meta: r.metadata || {},
     }));
     window[globalKey] = mapped;
+    // El adapter (sgson-adapter.jsx) lee window.LEARNING_PATHS (no window.PATHS)
+    // para construir D.LEARNING_PATHS que consume RutasView. Mantenemos los dos
+    // sincronizados convirtiendo el shape: la entrada que viene de DB lleva
+    // {title, teacher, duration, level…} y el adapter espera {label, desc,
+    // pills (array), pillIds, duration, badge}. Map mínimo y compatible.
+    if (kind === 'path') {
+      window.LEARNING_PATHS = mapped.map(p => ({
+        id: p.id,
+        label: p.title,
+        title: p.title,
+        roleTag: p.level || '',
+        desc: p.teacher || '',
+        badge: p.category || '',
+        duration: p.duration || '',
+        pills: [],          // pendiente · join path↔pills cuando exista esa tabla
+        pillIds: [],
+        color: undefined,
+        bg: undefined,
+        icon: '🎓',
+      }));
+    }
     window.dispatchEvent(new Event(CONTENT_KIND_TO_EVENT[kind]));
   }
   async function _loadAllContent() {
@@ -3323,10 +3350,10 @@ const I18n = (function() {
       'saved.emptyDesc':'Marca pills con el botón ＋ para guardarlas aquí.',
       'saved.count':'módulos en tu colección',
       'browse.title':'Todos los módulos', 'browse.eyebrow':'Catálogo completo',
-      'browse.sub':'Think Pills · BeonIt × Repsol', 'browse.all':'Todos',
+      'browse.sub':'Microlearning · Catálogo de tu workspace', 'browse.all':'Todos',
       'rutas.title':'Especialízate', 'rutas.titleEm':'en tu rol',
       'rutas.eyebrow':'Rutas de certificación',
-      'rutas.sub':'Cada ruta es una secuencia curada · al completarla obtienes el certificado oficial Repsol × BeonIt',
+      'rutas.sub':'Cada ruta es una secuencia curada · al completarla obtienes el certificado oficial de tu workspace',
       'rutas.start':'Empezar ruta →',
       'mypath.eyebrow':'Mi ruta', 'mypath.title':'Tu progreso',
       'mypath.sub':'{completed} de {total} pills completadas · {percent}% del programa',
@@ -3386,7 +3413,7 @@ const I18n = (function() {
       'content.count':'{n}/{total} tipos activos',
       'content.format.title':'Formato del mensaje',
       'content.preview.title':'Programar posts y calendario',
-      'content.preview.desc':'Aprende a agendar publicaciones en Sprinklr Publish y revisar tu calendario semanal.',
+      'content.preview.desc':'Aprende a agendar publicaciones en tu plataforma y revisar tu calendario semanal.',
       'content.preview.cta.solid':'▶ Ver en SolidStream',
       'content.preview.cta.web':'Abrir en web',
       'content.preview.pushManual':'9:00 · push manual',
@@ -3410,7 +3437,7 @@ const I18n = (function() {
       'smart.youHeadline':'Te llega mejor a las',
       'smart.applyBtn':'⚡ Aplicar este horario', 'smart.appliedBtn':'✓ Aplicado a Channels',
       'smart.reAnalyze':'🔄 Re-analizar', 'smart.analyzing':'⏳ Analizando…',
-      'admin.title':'Panel de administración', 'admin.eyebrow':'Admin · Repsol',
+      'admin.title':'Panel de administración', 'admin.eyebrow':'Admin · Plataforma',
       'admin.sub':'Gestiona usuarios, invitaciones y métricas de la plataforma',
       'admin.full':'Panel completo →',
       'admin.locked':'Acceso restringido',
@@ -3570,10 +3597,10 @@ const I18n = (function() {
       'saved.emptyDesc':'Mark pills with the ＋ button to save them here.',
       'saved.count':'modules in your collection',
       'browse.title':'All modules', 'browse.eyebrow':'Full catalog',
-      'browse.sub':'Think Pills · BeonIt × Repsol', 'browse.all':'All',
+      'browse.sub':'Microlearning · Catálogo de tu workspace', 'browse.all':'All',
       'rutas.title':'Specialize', 'rutas.titleEm':'in your role',
       'rutas.eyebrow':'Certification paths',
-      'rutas.sub':'Each path is a curated sequence · completing it earns you the official Repsol × BeonIt certificate',
+      'rutas.sub':'Each path is a curated sequence · completing it earns you the official certificate of your workspace',
       'rutas.start':'Start path →',
       'mypath.eyebrow':'My path', 'mypath.title':'Your progress',
       'mypath.sub':'{completed} of {total} pills completed · {percent}% of the program',
@@ -3633,7 +3660,7 @@ const I18n = (function() {
       'content.count':'{n}/{total} types active',
       'content.format.title':'Message format',
       'content.preview.title':'Schedule posts and calendar',
-      'content.preview.desc':'Learn how to schedule publications in Sprinklr Publish and review your weekly calendar.',
+      'content.preview.desc':'Learn how to schedule publications in your platform and review your weekly calendar.',
       'content.preview.cta.solid':'▶ Watch on SolidStream',
       'content.preview.cta.web':'Open on web',
       'content.preview.pushManual':'9:00 · manual push',
@@ -3657,7 +3684,7 @@ const I18n = (function() {
       'smart.youHeadline':'Best for you at',
       'smart.applyBtn':'⚡ Apply this schedule', 'smart.appliedBtn':'✓ Applied to Channels',
       'smart.reAnalyze':'🔄 Re-analyze', 'smart.analyzing':'⏳ Analyzing…',
-      'admin.title':'Admin panel', 'admin.eyebrow':'Admin · Repsol',
+      'admin.title':'Admin panel', 'admin.eyebrow':'Admin · Plataforma',
       'admin.sub':'Manage users, invitations and platform metrics',
       'admin.full':'Full panel →',
       'admin.locked':'Access restricted',
@@ -3817,10 +3844,10 @@ const I18n = (function() {
       'saved.emptyDesc':'Marque pills com o botão ＋ para salvar aqui.',
       'saved.count':'módulos na sua coleção',
       'browse.title':'Todos os módulos', 'browse.eyebrow':'Catálogo completo',
-      'browse.sub':'Think Pills · BeonIt × Repsol', 'browse.all':'Todos',
+      'browse.sub':'Microlearning · Catálogo de tu workspace', 'browse.all':'Todos',
       'rutas.title':'Especialize-se', 'rutas.titleEm':'em seu cargo',
       'rutas.eyebrow':'Trilhas de certificação',
-      'rutas.sub':'Cada trilha é uma sequência curada · ao completá-la você obtém o certificado oficial Repsol × BeonIt',
+      'rutas.sub':'Cada trilha é uma sequência curada · ao completá-la você obtém o certificado oficial de tu workspace',
       'rutas.start':'Começar trilha →',
       'mypath.eyebrow':'Minha trilha', 'mypath.title':'Seu progresso',
       'mypath.sub':'{completed} de {total} pills concluídas · {percent}% do programa',
@@ -3880,7 +3907,7 @@ const I18n = (function() {
       'content.count':'{n}/{total} tipos ativos',
       'content.format.title':'Formato da mensagem',
       'content.preview.title':'Agendar posts e calendário',
-      'content.preview.desc':'Aprenda a agendar publicações no Sprinklr Publish e revisar seu calendário semanal.',
+      'content.preview.desc':'Aprenda a agendar publicações no sua plataforma e revisar seu calendário semanal.',
       'content.preview.cta.solid':'▶ Ver no SolidStream',
       'content.preview.cta.web':'Abrir na web',
       'content.preview.pushManual':'9:00 · push manual',
@@ -3904,7 +3931,7 @@ const I18n = (function() {
       'smart.youHeadline':'Melhor para você às',
       'smart.applyBtn':'⚡ Aplicar este horário', 'smart.appliedBtn':'✓ Aplicado a Canais',
       'smart.reAnalyze':'🔄 Re-analisar', 'smart.analyzing':'⏳ Analisando…',
-      'admin.title':'Painel de administração', 'admin.eyebrow':'Admin · Repsol',
+      'admin.title':'Painel de administração', 'admin.eyebrow':'Admin · Plataforma',
       'admin.sub':'Gerencie usuários, convites e métricas da plataforma',
       'admin.full':'Painel completo →',
       'admin.locked':'Acesso restrito',
@@ -4961,7 +4988,7 @@ const Inbox = (function() {
       const now = Date.now();
       const d = 86400000;
       _saveReleases([
-        { id:'r_1', version:'2.4', title:'Examen final por ruta · Genera tu certificado', body:'Ahora cada ruta de certificación termina con un examen rápido de 3 preguntas. Al superarlo, descargas tu certificado oficial Repsol × BeonIt.', createdAt: now - 1*3600000, read:false, kind:'feature' },
+        { id:'r_1', version:'2.4', title:'Examen final por ruta · Genera tu certificado', body:'Ahora cada ruta de certificación termina con un examen rápido de 3 preguntas. Al superarlo, descargas tu certificado oficial de tu workspace.', createdAt: now - 1*3600000, read:false, kind:'feature' },
         { id:'r_2', version:'2.3', title:'Bandeja de entrada unificada', body:'Mensajes directos, notificaciones de actividad y releases ahora viven en un único lugar. Marcadas como leídas, eliminables, todo persistente.', createdAt: now - 6*3600000, read:false, kind:'feature' },
         { id:'r_3', version:'2.2', title:'BeonAI con historial de chats persistente', body:'Tus conversaciones con BeonAI se guardan automáticamente. Crea nuevas, retoma anteriores. Modo nocturno en el panel lateral.', createdAt: now - 2*d, read:false, kind:'feature' },
         { id:'r_4', version:'2.1', title:'Multi-usuario y panel de administración', body:'Nuevo flujo de login/registro con rol admin. Cada usuario tiene sus propios bookmarks, chats y progreso.', createdAt: now - 4*d, read:false, kind:'feature' },
@@ -5578,7 +5605,7 @@ function AdminPanel({ setView }) {
     const html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de cohorte · SolidStream · ' + today + '</title>' +
 '<style>@page{size:A4;margin:18mm}body{font-family:Inter,-apple-system,system-ui,sans-serif;color:#0D1117;margin:0;padding:0;line-height:1.5}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94A3B8;margin-bottom:6px}h1{font-size:32px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid #EDF0F5;padding-bottom:6px}.subtitle{color:#4A5568;margin:0 0 28px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.kpi{padding:14px;border:1px solid #EDF0F5;border-radius:10px}.kpi-label{font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94A3B8;margin-bottom:4px}.kpi-value{font-size:24px;font-weight:800;letter-spacing:-.02em}table{width:100%;border-collapse:collapse;font-size:12px}thead th{text-align:left;padding:8px 10px;background:#F5F7FA;font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#4A5568;border-bottom:1px solid #EDF0F5}tbody td{padding:10px;border-bottom:1px solid #EDF0F5;vertical-align:top}.foot{margin-top:36px;padding-top:18px;border-top:2px solid #0072BE;font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}.brand{background:linear-gradient(135deg,#BCD630,#0072BE,#8A3992);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}</style>' +
 '</head><body>' +
-'<div class="kicker">SolidStream · BeonIt × Repsol · Reporte de cohorte</div>' +
+'<div class="kicker">SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + ' · Reporte de cohorte</div>' +
 '<h1>Cohorte SolidStream · <span class="brand">snapshot</span> ' + today + '</h1>' +
 '<p class="subtitle">Reporte agregado de progreso, exámenes y entregas prácticas de los ' + totalUsers + ' usuarios de la plataforma. Generado el ' + today + '.</p>' +
 '<div class="kpis">' +
@@ -5592,7 +5619,7 @@ function AdminPanel({ setView }) {
 '<p style="font-size:13px;color:#4A5568">Pendientes <strong>' + (subsByStatus.pending || 0) + '</strong> · Aprobadas <strong>' + (subsByStatus.approved || 0) + '</strong> · Rechazadas <strong>' + (subsByStatus.rejected || 0) + '</strong>. Tasa aprobación: <strong>' + (subs.length > 0 ? Math.round((subsByStatus.approved / subs.length) * 100) : 0) + '%</strong>.</p>' +
 '<h2>Tabla de usuarios · ordenados por progreso</h2>' +
 '<table><thead><tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Guardados</th><th>Última conexión</th></tr></thead><tbody>' + usersHtml + '</tbody></table>' +
-'<div class="foot"><span>SolidStream · BeonIt × Repsol</span><span>Reporte generado · ' + today + '</span></div>' +
+'<div class="foot"><span>SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + '</span><span>Reporte generado · ' + today + '</span></div>' +
 '</body></html>';
     _download('sgson-cohort-report-' + new Date().toISOString().slice(0,10) + '.html', html, 'text/html');
     if (window.Toast) window.Toast.success('Reporte generado · imprimible como PDF', { icon: '📄' });
@@ -6048,13 +6075,13 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
     const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
 '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
-'<div class="frame"><div class="kicker">SolidStream · BeonIt × Repsol · Certificación oficial</div>' +
+'<div class="frame"><div class="kicker">SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + ' · Certificación oficial</div>' +
 '<h1>Certificado de ruta · ' + (routeLabel || routeId) + '</h1>' +
-'<div class="lead">Por la presente certificamos que la persona reseñada ha completado y aprobado el examen final de esta ruta dentro de la formación oficial Sprinklr del programa SOLID GROWTH para Repsol.</div>' +
+'<div class="lead">Por la presente certificamos que la persona reseñada ha completado y aprobado el examen final de esta ruta dentro de la formación oficial del programa.</div>' +
 '<div class="name">' + u.name + '</div>' +
 '<div class="role">' + u.role + ' · ' + u.team + '</div>' +
 '<div class="cert-line"></div>' +
-'<div class="foot"><div><strong>Fecha</strong><br/>' + today + '</div><div><strong>Resultado</strong><br/>Aprobado · ' + (result ? result.score + '/' + result.total : '?') + '</div><div><div class="sig">BeonIt × Repsol</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div></div></div></body></html>';
+'<div class="foot"><div><strong>Fecha</strong><br/>' + today + '</div><div><strong>Resultado</strong><br/>Aprobado · ' + (result ? result.score + '/' + result.total : '?') + '</div><div><div class="sig">BeonIt · ' + (window.WORKSPACE_NAME || 'tu workspace') + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div></div></div></body></html>';
     const blob = new Blob([html], { type:'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

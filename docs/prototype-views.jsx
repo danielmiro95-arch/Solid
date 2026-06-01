@@ -19,7 +19,7 @@ const RepsolDetailCover = ({ pill, category, title }) => {
         {pill != null ? String(pill).padStart(2,'0') : ''}
       </div>
       <div style={{position:'absolute', bottom:24, left:24, right:24}}>
-        <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)', marginBottom:8}}>Repsol × Sprinklr</div>
+        <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(255,255,255,0.45)', marginBottom:8}}>{window.WORKSPACE_NAME || 'Tu workspace'}</div>
         {category && <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(255,255,255,0.6)', fontWeight:700, marginBottom:8}}>{category}</div>}
         <div style={{fontFamily:'var(--sans)', fontSize:18, fontWeight:600, color:'#fff', lineHeight:1.25, letterSpacing:'-0.01em'}}>{title}</div>
       </div>
@@ -355,7 +355,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
     'aprobaci': 'Para aprobaciones urgentes: abre el post → "Aprobación de emergencia" → notifica al Content Lead por Slack. El flujo estándar requiere revisión previa del Content Lead. Think Pill 20 lo detalla con ejemplos Repsol.',
     'quiz': '1. ¿Cuántos días tienes para responder un caso en Twitter/X según el SLA de Repsol?\n2. ¿Qué módulo de Sprinklr usas para programar posts?\n3. ¿Para qué sirve el DAM en Social Publish?\nResponde y te doy feedback.',
     'siguiente': 'Tu siguiente módulo es Think Pill 5 · "Qué activos se gestionan a través de Sprinklr". Duración: 4 min. Tema: Activos DAM. ¿Lo abrimos ahora?',
-    'default': 'Entendido. Puedo ayudarte con Social Publish, Care, Analytics, aprobaciones y tu certificación Sprinklr × Repsol. ¿Qué necesitas?',
+    'default': 'Entendido. Puedo ayudarte con cualquier tema de tu formación o tu día a día en la plataforma. ¿Qué necesitas?',
   };
 
   React.useEffect(() => {
@@ -788,7 +788,7 @@ function Onboarding({ done = () => {} }) {
       <div className="onb-visual">
         <div style={{display:'flex', alignItems:'center', gap:10, position:'relative'}}>
           <img src="beonit-logo.png" style={{height:22, width:'auto', opacity:0.9}} alt="BeonIt"/>
-          <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginLeft:4}}>× Repsol</span>
+          <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginLeft:4}}>× {window.WORKSPACE_NAME || 'tu workspace'}</span>
         </div>
         <div style={{position:'relative'}}>
           <div style={{fontFamily:'var(--mono)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:16}}>{T('onboarding.cert')}</div>
@@ -806,7 +806,7 @@ function Onboarding({ done = () => {} }) {
             <div style={{width:8, height:8, borderRadius:'50%', background:'var(--bn-lime)'}}/>
             <span style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.5)', letterSpacing:'0.1em', textTransform:'uppercase'}}>{T('onboarding.certOfficial')}</span>
           </div>
-          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SolidStream · BeonIt × Repsol</div>
+          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase'}}>SolidStream · BeonIt · {window.WORKSPACE_NAME || 'Plataforma'}</div>
         </div>
       </div>
       <div className="onb-right">
@@ -1830,7 +1830,10 @@ const WIDGET_LIBRARY = [
   { id:'text',            label:'Text',             icon:'📝', cat:'layout',   desc:'Texto libre customizable' },
 ];
 
-const TEAMS = ['Todos', 'Repsol', 'BeonIt', 'Sprinklr CSM'];
+// TEAMS para el dashboard de analytics · genérico (antes hardcoded 'Repsol',
+// 'BeonIt', 'Sprinklr CSM'). Cuando el módulo de analytics real exista,
+// estos vendrán del DB scopeados al workspace activo.
+const TEAMS = ['Todos', 'Equipo principal', 'Externos'];
 const ROLES = ['Todos', 'Publish Agent', 'Care Agent', 'Manager', 'Analyst', 'Content Lead'];
 const DATE_RANGES = [
   { id:'7d',  label:'7 días' },
@@ -1872,7 +1875,7 @@ const EXAMPLE_DASHBOARD = {
   createdAt: Date.now(),
   updatedAt: Date.now(),
   widgets: [
-    { id:'ex-1', type:'title',           title:'Learning Analytics · Q4 2026', subtitle:'Cohorte Repsol · 247 usuarios activos · datos mock para demo', span:2 },
+    { id:'ex-1', type:'title',           title:'Learning Analytics · Q4 2026', subtitle:'Datos demo · cuando integremos la analítica real estos números vendrán por workspace', span:2 },
     { id:'ex-2', type:'counter-summary', title:'KPIs principales',             subtitle:'vs período anterior',                                   span:2 },
     { id:'ex-3', type:'line',            title:'Sesiones diarias',             subtitle:'Últimas 4 semanas',                                     span:1 },
     { id:'ex-4', type:'bar',             title:'Top módulos completados',      subtitle:'Conteo de usuarios que han terminado cada módulo',      span:1 },
@@ -1958,13 +1961,13 @@ function getMockData(type) {
       ], categories:['Publish','Aprob.','Calend.','Monit.','DAM','Compl.'], height:200 };
     case 'cluster':
       return { groups:[
-        { label:'Publish', values:[{l:'Repsol',v:142},{l:'BeonIt',v:98}, {l:'Sprinklr',v:68}] },
-        { label:'Care',    values:[{l:'Repsol',v:96}, {l:'BeonIt',v:124},{l:'Sprinklr',v:54}] },
-        { label:'Analyt.', values:[{l:'Repsol',v:78}, {l:'BeonIt',v:62}, {l:'Sprinklr',v:112}]},
-        { label:'Content', values:[{l:'Repsol',v:54}, {l:'BeonIt',v:48}, {l:'Sprinklr',v:38}] },
+        { label:'Publish', values:[{l:'Tu equipo',v:142},{l:'Partner',v:98}, {l:'Externos',v:68}] },
+        { label:'Care',    values:[{l:'Tu equipo',v:96}, {l:'Partner',v:124},{l:'Externos',v:54}] },
+        { label:'Analyt.', values:[{l:'Tu equipo',v:78}, {l:'Partner',v:62}, {l:'Externos',v:112}]},
+        { label:'Content', values:[{l:'Tu equipo',v:54}, {l:'Partner',v:48}, {l:'Externos',v:38}] },
       ], series:[
-        { label:'Repsol',   color:'var(--repsol-red)' },
-        { label:'BeonIt',   color:'var(--bn-blue)' },
+        { label:'Tu equipo', color:'var(--accent)' },
+        { label:'Partner',   color:'var(--bn-blue)' },
         { label:'Sprinklr', color:'var(--bn-purple)' },
       ], height:200 };
     case 'line':

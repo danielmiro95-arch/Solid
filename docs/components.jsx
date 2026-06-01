@@ -66,9 +66,9 @@ const RepsolCover = ({ pill, category, title }) => {
           {title}
         </div>
       )}
-      {/* Repsol×Sprinklr branding (very subtle, bottom-right corner) */}
+      {/* Branding del workspace activo · esquina superior derecha sutil */}
       <div style={{position:'absolute', right:8, top:8, fontFamily:'var(--mono)', fontSize:7, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', fontWeight:600}}>
-        Repsol×Sprinklr
+        {window.WORKSPACE_NAME || ''}
       </div>
     </div>
   );

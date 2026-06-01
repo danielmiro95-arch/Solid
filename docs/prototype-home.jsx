@@ -584,7 +584,7 @@ function HomeHero({ onPlay, onMore }) {
 
       <div className="hero-badge">
         <span className="label">Top esta semana</span>
-        <span className="value">en Repsol</span>
+        <span className="value">en {window.WORKSPACE_NAME || 'tu workspace'}</span>
         <span className="stroke"/>
       </div>
 
@@ -855,9 +855,9 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         <div className="cobranding">
           <span><b>SolidStream</b></span>
           <span>·</span>
-          <span>BeonIt × Repsol</span>
+          <span>by BeonIt</span>
           <span>·</span>
-          <span>Sprinklr Internal Learning</span>
+          <span>{window.WORKSPACE_NAME || 'Plataforma de formación'}</span>
         </div>
         <div>v 2.0 · MAY 2026</div>
       </footer>
