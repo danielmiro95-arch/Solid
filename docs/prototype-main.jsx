@@ -5640,7 +5640,7 @@ function AdminPanel({ setView }) {
   };
 
   return (
-    <div className="main-inner" style={{padding:'32px 48px', maxWidth:'none'}}>
+    <div className="main-inner" style={{padding:'100px 48px 48px', maxWidth:'none'}}>
       <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:24}}>
         <div>
           <div className="lms-hero-eyebrow"><span className="repsol-dot" style={{background:'var(--ink)'}}/>Panel de administración</div>
