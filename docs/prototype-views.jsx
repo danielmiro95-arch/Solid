@@ -834,45 +834,9 @@ function Onboarding({ done = () => {} }) {
 // ---------- Rutas de aprendizaje · constante usada por sgson-adapter ----------
 const useS3 = React.useState;
 const useE3 = React.useEffect;
-
-const LEARNING_PATHS = [
-  {
-    id: 'fundamentals', label: 'Fundamentals', roleTag: 'Base · Todos los roles',
-    desc: 'El punto de partida obligatorio antes de cualquier especialización. Cubre los fundamentos de Sprinklr y la estructura de Repsol.',
-    color: '#0072BE', bg: 'linear-gradient(135deg,#0072BE,#004d8a)', icon: '🎓',
-    pills: ['p0','p1','p2','p3','p4','p5','p6','p7'], duration: '28 min', badge: 'obligatoria',
-  },
-  {
-    id: 'managers', label: 'Managers', roleTag: 'Liderazgo y gobernanza',
-    desc: 'Para líderes de equipo. Gobernanza, estructura de roles, flujos de aprobación y visión estratégica de Sprinklr.',
-    color: '#8A3992', bg: 'linear-gradient(135deg,#8A3992,#5a1f6e)', icon: '👑',
-    pills: ['p0','p1','p6','p7','p8','p9','p10','p15','p22'], duration: '34 min', badge: 'rol',
-  },
-  {
-    id: 'publish-agent', label: 'Publish Agent', roleTag: 'Publicación y contenido',
-    desc: 'Operativa de publicación multicanal, gestión de campañas, aprobaciones y calendario editorial en Social Publish.',
-    color: '#6E50EE', bg: 'linear-gradient(135deg,#6E50EE,#4E36C5)', icon: '📢',
-    pills: ['p0','p11','p13','p14','p17','p18','p19','p20','p21','p22','p23','p24'], duration: '52 min', badge: 'rol',
-  },
-  {
-    id: 'care-agent', label: 'Care Agent', roleTag: 'Atención al cliente',
-    desc: 'Gestión de conversaciones entrantes, SLA, Care Console, escalado a Salesforce y operativa de Community Manager.',
-    color: '#036837', bg: 'linear-gradient(135deg,#036837,#024024)', icon: '💬',
-    pills: ['p0','p1','p27','p28','p29','p30','p31','p32','p33','p37','p38','p39','p40'], duration: '55 min', badge: 'rol',
-  },
-  {
-    id: 'reporting', label: 'Reporting Agent', roleTag: 'Analytics y métricas',
-    desc: 'Visualización del rendimiento de campañas, métricas clave y dashboards analíticos para evaluar la performance del contenido.',
-    color: '#004d8a', bg: 'linear-gradient(135deg,#004d8a,#001a30)', icon: '📊',
-    pills: ['p0','p1','p25','p26','p31','p39','p40'], duration: '28 min', badge: 'rol',
-  },
-  {
-    id: 'campaign-global', label: 'Campaign Global', roleTag: 'Campañas multi-territorio',
-    desc: 'Ruta avanzada para gestión de campañas a escala global. Gobernanza, DAM, compliance y publicación en múltiples territorios.',
-    color: '#c87800', bg: 'linear-gradient(135deg,#F3A524,#a36200)', icon: '🌍',
-    pills: ['p0','p11','p13','p15','p16','p22','p23','p24','p25','p26'], duration: '43 min', badge: 'avanzado',
-  },
-];
+// LEARNING_PATHS · 6 rutas hardcoded de Repsol. Ahora se derivan en
+// _loadContent('path') desde workspace_content. Esqueleto vacío.
+const LEARNING_PATHS = [];
 
 
 // ── Chart primitives (pure SVG, no deps) ─────────────────────────────────
