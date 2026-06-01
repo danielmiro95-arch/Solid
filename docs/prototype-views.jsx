@@ -350,16 +350,11 @@ function AISidekick({ setAIMode, aiMode, view }) {
     { label: 'Traducir',       prefix: 'Tradúcelo al inglés: ', mood:'curious' },
   ];
 
-  // Respuestas demo · si el admin del workspace ha configurado BeonAI desde
-  // el panel, esas respuestas vienen del backend. Estos textos son placeholder
-  // neutrales hasta que se configure la KB específica del workspace.
-  const SIDE_DEMOS = {
-    'macro': 'Una macro es una acción predefinida que se aplica con un clic. El admin de tu workspace puede configurar las macros disponibles desde el panel de BeonAI.',
-    'aprobaci': 'Para aprobaciones urgentes consulta el flujo definido por tu workspace. El admin puede personalizar este texto desde Admin → BeonAI.',
-    'quiz': '1. ¿Cuál es el plazo de respuesta de tu SLA?\n2. ¿Qué herramienta usas para programar publicaciones?\n3. ¿Cómo gestionas los activos digitales?\nResponde y te doy feedback.',
-    'siguiente': 'Tu siguiente módulo lo decide la ruta activa de tu workspace. Pásate por "Mi ruta" para ver el orden recomendado.',
-    'default': 'Entendido. Puedo ayudarte con cualquier tema de tu formación o tu día a día en la plataforma. ¿Qué necesitas?',
-  };
+  // BeonAI: respuestas vienen 100% de /api/chat (Claude + KB del workspace
+  // vía BeonAIConfigPanel). Antes había un diccionario SIDE_DEMOS hardcoded
+  // que devolvía respuestas falsas si /api/chat fallaba · disfrazaba caídas
+  // como respuestas legítimas. Eliminado · si el backend falla mostramos
+  // error claro y el user puede reintentar.
 
   React.useEffect(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
@@ -374,10 +369,13 @@ function AISidekick({ setAIMode, aiMode, view }) {
     try {
       const reply = await callMentorAPI([...dynMsgs, { role: 'user', text: q }]);
       setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
-    } catch {
-      await new Promise(r => setTimeout(r, 600));
-      const key = Object.keys(SIDE_DEMOS).find(k => q.toLowerCase().includes(k)) || 'default';
-      setDynMsgs(m => [...m, { role: 'assistant', text: SIDE_DEMOS[key] }]);
+    } catch (err) {
+      const detail = (err && err.message) || 'sin detalle';
+      setDynMsgs(m => [...m, {
+        role: 'assistant',
+        text: '⚠ BeonAI no está disponible ahora mismo. Si esto persiste, comprueba que el admin del workspace ha configurado el panel de BeonAI (Admin → BeonAI). Detalle técnico: ' + detail,
+        isError: true,
+      }]);
     }
     setLoading(false);
     setHappyPulse(true);
