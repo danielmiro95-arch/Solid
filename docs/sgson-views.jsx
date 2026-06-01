@@ -445,8 +445,7 @@ function CoachView() {
 function AnalyticsView() {
   // Toda la app es dark · Analytics es la única vista en light. Forzamos
   // data-theme="light" en mount y marcamos data-analytics-light="1" para
-  // que el forceDark global del theme-controller no nos pise. Al unmount
-  // restauramos dark.
+  // que el forceDark global del theme-controller no nos pise.
   React.useEffect(() => {
     var html = document.documentElement;
     html.setAttribute('data-analytics-light', '1');
@@ -457,7 +456,16 @@ function AnalyticsView() {
     };
   }, []);
 
-  // Analytics renderiza directamente el Dashboard creator.
+  // Analytics SaaS · módulo nuevo (an-*.jsx). Sustituye al Dashboard()
+  // legacy de prototype-views.jsx. Manager → Dashboard → Builder.
+  if (window.AnalyticsApp) {
+    return (
+      <div className="main-inner" data-screen-label="Analytics" style={{padding:0}}>
+        <window.AnalyticsApp/>
+      </div>
+    );
+  }
+  // Fallback temporal · si AnalyticsApp no cargó, intentamos el viejo
   if (window.Dashboard) {
     return (
       <div className="main-inner" data-screen-label="Analytics" style={{padding:'24px 32px'}}>
