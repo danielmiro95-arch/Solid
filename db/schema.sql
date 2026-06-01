@@ -954,13 +954,27 @@ create trigger pills_updated_at before update on public.pills
 
 -- =====================================================================
 -- 32. Realtime · publica eventos para sync cross-device
+-- · Envueltos en DO block que ignora el error 42710 (la tabla ya está
+--   en la publication) · permite re-ejecutar schema.sql sin romper.
 -- =====================================================================
-alter publication supabase_realtime add table public.inbox_messages;
-alter publication supabase_realtime add table public.conversations;
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.submissions;
-alter publication supabase_realtime add table public.activity_log;
-alter publication supabase_realtime add table public.pills;
+do $$
+declare t text;
+begin
+  for t in select unnest(array[
+    'public.inbox_messages',
+    'public.conversations',
+    'public.messages',
+    'public.submissions',
+    'public.activity_log',
+    'public.pills'
+  ])
+  loop
+    begin
+      execute 'alter publication supabase_realtime add table ' || t;
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
 
 -- =====================================================================
 -- 35. workspace_content · catálogo multi-formato por workspace
@@ -1011,7 +1025,10 @@ create policy ws_content_write on public.workspace_content
     or public.is_platform_admin()
   );
 
-alter publication supabase_realtime add table public.workspace_content;
+do $$ begin
+  alter publication supabase_realtime add table public.workspace_content;
+exception when duplicate_object then null;
+end $$;
 
 -- =====================================================================
 -- DONE · revisa Authentication → Settings y habilita los providers que uses
