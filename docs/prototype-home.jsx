@@ -148,6 +148,8 @@ const _catSlugFix = (s) => {
 function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const [tick, setTick] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
   const ref = React.useRef(null);
   useEffect(() => {
     const refresh = () => setTick(x => x + 1);
@@ -170,11 +172,23 @@ function WorkspaceSwitcher() {
   if (!window.Workspaces) return null;
   const current = window.Workspaces.current();
   const mine = window.Workspaces.listMine();
-  if (!current || mine.length === 0) return null;
+  // Platform admins ven el switcher siempre, incluso sin workspaces (para
+  // poder crear el primero). Members lo ven solo si tienen workspaces.
+  const isPlatformAdmin = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  if (mine.length === 0 && !isPlatformAdmin) return null;
 
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
-  const T_ALL = T('workspaces.allWorkspaces','Todos los workspaces');
+  const T_ALL = T('workspaces.allWorkspaces','Tus workspaces');
   const T_SWITCH = T('workspaces.switch','Cambiar workspace');
+
+  const createNewWorkspace = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    const ws = await Promise.resolve(window.Workspaces.create({ name, primaryColor: '#6E50EE' }));
+    setNewName(''); setCreating(false); setOpen(false);
+    if (ws && ws.id) window.Workspaces.setCurrent(ws.id);
+    if (window.Toast) window.Toast.success('Workspace "' + name + '" creado');
+  };
 
   return (
     <div ref={ref} className="workspace-switcher" style={{ position:'relative', marginLeft: 10 }}>
@@ -192,8 +206,8 @@ function WorkspaceSwitcher() {
           cursor:'pointer',
           maxWidth: 220, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
         }}>
-        <span style={{ width: 6, height: 6, borderRadius:'50%', background: current.primaryColor || 'var(--accent)' }}/>
-        {current.name}
+        <span style={{ width: 6, height: 6, borderRadius:'50%', background: (current && current.primaryColor) || 'var(--accent)' }}/>
+        {current ? current.name : 'Sin workspace'}
         <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
       </button>
       {open && (
@@ -210,24 +224,72 @@ function WorkspaceSwitcher() {
           <div style={{ padding:'8px 12px', fontFamily:'var(--font-mono, monospace)', fontSize: 10, letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(245,244,241,0.6)', fontWeight: 700 }}>
             {T_ALL}
           </div>
+          {mine.length === 0 && (
+            <div style={{ padding:'12px 12px 6px', fontSize: 12, color:'rgba(245,244,241,0.7)', fontStyle:'italic' }}>
+              Aún no hay workspaces. Crea el primero abajo ↓
+            </div>
+          )}
           {mine.map(w => (
             <button key={w.id} onClick={() => { window.Workspaces.setCurrent(w.id); setOpen(false); }}
               style={{
                 display:'flex', alignItems:'center', gap: 10, width:'100%',
-                padding:'8px 12px', border:'none', background: w.id === current.id ? 'rgba(110,80,238,0.16)' : 'transparent',
+                padding:'8px 12px', border:'none', background: (current && w.id === current.id) ? 'rgba(110,80,238,0.16)' : 'transparent',
                 cursor:'pointer', textAlign:'left', borderRadius: 6,
                 fontFamily:'var(--font-sans, Inter)', fontSize: 13, color:'#F5F4F1',
               }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: w.primaryColor || 'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                {(w.name || '?').slice(0, 2).toUpperCase()}
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: w.primaryColor || 'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize: 11, fontWeight: 800, flexShrink: 0, overflow:'hidden' }}>
+                {w.logo || w.logo_url ? (
+                  <img src={w.logo || w.logo_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }}/>
+                ) : (w.name || '?').slice(0, 2).toUpperCase()}
               </span>
               <span style={{ flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{w.name}</span>
               {w._membership && (
                 <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize: 9, color:'rgba(245,244,241,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{w._membership.role}</span>
               )}
-              {w.id === current.id && <span style={{ color:'var(--accent)', fontSize: 14 }}>✓</span>}
+              {current && w.id === current.id && <span style={{ color:'var(--accent)', fontSize: 14 }}>✓</span>}
             </button>
           ))}
+          {/* Crear nuevo workspace · solo platform admin */}
+          {isPlatformAdmin && (
+            <div style={{ borderTop:'1px solid rgba(255,255,255,0.08)', marginTop: 4, paddingTop: 4 }}>
+              {!creating ? (
+                <button onClick={() => setCreating(true)}
+                  style={{
+                    display:'flex', alignItems:'center', gap: 8, width:'100%',
+                    padding:'8px 12px', border:'none', background:'transparent',
+                    cursor:'pointer', textAlign:'left', borderRadius: 6,
+                    fontFamily:'var(--font-sans, Inter)', fontSize: 12.5, fontWeight: 600,
+                    color:'var(--accent)',
+                  }}>
+                  <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+                  <span>Nuevo workspace</span>
+                </button>
+              ) : (
+                <div style={{ padding:'8px 8px 4px', display:'flex', gap: 6 }}>
+                  <input value={newName} onChange={e => setNewName(e.target.value)} autoFocus
+                    onKeyDown={e => { if (e.key === 'Enter') createNewWorkspace(); if (e.key === 'Escape') { setCreating(false); setNewName(''); } }}
+                    placeholder="Nombre del cliente"
+                    style={{
+                      flex: 1, padding:'6px 10px',
+                      background:'rgba(255,255,255,0.06)',
+                      border:'1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 6, fontSize: 12, color:'#F5F4F1', outline:'none',
+                    }}/>
+                  <button onClick={createNewWorkspace} disabled={!newName.trim()}
+                    style={{
+                      padding:'6px 12px',
+                      background: newName.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+                      color: newName.trim() ? '#fff' : 'rgba(245,244,241,0.5)',
+                      border:'none', borderRadius: 6,
+                      cursor: newName.trim() ? 'pointer' : 'not-allowed',
+                      fontSize: 11.5, fontWeight: 700,
+                    }}>
+                    Crear
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
