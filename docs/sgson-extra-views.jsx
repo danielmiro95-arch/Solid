@@ -2489,7 +2489,7 @@ function BeonAIConfigPanel() {
 
             {addMode === 'manual' && (
               <div style={{ background: 'var(--bg-canvas)', border: '1px dashed var(--line)', borderRadius: 8, padding: 12 }}>
-                <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Sprinklr Macros)" style={{ ...inputStyle, marginBottom: 8 }}/>
+                <input type="text" value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Nombre del documento (ej. Guía de uso interna)" style={{ ...inputStyle, marginBottom: 8 }}/>
                 <textarea value={newDocContent} onChange={e => setNewDocContent(e.target.value)} placeholder="Pega aquí el texto del documento…"
                   style={{ ...inputStyle, minHeight: 100, fontFamily: 'var(--font-mono, monospace)', fontSize: 12, resize: 'vertical', marginBottom: 8 }}/>
                 <button onClick={addDoc} disabled={!newDocName.trim() || !newDocContent.trim()}
@@ -2724,7 +2724,7 @@ function BeonAIConfigPanel() {
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-canvas)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={toolWebSprinklr} onChange={e => setToolWebSprinklr(e.target.checked)}/>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web · Sprinklr Help</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Búsqueda web · documentación de la plataforma</div>
                   <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>Restringido a help.sprinklr.com vía web_search nativo de Anthropic · máx 3 búsquedas/turno</div>
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ok, #047857)' }}>Activo</span>

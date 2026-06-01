@@ -332,14 +332,14 @@ function AISidekick({ setAIMode, aiMode, view }) {
     path: 'Tu ruta de certificación',
     dashboard: 'Analytics · visión admin',
     coach: 'BeonAI · modo completo',
-  }[view] || 'Sprinklr · contexto Repsol';
+  }[view] || (window.WORKSPACE_NAME ? ('Contexto ' + window.WORKSPACE_NAME) : 'Plataforma · contexto tu workspace');
 
   // Acciones rápidas con icono · más presencia visual (estilo design)
   const QUICK = [
     { icon: '🎯', label: '¿Qué módulo sigue?', q: '¿Cuál es el siguiente módulo que debería hacer según mi ruta?', accent: 'var(--bai-cyan)' },
     { icon: '🧪', label: 'Hazme un quiz',      q: 'Hazme 3 preguntas de repaso sobre lo que he visto hasta ahora.', accent: 'var(--bai-blue)' },
-    { icon: '⚡', label: 'Flujo aprobación',    q: '¿Cómo funciona el flujo de aprobación urgente en Social Publish?', accent: 'var(--bai-violet)' },
-    { icon: '⚙️', label: 'Macros Sprinklr',     q: '¿Qué es una macro en Sprinklr y cómo se usa día a día en Repsol?', accent: 'var(--bai-lav)' },
+    { icon: '⚡', label: 'Flujo aprobación',    q: '¿Cómo funciona el flujo de aprobación urgente?', accent: 'var(--bai-violet)' },
+    { icon: '⚙️', label: 'Macros',              q: '¿Qué es una macro y cómo se usa en el día a día?', accent: 'var(--bai-lav)' },
   ];
 
   // Acciones según el trabajo (cambian moods + tone)
@@ -350,11 +350,14 @@ function AISidekick({ setAIMode, aiMode, view }) {
     { label: 'Traducir',       prefix: 'Tradúcelo al inglés: ', mood:'curious' },
   ];
 
+  // Respuestas demo · si el admin del workspace ha configurado BeonAI desde
+  // el panel, esas respuestas vienen del backend. Estos textos son placeholder
+  // neutrales hasta que se configure la KB específica del workspace.
   const SIDE_DEMOS = {
-    'macro': 'En Sprinklr, una macro es una acción predefinida (texto, etiqueta, reasignación) que se aplica con un clic. Para Repsol Care las más usadas son: acuse de recibo, escalado a Salesforce y cierre de caso. Think Pill 41 tiene el vídeo explicativo.',
-    'aprobaci': 'Para aprobaciones urgentes: abre el post → "Aprobación de emergencia" → notifica al Content Lead por Slack. El flujo estándar requiere revisión previa del Content Lead. Think Pill 20 lo detalla con ejemplos Repsol.',
-    'quiz': '1. ¿Cuántos días tienes para responder un caso en Twitter/X según el SLA de Repsol?\n2. ¿Qué módulo de Sprinklr usas para programar posts?\n3. ¿Para qué sirve el DAM en Social Publish?\nResponde y te doy feedback.',
-    'siguiente': 'Tu siguiente módulo es Think Pill 5 · "Qué activos se gestionan a través de Sprinklr". Duración: 4 min. Tema: Activos DAM. ¿Lo abrimos ahora?',
+    'macro': 'Una macro es una acción predefinida que se aplica con un clic. El admin de tu workspace puede configurar las macros disponibles desde el panel de BeonAI.',
+    'aprobaci': 'Para aprobaciones urgentes consulta el flujo definido por tu workspace. El admin puede personalizar este texto desde Admin → BeonAI.',
+    'quiz': '1. ¿Cuál es el plazo de respuesta de tu SLA?\n2. ¿Qué herramienta usas para programar publicaciones?\n3. ¿Cómo gestionas los activos digitales?\nResponde y te doy feedback.',
+    'siguiente': 'Tu siguiente módulo lo decide la ruta activa de tu workspace. Pásate por "Mi ruta" para ver el orden recomendado.',
     'default': 'Entendido. Puedo ayudarte con cualquier tema de tu formación o tu día a día en la plataforma. ¿Qué necesitas?',
   };
 

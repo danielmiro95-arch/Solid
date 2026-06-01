@@ -30,7 +30,7 @@ const WATracker = (function() {
     const links = getLinks();
     links.unshift({ token, pillId, pillTitle, duration: duration || '3 min', url, sharedAt: Date.now(), opens: 0, watchSeconds: 0, sharedBy: 'Amaia Ruiz' });
     save(links);
-    const msg = '📚 *SolidStream · Formación Sprinklr*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
+    const msg = '📚 *SolidStream · ' + (window.WORKSPACE_NAME || 'Formación') + '*\nTe comparto este módulo: *' + pillTitle + '*\nDuración: ' + (duration||'3–5 min') + ' ⚡\n\nVer ahora → ' + url;
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     if (window.Toast) window.Toast.success('Enlace de WhatsApp generado', { icon: '💬' });
     return token;
@@ -365,7 +365,7 @@ const ContentPush = (function() {
     { id:'pills',     label:'Learning pills',     icon:'⚡',  desc:'Cápsulas cortas de 3-5 min' },
     { id:'workshops', label:'Talleres',           icon:'🛠',  desc:'Sesiones en vivo o híbridas' },
     { id:'courses',   label:'Cursos completos',   icon:'🎓', desc:'Rutas de certificación' },
-    { id:'news',      label:'Noticias',           icon:'📰', desc:'Actualizaciones Sprinklr y producto' },
+    { id:'news',      label:'Noticias',           icon:'📰', desc:'Actualizaciones de la plataforma' },
     { id:'docs',      label:'Documentación',      icon:'📚', desc:'Guías técnicas y referencias' },
     { id:'podcasts',  label:'Podcasts',           icon:'🎙',  desc:'Audio long-form · escucha en ruta' },
     { id:'ia_recs',   label:'IA recommendations', icon:'✨', desc:'BeonAI te sugiere contenido relevante' },
