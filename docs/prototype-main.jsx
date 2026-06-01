@@ -2538,10 +2538,38 @@ function _activateSupabaseData() {
     if (error) { console.warn('[supa] create ws', error.message); return null; }
     // Añade al owner como miembro owner
     await sb.from('workspace_members').insert({ workspace_id: ws.id, user_id: u, role: 'owner' });
+    // Sembrar estructura placeholder · 4 pills numerados + 3 rutas. Sin esto
+    // el workspace nuevo se ve completamente vacío y al admin no le queda
+    // claro qué tiene que rellenar. Los placeholders dan navegabilidad y
+    // sirven de plantilla editable. Si la inserción falla (RLS, conexión)
+    // no rompemos el create · log y seguimos.
+    try { await _seedWorkspacePlaceholders(ws.id); }
+    catch(e) { console.warn('[supa] seedPlaceholders', e && e.message); }
     await _loadWorkspaces();
     if (window.Toast) window.Toast.success('Workspace "' + ws.name + '" creado', { icon:'🏢' });
     return ws;
   };
+
+  // Plantilla inicial para workspaces nuevos. 4 pills numerados como esqueleto
+  // del catálogo + 3 rutas placeholder. El admin las edita desde el panel.
+  async function _seedWorkspacePlaceholders(wsId) {
+    if (!wsId) return;
+    const pillRows = [
+      { workspace_id: wsId, pill_number: 1, slug:'pill-1', title:'Pill 1 · Configura este módulo', one_liner:'Edita desde Admin → Pills · añade vídeo, instructor y descripción.', teacher:'Sin asignar', duration:'4 min', tone:'teal',  category:'Sin clasificar', position: 1 },
+      { workspace_id: wsId, pill_number: 2, slug:'pill-2', title:'Pill 2 · Configura este módulo', one_liner:'Edita desde Admin → Pills.',                                          teacher:'Sin asignar', duration:'4 min', tone:'plum',  category:'Sin clasificar', position: 2 },
+      { workspace_id: wsId, pill_number: 3, slug:'pill-3', title:'Pill 3 · Configura este módulo', one_liner:'Edita desde Admin → Pills.',                                          teacher:'Sin asignar', duration:'4 min', tone:'clay',  category:'Sin clasificar', position: 3 },
+      { workspace_id: wsId, pill_number: 4, slug:'pill-4', title:'Pill 4 · Configura este módulo', one_liner:'Edita desde Admin → Pills.',                                          teacher:'Sin asignar', duration:'4 min', tone:'olive', category:'Sin clasificar', position: 4 },
+    ];
+    const pathRows = [
+      { workspace_id: wsId, kind:'path', slug:'ruta-1', title:'Ruta 1 · Certificación base',         teacher:'Por configurar · 0 think pills', duration:'Por definir', tone:'teal', format:'ruta', level:'principiante', category:'Certificación', position: 1 },
+      { workspace_id: wsId, kind:'path', slug:'ruta-2', title:'Ruta 2 · Especialización intermedia', teacher:'Por configurar · 0 think pills', duration:'Por definir', tone:'plum', format:'ruta', level:'intermedio',   category:'Certificación', position: 2 },
+      { workspace_id: wsId, kind:'path', slug:'ruta-3', title:'Ruta 3 · Especialización avanzada',   teacher:'Por configurar · 0 think pills', duration:'Por definir', tone:'clay', format:'ruta', level:'avanzado',     category:'Certificación', position: 3 },
+    ];
+    await Promise.all([
+      sb.from('pills').insert(pillRows),
+      sb.from('workspace_content').insert(pathRows),
+    ]);
+  }
   Workspaces.update = async function(id, patch) {
     const dbPatch = {};
     if (patch.name != null)         dbPatch.name = patch.name;
