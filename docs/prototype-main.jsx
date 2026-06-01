@@ -1461,9 +1461,9 @@ const Auth = (function() {
       id: _genId(),
       email: data.email.toLowerCase(),
       name: data.name.trim(),
-      role: data.role || 'Publish Agent',          // rol funcional (Publish Agent, Care Agent…)
+      role: data.role || '',                        // rol funcional · lo asigna el admin del workspace después
       systemRole: systemRole,                       // rol del sistema (admin/manager/user)
-      team: data.team || 'Repsol',
+      team: data.team || '',
       avatarColor: data.avatarColor || COLORS[users.length % COLORS.length],
       // Espejo legacy para componentes que aún usan isAdmin
       isAdmin: systemRole === 'admin',
@@ -1600,30 +1600,13 @@ const Auth = (function() {
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[role];
   }
 
-  // Seed: si no hay usuarios, crea un admin demo para arrancar la primera vez
-  function seedIfEmpty() {
-    if (listUsers().length === 0) {
-      signup({
-        email: 'admin@beonit.com',
-        name: 'Admin BeonIt',
-        role: 'Administrador',
-        team: 'BeonIt',
-        avatarColor: 'var(--ink)',
-        isAdmin: true,
-      });
-      // Loguea como demo Repsol también
-      var current = currentUserId();
-      signup({
-        email: 'amaia.ruiz@repsol.com',
-        name: 'Amaia Ruiz',
-        role: 'Publish Agent',
-        team: 'Repsol',
-        avatarColor: 'var(--bn-purple)',
-      });
-      // Vuelve a la sesión que tenía
-      if (current) localStorage.setItem(SESSION_KEY, current);
-    }
-  }
+  // SaaS multi-cliente · NO sembrar usuarios demo. El primer login crea el
+  // primer usuario (que pasa a admin de plataforma vía la regla @beonit.es).
+  // Si listUsers() está vacío → la app muestra el LoginScreen y obliga a
+  // crear cuenta. Antes esto creaba admin@beonit.com + amaia.ruiz@repsol.com
+  // de forma automática, lo que saltaba el login y atascaba a usuarios reales
+  // dentro de la sesión Amaya fantasma.
+  function seedIfEmpty() { /* no-op intencional · SaaS no semilla usuarios */ }
 
   return {
     listUsers, currentUser, currentUserId, isAuthenticated, isAdmin,
@@ -4949,8 +4932,11 @@ function LoginScreen() {
   const [email, setEmail] = useSM(invitation ? invitation.email : '');
   const [password, setPassword] = useSM('');
   const [name, setName] = useSM(invitation ? invitation.name : '');
-  const [role, setRole] = useSM(invitation ? invitation.role : 'Publish Agent');
-  const [team, setTeam] = useSM(invitation ? invitation.team : 'Repsol');
+  // Si llega por link de invitación, el admin ya pre-seleccionó role+team
+  // en el token. Si no, signup público · ambos vacíos · los asignará el admin
+  // del workspace cuando le añada al equipo.
+  const [role, setRole] = useSM(invitation ? invitation.role : '');
+  const [team, setTeam] = useSM(invitation ? invitation.team : '');
   const [error, setError] = useSM('');
   const [submitting, setSubmitting] = useSM(false);
 
@@ -5047,14 +5033,25 @@ function LoginScreen() {
               const cur = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
               const active = cur === lng;
               return (
-                <button key={lng} onClick={() => { localStorage.setItem('solid-preferred-lang', lng); window.dispatchEvent(new Event('settings-changed')); }}
+                <button key={lng} onClick={() => {
+                  // Bug: currentLang() lee primero de Settings.language (DEFAULT='es')
+                  // antes de solid-preferred-lang. Si solo escribíamos en el segundo,
+                  // el clic no surtía efecto · ahora actualizamos Settings (global)
+                  // que persiste el idioma y dispara settings-changed automáticamente.
+                  if (window.Settings && window.Settings.update) {
+                    window.Settings.update({ language: lng });
+                  } else {
+                    localStorage.setItem('solid-preferred-lang', lng);
+                    window.dispatchEvent(new Event('settings-changed'));
+                  }
+                }}
                   style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#6E50EE' : 'transparent', color: active ? '#fff' : 'rgba(245,244,241,0.6)', border:'1px solid '+(active ? '#6E50EE' : 'rgba(255,255,255,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
         </div>
         <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(245,244,241,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
-          <span>BeonIt × Repsol</span>
+          <span>by BeonIt</span>
           <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
           <span>Powered by Claude</span>
           <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
@@ -5092,7 +5089,7 @@ function LoginScreen() {
           <form onSubmit={submit}>
             <label style={{display:'block', marginBottom:14}}>
               <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" autoFocus
                 style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
                 onFocus={e => e.target.style.borderColor='#6E50EE'}
                 onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
@@ -5107,30 +5104,16 @@ function LoginScreen() {
               </label>
             )}
             {mode === 'signup' && (
-              <>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#6E50EE'}
-                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
-                </label>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.role')}</div>
-                  <select value={role} onChange={e => setRole(e.target.value)}
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, background:'rgba(255,255,255,0.04)', color:'#F5F4F1', boxSizing:'border-box', cursor:'pointer'}}>
-                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
-                  </select>
-                </label>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.team')}</div>
-                  <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#6E50EE'}
-                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
-                </label>
-              </>
+              <label style={{display:'block', marginBottom:14}}>
+                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
+                <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre completo"
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
+                  onFocus={e => e.target.style.borderColor='#6E50EE'}
+                  onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
+              </label>
             )}
+            {/* Role y team los asigna el admin del workspace cuando crea/invita
+                al usuario · NO se piden en el signup público · ver InviteUsersModal */}
             {error && (
               <div style={{padding:'10px 14px', background:'rgba(110,80,238,0.1)', border:'1px solid rgba(110,80,238,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
@@ -5158,7 +5141,7 @@ function LoginScreen() {
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
                 {T('login.sso')}
               </button>
-              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta @repsol.com</div>
+              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
             </>
           )}
 
