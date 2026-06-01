@@ -1104,6 +1104,51 @@ const Workspaces = (function() {
 })();
 window.Workspaces = Workspaces;
 
+// ── Branding por workspace (Fase 1 multi-tenant) ─────────────────────────
+// Cada workspace puede tener su propio logo y color accent. Cuando cambia
+// el workspace activo, aplicamos su branding: --accent en el CSS root y
+// window.WORKSPACE_LOGO_URL / NAME que consume el componente Wordmark.
+// Fallback: BeonIt logo + accent violeta de la plataforma.
+function _normalizeWorkspaceBranding(ws) {
+  if (!ws) return null;
+  // Acepta camelCase (modo demo localStorage) y snake_case (filas Supabase)
+  return {
+    id: ws.id,
+    name: ws.name || '',
+    logoUrl: ws.logoUrl || ws.logo_url || ws.logo || null,
+    primaryColor: ws.primaryColor || ws.primary_color || '#6E50EE',
+  };
+}
+function applyWorkspaceBranding() {
+  try {
+    var ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    var b = _normalizeWorkspaceBranding(ws);
+    var root = document.documentElement;
+    if (b) {
+      root.style.setProperty('--accent', b.primaryColor);
+      window.WORKSPACE_LOGO_URL = b.logoUrl || null;
+      window.WORKSPACE_NAME = b.name;
+    } else {
+      // Sin workspace activo (login screen) · vuelve al default de plataforma
+      root.style.removeProperty('--accent');
+      window.WORKSPACE_LOGO_URL = null;
+      window.WORKSPACE_NAME = '';
+    }
+    window.dispatchEvent(new Event('workspace-branding-changed'));
+  } catch(e) { /* ignore */ }
+}
+window.applyWorkspaceBranding = applyWorkspaceBranding;
+// Reaplica el branding cuando: cambia el workspace activo, la lista de
+// workspaces o el usuario logueado (puede cambiar qué workspaces ve).
+['workspace-changed','workspaces-changed','auth-changed','sgson-backend-ready']
+  .forEach(function(ev){ window.addEventListener(ev, applyWorkspaceBranding); });
+// Primer apply tras que el DOM esté listo
+if (typeof document !== 'undefined' && document.readyState !== 'loading') {
+  setTimeout(applyWorkspaceBranding, 0);
+} else if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(applyWorkspaceBranding, 0); });
+}
+
 // ── Resources · documentos externos (Loop, SharePoint, PDFs) ──────────────
 // El user los ve como cards dentro de Solid pero el click abre la URL en
 // pestaña nueva. CRUD local-first con sync opcional a Supabase si está activo.
