@@ -105,12 +105,12 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
               <span>★ {pill.rating && pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</span>
             </div>
             <p>
-              {pill.one}. En esta pill de {pill.duration} vas a dominar el flujo completo dentro de Sprinklr:
+              {pill.one}. En esta pill de {pill.duration} vas a dominar el flujo completo:
               desde la configuración inicial hasta el caso real con métricas. Pensado para perfiles {String(pill.level).toLowerCase()},
-              con ejemplos del día a día en Repsol y plantillas listas para clonar.
+              con ejemplos del día a día y plantillas listas para clonar.
             </p>
             <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>
-              Aplica directamente en tu cuenta de Sprinklr. Materiales descargables incluidos.
+              Aplica directamente en tu trabajo. Materiales descargables incluidos.
             </p>
           </div>
           <aside className="modal-side">
@@ -170,7 +170,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
    ============================================================ */
 const SUGG = [
   { ico:'spark',  t:'Resume las 3 pills más críticas para mi rol esta semana', s:'Curado por rol y nivel actual', q:'¿Cuáles son las 3 pills más importantes que debería hacer esta semana para mi rol?' },
-  { ico:'chart',  t:'¿Cómo construyo un dashboard de share-of-voice?',         s:'Pasos en Sprinklr, en orden',  q:'Explícame paso a paso cómo construir un dashboard de share-of-voice en Sprinklr.' },
+  { ico:'chart',  t:'¿Cómo construyo un dashboard de share-of-voice?',         s:'Pasos en tu plataforma, en orden',  q:'Explícame paso a paso cómo construir un dashboard de share-of-voice.' },
   { ico:'route',  t:'Diseña mi ruta de certificación en 4 semanas',           s:'Calendario realista a 30 min/día', q:'Diseña un plan de ruta de certificación en 4 semanas, 30 min al día. Indica qué pill hacer cada día.' },
   { ico:'search', t:'Busca pills sobre flujo de aprobación urgente',          s:'Filtra por nivel intermedio',  q:'¿Qué pills me recomiendas sobre flujo de aprobación urgente de contenido?' },
 ];
@@ -356,7 +356,7 @@ function CoachView() {
           {window.BeonAIChar ? <BeonAIChar size={42} mood={loading ? 'thinking' : 'neutral'} float interactive={false}/> : <div className="avatar-lg">B</div>}
           <div>
             <div className="title">BeonAI</div>
-            <div className="status">en línea · Claude 4.5 · contexto Repsol</div>
+            <div className="status">en línea · Claude 4.5 · contexto {window.WORKSPACE_NAME || 'workspace'}</div>
           </div>
           <div className="header-actions">
             <button className="icon-btn" aria-label="Limpiar conversación" title="Limpiar conversación" onClick={reset}><Ico name="sliders" size={16}/></button>
