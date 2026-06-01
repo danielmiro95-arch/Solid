@@ -396,8 +396,8 @@ function AISidekick({ setAIMode, aiMode, view }) {
   return (
     <aside className="ai bai-light" style={{
       background: SURFACE,
-      borderLeft: `1px solid ${BORDER}`,
       color: INK,
+      /* sin borderLeft · ahora es popup, no sidebar · CSS define border-radius */
     }}>
       {/* HEADER · BeonAIChar grande con mood + título + acciones */}
       <div className="ai-head" style={{padding:'18px 18px 14px', borderBottom:`1px solid ${BORDER}`, background:'transparent'}}>
