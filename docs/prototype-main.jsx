@@ -2714,7 +2714,7 @@ function _activateSupabaseData() {
     // de Repsol porque el early return dejaba window.PILLS sin tocar.
     if (!wsId) { _resetWorkspaceScopedGlobals(); return; }
     const { data, error } = await sb.from('pills')
-      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position')
+      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position, path_id')
       .eq('workspace_id', wsId)
       .order('position', { ascending: true });
     if (error) {
@@ -2745,6 +2745,7 @@ function _activateSupabaseData() {
       poster: p.poster || undefined,
       featured: !!p.featured,
       newBadge: !!p.new_badge,
+      pathId: p.path_id,                  // uuid de la competencia/ruta a la que pertenece · usado para cruzar pills↔paths en el adapter
     }));
     window.PILLS = mapped;
     window.dispatchEvent(new Event('pills-changed'));
@@ -2792,20 +2793,30 @@ function _activateSupabaseData() {
     // {title, teacher, duration, level…} y el adapter espera {label, desc,
     // pills (array), pillIds, duration, badge}. Map mínimo y compatible.
     if (kind === 'path') {
-      window.LEARNING_PATHS = mapped.map(p => ({
-        id: p.id,
-        label: p.title,
-        title: p.title,
-        roleTag: p.level || '',
-        desc: p.teacher || '',
-        badge: p.category || '',
-        duration: p.duration || '',
-        pills: [],          // pendiente · join path↔pills cuando exista esa tabla
-        pillIds: [],
-        color: undefined,
-        bg: undefined,
-        icon: '🎓',
-      }));
+      // Cruza pills↔paths por path_id. Cada path queda con su array de
+      // pillIds derivado de window.PILLS. Si _loadPills aún no terminó
+      // (orden de Promise.all), el adapter recalcula al recibir
+      // pills-changed (ver sgson-adapter.jsx).
+      window.LEARNING_PATHS = mapped.map(p => {
+        const pillsInPath = (window.PILLS || [])
+          .filter(pill => pill.pathId && pill.pathId === p._id)
+          .map(pill => pill.id);
+        return {
+          id: p.id,
+          _id: p._id,                          // uuid expuesto para el adapter
+          label: p.title,
+          title: p.title,
+          roleTag: p.level || '',
+          desc: p.teacher || '',
+          badge: p.category || '',
+          duration: p.duration || '',
+          pills: pillsInPath,                  // array de pill ids
+          pillIds: pillsInPath,
+          color: undefined,
+          bg: undefined,
+          icon: '🎓',
+        };
+      });
     }
     window.dispatchEvent(new Event(CONTENT_KIND_TO_EVENT[kind]));
   }
@@ -4030,12 +4041,33 @@ const I18n = (function() {
     } catch(e) { return 'es'; }
   }
 
+  // Sustituye "Ruta"/"Rutas" en strings i18n por la etiqueta del workspace
+  // activo (campo settings.path_label / path_label_plural). Solo aplica a
+  // claves de la familia rutas.* y nav.rutas para evitar tocar contextos
+  // donde "ruta" significa otra cosa (urls, paths de archivos, etc.).
+  // Para Hijos de Rivera: 'Competencia' / 'Competencias'.
+  function _applyWorkspacePathLabel(key, str) {
+    if (!str || typeof str !== 'string') return str;
+    if (!(key === 'nav.rutas' || (key.indexOf && key.indexOf('rutas.') === 0))) return str;
+    try {
+      const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+      const settings = ws && ws.settings;
+      const singular = settings && settings.path_label;
+      if (!singular) return str;
+      const plural = (settings && settings.path_label_plural) || (singular + 's');
+      return str
+        .replace(/Rutas/g, plural)
+        .replace(/Ruta/g, singular)
+        .replace(/\brutas\b/g, plural.toLowerCase())
+        .replace(/\bruta\b/g, singular.toLowerCase());
+    } catch(e) { return str; }
+  }
   function t(key, fallback) {
     const dict = DICTIONARIES[currentLang()] || DICTIONARIES.es;
-    if (dict[key] != null) return dict[key];
-    // Fallback en español
-    if (DICTIONARIES.es[key] != null) return DICTIONARIES.es[key];
-    return fallback != null ? fallback : key;
+    let str = (dict[key] != null) ? dict[key] :
+              (DICTIONARIES.es[key] != null) ? DICTIONARIES.es[key] :
+              (fallback != null ? fallback : key);
+    return _applyWorkspacePathLabel(key, str);
   }
 
   return { t, currentLang, DICTIONARIES };
