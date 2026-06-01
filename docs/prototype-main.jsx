@@ -924,7 +924,27 @@ const Workspaces = (function() {
   }
 
   function currentId() { return localStorage.getItem(ACTIVE_KEY) || null; }
+  // Si la URL trae ?ws=<slug>, busca el workspace cuyo slug coincide y lo
+  // hace activo (override de lo que haya en localStorage). Permite que un
+  // link tipo solid.vercel.app/?ws=hijos-de-ribera te lleve directo ahí.
+  function _resolveFromUrl() {
+    try {
+      if (typeof window === 'undefined' || !window.location) return null;
+      const params = new URLSearchParams(window.location.search);
+      const slug = (params.get('ws') || '').trim().toLowerCase();
+      if (!slug) return null;
+      const all = listMine();
+      const match = all.find(w => (w.slug || '').toLowerCase() === slug || ((w.name || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') === slug));
+      return match || null;
+    } catch(e) { return null; }
+  }
   function current() {
+    // 1. URL override · ?ws=<slug> manda sobre localStorage
+    const fromUrl = _resolveFromUrl();
+    if (fromUrl) {
+      if (currentId() !== fromUrl.id) localStorage.setItem(ACTIVE_KEY, fromUrl.id);
+      return fromUrl;
+    }
     const id = currentId();
     if (id) {
       const w = get(id);
@@ -939,6 +959,19 @@ const Workspaces = (function() {
     if (!w) return null;
     const wasActive = currentId() === id;
     localStorage.setItem(ACTIVE_KEY, id);
+    // Refleja el workspace activo en la URL (?ws=<slug>) sin recargar. Permite
+    // copiar/pegar el link y aterrizar directamente en el workspace correcto,
+    // funcionar back/forward del navegador y dar sensación de SaaS multi-tenant.
+    try {
+      var slug = (w.slug || w.name || '').toString().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      if (slug && typeof window !== 'undefined' && window.history && window.history.replaceState) {
+        var url = new URL(window.location.href);
+        if (url.searchParams.get('ws') !== slug) {
+          url.searchParams.set('ws', slug);
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+      }
+    } catch(e) { /* router opcional */ }
     if (wasActive) return w; // No spam de eventos si el workspace ya estaba activo
     window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
     // Refresca todas las UIs reactivas a los stores per-workspace
@@ -1137,18 +1170,67 @@ function _normalizeWorkspaceBranding(ws) {
     primaryColor: ws.primaryColor || ws.primary_color || '#6E50EE',
   };
 }
+// Convierte #RRGGBB a {h,s,l} 0-1. Suficientemente robusto para derivar
+// hover/deep/glow del color principal del workspace sin librerías externas.
+function _hexToHsl(hex) {
+  var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec((hex || '').toString());
+  if (!m) return null;
+  var r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    var d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: h, s: s, l: l };
+}
+function _hslToHex(h, s, l) {
+  function f(n) {
+    var k = (n + h * 12) % 12;
+    var a = s * Math.min(l, 1 - l);
+    var c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  }
+  return '#' + f(0) + f(8) + f(4);
+}
+function _shadeHex(hex, deltaL) {
+  var hsl = _hexToHsl(hex);
+  if (!hsl) return hex;
+  var l = Math.max(0, Math.min(1, hsl.l + deltaL));
+  return _hslToHex(hsl.h, hsl.s, l);
+}
+function _hexToRgba(hex, alpha) {
+  var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec((hex || '').toString());
+  if (!m) return 'rgba(110,80,238,' + alpha + ')';
+  return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + alpha + ')';
+}
+
 function applyWorkspaceBranding() {
   try {
     var ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     var b = _normalizeWorkspaceBranding(ws);
     var root = document.documentElement;
     if (b) {
-      root.style.setProperty('--accent', b.primaryColor);
+      // Setea las 4 variantes del accent a partir del primaryColor del
+      // workspace · antes solo --accent cambiaba, lo que dejaba hovers y
+      // glows con el violeta de plataforma. Ahora un workspace rojo se ve
+      // rojo en buttons, hover-states, sombras, todo.
+      var primary = b.primaryColor;
+      root.style.setProperty('--accent',       primary);
+      root.style.setProperty('--accent-hover', _shadeHex(primary, +0.08));
+      root.style.setProperty('--accent-deep',  _shadeHex(primary, -0.12));
+      root.style.setProperty('--accent-glow',  _hexToRgba(primary, 0.40));
       window.WORKSPACE_LOGO_URL = b.logoUrl || null;
       window.WORKSPACE_NAME = b.name;
     } else {
       // Sin workspace activo (login screen) · vuelve al default de plataforma
-      root.style.removeProperty('--accent');
+      ['--accent','--accent-hover','--accent-deep','--accent-glow'].forEach(function(v){ root.style.removeProperty(v); });
       window.WORKSPACE_LOGO_URL = null;
       window.WORKSPACE_NAME = '';
     }
@@ -1964,8 +2046,9 @@ function _activateSupabaseAuth() {
       options: {
         data: {
           name: data.name,
-          role: data.role || 'Publish Agent',
-          team: data.team || 'Repsol',
+          // role y team vacíos · los asignará el admin del workspace al invitar
+          role: data.role || '',
+          team: data.team || '',
           avatar_color: data.avatarColor || 'var(--bn-blue)',
         },
       },
@@ -2530,7 +2613,21 @@ function _activateSupabaseData() {
   // Override de currentId/current/setCurrent en Supabase mode · usan wsCache + ACTIVE_KEY localStorage
   const ACTIVE_KEY_SB = 'solid-active-workspace';
   Workspaces.currentId = function() { return localStorage.getItem(ACTIVE_KEY_SB) || null; };
+  // ?ws=<slug> override · idéntico al path demo · ver Workspaces.current arriba
+  function _resolveFromUrlSb() {
+    try {
+      if (typeof window === 'undefined' || !window.location) return null;
+      const slug = (new URLSearchParams(window.location.search).get('ws') || '').trim().toLowerCase();
+      if (!slug) return null;
+      return wsCache.find(w => ((w.slug || '').toLowerCase() === slug) || ((w.name || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') === slug)) || null;
+    } catch(e) { return null; }
+  }
   Workspaces.current = function() {
+    const fromUrl = _resolveFromUrlSb();
+    if (fromUrl) {
+      if (Workspaces.currentId() !== fromUrl.id) localStorage.setItem(ACTIVE_KEY_SB, fromUrl.id);
+      return fromUrl;
+    }
     const id = Workspaces.currentId();
     if (id) { const w = wsCache.find(w => w.id === id); if (w) return w; }
     return wsCache[0] || null;
@@ -2539,6 +2636,17 @@ function _activateSupabaseData() {
     const w = wsCache.find(x => x.id === id);
     if (!w) return null;
     localStorage.setItem(ACTIVE_KEY_SB, id);
+    // Sync URL ?ws=<slug>
+    try {
+      var slug = (w.slug || w.name || '').toString().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      if (slug && window.history && window.history.replaceState) {
+        var url = new URL(window.location.href);
+        if (url.searchParams.get('ws') !== slug) {
+          url.searchParams.set('ws', slug);
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+      }
+    } catch(e) {}
     window.dispatchEvent(new CustomEvent('workspace-changed', { detail: w }));
     ['bookmarks-changed','ratings-changed','channels-changed','delivery-prefs-changed',
      'content-push-changed','subscriptions-changed','notif-rules-changed','channel-notifs-changed',
@@ -4121,6 +4229,21 @@ function App() {
     };
     window.addEventListener('auth-changed', refresh);
     return () => window.removeEventListener('auth-changed', refresh);
+  }, []);
+
+  // Data version · contador que se incrementa cuando cambian PILLS,
+  // SGS_DATA o el workspace activo. Las vistas hijas leen D = window.SGS_DATA
+  // al renderizar; sin esta señal de invalidación se quedan con los pills
+  // del primer workspace que cargaron (lo que veía el usuario: Hijos de
+  // Ribera mostraba el catálogo de Repsol). Cualquier estado React aquí
+  // arriba fuerza re-render de todo el árbol.
+  const [, setDataVer] = useSM(0);
+  useEM(() => {
+    const bump = () => setDataVer(v => v + 1);
+    ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+      .forEach(ev => window.addEventListener(ev, bump));
+    return () => ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+      .forEach(ev => window.removeEventListener(ev, bump));
   }, []);
   useEM(() => {
     if (authUser && window.Inbox) window.Inbox.seedIfEmpty();
