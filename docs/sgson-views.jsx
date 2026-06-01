@@ -459,8 +459,10 @@ function AnalyticsView() {
   // Analytics SaaS · módulo nuevo (an-*.jsx). Sustituye al Dashboard()
   // legacy de prototype-views.jsx. Manager → Dashboard → Builder.
   if (window.AnalyticsApp) {
+    // Padding-top: 80px para esquivar el TopNav fixed (68px) · igual que
+    // el AdminPanel. Sin padding lateral · AnalyticsApp gestiona el suyo.
     return (
-      <div className="main-inner" data-screen-label="Analytics" style={{padding:0}}>
+      <div className="main-inner" data-screen-label="Analytics" style={{padding:'80px 0 0'}}>
         <window.AnalyticsApp/>
       </div>
     );
