@@ -4230,6 +4230,21 @@ function App() {
     window.addEventListener('auth-changed', refresh);
     return () => window.removeEventListener('auth-changed', refresh);
   }, []);
+
+  // Data version · contador que se incrementa cuando cambian PILLS,
+  // SGS_DATA o el workspace activo. Las vistas hijas leen D = window.SGS_DATA
+  // al renderizar; sin esta señal de invalidación se quedan con los pills
+  // del primer workspace que cargaron (lo que veía el usuario: Hijos de
+  // Ribera mostraba el catálogo de Repsol). Cualquier estado React aquí
+  // arriba fuerza re-render de todo el árbol.
+  const [, setDataVer] = useSM(0);
+  useEM(() => {
+    const bump = () => setDataVer(v => v + 1);
+    ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+      .forEach(ev => window.addEventListener(ev, bump));
+    return () => ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+      .forEach(ev => window.removeEventListener(ev, bump));
+  }, []);
   useEM(() => {
     if (authUser && window.Inbox) window.Inbox.seedIfEmpty();
     if (authUser && window.Workspaces) window.Workspaces.seedIfEmpty();
