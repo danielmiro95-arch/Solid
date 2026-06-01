@@ -2666,14 +2666,39 @@ function _activateSupabaseData() {
   // ── Pills · catálogo de pills del workspace activo (Fase 2 multi-tenant)
   // Sobrescribe el array hardcoded de docs/prototype-home.jsx para que cada
   // workspace muestre su propio catálogo. RLS aísla por workspace_id.
+  // Helper · resetea TODOS los buckets de contenido global al cambiar de
+  // workspace en modo Supabase. PATHS/SERIES/REELS/PODCASTS están hardcoded
+  // como Repsol en el bundle (prototype-home.jsx) y no tienen tabla DB
+  // todavía, así que en Supabase mode los vaciamos para evitar que se vean
+  // como contenido fantasma de Repsol en otros workspaces. Los iremos
+  // implementando como tablas scopeadas a medida que se necesiten.
+  function _resetWorkspaceScopedGlobals() {
+    window.PILLS = [];
+    window.PATHS = [];
+    window.SERIES = [];
+    window.REELS = [];
+    window.PODCASTS = [];
+    window.dispatchEvent(new Event('pills-changed'));
+  }
   async function _loadPills() {
     const wsId = _wsid();
-    if (!wsId) { return; }
+    // Sin workspace activo · vacío. NO mantengas el catálogo del workspace
+    // anterior, ni los 52 pills hardcoded del bundle. Esto era el bug real
+    // que veía el usuario: switchear a "Hijos de Ribera" mostraba los pills
+    // de Repsol porque el early return dejaba window.PILLS sin tocar.
+    if (!wsId) { _resetWorkspaceScopedGlobals(); return; }
     const { data, error } = await sb.from('pills')
       .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position')
       .eq('workspace_id', wsId)
       .order('position', { ascending: true });
-    if (error) { console.warn('[supa] pills', error.message); return; }
+    if (error) {
+      console.warn('[supa] pills', error.message);
+      // Errores típicos: tabla pills no existe, RLS deny, red caída. En
+      // CUALQUIER caso forzamos vacío · no podemos servir 52 pills de Repsol
+      // como fallback a cualquier workspace.
+      _resetWorkspaceScopedGlobals();
+      return;
+    }
     // Mapeo snake_case (DB) → camelCase (shape esperado por adapter/Wordmark)
     const mapped = (data || []).map(p => ({
       id: p.slug || ('p' + p.pill_number),
@@ -2696,6 +2721,13 @@ function _activateSupabaseData() {
       newBadge: !!p.new_badge,
     }));
     window.PILLS = mapped;
+    // Vacía también los otros buckets · no son workspace-aware aún. Si el
+    // workspace tiene 0 rows en pills, este bloque sigue dejando todo []
+    // (que es lo que el user espera para Hijos de Ribera).
+    window.PATHS = [];
+    window.SERIES = [];
+    window.REELS = [];
+    window.PODCASTS = [];
     window.dispatchEvent(new Event('pills-changed'));
   }
 
