@@ -2759,6 +2759,12 @@ function WorkspacesPanel() {
   const [creating, setCreating] = useEV2(false);
   const [name, setName] = useEV2('');
   const [color, setColor] = useEV2('#6E50EE');
+  // ── Edit mode (un card a la vez) ───────────────────────────────────────
+  const [editingId, setEditingId] = useEV2(null);
+  const [editName, setEditName] = useEV2('');
+  const [editColor, setEditColor] = useEV2('#6E50EE');
+  const [editLogoPreview, setEditLogoPreview] = useEV2(null);
+  const [uploading, setUploading] = useEV2(false);
   useEE2(() => {
     const refresh = () => setTick(x => x + 1);
     window.addEventListener('workspaces-changed', refresh);
@@ -2779,6 +2785,38 @@ function WorkspacesPanel() {
     // Ambos paths emiten su propio toast internamente, no duplicamos aquí.
     await Promise.resolve(window.Workspaces.create({ name: name.trim(), primaryColor: color }));
     setName(''); setCreating(false);
+  };
+  const startEdit = (w) => {
+    setEditingId(w.id);
+    setEditName(w.name || '');
+    setEditColor(w.primaryColor || '#6E50EE');
+    setEditLogoPreview(w.logo || null);
+  };
+  const cancelEdit = () => { setEditingId(null); setEditLogoPreview(null); };
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const patch = {};
+    if (editName.trim()) patch.name = editName.trim();
+    patch.primaryColor = editColor;
+    await Promise.resolve(window.Workspaces.update(editingId, patch));
+    if (window.Toast) window.Toast.success(T('workspaces.updated','Workspace actualizado'));
+    cancelEdit();
+  };
+  const onLogoFile = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f || !editingId) return;
+    if (f.size > 5 * 1024 * 1024) {
+      if (window.Toast) window.Toast.error('El logo no puede pesar más de 5MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await Promise.resolve(window.Workspaces.uploadLogo(editingId, f));
+      if (url) {
+        setEditLogoPreview(url);
+        if (window.Toast) window.Toast.success(T('workspaces.logoUploaded','Logo subido'));
+      }
+    } finally { setUploading(false); e.target.value = ''; }
   };
 
   return (
@@ -2816,6 +2854,8 @@ function WorkspacesPanel() {
             const members = window.Workspaces.membersOf(w.id);
             const isActive = current && current.id === w.id;
             const memberKey = members.length === 1 ? 'workspaces.members' : 'workspaces.membersMulti';
+            const isEditing = editingId === w.id;
+            const displayLogo = isEditing ? editLogoPreview : w.logo;
             return (
               <div key={w.id} style={{
                 padding:'14px 16px', background: isActive ? `linear-gradient(135deg, ${w.primaryColor}14 0%, var(--bg-surface) 100%)` : 'var(--bg-surface)',
@@ -2823,9 +2863,14 @@ function WorkspacesPanel() {
                 borderRadius: 12, position:'relative',
               }}>
                 <div style={{ display:'flex', alignItems:'center', gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: w.primaryColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
-                    {w.name.slice(0, 2).toUpperCase()}
-                  </div>
+                  {displayLogo ? (
+                    <img src={displayLogo} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', background:'var(--bg-elevated)', flexShrink: 0, border:'1px solid var(--line)' }}
+                         onError={e => { e.currentTarget.style.display = 'none'; }}/>
+                  ) : (
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: w.primaryColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+                      {w.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)' }}>{w.name}</div>
                     <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{T(memberKey,'{n} miembros').replace('{n}', members.length)}</div>
@@ -2838,6 +2883,10 @@ function WorkspacesPanel() {
                       Activar
                     </button>
                   )}
+                  <button onClick={() => isEditing ? cancelEdit() : startEdit(w)}
+                    style={{ padding:'6px 12px', background: isEditing ? 'var(--accent)' : 'transparent', border:'1px solid var(--accent)', color: isEditing ? '#fff' : 'var(--accent)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                    {isEditing ? T('common.cancel','Cancelar') : T('workspaces.edit','Editar')}
+                  </button>
                   <button onClick={() => {
                       if (confirm(T('workspaces.confirmDelete').replace('{name}', w.name))) {
                         window.Workspaces.remove(w.id);
@@ -2848,6 +2897,30 @@ function WorkspacesPanel() {
                     {T('common.delete')}
                   </button>
                 </div>
+                {isEditing && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', flexDirection:'column', gap: 10 }}>
+                    <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)' }}>
+                      {T('workspaces.name','Nombre')}
+                      <input value={editName} onChange={e => setEditName(e.target.value)}
+                        style={{ display:'block', marginTop: 4, width:'100%', padding:'8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)', outline:'none' }}/>
+                    </label>
+                    <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)', display:'flex', alignItems:'center', gap: 10 }}>
+                      <span>{T('workspaces.colorLabel','Color')}</span>
+                      <input type="color" value={editColor} onChange={e => setEditColor(e.target.value)}
+                        style={{ width: 36, height: 28, border:'1px solid var(--line)', borderRadius: 4, padding: 2, cursor:'pointer', background:'var(--bg-elevated)' }}/>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)' }}>{editColor}</span>
+                    </label>
+                    <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fg-muted)' }}>
+                      {T('workspaces.logo','Logo')} ({uploading ? T('workspaces.uploading','subiendo…') : 'PNG/JPG/SVG · máx 5MB'})
+                      <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onLogoFile} disabled={uploading}
+                        style={{ display:'block', marginTop: 4, width:'100%', fontSize: 11, color:'var(--fg-muted)' }}/>
+                    </label>
+                    <button onClick={saveEdit} disabled={uploading}
+                      style={{ alignSelf:'flex-start', padding:'8px 16px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: uploading ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+                      {T('common.save','Guardar cambios')}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

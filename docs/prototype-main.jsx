@@ -1099,8 +1099,23 @@ const Workspaces = (function() {
     } catch(e) {}
   }
 
+  // Sube un logo desde un File del input. Modo demo · convierte a dataURL
+  // y lo guarda inline en workspace.logo (no hay red, todo localStorage).
+  // El adapter Supabase sobrescribe esta función para subir al bucket real.
+  async function uploadLogo(workspaceId, file) {
+    if (!workspaceId || !file) return null;
+    var dataUrl = await new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(r.result); };
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    update(workspaceId, { logo: dataUrl });
+    return dataUrl;
+  }
+
   return { list, listMine, get, current, currentId, setCurrent, create, update, remove,
-           addMember, removeMember, setMemberRole, membersOf, currentRole, seedIfEmpty, ROLES };
+           addMember, removeMember, setMemberRole, membersOf, currentRole, uploadLogo, seedIfEmpty, ROLES };
 })();
 window.Workspaces = Workspaces;
 
@@ -2476,6 +2491,22 @@ function _activateSupabaseData() {
     await _loadWorkspaces();
     if (window.Toast) window.Toast.info('Workspace eliminado');
   };
+  // Sube un logo al bucket workspace-assets bajo path <ws_id>/logo.<ext> con
+  // upsert · cachebust de 30s mediante query string. Actualiza logo_url en
+  // la fila del workspace con la public URL.
+  Workspaces.uploadLogo = async function(workspaceId, file) {
+    if (!workspaceId || !file) return null;
+    const ext = (file.name && file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const path = workspaceId + '/logo.' + ext;
+    const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
+      upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '60',
+    });
+    if (upErr) { console.warn('[supa] upload logo', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el logo: ' + upErr.message); return null; }
+    const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
+    const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+    await Workspaces.update(workspaceId, { logo: url });
+    return url;
+  };
   Workspaces.addMember = async function(workspaceId, userId, role) {
     if (Workspaces.ROLES.indexOf(role) < 0) role = 'member';
     const { error } = await sb.from('workspace_members')
@@ -3015,9 +3046,9 @@ const I18n = (function() {
       'login.eyebrow':'★ Plataforma de formación cinematográfica · 2026',
       'login.title.l1':'Domina', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
       'login.title.expert':'experto',
-      'login.subtitle':'41 Think Pills · 3 talleres · BeonAI con contexto Repsol · certificado oficial al completar tu ruta.',
+      'login.subtitle':'Think Pills · Talleres · BeonAI con contexto de tu empresa · certificado oficial al completar tu ruta.',
       'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Talleres',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado Repsol',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Iniciar sesión', 'login.mode.signup':'Crear cuenta',
       'login.invite.title':'Invitación recibida',
@@ -3058,7 +3089,7 @@ const I18n = (function() {
       'onboarding.s4.cta':'Sí — entrar en SolidStream →',
       'onboarding.s4.more':'Cuéntame más', 'onboarding.s4.hide':'Ocultar',
       'onboarding.s4.featuresTitle':'Qué hace BeonAI',
-      'onboarding.s4.f1':'Resuelve dudas sobre Sprinklr en el contexto Repsol con respuestas accionables',
+      'onboarding.s4.f1':'Resuelve dudas sobre Sprinklr en el contexto de tu empresa con respuestas accionables',
       'onboarding.s4.f2':'Te recomienda el próximo módulo basándose en tu progreso y rol',
       'onboarding.s4.f3':'Genera quizzes personalizados para repasar lo aprendido',
       'onboarding.s4.f4':'Conoce las 41 Think Pills del currículum y sabe cuál cubre cada tema',
@@ -3262,9 +3293,9 @@ const I18n = (function() {
       'login.eyebrow':'★ Cinematic learning platform · 2026',
       'login.title.l1':'Master', 'login.title.l2':'Sprinklr', 'login.title.l3':'like an',
       'login.title.expert':'expert',
-      'login.subtitle':'41 Think Pills · 3 workshops · BeonAI with Repsol context · official certificate when you complete your path.',
+      'login.subtitle':'Think Pills · Workshops · BeonAI with your company context · official certificate when you complete your path.',
       'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Repsol Certificate',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Official Certificate',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Sign in', 'login.mode.signup':'Create account',
       'login.invite.title':'Invitation received',
@@ -3305,7 +3336,7 @@ const I18n = (function() {
       'onboarding.s4.cta':'Yes — enter SolidStream →',
       'onboarding.s4.more':'Tell me more', 'onboarding.s4.hide':'Hide',
       'onboarding.s4.featuresTitle':'What BeonAI does',
-      'onboarding.s4.f1':'Solves Sprinklr questions in the Repsol context with actionable answers',
+      'onboarding.s4.f1':'Solves Sprinklr questions in your company context with actionable answers',
       'onboarding.s4.f2':'Recommends your next module based on progress and role',
       'onboarding.s4.f3':'Generates personalized quizzes to review what you\'ve learned',
       'onboarding.s4.f4':'Knows all 41 Think Pills and which one covers each topic',
@@ -3509,9 +3540,9 @@ const I18n = (function() {
       'login.eyebrow':'★ Plataforma de formação cinematográfica · 2026',
       'login.title.l1':'Domine', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
       'login.title.expert':'especialista',
-      'login.subtitle':'41 Think Pills · 3 workshops · BeonAI com contexto Repsol · certificado oficial ao completar sua trilha.',
+      'login.subtitle':'Think Pills · Workshops · BeonAI com contexto da sua empresa · certificado oficial ao completar sua trilha.',
       'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado Repsol',
+      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Entrar', 'login.mode.signup':'Criar conta',
       'login.invite.title':'Convite recebido',
@@ -3552,7 +3583,7 @@ const I18n = (function() {
       'onboarding.s4.cta':'Sim — entrar no SolidStream →',
       'onboarding.s4.more':'Me conte mais', 'onboarding.s4.hide':'Ocultar',
       'onboarding.s4.featuresTitle':'O que o BeonAI faz',
-      'onboarding.s4.f1':'Resolve dúvidas sobre Sprinklr no contexto Repsol com respostas acionáveis',
+      'onboarding.s4.f1':'Resolve dúvidas sobre Sprinklr no contexto da sua empresa com respostas acionáveis',
       'onboarding.s4.f2':'Recomenda seu próximo módulo com base em progresso e cargo',
       'onboarding.s4.f3':'Gera quizzes personalizados para revisar o aprendido',
       'onboarding.s4.f4':'Conhece as 41 Think Pills e sabe qual cobre cada tema',
