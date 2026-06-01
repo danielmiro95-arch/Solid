@@ -438,7 +438,6 @@ const Subscriptions = (function() {
       { id:'ia',         label:'Inteligencia Artificial', color:'var(--bn-purple)',   icon:'✨' },
       { id:'data',       label:'Data & Analytics',        color:'var(--bn-blue)',     icon:'📊' },
       { id:'cx',         label:'CX · Customer Experience',color:'var(--accent-glow)', icon:'💬' },
-      { id:'sprinklr',   label:'Sprinklr',                color:'#5059C9',            icon:'🟦' },
       { id:'care',       label:'Care · Soporte',          color:'var(--ok)',          icon:'🛟' },
       { id:'publish',    label:'Publish · Social',        color:'#25D366',            icon:'📢' },
       { id:'content',    label:'Content',                 color:'var(--bn-orange)',   icon:'🎨' },
@@ -459,29 +458,18 @@ const Subscriptions = (function() {
       { id:'governance',      label:'Governance & Compliance' },
       { id:'integrations',    label:'Integraciones (CRM, Salesforce)' },
     ],
-    teams: [
-      { id:'repsol_iberia',  label:'Repsol Iberia',          members: 124 },
-      { id:'repsol_latam',   label:'Repsol LATAM',           members:  82 },
-      { id:'repsol_global',  label:'Repsol Global',          members: 240 },
-      { id:'beonit_team',    label:'BeonIt · Equipo interno',members:  18 },
-      { id:'sprinklr_csm',   label:'Sprinklr CSM',           members:   6 },
-      { id:'care_squad',     label:'Care Squad',             members:  42 },
-      { id:'publish_squad',  label:'Publish Squad',          members:  38 },
-    ],
-    trainers: [
-      { id:'ana_garcia',    label:'Ana García',     role:'Lead Care · Sprinklr' },
-      { id:'carlos_vega',   label:'Carlos Vega',    role:'Sr. Publish Trainer' },
-      { id:'maria_lopez',   label:'María López',    role:'Analytics & Reporting' },
-      { id:'diego_reyes',   label:'Diego Reyes',    role:'AI · Sentiment' },
-      { id:'sara_molina',   label:'Sara Molina',    role:'Content & Brand' },
-      { id:'lucia_fernan',  label:'Lucía Fernández',role:'Crisis & Governance' },
-    ],
+    // Equipos · cada workspace configura los suyos. El admin los gestiona
+    // desde el panel de Workspaces (sección Miembros). Vacío por defecto.
+    teams: [],
+    // Trainers · personas del workspace con rol formador. Vacío por defecto
+    // hasta que se implemente un rol "trainer" en workspace_members.
+    trainers: [],
   };
 
   const DEFAULTS = {
-    categories: { sprinklr:true, care:true, ia:true },  // arranca con 3 activas
+    categories: { ia:true, care:true },                   // arranca con 2 generales activas
     skills:     {},
-    teams:      { repsol_iberia:true },
+    teams:      {},                                       // sin suscripciones por defecto · admin configura
     trainers:   {},
     updatedAt: Date.now(),
   };

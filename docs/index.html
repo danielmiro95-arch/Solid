@@ -18,12 +18,12 @@
 <link rel="icon" type="image/png" href="/beonit-logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260601real">
-<link rel="stylesheet" href="prototype.css?v=20260601real">
+<link rel="stylesheet" href="styles.css?v=20260601nosdemo">
+<link rel="stylesheet" href="prototype.css?v=20260601nosdemo">
 <!-- Rediseño cinematic · cargado al final · gana especificidad sobre el CSS legacy -->
-<link rel="stylesheet" href="sgson.css?v=20260601real">
+<link rel="stylesheet" href="sgson.css?v=20260601nosdemo">
 <!-- BeonAI · character + wordmark · paleta cyan→violet -->
-<link rel="stylesheet" href="beonai.css?v=20260601real">
+<link rel="stylesheet" href="beonai.css?v=20260601nosdemo">
 
 <script>
   // Dark mode forzado en todo el SaaS · se aplica antes que cualquier
@@ -121,7 +121,7 @@
 <body>
 
 <nav class="shell-tabs">
-  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="beonit-logo.png?v=20260601real" style="height:34px;width:auto" alt="SolidStream"/><span style="font-family:'Inter',sans-serif;font-weight:700;font-size:18px;letter-spacing:-0.02em;color:var(--ink)">SolidStream</span><div style="width:1px;height:18px;background:var(--line)"></div><!-- Indicador del workspace activo · se actualiza vía applyWorkspaceBranding -->
+  <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;"><img src="beonit-logo.png?v=20260601nosdemo" style="height:34px;width:auto" alt="SolidStream"/><span style="font-family:'Inter',sans-serif;font-weight:700;font-size:18px;letter-spacing:-0.02em;color:var(--ink)">SolidStream</span><div style="width:1px;height:18px;background:var(--line)"></div><!-- Indicador del workspace activo · se actualiza vía applyWorkspaceBranding -->
     <span id="ws-tenant-badge" style="display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-4)">
       <span id="ws-tenant-dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent, #6E50EE);box-shadow:0 0 0 2px rgba(255,255,255,0.6)"></span>
       <span id="ws-tenant-name">by BeonIt</span>
@@ -157,7 +157,7 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260601real</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260601nosdemo</div>
 
 <!-- ============================================================
      PANEL DIAGNÓSTICO FLOTANTE · vanilla JS (no necesita React/Babel)
@@ -329,11 +329,31 @@ window.addEventListener('appinstalled', function() {
 <!-- Supabase SDK · solo activa si hay env vars en Vercel (SUPABASE_URL + SUPABASE_ANON_KEY) -->
 <script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script>
-// Bootstrap del backend. Si /api/config devuelve keys de Supabase, activa
-// modo SaaS real. Si no, fallback a modo demo client-side con localStorage.
+// Bootstrap del backend. SolidStream es SaaS multi-cliente · Supabase es
+// requisito. Si /api/config no devuelve keys válidas:
+//   · localhost (dev): fallback a demo mode para desarrollo offline
+//   · producción: error full-screen explícito · no fallback silencioso
+// Antes había fallback automático a demo en producción · ocultaba mal
+// configuraciones de Vercel env vars.
 (function(){
-  window.SGSON_BACKEND = 'demo'; // se cambia a 'supabase' si hay config
+  var isLocalhost = ['localhost','127.0.0.1','0.0.0.0'].indexOf(location.hostname) >= 0;
+  window.SGSON_BACKEND = 'demo';
   window.SGSON_BACKEND_READY = false;
+  function showSupabaseError(reason){
+    if (isLocalhost) {
+      console.warn('[SolidStream] Sin Supabase · usando demo (solo localhost)', reason);
+      return;
+    }
+    // Producción sin Supabase · pinta un overlay rojo con instrucciones.
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0E0E12;color:#F5F4F1;font-family:-apple-system,Inter,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;line-height:1.6';
+    el.innerHTML = '<div style="font-size:48px;margin-bottom:18px">⚠️</div>'
+                 + '<h1 style="font-weight:700;font-size:24px;margin:0 0 12px">Supabase no está configurado</h1>'
+                 + '<p style="max-width:520px;color:#C9D3DF;margin:0 0 24px">SolidStream necesita las variables <code style="background:#1F2630;padding:2px 8px;border-radius:4px;font-family:JetBrains Mono,monospace;color:#FFD66B">SUPABASE_URL</code> y <code style="background:#1F2630;padding:2px 8px;border-radius:4px;font-family:JetBrains Mono,monospace;color:#FFD66B">SUPABASE_ANON_KEY</code> en Vercel para funcionar. Sin ellas, no hay base de datos · no hay login · no hay catálogo.</p>'
+                 + '<p style="font-family:JetBrains Mono,monospace;font-size:11px;color:#6B7689;letter-spacing:0.05em">Vercel → Project Settings → Environment Variables · luego Redeploy</p>'
+                 + '<p style="font-family:JetBrains Mono,monospace;font-size:10px;color:#6B7689;margin-top:32px">Detalle técnico: ' + (reason || '/api/config no devolvió supabaseUrl/supabaseAnonKey') + '</p>';
+    document.body.appendChild(el);
+  }
   fetch('/api/config').then(function(r){ return r.ok ? r.json() : null; }).then(function(cfg){
     if (cfg && cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
       window.SUPABASE_URL = cfg.supabaseUrl;
@@ -344,7 +364,7 @@ window.addEventListener('appinstalled', function() {
       window.SGSON_BACKEND = 'supabase';
       console.log('[SolidStream] Backend: Supabase ✓', cfg.supabaseUrl);
     } else {
-      console.log('[SolidStream] Backend: demo (localStorage)');
+      showSupabaseError('cfg=' + JSON.stringify({ hasUrl: !!(cfg && cfg.supabaseUrl), hasKey: !!(cfg && cfg.supabaseAnonKey), hasSDK: !!window.supabase }));
     }
     if (cfg && cfg.vapidPublicKey) {
       window.VAPID_PUBLIC_KEY = cfg.vapidPublicKey;
@@ -353,7 +373,7 @@ window.addEventListener('appinstalled', function() {
     window.SGSON_BACKEND_READY = true;
     window.dispatchEvent(new Event('sgson-backend-ready'));
   }).catch(function(e){
-    console.warn('[SolidStream] /api/config no disponible — modo demo', e && e.message);
+    showSupabaseError('/api/config fetch falló: ' + (e && e.message));
     window.SGSON_BACKEND_READY = true;
     window.dispatchEvent(new Event('sgson-backend-ready'));
   });
@@ -361,20 +381,20 @@ window.addEventListener('appinstalled', function() {
 </script>
 
 <!-- Redesign · iconos + adapter + views (cargar ANTES de los componentes que los usan) -->
-<script type="text/babel" src="sgson-icons.jsx?v=20260601real"></script>
+<script type="text/babel" src="sgson-icons.jsx?v=20260601nosdemo"></script>
 <!-- BeonAI · personaje del asistente IA · componentes React -->
-<script type="text/babel" src="beonai.jsx?v=20260601real"></script>
+<script type="text/babel" src="beonai.jsx?v=20260601nosdemo"></script>
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260601real"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260601real"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260601real"></script>
+<script type="text/babel" src="components.jsx?v=20260601nosdemo"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260601nosdemo"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260601nosdemo"></script>
 <!-- Redesign adapter · convierte PILLS legacy → SGS_DATA · expone window.SGS_DATA -->
-<script type="text/babel" src="sgson-adapter.jsx?v=20260601real"></script>
+<script type="text/babel" src="sgson-adapter.jsx?v=20260601nosdemo"></script>
 <!-- Redesign views · SidebarOverlay + DetailModal + Coach + Analytics -->
-<script type="text/babel" src="sgson-views.jsx?v=20260601real"></script>
+<script type="text/babel" src="sgson-views.jsx?v=20260601nosdemo"></script>
 <!-- Redesign extra views · Browse/Rutas/Path/Channels/Profile/Settings/Admin/Inbox/Saved -->
-<script type="text/babel" src="sgson-extra-views.jsx?v=20260601real"></script>
-<script type="text/babel" src="prototype-main.jsx?v=20260601real"></script>
+<script type="text/babel" src="sgson-extra-views.jsx?v=20260601nosdemo"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260601nosdemo"></script>
 
 <!-- Boot -->
 <script type="text/babel">
