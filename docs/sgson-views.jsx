@@ -443,6 +443,20 @@ function CoachView() {
 }
 
 function AnalyticsView() {
+  // Toda la app es dark · Analytics es la única vista en light. Forzamos
+  // data-theme="light" en mount y marcamos data-analytics-light="1" para
+  // que el forceDark global del theme-controller no nos pise. Al unmount
+  // restauramos dark.
+  React.useEffect(() => {
+    var html = document.documentElement;
+    html.setAttribute('data-analytics-light', '1');
+    html.setAttribute('data-theme', 'light');
+    return () => {
+      html.removeAttribute('data-analytics-light');
+      html.setAttribute('data-theme', 'dark');
+    };
+  }, []);
+
   // Analytics renderiza directamente el Dashboard creator.
   if (window.Dashboard) {
     return (
