@@ -555,11 +555,15 @@ function AISidekick({ setAIMode, aiMode, view }) {
 }
 
 
+// USER_PROFILE fallback · usado por callMentorAPI cuando window.UserProfile
+// no está cargado. Antes traía datos mock (Amaia Ruiz · Publish Agent · 15%
+// · pill 4). Ahora vacío · la BeonAI recibe contexto solo si el user real
+// está autenticado y UserProfile.get() devuelve datos.
 const USER_PROFILE = {
-  name: 'Amaia Ruiz',
-  role: 'Publish Agent',
-  progress: 15,
-  currentPill: 4,
+  name: '',
+  role: '',
+  progress: 0,
+  currentPill: 0,
 };
 
 // callMentorAPI · llama al endpoint /api/chat de BeonAI.
