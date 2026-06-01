@@ -2014,6 +2014,12 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Pills · catálogo del workspace activo (multi-tenant content) */}
       <PillsPanel/>
 
+      {/* Catálogo extra · rutas / bloques / quick tips / podcasts del workspace */}
+      <ContentPanel kind="path"    label="Rutas de certificación" icon="🛤"/>
+      <ContentPanel kind="series"  label="Bloques formativos"     icon="📚"/>
+      <ContentPanel kind="reel"    label="Quick tips (reels)"     icon="⚡"/>
+      <ContentPanel kind="podcast" label="Charlas / podcasts"     icon="🎙"/>
+
       {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
       <BeonAIConfigPanel/>
     </PageShell>
@@ -3201,6 +3207,152 @@ function PillsPanel() {
     </section>
   );
 }
+
+// ── ContentPanel · admin · CRUD genérico para paths/series/reels/podcasts ─
+// Una sola UI para los 4 kinds del catálogo, con kind como prop. Antes
+// estos arrays vivían hardcoded en el bundle como datos de Repsol; ahora
+// se gestionan por workspace_id en la tabla workspace_content.
+function ContentPanel({ kind, label, icon }) {
+  const [, setTick] = useEV2(0);
+  const [openId, setOpenId] = useEV2(null);
+  const [draft, setDraft] = useEV2({});
+
+  React.useEffect(() => {
+    const r = () => setTick(t => t + 1);
+    const evt = kind === 'path' ? 'paths-changed' : kind === 'series' ? 'series-changed' : kind === 'reel' ? 'reels-changed' : 'podcasts-changed';
+    window.addEventListener(evt, r);
+    window.addEventListener('workspace-changed', r);
+    return () => { window.removeEventListener(evt, r); window.removeEventListener('workspace-changed', r); };
+  }, [kind]);
+
+  if (!window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  if (!window.Content) {
+    return (
+      <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin:'0 0 6px' }}>{icon} {label}</h2>
+        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Necesitas Supabase activo para gestionar contenido del workspace.</div>
+      </section>
+    );
+  }
+  const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+  const wsName = ws ? ws.name : '—';
+  const items = window.Content.list(kind);
+
+  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it }); };
+  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0 }); };
+  const cancel = () => { setOpenId(null); setDraft({}); };
+
+  const save = async () => {
+    if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    if (openId === 'new') {
+      await window.Content.create(kind, draft);
+    } else {
+      await window.Content.update(kind, openId, draft);
+      if (window.Toast) window.Toast.success('Actualizado');
+    }
+    setOpenId(null); setDraft({});
+  };
+  const remove = async (id, title) => {
+    if (!confirm('¿Eliminar "' + title + '"?')) return;
+    await window.Content.remove(kind, id);
+  };
+
+  const showLevel    = kind !== 'reel';
+  const showRating   = kind !== 'reel';
+  const showEnrolled = kind !== 'reel';
+  const showCategory = kind !== 'reel';
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8, flexWrap:'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{icon} {label} · {wsName}</h2>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 2 }}>{items.length} {items.length === 1 ? 'elemento' : 'elementos'} · scopeado al workspace activo</div>
+        </div>
+        <button onClick={startNew} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nuevo</button>
+      </div>
+
+      {items.length === 0 ? (
+        <div style={{ padding:'24px', textAlign:'center', color:'var(--fg-muted)', fontSize: 13, fontStyle:'italic' }}>
+          Aún no hay {label.toLowerCase()} en este workspace. Crea el primero con el botón de arriba.
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+          {items.map(it => (
+            <div key={it._id} style={{ padding:'12px 14px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8, display:'flex', alignItems:'center', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)' }}>{it.title}</div>
+                <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2 }}>{[it.teacher, it.duration, it.category].filter(Boolean).join(' · ') || '—'}</div>
+              </div>
+              <button onClick={() => startEdit(it)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--fg)' }}>Editar</button>
+              <button onClick={() => remove(it._id, it.title)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'#E63946' }}>Eliminar</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {openId && (
+        <div style={{ marginTop: 18, padding: 18, background:'var(--paper)', border:'2px solid var(--accent)', borderRadius: 8 }}>
+          <h3 style={{ margin:'0 0 14px', fontSize: 15, fontWeight: 700 }}>{openId === 'new' ? 'Nuevo · ' + label : 'Editar · ' + (draft.title || '')}</h3>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 }}>
+            <label style={{ gridColumn:'1 / -1' }}>
+              <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Título *</div>
+              <input value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} autoFocus style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+            </label>
+            <label>
+              <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Autor / instructor</div>
+              <input value={draft.teacher || ''} onChange={e => setDraft({ ...draft, teacher: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+            </label>
+            <label>
+              <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Duración</div>
+              <input value={draft.duration || ''} onChange={e => setDraft({ ...draft, duration: e.target.value })} placeholder={kind === 'reel' ? ':30' : '22 min'} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+            </label>
+            <label>
+              <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Tone (color)</div>
+              <select value={draft.tone || 'teal'} onChange={e => setDraft({ ...draft, tone: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13 }}>
+                {['teal','plum','clay','warm','olive','noir'].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            {showCategory && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Categoría</div>
+                <input value={draft.category || ''} onChange={e => setDraft({ ...draft, category: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+              </label>
+            )}
+            {showLevel && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Nivel</div>
+                <select value={draft.level || ''} onChange={e => setDraft({ ...draft, level: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13 }}>
+                  <option value="">—</option>
+                  <option value="principiante">Principiante</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
+              </label>
+            )}
+            {showRating && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Rating (0-5)</div>
+                <input type="number" min="0" max="5" step="0.1" value={draft.rating || ''} onChange={e => setDraft({ ...draft, rating: parseFloat(e.target.value) || 0 })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+              </label>
+            )}
+            {showEnrolled && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Inscritos</div>
+                <input type="number" min="0" value={draft.enrolled || 0} onChange={e => setDraft({ ...draft, enrolled: parseInt(e.target.value, 10) || 0 })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+              </label>
+            )}
+          </div>
+          <div style={{ display:'flex', gap: 8, marginTop: 16, justifyContent:'flex-end' }}>
+            <button onClick={cancel} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 12.5, color:'var(--fg)' }}>Cancelar</button>
+            <button onClick={save} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>{openId === 'new' ? 'Crear' : 'Guardar'}</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+window.ContentPanel = ContentPanel;
 
 // ── ManagerView · panel del líder de equipo · KPIs + miembros + invitar ──
 function ManagerView({ setView }) {

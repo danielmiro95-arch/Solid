@@ -192,5 +192,8 @@
   window.addEventListener('user-profile-changed', setup);
   window.addEventListener('auth-changed', setup);
   window.addEventListener('pills-changed', setup);
+  // Cambios en paths/series/reels/podcasts también requieren rebuild de
+  // SGS_DATA · son parte del catálogo expuesto en window.PATHS etc.
+  ['paths-changed','series-changed','reels-changed','podcasts-changed'].forEach(ev => window.addEventListener(ev, setup));
   window.addEventListener('workspace-changed', setup);
 })();
