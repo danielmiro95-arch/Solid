@@ -120,19 +120,31 @@
       'Reporting Agent': 'cat-analytics',
       'Analyst': 'cat-manage',
     };
-    const LEARNING_PATHS = SRC_PATHS.map(p => ({
-      id:      p.id,
-      title:   p.label || p.title || 'Ruta',
-      label:   p.label || p.title || 'Ruta',
-      desc:    p.desc || p.roleTag || '',
-      badge:   p.badge || '',
-      // `pills` queda como CUENTA por compatibilidad con cards (Rutas).
-      // `pillIds` guarda el array original para componentes que necesiten filtrar pills (MyPath).
-      pills:   (p.pills && p.pills.length) || p.totalPills || 0,
-      pillIds: Array.isArray(p.pills) ? p.pills.slice() : [],
-      hours:   p.duration || (p.pills ? (p.pills.length * 5) + ' min' : '—'),
-      accent:  TONE_BY_LABEL[p.label] || 'cat-publish',
-    }));
+    // Derivar pillIds dinámicamente · si el path tiene _id (uuid · Supabase
+     // mode), cruzar con window.PILLS por pill.pathId. Esto resuelve la race
+     // condition de Promise.all(loadPills, loadContent('path')) donde el
+     // primer build podía no encontrar pills aún. El adapter se vuelve a
+     // ejecutar en pills-changed (líneas finales del archivo).
+    const LEARNING_PATHS = SRC_PATHS.map(p => {
+      let pillIds = Array.isArray(p.pills) ? p.pills.slice() : (Array.isArray(p.pillIds) ? p.pillIds.slice() : []);
+      if (pillIds.length === 0 && p._id) {
+        pillIds = (window.PILLS || [])
+          .filter(x => x.pathId && x.pathId === p._id)
+          .map(x => x.id);
+      }
+      return {
+        id:      p.id,
+        title:   p.label || p.title || 'Ruta',
+        label:   p.label || p.title || 'Ruta',
+        desc:    p.desc || p.roleTag || '',
+        badge:   p.badge || '',
+        // `pills` cuenta para cards · `pillIds` array para MyPath
+        pills:   pillIds.length || p.totalPills || 0,
+        pillIds: pillIds,
+        hours:   p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),
+        accent:  TONE_BY_LABEL[p.label] || 'cat-publish',
+      };
+    });
 
     // ── USER · del Auth/UserProfile actual ──
     // Triple fallback · UserProfile → Auth.currentUser directo → datos del SGS_DATA viejo
