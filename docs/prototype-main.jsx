@@ -1051,10 +1051,13 @@ const Workspaces = (function() {
     const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
     const firstAdmin = users.find(u => u.systemRole === 'admin' || u.isAdmin) || users[0];
     if (!firstAdmin) return;
+    // Workspace por defecto en instalaciones nuevas (SaaS multi-cliente).
+    // Las instalaciones existentes ya tienen su workspace, así que este seed
+    // no afecta a Repsol/Hijos de Rivera/etc · sólo a nuevos despliegues.
     const repsol = {
       id: _gen(),
-      name: 'Repsol',
-      slug: 'repsol',
+      name: 'Mi organización',
+      slug: 'demo',
       logo: null,
       primaryColor: '#6E50EE',
       ownerId: firstAdmin.id,
@@ -1458,9 +1461,9 @@ const Auth = (function() {
       id: _genId(),
       email: data.email.toLowerCase(),
       name: data.name.trim(),
-      role: data.role || 'Publish Agent',          // rol funcional (Publish Agent, Care Agent…)
+      role: data.role || '',                        // rol funcional · lo asigna el admin del workspace después
       systemRole: systemRole,                       // rol del sistema (admin/manager/user)
-      team: data.team || 'Repsol',
+      team: data.team || '',
       avatarColor: data.avatarColor || COLORS[users.length % COLORS.length],
       // Espejo legacy para componentes que aún usan isAdmin
       isAdmin: systemRole === 'admin',
@@ -1597,30 +1600,13 @@ const Auth = (function() {
     return ROLE_LEVEL[u.systemRole] >= ROLE_LEVEL[role];
   }
 
-  // Seed: si no hay usuarios, crea un admin demo para arrancar la primera vez
-  function seedIfEmpty() {
-    if (listUsers().length === 0) {
-      signup({
-        email: 'admin@beonit.com',
-        name: 'Admin BeonIt',
-        role: 'Administrador',
-        team: 'BeonIt',
-        avatarColor: 'var(--ink)',
-        isAdmin: true,
-      });
-      // Loguea como demo Repsol también
-      var current = currentUserId();
-      signup({
-        email: 'amaia.ruiz@repsol.com',
-        name: 'Amaia Ruiz',
-        role: 'Publish Agent',
-        team: 'Repsol',
-        avatarColor: 'var(--bn-purple)',
-      });
-      // Vuelve a la sesión que tenía
-      if (current) localStorage.setItem(SESSION_KEY, current);
-    }
-  }
+  // SaaS multi-cliente · NO sembrar usuarios demo. El primer login crea el
+  // primer usuario (que pasa a admin de plataforma vía la regla @beonit.es).
+  // Si listUsers() está vacío → la app muestra el LoginScreen y obliga a
+  // crear cuenta. Antes esto creaba admin@beonit.com + amaia.ruiz@repsol.com
+  // de forma automática, lo que saltaba el login y atascaba a usuarios reales
+  // dentro de la sesión Amaya fantasma.
+  function seedIfEmpty() { /* no-op intencional · SaaS no semilla usuarios */ }
 
   return {
     listUsers, currentUser, currentUserId, isAuthenticated, isAdmin,
@@ -2569,6 +2555,145 @@ function _activateSupabaseData() {
     if (repsol && repsol.id) Workspaces.setCurrent(repsol.id);
   };
 
+  // ── Pills · catálogo de pills del workspace activo (Fase 2 multi-tenant)
+  // Sobrescribe el array hardcoded de docs/prototype-home.jsx para que cada
+  // workspace muestre su propio catálogo. RLS aísla por workspace_id.
+  async function _loadPills() {
+    const wsId = _wsid();
+    if (!wsId) { return; }
+    const { data, error } = await sb.from('pills')
+      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position')
+      .eq('workspace_id', wsId)
+      .order('position', { ascending: true });
+    if (error) { console.warn('[supa] pills', error.message); return; }
+    // Mapeo snake_case (DB) → camelCase (shape esperado por adapter/Wordmark)
+    const mapped = (data || []).map(p => ({
+      id: p.slug || ('p' + p.pill_number),
+      pill: p.pill_number,
+      title: p.title,
+      one: p.one_liner || p.title,
+      teacher: p.teacher,
+      duration: p.duration,
+      tone: p.tone,
+      format: p.format,
+      progress: 0,                 // per-user · no vive en la fila de pill
+      level: p.level,
+      rating: typeof p.rating === 'number' ? p.rating : parseFloat(p.rating) || 4.7,
+      enrolled: p.enrolled || 0,
+      category: p.category,
+      yt: p.yt || undefined,
+      mp4: p.mp4 || undefined,
+      poster: p.poster || undefined,
+      featured: !!p.featured,
+      newBadge: !!p.new_badge,
+    }));
+    window.PILLS = mapped;
+    window.dispatchEvent(new Event('pills-changed'));
+  }
+
+  // ── Pills CRUD (admin) ────────────────────────────────────────────────
+  // Acciones administrativas sobre el catálogo del workspace activo.
+  // Todas las funciones recargan tras la operación y devuelven el resultado.
+  window.Pills = {
+    list: () => (window.PILLS || []).slice(),
+    // Crea una pill nueva. `data` admite el shape camelCase (igual que las
+    // entries del array hardcoded). Si no se pasa pill_number, se calcula
+    // como max(pill_number)+1 del workspace.
+    create: async function(data) {
+      const wsId = _wsid();
+      if (!wsId) { if (window.Toast) window.Toast.error('No hay workspace activo'); return null; }
+      let pn = data.pill;
+      if (pn == null) {
+        const { data: rows } = await sb.from('pills').select('pill_number').eq('workspace_id', wsId).order('pill_number', { ascending: false }).limit(1);
+        pn = (rows && rows[0] ? (rows[0].pill_number + 1) : 0);
+      }
+      const row = {
+        workspace_id: wsId,
+        pill_number: pn,
+        slug: data.id || ('p' + pn),
+        title: data.title || 'Nueva pill',
+        one_liner: data.one || null,
+        teacher: data.teacher || null,
+        duration: data.duration || '4 min',
+        tone: data.tone || 'teal',
+        format: data.format || 'módulo',
+        level: data.level || 'principiante',
+        rating: typeof data.rating === 'number' ? data.rating : 4.7,
+        enrolled: data.enrolled || 0,
+        category: data.category || 'Fundamentos',
+        yt: data.yt || null,
+        mp4: data.mp4 || null,
+        poster: data.poster || null,
+        featured: !!data.featured,
+        new_badge: !!data.newBadge,
+        position: typeof data.position === 'number' ? data.position : pn,
+      };
+      const { data: ins, error } = await sb.from('pills').insert(row).select('id').single();
+      if (error) { console.warn('[supa] pill create', error.message); if (window.Toast) window.Toast.error('No se pudo crear: ' + error.message); return null; }
+      await _loadPills();
+      if (window.Toast) window.Toast.success('Pill creada');
+      return ins;
+    },
+    update: async function(pillNumber, patch) {
+      const wsId = _wsid(); if (!wsId) return null;
+      const dbPatch = {};
+      if (patch.title != null)    dbPatch.title = patch.title;
+      if (patch.one != null)      dbPatch.one_liner = patch.one;
+      if (patch.teacher != null)  dbPatch.teacher = patch.teacher;
+      if (patch.duration != null) dbPatch.duration = patch.duration;
+      if (patch.tone != null)     dbPatch.tone = patch.tone;
+      if (patch.level != null)    dbPatch.level = patch.level;
+      if (patch.rating != null)   dbPatch.rating = patch.rating;
+      if (patch.enrolled != null) dbPatch.enrolled = patch.enrolled;
+      if (patch.category != null) dbPatch.category = patch.category;
+      if (patch.yt != null)       dbPatch.yt = patch.yt || null;
+      if (patch.mp4 != null)      dbPatch.mp4 = patch.mp4 || null;
+      if (patch.poster != null)   dbPatch.poster = patch.poster || null;
+      if (patch.featured != null) dbPatch.featured = !!patch.featured;
+      if (patch.newBadge != null) dbPatch.new_badge = !!patch.newBadge;
+      if (patch.position != null) dbPatch.position = patch.position;
+      const { error } = await sb.from('pills').update(dbPatch).eq('workspace_id', wsId).eq('pill_number', pillNumber);
+      if (error) { console.warn('[supa] pill update', error.message); if (window.Toast) window.Toast.error('No se pudo guardar: ' + error.message); return null; }
+      await _loadPills();
+      return true;
+    },
+    remove: async function(pillNumber) {
+      const wsId = _wsid(); if (!wsId) return null;
+      const { error } = await sb.from('pills').delete().eq('workspace_id', wsId).eq('pill_number', pillNumber);
+      if (error) { console.warn('[supa] pill remove', error.message); if (window.Toast) window.Toast.error('No se pudo borrar: ' + error.message); return null; }
+      await _loadPills();
+      if (window.Toast) window.Toast.info('Pill eliminada');
+      return true;
+    },
+    uploadVideo: async function(pillNumber, file) {
+      const wsId = _wsid(); if (!wsId || !file) return null;
+      const ext = (file.name && file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+      const path = wsId + '/p' + pillNumber + '.' + ext;
+      const { error: upErr } = await sb.storage.from('pill-videos').upload(path, file, {
+        upsert: true, contentType: file.type || 'video/' + ext, cacheControl: '3600',
+      });
+      if (upErr) { console.warn('[supa] upload video', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el vídeo: ' + upErr.message); return null; }
+      const { data: pub } = sb.storage.from('pill-videos').getPublicUrl(path);
+      const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+      await window.Pills.update(pillNumber, { mp4: url });
+      if (window.Toast) window.Toast.success('Vídeo subido');
+      return url;
+    },
+    uploadPoster: async function(pillNumber, file) {
+      const wsId = _wsid(); if (!wsId || !file) return null;
+      const ext = (file.name && file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = wsId + '/posters/p' + pillNumber + '.' + ext;
+      const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
+        upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '3600',
+      });
+      if (upErr) { console.warn('[supa] upload poster', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el poster: ' + upErr.message); return null; }
+      const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
+      const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+      await window.Pills.update(pillNumber, { poster: url });
+      return url;
+    },
+  };
+
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
   async function _syncAll() {
     if (!_uid()) return;
@@ -2577,18 +2702,18 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(), _loadPills(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
   if (_uid()) _syncAll();
 
-  // Cambio de workspace · recarga datos scopeados (bookmarks, members, etc.)
+  // Cambio de workspace · recarga datos scopeados (bookmarks, members, pills…)
   window.addEventListener('workspace-changed', async () => {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -3033,7 +3158,7 @@ const I18n = (function() {
       'hero.play':'Reproducir', 'hero.more':'Más información', 'hero.sound':'Sonido',
       'home.continue.title':'Continúa, {name}', 'home.continue.sub':'donde lo dejaste', 'home.continue.fallback':'tú',
       'coach.greeting':'Hola', 'coach.askYou':'¿qué quieres dominar hoy?',
-      'coach.subtitle':'Pregunta sobre Sprinklr, tu ruta, métricas de Care, flujos de aprobación o cualquier pill.',
+      'coach.subtitle':'Pregunta sobre cualquier tema de tu formación, tu progreso o tu día a día.',
       'coach.placeholder':'Pregunta a BeonAI…',
       'coach.new':'Nueva conversación',
       'coach.empty':'Aún no tienes conversaciones.',
@@ -3044,10 +3169,10 @@ const I18n = (function() {
       'palette.goTo':'IR A',
       // Login
       'login.eyebrow':'★ Plataforma de formación cinematográfica · 2026',
-      'login.title.l1':'Domina', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
-      'login.title.expert':'experto',
-      'login.subtitle':'Think Pills · Talleres · BeonAI con contexto de tu empresa · certificado oficial al completar tu ruta.',
-      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Talleres',
+      'login.title.l1':'Forma', 'login.title.l2':'a tu equipo', 'login.title.l3':'a tu',
+      'login.title.expert':'ritmo',
+      'login.subtitle':'Microlearning en vídeo · BeonAI integrado · seguimiento de progreso en tiempo real.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Talleres en directo',
       'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Iniciar sesión', 'login.mode.signup':'Crear cuenta',
@@ -3071,12 +3196,12 @@ const I18n = (function() {
       'onboarding.back':'← Atrás', 'onboarding.continue':'Continuar →',
       'onboarding.enter':'Entrar en SolidStream →',
       'onboarding.stepOf':'{step} · De {total}',
-      'onboarding.s1.title.l1':'¿En qué área de Sprinklr',
+      'onboarding.s1.title.l1':'¿En qué área quieres',
       'onboarding.s1.title.l2':'quieres certificarte?',
       'onboarding.s1.titleEm':'certificarte',
       'onboarding.s1.lead':'Selecciona las áreas prioritarias. Tu ruta de formación se construirá en torno a ellas — puedes cambiarlas después.',
       'onboarding.s2.title.l1':'¿Cuál es tu rol',
-      'onboarding.s2.title.l2':'en Repsol?',
+      'onboarding.s2.title.l2':'en tu empresa?',
       'onboarding.s2.titleEm':'rol',
       'onboarding.s2.lead':'Personalizamos el orden de los módulos y los casos prácticos según tu función en el equipo de comunicación.',
       'onboarding.s3.title':'¿Cómo quieres aprender?',
@@ -3084,36 +3209,36 @@ const I18n = (function() {
       'onboarding.s3.lead':'Elige cómo quieres recibir tu formación. Puedes activar o desactivar cada canal en cualquier momento desde tu perfil.',
       'onboarding.s4.title':'Tu agente IA te espera.',
       'onboarding.s4.titleEm':'te espera',
-      'onboarding.s4.lead':'Conoce los flujos de Repsol, tu progreso y las guías de Sprinklr. Pregúntale cualquier cosa — en cualquier momento.',
+      'onboarding.s4.lead':'Conoce los flujos de tu empresa, tu progreso y las guías de tu formación. Pregúntale cualquier cosa — en cualquier momento.',
       'onboarding.s4.message':'Hola. Basándome en tu rol de {role} y las áreas que has elegido, te preparo una ruta de 4 semanas y 10 módulos. ¿Empezamos?',
       'onboarding.s4.cta':'Sí — entrar en SolidStream →',
       'onboarding.s4.more':'Cuéntame más', 'onboarding.s4.hide':'Ocultar',
       'onboarding.s4.featuresTitle':'Qué hace BeonAI',
-      'onboarding.s4.f1':'Resuelve dudas sobre Sprinklr en el contexto de tu empresa con respuestas accionables',
+      'onboarding.s4.f1':'Resuelve dudas de tu formación en el contexto de tu empresa con respuestas accionables',
       'onboarding.s4.f2':'Te recomienda el próximo módulo basándose en tu progreso y rol',
       'onboarding.s4.f3':'Genera quizzes personalizados para repasar lo aprendido',
-      'onboarding.s4.f4':'Conoce las 41 Think Pills del currículum y sabe cuál cubre cada tema',
+      'onboarding.s4.f4':'Conoce todo el catálogo de tu workspace y sabe qué módulo cubre cada tema',
       'onboarding.s4.f5':'Funciona desde la barra lateral, en pantalla completa o por WhatsApp',
-      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'Publico y apruebo contenido en Sprinklr',
+      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'Publico y apruebo contenido en plataformas digitales',
       'onboarding.role.content':'Content Lead',   'onboarding.role.content.sub':'Lidero la estrategia de contenidos',
       'onboarding.role.analytics':'Analytics Lead','onboarding.role.analytics.sub':'Analizo rendimiento de campañas',
-      'onboarding.role.it':'IT / Integraciones',   'onboarding.role.it.sub':'Gestiono la integración con sistemas Repsol',
+      'onboarding.role.it':'IT / Integraciones',   'onboarding.role.it.sub':'Gestiono la integración con los sistemas internos',
       'onboarding.role.direccion':'Dirección',     'onboarding.role.direccion.sub':'Necesito visión global de la plataforma',
       'onboarding.area.publish':'Social Publish', 'onboarding.area.aprobs':'Aprobaciones',
       'onboarding.area.calendar':'Calendario editorial', 'onboarding.area.analytics':'Analytics y Reporting',
       'onboarding.area.dam':'Activos DAM', 'onboarding.area.compliance':'Compliance',
       'onboarding.area.care':'Care y Atención al cliente', 'onboarding.area.salesforce':'Integraciones Salesforce',
-      'onboarding.area.gov':'Gobernanza y roles', 'onboarding.area.fundamentals':'Sprinklr Fundamentals',
+      'onboarding.area.gov':'Gobernanza y roles', 'onboarding.area.fundamentals':'Fundamentos',
       'onboarding.notif.daily':'Recordatorio diario en WhatsApp, 9:00',
       'onboarding.notif.daily.sub':'Un módulo cada mañana. Sin ruido extra.',
       'onboarding.notif.free':'Acceso libre desde la app',
       'onboarding.notif.free.sub':'Entro cuando tengo tiempo, sin notificaciones.',
       'onboarding.notif.weekly':'Resumen semanal por email (viernes)',
       'onboarding.notif.weekly.sub':'Qué aprendiste, qué viene la próxima semana.',
-      'onboarding.notif.meeting':'Alertas antes de reuniones Sprinklr',
+      'onboarding.notif.meeting':'Alertas antes de reuniones formativas',
       'onboarding.notif.meeting.sub':'El agente te manda un módulo relevante 30 min antes.',
       'onboarding.complete':'Onboarding completado · Bienvenido a SolidStream',
-      'onboarding.cert':'Certificación Sprinklr',
+      'onboarding.cert':'Certificación oficial',
       'onboarding.certOfficial':'Certificación oficial · 2026',
     },
     en: {
@@ -3280,7 +3405,7 @@ const I18n = (function() {
       'hero.play':'Play', 'hero.more':'More info', 'hero.sound':'Sound',
       'home.continue.title':'Keep going, {name}', 'home.continue.sub':'where you left off', 'home.continue.fallback':'you',
       'coach.greeting':'Hi', 'coach.askYou':'what do you want to master today?',
-      'coach.subtitle':'Ask about Sprinklr, your path, Care metrics, approval flows or any pill.',
+      'coach.subtitle':'Ask anything about your training, progress or daily work.',
       'coach.placeholder':'Ask BeonAI…',
       'coach.new':'New conversation',
       'coach.empty':'You don\'t have any conversations yet.',
@@ -3291,10 +3416,10 @@ const I18n = (function() {
       'palette.goTo':'GO TO',
       // Login
       'login.eyebrow':'★ Cinematic learning platform · 2026',
-      'login.title.l1':'Master', 'login.title.l2':'Sprinklr', 'login.title.l3':'like an',
-      'login.title.expert':'expert',
-      'login.subtitle':'Think Pills · Workshops · BeonAI with your company context · official certificate when you complete your path.',
-      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
+      'login.title.l1':'Train', 'login.title.l2':'your team', 'login.title.l3':'at your',
+      'login.title.expert':'pace',
+      'login.subtitle':'Video microlearning · Integrated AI assistant · Real-time progress tracking.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Live workshops',
       'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Official Certificate',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Sign in', 'login.mode.signup':'Create account',
@@ -3318,12 +3443,12 @@ const I18n = (function() {
       'onboarding.back':'← Back', 'onboarding.continue':'Continue →',
       'onboarding.enter':'Enter SolidStream →',
       'onboarding.stepOf':'{step} · Of {total}',
-      'onboarding.s1.title.l1':'Which Sprinklr area',
+      'onboarding.s1.title.l1':'Which area do you want',
       'onboarding.s1.title.l2':'do you want to get certified in?',
       'onboarding.s1.titleEm':'certified',
       'onboarding.s1.lead':'Select your priority areas. Your training path will be built around them — you can change them later.',
       'onboarding.s2.title.l1':'What\'s your role',
-      'onboarding.s2.title.l2':'at Repsol?',
+      'onboarding.s2.title.l2':'at your company?',
       'onboarding.s2.titleEm':'role',
       'onboarding.s2.lead':'We tailor the module order and case studies to your function in the communications team.',
       'onboarding.s3.title':'How do you want to learn?',
@@ -3331,36 +3456,36 @@ const I18n = (function() {
       'onboarding.s3.lead':'Choose how you want to receive your training. You can enable or disable each channel anytime from your profile.',
       'onboarding.s4.title':'Your AI agent is waiting.',
       'onboarding.s4.titleEm':'is waiting',
-      'onboarding.s4.lead':'Knows Repsol flows, your progress and Sprinklr guides. Ask it anything — anytime.',
+      'onboarding.s4.lead':'Knows your company flows, your progress and your training guides. Ask it anything — anytime.',
       'onboarding.s4.message':'Hi. Based on your {role} role and the areas you chose, I\'m preparing a 4-week, 10-module path. Shall we start?',
       'onboarding.s4.cta':'Yes — enter SolidStream →',
       'onboarding.s4.more':'Tell me more', 'onboarding.s4.hide':'Hide',
       'onboarding.s4.featuresTitle':'What BeonAI does',
-      'onboarding.s4.f1':'Solves Sprinklr questions in your company context with actionable answers',
+      'onboarding.s4.f1':'Solves training questions in your company context with actionable answers',
       'onboarding.s4.f2':'Recommends your next module based on progress and role',
       'onboarding.s4.f3':'Generates personalized quizzes to review what you\'ve learned',
-      'onboarding.s4.f4':'Knows all 41 Think Pills and which one covers each topic',
+      'onboarding.s4.f4':'Knows your full catalog and which module covers each topic',
       'onboarding.s4.f5':'Works from the sidebar, fullscreen or via WhatsApp',
-      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'I publish and approve content in Sprinklr',
+      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'I publish and approve content on digital platforms',
       'onboarding.role.content':'Content Lead',   'onboarding.role.content.sub':'I lead the content strategy',
       'onboarding.role.analytics':'Analytics Lead','onboarding.role.analytics.sub':'I analyze campaign performance',
-      'onboarding.role.it':'IT / Integrations',    'onboarding.role.it.sub':'I manage integration with Repsol systems',
+      'onboarding.role.it':'IT / Integrations',    'onboarding.role.it.sub':'I manage integration with internal systems',
       'onboarding.role.direccion':'Management',    'onboarding.role.direccion.sub':'I need a platform-wide view',
       'onboarding.area.publish':'Social Publish', 'onboarding.area.aprobs':'Approvals',
       'onboarding.area.calendar':'Editorial calendar', 'onboarding.area.analytics':'Analytics & Reporting',
       'onboarding.area.dam':'DAM Assets', 'onboarding.area.compliance':'Compliance',
       'onboarding.area.care':'Customer Care', 'onboarding.area.salesforce':'Salesforce Integrations',
-      'onboarding.area.gov':'Governance & roles', 'onboarding.area.fundamentals':'Sprinklr Fundamentals',
+      'onboarding.area.gov':'Governance & roles', 'onboarding.area.fundamentals':'Fundamentos',
       'onboarding.notif.daily':'Daily reminder on WhatsApp, 9:00',
       'onboarding.notif.daily.sub':'One module every morning. No extra noise.',
       'onboarding.notif.free':'Free access from the app',
       'onboarding.notif.free.sub':'I open it when I have time, no notifications.',
       'onboarding.notif.weekly':'Weekly summary by email (Friday)',
       'onboarding.notif.weekly.sub':'What you learned, what\'s coming next week.',
-      'onboarding.notif.meeting':'Alerts before Sprinklr meetings',
+      'onboarding.notif.meeting':'Alerts before training meetings',
       'onboarding.notif.meeting.sub':'The agent sends you a relevant module 30 min before.',
       'onboarding.complete':'Onboarding completed · Welcome to SolidStream',
-      'onboarding.cert':'Sprinklr Certification',
+      'onboarding.cert':'Official certification',
       'onboarding.certOfficial':'Official certification · 2026',
     },
     pt: {
@@ -3527,7 +3652,7 @@ const I18n = (function() {
       'hero.play':'Reproduzir', 'hero.more':'Mais informações', 'hero.sound':'Som',
       'home.continue.title':'Continue, {name}', 'home.continue.sub':'de onde parou', 'home.continue.fallback':'você',
       'coach.greeting':'Olá', 'coach.askYou':'o que quer dominar hoje?',
-      'coach.subtitle':'Pergunte sobre Sprinklr, sua trilha, métricas de Care, fluxos de aprovação ou qualquer pill.',
+      'coach.subtitle':'Pergunte sobre qualquer tema da sua formação, seu progresso ou seu dia a dia.',
       'coach.placeholder':'Pergunte ao BeonAI…',
       'coach.new':'Nova conversa',
       'coach.empty':'Ainda não tem conversas.',
@@ -3538,10 +3663,10 @@ const I18n = (function() {
       'palette.goTo':'IR PARA',
       // Login
       'login.eyebrow':'★ Plataforma de formação cinematográfica · 2026',
-      'login.title.l1':'Domine', 'login.title.l2':'Sprinklr', 'login.title.l3':'como',
-      'login.title.expert':'especialista',
-      'login.subtitle':'Think Pills · Workshops · BeonAI com contexto da sua empresa · certificado oficial ao completar sua trilha.',
-      'login.chip.pills':'41 Think Pills', 'login.chip.workshops':'3 Workshops',
+      'login.title.l1':'Forme', 'login.title.l2':'a sua equipa', 'login.title.l3':'no seu',
+      'login.title.expert':'ritmo',
+      'login.subtitle':'Microlearning em vídeo · BeonAI integrado · acompanhamento de progresso em tempo real.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Workshops ao vivo',
       'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Entrar', 'login.mode.signup':'Criar conta',
@@ -3565,12 +3690,12 @@ const I18n = (function() {
       'onboarding.back':'← Voltar', 'onboarding.continue':'Continuar →',
       'onboarding.enter':'Entrar no SolidStream →',
       'onboarding.stepOf':'{step} · De {total}',
-      'onboarding.s1.title.l1':'Em que área do Sprinklr',
+      'onboarding.s1.title.l1':'Em que área você quer',
       'onboarding.s1.title.l2':'quer se certificar?',
       'onboarding.s1.titleEm':'certificar',
       'onboarding.s1.lead':'Selecione as áreas prioritárias. Sua trilha de formação será construída em torno delas — pode mudá-las depois.',
       'onboarding.s2.title.l1':'Qual é seu cargo',
-      'onboarding.s2.title.l2':'na Repsol?',
+      'onboarding.s2.title.l2':'na sua empresa?',
       'onboarding.s2.titleEm':'cargo',
       'onboarding.s2.lead':'Personalizamos a ordem dos módulos e os casos práticos conforme sua função na equipe de comunicação.',
       'onboarding.s3.title':'Como quer aprender?',
@@ -3578,36 +3703,36 @@ const I18n = (function() {
       'onboarding.s3.lead':'Escolha como quer receber sua formação. Pode ativar ou desativar cada canal a qualquer momento no seu perfil.',
       'onboarding.s4.title':'Seu agente IA te espera.',
       'onboarding.s4.titleEm':'te espera',
-      'onboarding.s4.lead':'Conhece os fluxos da Repsol, seu progresso e as guias do Sprinklr. Pergunte qualquer coisa — a qualquer momento.',
+      'onboarding.s4.lead':'Conhece os fluxos da sua empresa, seu progresso e os guias da sua formação. Pergunte qualquer coisa — a qualquer momento.',
       'onboarding.s4.message':'Olá. Com base no seu cargo de {role} e nas áreas escolhidas, preparo uma trilha de 4 semanas e 10 módulos. Vamos começar?',
       'onboarding.s4.cta':'Sim — entrar no SolidStream →',
       'onboarding.s4.more':'Me conte mais', 'onboarding.s4.hide':'Ocultar',
       'onboarding.s4.featuresTitle':'O que o BeonAI faz',
-      'onboarding.s4.f1':'Resolve dúvidas sobre Sprinklr no contexto da sua empresa com respostas acionáveis',
+      'onboarding.s4.f1':'Resolve dúvidas da sua formação no contexto da sua empresa com respostas acionáveis',
       'onboarding.s4.f2':'Recomenda seu próximo módulo com base em progresso e cargo',
       'onboarding.s4.f3':'Gera quizzes personalizados para revisar o aprendido',
       'onboarding.s4.f4':'Conhece as 41 Think Pills e sabe qual cobre cada tema',
       'onboarding.s4.f5':'Funciona pela barra lateral, em tela cheia ou pelo WhatsApp',
-      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'Publico e aprovo conteúdo no Sprinklr',
+      'onboarding.role.publish':'Publish Agent',  'onboarding.role.publish.sub':'Publico e aprovo conteúdo em plataformas digitais',
       'onboarding.role.content':'Content Lead',   'onboarding.role.content.sub':'Lidero a estratégia de conteúdos',
       'onboarding.role.analytics':'Analytics Lead','onboarding.role.analytics.sub':'Analiso desempenho de campanhas',
-      'onboarding.role.it':'TI / Integrações',     'onboarding.role.it.sub':'Gerencio a integração com sistemas Repsol',
+      'onboarding.role.it':'TI / Integrações',     'onboarding.role.it.sub':'Gerencio a integração com sistemas internos',
       'onboarding.role.direccion':'Direção',       'onboarding.role.direccion.sub':'Preciso de visão global da plataforma',
       'onboarding.area.publish':'Social Publish', 'onboarding.area.aprobs':'Aprovações',
       'onboarding.area.calendar':'Calendário editorial', 'onboarding.area.analytics':'Analytics e Reporting',
       'onboarding.area.dam':'Ativos DAM', 'onboarding.area.compliance':'Compliance',
       'onboarding.area.care':'Care e Atenção ao cliente', 'onboarding.area.salesforce':'Integrações Salesforce',
-      'onboarding.area.gov':'Governança e cargos', 'onboarding.area.fundamentals':'Sprinklr Fundamentals',
+      'onboarding.area.gov':'Governança e cargos', 'onboarding.area.fundamentals':'Fundamentos',
       'onboarding.notif.daily':'Lembrete diário no WhatsApp, 9:00',
       'onboarding.notif.daily.sub':'Um módulo cada manhã. Sem ruído extra.',
       'onboarding.notif.free':'Acesso livre pelo app',
       'onboarding.notif.free.sub':'Entro quando tenho tempo, sem notificações.',
       'onboarding.notif.weekly':'Resumo semanal por email (sexta)',
       'onboarding.notif.weekly.sub':'O que aprendeu, o que vem na próxima semana.',
-      'onboarding.notif.meeting':'Alertas antes de reuniões Sprinklr',
+      'onboarding.notif.meeting':'Alertas antes de reuniões formativas',
       'onboarding.notif.meeting.sub':'O agente envia um módulo relevante 30 min antes.',
       'onboarding.complete':'Onboarding concluído · Bem-vindo ao SolidStream',
-      'onboarding.cert':'Certificação Sprinklr',
+      'onboarding.cert':'Certificação oficial',
       'onboarding.certOfficial':'Certificação oficial · 2026',
     },
   };
@@ -4807,8 +4932,11 @@ function LoginScreen() {
   const [email, setEmail] = useSM(invitation ? invitation.email : '');
   const [password, setPassword] = useSM('');
   const [name, setName] = useSM(invitation ? invitation.name : '');
-  const [role, setRole] = useSM(invitation ? invitation.role : 'Publish Agent');
-  const [team, setTeam] = useSM(invitation ? invitation.team : 'Repsol');
+  // Si llega por link de invitación, el admin ya pre-seleccionó role+team
+  // en el token. Si no, signup público · ambos vacíos · los asignará el admin
+  // del workspace cuando le añada al equipo.
+  const [role, setRole] = useSM(invitation ? invitation.role : '');
+  const [team, setTeam] = useSM(invitation ? invitation.team : '');
   const [error, setError] = useSM('');
   const [submitting, setSubmitting] = useSM(false);
 
@@ -4905,14 +5033,25 @@ function LoginScreen() {
               const cur = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
               const active = cur === lng;
               return (
-                <button key={lng} onClick={() => { localStorage.setItem('solid-preferred-lang', lng); window.dispatchEvent(new Event('settings-changed')); }}
+                <button key={lng} onClick={() => {
+                  // Bug: currentLang() lee primero de Settings.language (DEFAULT='es')
+                  // antes de solid-preferred-lang. Si solo escribíamos en el segundo,
+                  // el clic no surtía efecto · ahora actualizamos Settings (global)
+                  // que persiste el idioma y dispara settings-changed automáticamente.
+                  if (window.Settings && window.Settings.update) {
+                    window.Settings.update({ language: lng });
+                  } else {
+                    localStorage.setItem('solid-preferred-lang', lng);
+                    window.dispatchEvent(new Event('settings-changed'));
+                  }
+                }}
                   style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#6E50EE' : 'transparent', color: active ? '#fff' : 'rgba(245,244,241,0.6)', border:'1px solid '+(active ? '#6E50EE' : 'rgba(255,255,255,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
         </div>
         <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(245,244,241,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
-          <span>BeonIt × Repsol</span>
+          <span>by BeonIt</span>
           <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
           <span>Powered by Claude</span>
           <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
@@ -4931,7 +5070,7 @@ function LoginScreen() {
           {invitation && (
             <div style={{padding:'16px 18px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.3)', borderRadius:10, marginBottom:24}}>
               <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#6E50EE', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
-              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'Repsol').replace('{role}', invitation.role || '—')}</div>
+              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
           <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
@@ -4950,7 +5089,7 @@ function LoginScreen() {
           <form onSubmit={submit}>
             <label style={{display:'block', marginBottom:14}}>
               <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@repsol.com" autoFocus
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" autoFocus
                 style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
                 onFocus={e => e.target.style.borderColor='#6E50EE'}
                 onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
@@ -4965,30 +5104,16 @@ function LoginScreen() {
               </label>
             )}
             {mode === 'signup' && (
-              <>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Amaia Ruiz"
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#6E50EE'}
-                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
-                </label>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.role')}</div>
-                  <select value={role} onChange={e => setRole(e.target.value)}
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, background:'rgba(255,255,255,0.04)', color:'#F5F4F1', boxSizing:'border-box', cursor:'pointer'}}>
-                    {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección'].map(r => <option key={r} value={r} style={{background:'#16161C', color:'#F5F4F1'}}>{r}</option>)}
-                  </select>
-                </label>
-                <label style={{display:'block', marginBottom:14}}>
-                  <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.team')}</div>
-                  <input type="text" value={team} onChange={e => setTeam(e.target.value)} placeholder="Repsol"
-                    style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                    onFocus={e => e.target.style.borderColor='#6E50EE'}
-                    onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
-                </label>
-              </>
+              <label style={{display:'block', marginBottom:14}}>
+                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
+                <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre completo"
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
+                  onFocus={e => e.target.style.borderColor='#6E50EE'}
+                  onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
+              </label>
             )}
+            {/* Role y team los asigna el admin del workspace cuando crea/invita
+                al usuario · NO se piden en el signup público · ver InviteUsersModal */}
             {error && (
               <div style={{padding:'10px 14px', background:'rgba(110,80,238,0.1)', border:'1px solid rgba(110,80,238,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
@@ -5016,7 +5141,7 @@ function LoginScreen() {
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
                 {T('login.sso')}
               </button>
-              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta @repsol.com</div>
+              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
             </>
           )}
 

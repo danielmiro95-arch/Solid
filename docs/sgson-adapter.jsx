@@ -184,9 +184,13 @@
 
   setup();
 
-  // Re-construir cuando cambia el perfil del usuario (login/logout). El badge
-  // de bandeja se mantiene en TopNav directamente (suscribe a `inbox-changed`),
-  // así que no es necesario reconstruir SGS_DATA en cada notificación leída.
+  // Re-construir cuando cambia el perfil del usuario (login/logout), el
+  // workspace activo, o el catálogo de pills (carga desde DB en Supabase mode).
+  // El badge de bandeja se mantiene en TopNav directamente (suscribe a
+  // `inbox-changed`), así que no es necesario reconstruir SGS_DATA en cada
+  // notificación leída.
   window.addEventListener('user-profile-changed', setup);
   window.addEventListener('auth-changed', setup);
+  window.addEventListener('pills-changed', setup);
+  window.addEventListener('workspace-changed', setup);
 })();

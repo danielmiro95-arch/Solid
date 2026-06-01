@@ -826,22 +826,39 @@ create policy subm_owner_delete on storage.objects
     )
   );
 
--- pill-videos · lectura pública (bucket public=true), escritura solo admins.
+-- pill-videos · lectura pública (bucket public=true), escritura por platform
+-- admin O por workspace admin cuyo uuid sea el primer segmento del path
+-- (convención <workspace_id>/<slug>.<ext> · ej: 7e8a.../p44.mp4).
 drop policy if exists pillvid_public_read on storage.objects;
 create policy pillvid_public_read on storage.objects
   for select using (bucket_id = 'pill-videos');
 
 drop policy if exists pillvid_admin_insert on storage.objects;
 create policy pillvid_admin_insert on storage.objects
-  for insert with check (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for insert with check (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 drop policy if exists pillvid_admin_update on storage.objects;
 create policy pillvid_admin_update on storage.objects
-  for update using (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for update using (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 drop policy if exists pillvid_admin_delete on storage.objects;
 create policy pillvid_admin_delete on storage.objects
-  for delete using (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for delete using (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 -- workspace-assets · lectura pública. Escritura por platform admin o por
 -- admins del workspace cuyo id sea el primer segmento del path
@@ -878,6 +895,64 @@ create policy wsassets_admin_delete on storage.objects
   );
 
 -- =====================================================================
+-- 32a. pills · catálogo de pills por workspace (multi-tenant content)
+-- =====================================================================
+-- Reemplaza el array hardcoded en docs/prototype-home.jsx. Cada cliente
+-- tiene sus propias pills · el frontend las carga del DB al activarse el
+-- workspace. RLS aísla por workspace_id.
+create table if not exists public.pills (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  pill_number int not null,
+  slug text,
+  title text not null,
+  one_liner text,
+  teacher text default 'BeonIt × Cliente',
+  duration text default '4 min',
+  tone text default 'teal',
+  format text default 'módulo',
+  level text default 'principiante',
+  rating numeric(3,1) default 4.7,
+  enrolled int default 0,
+  category text not null,
+  yt text,
+  mp4 text,
+  poster text,
+  featured boolean default false,
+  new_badge boolean default false,
+  position int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (workspace_id, pill_number)
+);
+create index if not exists pills_ws_idx on public.pills(workspace_id, position);
+create index if not exists pills_ws_cat_idx on public.pills(workspace_id, category);
+create index if not exists pills_ws_featured_idx on public.pills(workspace_id) where featured = true;
+
+alter table public.pills enable row level security;
+
+drop policy if exists pills_read on public.pills;
+create policy pills_read on public.pills
+  for select using (
+    public.is_workspace_member(workspace_id, 'member')
+    or public.is_platform_admin()
+  );
+
+drop policy if exists pills_write on public.pills;
+create policy pills_write on public.pills
+  for all using (
+    public.is_workspace_member(workspace_id, 'admin')
+    or public.is_platform_admin()
+  ) with check (
+    public.is_workspace_member(workspace_id, 'admin')
+    or public.is_platform_admin()
+  );
+
+drop trigger if exists pills_updated_at on public.pills;
+create trigger pills_updated_at before update on public.pills
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
 -- 32. Realtime · publica eventos para sync cross-device
 -- =====================================================================
 alter publication supabase_realtime add table public.inbox_messages;
@@ -885,6 +960,7 @@ alter publication supabase_realtime add table public.conversations;
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.submissions;
 alter publication supabase_realtime add table public.activity_log;
+alter publication supabase_realtime add table public.pills;
 
 -- =====================================================================
 -- DONE · revisa Authentication → Settings y habilita los providers que uses

@@ -2011,6 +2011,9 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
 
+      {/* Pills · catálogo del workspace activo (multi-tenant content) */}
+      <PillsPanel/>
+
       {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
       <BeonAIConfigPanel/>
     </PageShell>
@@ -2765,6 +2768,10 @@ function WorkspacesPanel() {
   const [editColor, setEditColor] = useEV2('#6E50EE');
   const [editLogoPreview, setEditLogoPreview] = useEV2(null);
   const [uploading, setUploading] = useEV2(false);
+  // ── Members management (Slice 1C) ──────────────────────────────────────
+  const [addEmail, setAddEmail] = useEV2('');
+  const [addRole, setAddRole] = useEV2('member');
+  const [addingMember, setAddingMember] = useEV2(false);
   useEE2(() => {
     const refresh = () => setTick(x => x + 1);
     window.addEventListener('workspaces-changed', refresh);
@@ -2817,6 +2824,35 @@ function WorkspacesPanel() {
         if (window.Toast) window.Toast.success(T('workspaces.logoUploaded','Logo subido'));
       }
     } finally { setUploading(false); e.target.value = ''; }
+  };
+
+  // ── Members handlers (Slice 1C) ─────────────────────────────────────────
+  const addMember = async () => {
+    const email = (addEmail || '').trim().toLowerCase();
+    if (!email || !editingId) return;
+    const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+    const user = users.find(u => (u.email || '').toLowerCase() === email);
+    if (!user) {
+      if (window.Toast) window.Toast.error('Usuario no encontrado · que se registre primero');
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await Promise.resolve(window.Workspaces.addMember(editingId, user.id, addRole));
+      setAddEmail('');
+      if (window.Toast) window.Toast.success(user.name ? user.name + ' añadido' : 'Miembro añadido');
+    } finally { setAddingMember(false); }
+  };
+  const changeMemberRole = async (userId, newRole) => {
+    if (!editingId) return;
+    await Promise.resolve(window.Workspaces.setMemberRole(editingId, userId, newRole));
+  };
+  const removeMemberFromWs = async (member) => {
+    if (!editingId) return;
+    const name = member.name || member.email || 'este miembro';
+    if (!confirm('¿Quitar a ' + name + ' del workspace? Conserva su cuenta y sus datos en otros workspaces.')) return;
+    await Promise.resolve(window.Workspaces.removeMember(editingId, member.id));
+    if (window.Toast) window.Toast.info('Miembro retirado');
   };
 
   return (
@@ -2915,6 +2951,58 @@ function WorkspacesPanel() {
                       <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onLogoFile} disabled={uploading}
                         style={{ display:'block', marginTop: 4, width:'100%', fontSize: 11, color:'var(--fg-muted)' }}/>
                     </label>
+                    {/* Members management · Slice 1C */}
+                    <div style={{ marginTop: 6, paddingTop: 12, borderTop:'1px dashed var(--line)' }}>
+                      <div style={{ fontSize: 11, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)', marginBottom: 8, fontWeight: 700 }}>
+                        Miembros ({members.length})
+                      </div>
+                      {members.length === 0 && (
+                        <div style={{ fontSize: 12, color:'var(--fg-muted)', padding:'8px 0', fontStyle:'italic' }}>Sin miembros aún. Añade el primero abajo.</div>
+                      )}
+                      {members.map(m => (
+                        <div key={m.id} style={{ display:'flex', alignItems:'center', gap: 8, padding:'6px 0', borderBottom:'1px solid var(--line-faint, rgba(0,0,0,0.05))' }}>
+                          <div style={{ width: 26, height: 26, borderRadius:'50%', background: w.primaryColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                            {(m.name || m.email || '?').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name || m.email}</div>
+                            <div style={{ fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-mono)' }}>{m.email}</div>
+                          </div>
+                          <select value={m.workspaceRole || 'member'} onChange={e => changeMemberRole(m.id, e.target.value)}
+                            style={{ padding:'4px 6px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 4, fontSize: 11, color:'var(--fg)' }}>
+                            <option value="member">member</option>
+                            <option value="admin">admin</option>
+                            <option value="owner">owner</option>
+                          </select>
+                          <button onClick={() => removeMemberFromWs(m)} title="Quitar del workspace"
+                            style={{ padding:'4px 8px', background:'transparent', border:'1px solid var(--line)', color:'var(--err, #B91C1C)', borderRadius: 4, cursor:'pointer', fontSize: 10.5, fontWeight: 600 }}>
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                      {/* Add new member */}
+                      <div style={{ display:'flex', gap: 6, marginTop: 10, flexWrap:'wrap', alignItems:'center' }}>
+                        <input type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="user@empresa.com" list={'all-users-' + w.id}
+                          onKeyDown={e => { if (e.key === 'Enter') addMember(); }}
+                          style={{ flex: 1, minWidth: 180, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', outline:'none' }}/>
+                        <datalist id={'all-users-' + w.id}>
+                          {((window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || []).map(u => (
+                            <option key={u.id} value={u.email}>{u.name || u.email}</option>
+                          ))}
+                        </datalist>
+                        <select value={addRole} onChange={e => setAddRole(e.target.value)}
+                          style={{ padding:'7px 8px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)' }}>
+                          <option value="member">member</option>
+                          <option value="admin">admin</option>
+                          <option value="owner">owner</option>
+                        </select>
+                        <button onClick={addMember} disabled={!addEmail.trim() || addingMember}
+                          style={{ padding:'7px 14px', background: addEmail.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: addEmail.trim() ? '#fff' : 'var(--fg-muted)', border:'none', borderRadius: 6, cursor: addEmail.trim() ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700 }}>
+                          {addingMember ? 'Añadiendo…' : 'Añadir'}
+                        </button>
+                      </div>
+                    </div>
+
                     <button onClick={saveEdit} disabled={uploading}
                       style={{ alignSelf:'flex-start', padding:'8px 16px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: uploading ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
                       {T('common.save','Guardar cambios')}
@@ -2924,6 +3012,190 @@ function WorkspacesPanel() {
               </div>
             );
           })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── PillsPanel · admin only · CRUD del catálogo del workspace activo ────
+function PillsPanel() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const [, setTick] = useEV2(0);
+  const [openId, setOpenId] = useEV2(null);    // pill_number editándose, o 'new' para form de creación
+  const [draft, setDraft] = useEV2({});
+  const [uploadingVideo, setUploadingVideo] = useEV2(false);
+  const [uploadingPoster, setUploadingPoster] = useEV2(false);
+  useEE2(() => {
+    const r = () => setTick(x => x + 1);
+    window.addEventListener('pills-changed', r);
+    window.addEventListener('workspace-changed', r);
+    return () => {
+      window.removeEventListener('pills-changed', r);
+      window.removeEventListener('workspace-changed', r);
+    };
+  }, []);
+
+  if (!window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  if (!window.Pills) {
+    return (
+      <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin:'0 0 6px' }}>📚 Catálogo de pills</h2>
+        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Necesitas el backend Supabase activo para gestionar pills desde aquí. En modo demo el catálogo está fijo en código.</div>
+      </section>
+    );
+  }
+  const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+  const wsName = ws ? ws.name : '—';
+  const pills = window.Pills.list();
+  const categories = Array.from(new Set(pills.map(p => p.category).filter(Boolean))).sort();
+
+  const startEdit = (p) => { setOpenId(p.pill); setDraft({ ...p }); };
+  const startNew = () => {
+    const nextNum = pills.length ? Math.max.apply(null, pills.map(p => p.pill)) + 1 : 0;
+    setOpenId('new');
+    setDraft({ pill: nextNum, id: 'p'+nextNum, title:'', one:'', teacher:'', duration:'4 min', level:'principiante', rating: 4.7, category: categories[0] || 'Fundamentos', tone:'teal', yt:'', mp4:'', poster:'', featured:false, newBadge:false });
+  };
+  const cancel = () => { setOpenId(null); setDraft({}); };
+  const save = async () => {
+    if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    if (openId === 'new') {
+      await window.Pills.create(draft);
+    } else {
+      await window.Pills.update(openId, draft);
+      if (window.Toast) window.Toast.success('Pill actualizada');
+    }
+    cancel();
+  };
+  const removeOne = async (p) => {
+    if (!confirm('¿Borrar la pill "' + p.title + '"? No se puede deshacer.')) return;
+    await window.Pills.remove(p.pill);
+  };
+  const onVideoFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f || openId === 'new' || openId == null) return;
+    if (f.size > 500 * 1024 * 1024) { if (window.Toast) window.Toast.error('Vídeo > 500 MB'); return; }
+    setUploadingVideo(true);
+    try {
+      const url = await window.Pills.uploadVideo(openId, f);
+      if (url) setDraft(d => ({ ...d, mp4: url }));
+    } finally { setUploadingVideo(false); e.target.value = ''; }
+  };
+  const onPosterFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f || openId === 'new' || openId == null) return;
+    setUploadingPoster(true);
+    try {
+      const url = await window.Pills.uploadPoster(openId, f);
+      if (url) setDraft(d => ({ ...d, poster: url }));
+    } finally { setUploadingPoster(false); e.target.value = ''; }
+  };
+
+  const editForm = (
+    <div style={{ display:'flex', flexDirection:'column', gap: 10, padding: 14, marginTop: 8, background:'var(--bg-elevated)', borderRadius: 10, border:'1px solid var(--line)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'80px 1fr', gap: 8, alignItems:'center' }}>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Nº</label>
+        <input type="number" value={draft.pill || 0} onChange={e => setDraft({ ...draft, pill: parseInt(e.target.value, 10) || 0 })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Título</label>
+        <input value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Título de la pill" autoFocus style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Resumen</label>
+        <textarea value={draft.one || ''} onChange={e => setDraft({ ...draft, one: e.target.value })} placeholder="Una línea que resuma el contenido" rows={2} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)', fontFamily:'inherit', resize:'vertical' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Categoría</label>
+        <input value={draft.category || ''} onChange={e => setDraft({ ...draft, category: e.target.value })} placeholder="ej: Gestión del tiempo" list="cat-suggest" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <datalist id="cat-suggest">{categories.map(c => <option key={c} value={c}/>)}</datalist>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Profesor</label>
+        <input value={draft.teacher || ''} onChange={e => setDraft({ ...draft, teacher: e.target.value })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Duración</label>
+        <input value={draft.duration || ''} onChange={e => setDraft({ ...draft, duration: e.target.value })} placeholder="4 min" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Nivel</label>
+        <select value={draft.level || 'principiante'} onChange={e => setDraft({ ...draft, level: e.target.value })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}>
+          <option value="principiante">principiante</option>
+          <option value="intermedio">intermedio</option>
+          <option value="avanzado">avanzado</option>
+        </select>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>YouTube ID</label>
+        <input value={draft.yt || ''} onChange={e => setDraft({ ...draft, yt: e.target.value })} placeholder="ej: dQw4w9WgXcQ (opcional si hay MP4)" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Vídeo MP4</label>
+        <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+          <input value={draft.mp4 || ''} onChange={e => setDraft({ ...draft, mp4: e.target.value })} placeholder="URL pública o sube archivo →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+          {openId !== 'new' && (
+            <label style={{ padding:'7px 14px', background: uploadingVideo ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingVideo ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingVideo ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+              {uploadingVideo ? 'Subiendo…' : 'Subir MP4'}
+              <input type="file" accept="video/mp4,video/quicktime,video/webm" onChange={onVideoFile} disabled={uploadingVideo} style={{ display:'none' }}/>
+            </label>
+          )}
+        </div>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Poster</label>
+        <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+          {draft.poster && <img src={draft.poster} alt="" style={{ width: 56, height: 32, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4 }} onError={e => { e.currentTarget.style.display='none'; }}/>}
+          <input value={draft.poster || ''} onChange={e => setDraft({ ...draft, poster: e.target.value })} placeholder="URL imagen o sube archivo →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+          {openId !== 'new' && (
+            <label style={{ padding:'7px 14px', background: uploadingPoster ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingPoster ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingPoster ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+              {uploadingPoster ? 'Subiendo…' : 'Subir imagen'}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onPosterFile} disabled={uploadingPoster} style={{ display:'none' }}/>
+            </label>
+          )}
+        </div>
+        <span/>
+        <div style={{ display:'flex', gap: 14, fontSize: 12, color:'var(--fg)', alignItems:'center' }}>
+          <label style={{ display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer' }}><input type="checkbox" checked={!!draft.featured} onChange={e => setDraft({ ...draft, featured: e.target.checked })}/> Featured (hero)</label>
+          <label style={{ display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer' }}><input type="checkbox" checked={!!draft.newBadge} onChange={e => setDraft({ ...draft, newBadge: e.target.checked })}/> Badge "Nuevo"</label>
+        </div>
+      </div>
+      {openId === 'new' && (
+        <div style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+          Crea la pill primero (botón Guardar). Después podrás editarla para subir el vídeo y el poster.
+        </div>
+      )}
+      <div style={{ display:'flex', gap: 8 }}>
+        <button onClick={save} disabled={uploadingVideo || uploadingPoster}
+          style={{ padding:'8px 18px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: (uploadingVideo||uploadingPoster) ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+          {openId === 'new' ? 'Crear pill' : 'Guardar cambios'}
+        </button>
+        <button onClick={cancel} style={{ padding:'8px 16px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 14, gap: 12, flexWrap:'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', marginTop: 0, marginBottom: 4 }}>📚 Pills del workspace</h2>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Catálogo de <strong>{wsName}</strong> · {pills.length} pills</div>
+        </div>
+        {openId !== 'new' && (
+          <button onClick={startNew} style={{ padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)', cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nueva pill</button>
+        )}
+      </div>
+
+      {openId === 'new' && editForm}
+
+      {pills.length === 0 ? (
+        <div style={{ padding: 40, textAlign:'center', color:'var(--fg-muted)', fontSize: 13 }}>
+          Sin pills en este workspace. {openId !== 'new' && <button onClick={startNew} style={{ background:'none', border:'none', color:'var(--accent)', cursor:'pointer', textDecoration:'underline', font:'inherit', padding: 0 }}>Crea la primera</button>}
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+          {pills.map(p => (
+            <div key={p.id || p.pill} style={{ padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, fontWeight: 700, color:'var(--fg-muted)', minWidth: 28, textAlign:'right' }}>{String(p.pill).padStart(2, '0')}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {p.featured ? <span title="Featured" style={{ marginRight: 6 }}>⭐</span> : null}
+                    {p.title}
+                  </div>
+                  <div style={{ fontSize: 10.5, color:'var(--fg-muted)', fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop: 2 }}>
+                    {p.category} · {p.level} · {p.duration} · {p.mp4 ? 'MP4' : p.yt ? 'YT' : 'sin vídeo'}
+                  </div>
+                </div>
+                <button onClick={() => openId === p.pill ? cancel() : startEdit(p)} style={{ padding:'5px 10px', background: openId === p.pill ? 'var(--accent)' : 'transparent', color: openId === p.pill ? '#fff' : 'var(--accent)', border:'1px solid var(--accent)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 700 }}>
+                  {openId === p.pill ? 'Cancelar' : 'Editar'}
+                </button>
+                <button onClick={() => removeOne(p)} style={{ padding:'5px 10px', background:'transparent', color:'var(--err)', border:'1px solid var(--line)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 600 }}>Borrar</button>
+              </div>
+              {openId === p.pill && editForm}
+            </div>
+          ))}
         </div>
       )}
     </section>
