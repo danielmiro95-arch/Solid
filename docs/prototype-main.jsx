@@ -2678,7 +2678,11 @@ function _activateSupabaseData() {
     window.SERIES = [];
     window.REELS = [];
     window.PODCASTS = [];
+    // Disparo pills-changed (que ya escucha sgson-adapter y App) para
+    // forzar reconstrucción de SGS_DATA + re-render del árbol React.
     window.dispatchEvent(new Event('pills-changed'));
+    ['paths-changed','series-changed','reels-changed','podcasts-changed']
+      .forEach(ev => window.dispatchEvent(new Event(ev)));
   }
   async function _loadPills() {
     const wsId = _wsid();
@@ -2721,15 +2725,100 @@ function _activateSupabaseData() {
       newBadge: !!p.new_badge,
     }));
     window.PILLS = mapped;
-    // Vacía también los otros buckets · no son workspace-aware aún. Si el
-    // workspace tiene 0 rows en pills, este bloque sigue dejando todo []
-    // (que es lo que el user espera para Hijos de Ribera).
-    window.PATHS = [];
-    window.SERIES = [];
-    window.REELS = [];
-    window.PODCASTS = [];
     window.dispatchEvent(new Event('pills-changed'));
   }
+
+  // ── workspace_content · paths / series / reels / podcasts ─────────────
+  // Una sola tabla con kind = 'path'|'series'|'reel'|'podcast'. Un loader
+  // genérico que mapea snake_case → camelCase del bundle hardcoded.
+  const CONTENT_KIND_TO_GLOBAL = { path: 'PATHS', series: 'SERIES', reel: 'REELS', podcast: 'PODCASTS' };
+  const CONTENT_KIND_TO_EVENT  = { path: 'paths-changed', series: 'series-changed', reel: 'reels-changed', podcast: 'podcasts-changed' };
+  async function _loadContent(kind) {
+    const wsId = _wsid();
+    const globalKey = CONTENT_KIND_TO_GLOBAL[kind];
+    if (!globalKey) return;
+    if (!wsId) { window[globalKey] = []; window.dispatchEvent(new Event(CONTENT_KIND_TO_EVENT[kind])); return; }
+    const { data, error } = await sb.from('workspace_content')
+      .select('id, slug, title, teacher, duration, tone, format, level, rating, enrolled, category, position, metadata')
+      .eq('workspace_id', wsId)
+      .eq('kind', kind)
+      .order('position', { ascending: true });
+    if (error) {
+      console.warn('[supa] content ' + kind, error.message);
+      window[globalKey] = [];
+      window.dispatchEvent(new Event(CONTENT_KIND_TO_EVENT[kind]));
+      return;
+    }
+    const mapped = (data || []).map(r => ({
+      id: r.slug || r.id,
+      title: r.title,
+      teacher: r.teacher,
+      duration: r.duration,
+      tone: r.tone,
+      format: r.format,
+      level: r.level,
+      rating: typeof r.rating === 'number' ? r.rating : (r.rating != null ? parseFloat(r.rating) : undefined),
+      enrolled: r.enrolled || 0,
+      category: r.category,
+      _id: r.id,                       // uuid real DB · útil para CRUD
+      _meta: r.metadata || {},
+    }));
+    window[globalKey] = mapped;
+    window.dispatchEvent(new Event(CONTENT_KIND_TO_EVENT[kind]));
+  }
+  async function _loadAllContent() {
+    await Promise.all(['path','series','reel','podcast'].map(_loadContent));
+  }
+
+  // window.Content · CRUD genérico para paths/series/reels/podcasts. Una API
+  // por kind, en vez de window.Paths + window.Series + window.Reels + window.Podcasts.
+  // Más compacto, mismo backend.
+  window.Content = {
+    list: (kind) => (window[CONTENT_KIND_TO_GLOBAL[kind]] || []).slice(),
+    create: async function(kind, data) {
+      const wsId = _wsid();
+      if (!wsId) { if (window.Toast) window.Toast.error('No hay workspace activo'); return null; }
+      if (!CONTENT_KIND_TO_GLOBAL[kind]) { if (window.Toast) window.Toast.error('Tipo de contenido desconocido'); return null; }
+      const list = window[CONTENT_KIND_TO_GLOBAL[kind]] || [];
+      const nextPos = list.reduce((m, x) => Math.max(m, x._meta?.position || 0), 0) + 1;
+      const payload = {
+        workspace_id: wsId, kind,
+        slug: (data.slug || data.title || '').toString().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60),
+        title: data.title || 'Sin título',
+        teacher: data.teacher || null,
+        duration: data.duration || null,
+        tone: data.tone || 'teal',
+        format: data.format || (kind === 'path' ? 'ruta' : kind === 'series' ? 'serie' : kind === 'reel' ? 'tip' : 'charla'),
+        level: data.level || null,
+        rating: data.rating || null,
+        enrolled: data.enrolled || 0,
+        category: data.category || null,
+        position: data.position != null ? data.position : nextPos,
+      };
+      const { data: row, error } = await sb.from('workspace_content').insert(payload).select().single();
+      if (error) { console.warn('[supa] content.create', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
+      await _loadContent(kind);
+      if (window.Toast) window.Toast.success('Creado: ' + row.title);
+      return row;
+    },
+    update: async function(kind, id, patch) {
+      const dbPatch = {};
+      ['title','teacher','duration','tone','format','level','rating','enrolled','category','position','slug'].forEach(k => {
+        if (patch[k] !== undefined) dbPatch[k] = patch[k];
+      });
+      const { error } = await sb.from('workspace_content').update(dbPatch).eq('id', id);
+      if (error) { console.warn('[supa] content.update', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
+      await _loadContent(kind);
+      return true;
+    },
+    remove: async function(kind, id) {
+      const { error } = await sb.from('workspace_content').delete().eq('id', id);
+      if (error) { console.warn('[supa] content.remove', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return false; }
+      await _loadContent(kind);
+      if (window.Toast) window.Toast.info('Eliminado');
+      return true;
+    },
+  };
 
   // ── Pills CRUD (admin) ────────────────────────────────────────────────
   // Acciones administrativas sobre el catálogo del workspace activo.
@@ -2842,18 +2931,21 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(), _loadPills(),
+      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadPills(), _loadAllContent(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
   if (_uid()) _syncAll();
 
-  // Cambio de workspace · recarga datos scopeados (bookmarks, members, pills…)
+  // Cambio de workspace · recarga datos scopeados (bookmarks, members, pills,
+  // paths/series/reels/podcasts). Sin esto, el switch entre tenants dejaba
+  // el catálogo del workspace anterior visible.
   window.addEventListener('workspace-changed', async () => {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -4272,9 +4364,9 @@ function App() {
   const [, setDataVer] = useSM(0);
   useEM(() => {
     const bump = () => setDataVer(v => v + 1);
-    ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+    ['sgs-data-ready','pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed','workspace-changed','workspace-branding-changed']
       .forEach(ev => window.addEventListener(ev, bump));
-    return () => ['sgs-data-ready','pills-changed','workspace-changed','workspace-branding-changed']
+    return () => ['sgs-data-ready','pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed','workspace-changed','workspace-branding-changed']
       .forEach(ev => window.removeEventListener(ev, bump));
   }, []);
   useEM(() => {

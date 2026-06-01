@@ -963,6 +963,57 @@ alter publication supabase_realtime add table public.activity_log;
 alter publication supabase_realtime add table public.pills;
 
 -- =====================================================================
+-- 35. workspace_content · catálogo multi-formato por workspace
+-- · Una sola tabla para PATHS / SERIES / REELS / PODCASTS, distinguidos
+--   por la columna `kind`. Antes estos arrays vivían hardcoded en el
+--   bundle JS como datos de Repsol y se "filtraban" a todos los
+--   workspaces · ahora cada tenant tiene los suyos.
+-- · Misma estrategia de RLS que pills: members read, admins write.
+-- =====================================================================
+create table if not exists public.workspace_content (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references public.workspaces(id) on delete cascade,
+  kind text not null check (kind in ('path','series','reel','podcast')),
+  slug text,
+  title text not null,
+  teacher text,
+  duration text,
+  tone text,
+  format text,
+  level text,
+  rating numeric,
+  enrolled integer default 0,
+  category text,
+  position integer default 0,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(workspace_id, kind, slug)
+);
+create index if not exists workspace_content_ws_kind_idx on public.workspace_content(workspace_id, kind, position);
+
+alter table public.workspace_content enable row level security;
+
+drop policy if exists ws_content_read on public.workspace_content;
+create policy ws_content_read on public.workspace_content
+  for select using (
+    public.is_workspace_member(workspace_id, 'member')
+    or public.is_platform_admin()
+  );
+
+drop policy if exists ws_content_write on public.workspace_content;
+create policy ws_content_write on public.workspace_content
+  for all using (
+    public.is_workspace_member(workspace_id, 'admin')
+    or public.is_platform_admin()
+  ) with check (
+    public.is_workspace_member(workspace_id, 'admin')
+    or public.is_platform_admin()
+  );
+
+alter publication supabase_realtime add table public.workspace_content;
+
+-- =====================================================================
 -- DONE · revisa Authentication → Settings y habilita los providers que uses
 -- (email/password siempre, Azure AD opcional para SSO Microsoft).
 -- =====================================================================
