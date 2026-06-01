@@ -2605,6 +2605,109 @@ function _activateSupabaseData() {
     window.dispatchEvent(new Event('pills-changed'));
   }
 
+  // ── Pills CRUD (admin) ────────────────────────────────────────────────
+  // Acciones administrativas sobre el catálogo del workspace activo.
+  // Todas las funciones recargan tras la operación y devuelven el resultado.
+  window.Pills = {
+    list: () => (window.PILLS || []).slice(),
+    // Crea una pill nueva. `data` admite el shape camelCase (igual que las
+    // entries del array hardcoded). Si no se pasa pill_number, se calcula
+    // como max(pill_number)+1 del workspace.
+    create: async function(data) {
+      const wsId = _wsid();
+      if (!wsId) { if (window.Toast) window.Toast.error('No hay workspace activo'); return null; }
+      let pn = data.pill;
+      if (pn == null) {
+        const { data: rows } = await sb.from('pills').select('pill_number').eq('workspace_id', wsId).order('pill_number', { ascending: false }).limit(1);
+        pn = (rows && rows[0] ? (rows[0].pill_number + 1) : 0);
+      }
+      const row = {
+        workspace_id: wsId,
+        pill_number: pn,
+        slug: data.id || ('p' + pn),
+        title: data.title || 'Nueva pill',
+        one_liner: data.one || null,
+        teacher: data.teacher || null,
+        duration: data.duration || '4 min',
+        tone: data.tone || 'teal',
+        format: data.format || 'módulo',
+        level: data.level || 'principiante',
+        rating: typeof data.rating === 'number' ? data.rating : 4.7,
+        enrolled: data.enrolled || 0,
+        category: data.category || 'Fundamentos',
+        yt: data.yt || null,
+        mp4: data.mp4 || null,
+        poster: data.poster || null,
+        featured: !!data.featured,
+        new_badge: !!data.newBadge,
+        position: typeof data.position === 'number' ? data.position : pn,
+      };
+      const { data: ins, error } = await sb.from('pills').insert(row).select('id').single();
+      if (error) { console.warn('[supa] pill create', error.message); if (window.Toast) window.Toast.error('No se pudo crear: ' + error.message); return null; }
+      await _loadPills();
+      if (window.Toast) window.Toast.success('Pill creada');
+      return ins;
+    },
+    update: async function(pillNumber, patch) {
+      const wsId = _wsid(); if (!wsId) return null;
+      const dbPatch = {};
+      if (patch.title != null)    dbPatch.title = patch.title;
+      if (patch.one != null)      dbPatch.one_liner = patch.one;
+      if (patch.teacher != null)  dbPatch.teacher = patch.teacher;
+      if (patch.duration != null) dbPatch.duration = patch.duration;
+      if (patch.tone != null)     dbPatch.tone = patch.tone;
+      if (patch.level != null)    dbPatch.level = patch.level;
+      if (patch.rating != null)   dbPatch.rating = patch.rating;
+      if (patch.enrolled != null) dbPatch.enrolled = patch.enrolled;
+      if (patch.category != null) dbPatch.category = patch.category;
+      if (patch.yt != null)       dbPatch.yt = patch.yt || null;
+      if (patch.mp4 != null)      dbPatch.mp4 = patch.mp4 || null;
+      if (patch.poster != null)   dbPatch.poster = patch.poster || null;
+      if (patch.featured != null) dbPatch.featured = !!patch.featured;
+      if (patch.newBadge != null) dbPatch.new_badge = !!patch.newBadge;
+      if (patch.position != null) dbPatch.position = patch.position;
+      const { error } = await sb.from('pills').update(dbPatch).eq('workspace_id', wsId).eq('pill_number', pillNumber);
+      if (error) { console.warn('[supa] pill update', error.message); if (window.Toast) window.Toast.error('No se pudo guardar: ' + error.message); return null; }
+      await _loadPills();
+      return true;
+    },
+    remove: async function(pillNumber) {
+      const wsId = _wsid(); if (!wsId) return null;
+      const { error } = await sb.from('pills').delete().eq('workspace_id', wsId).eq('pill_number', pillNumber);
+      if (error) { console.warn('[supa] pill remove', error.message); if (window.Toast) window.Toast.error('No se pudo borrar: ' + error.message); return null; }
+      await _loadPills();
+      if (window.Toast) window.Toast.info('Pill eliminada');
+      return true;
+    },
+    uploadVideo: async function(pillNumber, file) {
+      const wsId = _wsid(); if (!wsId || !file) return null;
+      const ext = (file.name && file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+      const path = wsId + '/p' + pillNumber + '.' + ext;
+      const { error: upErr } = await sb.storage.from('pill-videos').upload(path, file, {
+        upsert: true, contentType: file.type || 'video/' + ext, cacheControl: '3600',
+      });
+      if (upErr) { console.warn('[supa] upload video', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el vídeo: ' + upErr.message); return null; }
+      const { data: pub } = sb.storage.from('pill-videos').getPublicUrl(path);
+      const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+      await window.Pills.update(pillNumber, { mp4: url });
+      if (window.Toast) window.Toast.success('Vídeo subido');
+      return url;
+    },
+    uploadPoster: async function(pillNumber, file) {
+      const wsId = _wsid(); if (!wsId || !file) return null;
+      const ext = (file.name && file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = wsId + '/posters/p' + pillNumber + '.' + ext;
+      const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
+        upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '3600',
+      });
+      if (upErr) { console.warn('[supa] upload poster', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el poster: ' + upErr.message); return null; }
+      const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
+      const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+      await window.Pills.update(pillNumber, { poster: url });
+      return url;
+    },
+  };
+
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
   async function _syncAll() {
     if (!_uid()) return;

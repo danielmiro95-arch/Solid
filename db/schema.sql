@@ -826,22 +826,39 @@ create policy subm_owner_delete on storage.objects
     )
   );
 
--- pill-videos · lectura pública (bucket public=true), escritura solo admins.
+-- pill-videos · lectura pública (bucket public=true), escritura por platform
+-- admin O por workspace admin cuyo uuid sea el primer segmento del path
+-- (convención <workspace_id>/<slug>.<ext> · ej: 7e8a.../p44.mp4).
 drop policy if exists pillvid_public_read on storage.objects;
 create policy pillvid_public_read on storage.objects
   for select using (bucket_id = 'pill-videos');
 
 drop policy if exists pillvid_admin_insert on storage.objects;
 create policy pillvid_admin_insert on storage.objects
-  for insert with check (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for insert with check (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 drop policy if exists pillvid_admin_update on storage.objects;
 create policy pillvid_admin_update on storage.objects
-  for update using (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for update using (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 drop policy if exists pillvid_admin_delete on storage.objects;
 create policy pillvid_admin_delete on storage.objects
-  for delete using (bucket_id = 'pill-videos' and public.is_platform_admin());
+  for delete using (
+    bucket_id = 'pill-videos' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 -- workspace-assets · lectura pública. Escritura por platform admin o por
 -- admins del workspace cuyo id sea el primer segmento del path

@@ -2011,6 +2011,9 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
 
+      {/* Pills · catálogo del workspace activo (multi-tenant content) */}
+      <PillsPanel/>
+
       {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
       <BeonAIConfigPanel/>
     </PageShell>
@@ -2924,6 +2927,190 @@ function WorkspacesPanel() {
               </div>
             );
           })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── PillsPanel · admin only · CRUD del catálogo del workspace activo ────
+function PillsPanel() {
+  const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  const [, setTick] = useEV2(0);
+  const [openId, setOpenId] = useEV2(null);    // pill_number editándose, o 'new' para form de creación
+  const [draft, setDraft] = useEV2({});
+  const [uploadingVideo, setUploadingVideo] = useEV2(false);
+  const [uploadingPoster, setUploadingPoster] = useEV2(false);
+  useEE2(() => {
+    const r = () => setTick(x => x + 1);
+    window.addEventListener('pills-changed', r);
+    window.addEventListener('workspace-changed', r);
+    return () => {
+      window.removeEventListener('pills-changed', r);
+      window.removeEventListener('workspace-changed', r);
+    };
+  }, []);
+
+  if (!window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+  if (!window.Pills) {
+    return (
+      <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin:'0 0 6px' }}>📚 Catálogo de pills</h2>
+        <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Necesitas el backend Supabase activo para gestionar pills desde aquí. En modo demo el catálogo está fijo en código.</div>
+      </section>
+    );
+  }
+  const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+  const wsName = ws ? ws.name : '—';
+  const pills = window.Pills.list();
+  const categories = Array.from(new Set(pills.map(p => p.category).filter(Boolean))).sort();
+
+  const startEdit = (p) => { setOpenId(p.pill); setDraft({ ...p }); };
+  const startNew = () => {
+    const nextNum = pills.length ? Math.max.apply(null, pills.map(p => p.pill)) + 1 : 0;
+    setOpenId('new');
+    setDraft({ pill: nextNum, id: 'p'+nextNum, title:'', one:'', teacher:'', duration:'4 min', level:'principiante', rating: 4.7, category: categories[0] || 'Fundamentos', tone:'teal', yt:'', mp4:'', poster:'', featured:false, newBadge:false });
+  };
+  const cancel = () => { setOpenId(null); setDraft({}); };
+  const save = async () => {
+    if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    if (openId === 'new') {
+      await window.Pills.create(draft);
+    } else {
+      await window.Pills.update(openId, draft);
+      if (window.Toast) window.Toast.success('Pill actualizada');
+    }
+    cancel();
+  };
+  const removeOne = async (p) => {
+    if (!confirm('¿Borrar la pill "' + p.title + '"? No se puede deshacer.')) return;
+    await window.Pills.remove(p.pill);
+  };
+  const onVideoFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f || openId === 'new' || openId == null) return;
+    if (f.size > 500 * 1024 * 1024) { if (window.Toast) window.Toast.error('Vídeo > 500 MB'); return; }
+    setUploadingVideo(true);
+    try {
+      const url = await window.Pills.uploadVideo(openId, f);
+      if (url) setDraft(d => ({ ...d, mp4: url }));
+    } finally { setUploadingVideo(false); e.target.value = ''; }
+  };
+  const onPosterFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f || openId === 'new' || openId == null) return;
+    setUploadingPoster(true);
+    try {
+      const url = await window.Pills.uploadPoster(openId, f);
+      if (url) setDraft(d => ({ ...d, poster: url }));
+    } finally { setUploadingPoster(false); e.target.value = ''; }
+  };
+
+  const editForm = (
+    <div style={{ display:'flex', flexDirection:'column', gap: 10, padding: 14, marginTop: 8, background:'var(--bg-elevated)', borderRadius: 10, border:'1px solid var(--line)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'80px 1fr', gap: 8, alignItems:'center' }}>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Nº</label>
+        <input type="number" value={draft.pill || 0} onChange={e => setDraft({ ...draft, pill: parseInt(e.target.value, 10) || 0 })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Título</label>
+        <input value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Título de la pill" autoFocus style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Resumen</label>
+        <textarea value={draft.one || ''} onChange={e => setDraft({ ...draft, one: e.target.value })} placeholder="Una línea que resuma el contenido" rows={2} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)', fontFamily:'inherit', resize:'vertical' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Categoría</label>
+        <input value={draft.category || ''} onChange={e => setDraft({ ...draft, category: e.target.value })} placeholder="ej: Gestión del tiempo" list="cat-suggest" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <datalist id="cat-suggest">{categories.map(c => <option key={c} value={c}/>)}</datalist>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Profesor</label>
+        <input value={draft.teacher || ''} onChange={e => setDraft({ ...draft, teacher: e.target.value })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Duración</label>
+        <input value={draft.duration || ''} onChange={e => setDraft({ ...draft, duration: e.target.value })} placeholder="4 min" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Nivel</label>
+        <select value={draft.level || 'principiante'} onChange={e => setDraft({ ...draft, level: e.target.value })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}>
+          <option value="principiante">principiante</option>
+          <option value="intermedio">intermedio</option>
+          <option value="avanzado">avanzado</option>
+        </select>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>YouTube ID</label>
+        <input value={draft.yt || ''} onChange={e => setDraft({ ...draft, yt: e.target.value })} placeholder="ej: dQw4w9WgXcQ (opcional si hay MP4)" style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Vídeo MP4</label>
+        <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+          <input value={draft.mp4 || ''} onChange={e => setDraft({ ...draft, mp4: e.target.value })} placeholder="URL pública o sube archivo →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+          {openId !== 'new' && (
+            <label style={{ padding:'7px 14px', background: uploadingVideo ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingVideo ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingVideo ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+              {uploadingVideo ? 'Subiendo…' : 'Subir MP4'}
+              <input type="file" accept="video/mp4,video/quicktime,video/webm" onChange={onVideoFile} disabled={uploadingVideo} style={{ display:'none' }}/>
+            </label>
+          )}
+        </div>
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Poster</label>
+        <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+          {draft.poster && <img src={draft.poster} alt="" style={{ width: 56, height: 32, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4 }} onError={e => { e.currentTarget.style.display='none'; }}/>}
+          <input value={draft.poster || ''} onChange={e => setDraft({ ...draft, poster: e.target.value })} placeholder="URL imagen o sube archivo →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
+          {openId !== 'new' && (
+            <label style={{ padding:'7px 14px', background: uploadingPoster ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingPoster ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingPoster ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+              {uploadingPoster ? 'Subiendo…' : 'Subir imagen'}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onPosterFile} disabled={uploadingPoster} style={{ display:'none' }}/>
+            </label>
+          )}
+        </div>
+        <span/>
+        <div style={{ display:'flex', gap: 14, fontSize: 12, color:'var(--fg)', alignItems:'center' }}>
+          <label style={{ display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer' }}><input type="checkbox" checked={!!draft.featured} onChange={e => setDraft({ ...draft, featured: e.target.checked })}/> Featured (hero)</label>
+          <label style={{ display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer' }}><input type="checkbox" checked={!!draft.newBadge} onChange={e => setDraft({ ...draft, newBadge: e.target.checked })}/> Badge "Nuevo"</label>
+        </div>
+      </div>
+      {openId === 'new' && (
+        <div style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+          Crea la pill primero (botón Guardar). Después podrás editarla para subir el vídeo y el poster.
+        </div>
+      )}
+      <div style={{ display:'flex', gap: 8 }}>
+        <button onClick={save} disabled={uploadingVideo || uploadingPoster}
+          style={{ padding:'8px 18px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: (uploadingVideo||uploadingPoster) ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+          {openId === 'new' ? 'Crear pill' : 'Guardar cambios'}
+        </button>
+        <button onClick={cancel} style={{ padding:'8px 16px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 12, fontWeight: 600 }}>Cancelar</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 14, gap: 12, flexWrap:'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', marginTop: 0, marginBottom: 4 }}>📚 Pills del workspace</h2>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Catálogo de <strong>{wsName}</strong> · {pills.length} pills</div>
+        </div>
+        {openId !== 'new' && (
+          <button onClick={startNew} style={{ padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)', cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nueva pill</button>
+        )}
+      </div>
+
+      {openId === 'new' && editForm}
+
+      {pills.length === 0 ? (
+        <div style={{ padding: 40, textAlign:'center', color:'var(--fg-muted)', fontSize: 13 }}>
+          Sin pills en este workspace. {openId !== 'new' && <button onClick={startNew} style={{ background:'none', border:'none', color:'var(--accent)', cursor:'pointer', textDecoration:'underline', font:'inherit', padding: 0 }}>Crea la primera</button>}
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+          {pills.map(p => (
+            <div key={p.id || p.pill} style={{ padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, fontWeight: 700, color:'var(--fg-muted)', minWidth: 28, textAlign:'right' }}>{String(p.pill).padStart(2, '0')}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {p.featured ? <span title="Featured" style={{ marginRight: 6 }}>⭐</span> : null}
+                    {p.title}
+                  </div>
+                  <div style={{ fontSize: 10.5, color:'var(--fg-muted)', fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop: 2 }}>
+                    {p.category} · {p.level} · {p.duration} · {p.mp4 ? 'MP4' : p.yt ? 'YT' : 'sin vídeo'}
+                  </div>
+                </div>
+                <button onClick={() => openId === p.pill ? cancel() : startEdit(p)} style={{ padding:'5px 10px', background: openId === p.pill ? 'var(--accent)' : 'transparent', color: openId === p.pill ? '#fff' : 'var(--accent)', border:'1px solid var(--accent)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 700 }}>
+                  {openId === p.pill ? 'Cancelar' : 'Editar'}
+                </button>
+                <button onClick={() => removeOne(p)} style={{ padding:'5px 10px', background:'transparent', color:'var(--err)', border:'1px solid var(--line)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 600 }}>Borrar</button>
+              </div>
+              {openId === p.pill && editForm}
+            </div>
+          ))}
         </div>
       )}
     </section>
