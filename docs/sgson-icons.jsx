@@ -49,17 +49,30 @@ window.Ico = Ico;
    Wordmark — two treatments
    ============================================================ */
 
-const Wordmark = ({ variant='v1', size, withLogo = true }) => (
-  <span className={`wordmark ${variant}`} style={Object.assign({display:'inline-flex', alignItems:'center', gap:10}, size ? {fontSize:size} : {})}>
-    {withLogo && (
-      <img src={`beonit-logo.png?v=${(typeof window !== 'undefined' && window.SOLID_VERSION) || 'init'}`}
-           alt=""
-           style={{height: size ? size * 1.15 : 30, width:'auto', flexShrink:0}}/>
-    )}
-    <span style={{fontFamily:'Inter, sans-serif', fontWeight:700, letterSpacing:'-0.025em', color:'inherit'}}>
-      Solid<span style={{fontFamily:'Instrument Serif, Georgia, serif', fontStyle:'italic', fontWeight:400, letterSpacing:'0.02em'}}>Stream</span>
+const Wordmark = ({ variant='v1', size, withLogo = true }) => {
+  // Re-render cuando el branding del workspace activo cambia (logo, color).
+  const [, _force] = React.useState(0);
+  React.useEffect(() => {
+    const onChange = () => _force(x => x + 1);
+    window.addEventListener('workspace-branding-changed', onChange);
+    return () => window.removeEventListener('workspace-branding-changed', onChange);
+  }, []);
+  const wsLogo = (typeof window !== 'undefined' && window.WORKSPACE_LOGO_URL) || null;
+  const fallback = `beonit-logo.png?v=${(typeof window !== 'undefined' && window.SOLID_VERSION) || 'init'}`;
+  const logoSrc = wsLogo || fallback;
+  return (
+    <span className={`wordmark ${variant}`} style={Object.assign({display:'inline-flex', alignItems:'center', gap:10}, size ? {fontSize:size} : {})}>
+      {withLogo && (
+        <img src={logoSrc}
+             alt=""
+             onError={e => { if (wsLogo && e.currentTarget.src !== fallback) e.currentTarget.src = fallback; }}
+             style={{height: size ? size * 1.15 : 30, width:'auto', flexShrink:0}}/>
+      )}
+      <span style={{fontFamily:'Inter, sans-serif', fontWeight:700, letterSpacing:'-0.025em', color:'inherit'}}>
+        Solid<span style={{fontFamily:'Instrument Serif, Georgia, serif', fontStyle:'italic', fontWeight:400, letterSpacing:'0.02em'}}>Stream</span>
+      </span>
     </span>
-  </span>
-);
+  );
+};
 
 window.Wordmark = Wordmark;

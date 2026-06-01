@@ -536,6 +536,13 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('pill-videos', 'pill-videos', true, 1073741824, array['video/mp4','video/quicktime','video/webm'])
 on conflict (id) do nothing;
 
+-- Bucket público para assets de branding de cada workspace (logos, posters, etc.)
+-- Lectura pública · escritura por platform admin o workspace admin (vía RLS
+-- usando la convención de path "<workspace_id>/<filename>" para el segundo caso).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('workspace-assets', 'workspace-assets', true, 10485760, array['image/png','image/jpeg','image/svg+xml','image/webp','image/x-icon'])
+on conflict (id) do nothing;
+
 -- =====================================================================
 -- 20. Trigger · auto-crea profile cuando se crea un auth.user
 -- =====================================================================
@@ -835,6 +842,40 @@ create policy pillvid_admin_update on storage.objects
 drop policy if exists pillvid_admin_delete on storage.objects;
 create policy pillvid_admin_delete on storage.objects
   for delete using (bucket_id = 'pill-videos' and public.is_platform_admin());
+
+-- workspace-assets · lectura pública. Escritura por platform admin o por
+-- admins del workspace cuyo id sea el primer segmento del path
+-- (convención: <workspace_uuid>/logo.png).
+drop policy if exists wsassets_public_read on storage.objects;
+create policy wsassets_public_read on storage.objects
+  for select using (bucket_id = 'workspace-assets');
+
+drop policy if exists wsassets_admin_insert on storage.objects;
+create policy wsassets_admin_insert on storage.objects
+  for insert with check (
+    bucket_id = 'workspace-assets' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
+
+drop policy if exists wsassets_admin_update on storage.objects;
+create policy wsassets_admin_update on storage.objects
+  for update using (
+    bucket_id = 'workspace-assets' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
+
+drop policy if exists wsassets_admin_delete on storage.objects;
+create policy wsassets_admin_delete on storage.objects
+  for delete using (
+    bucket_id = 'workspace-assets' and (
+      public.is_platform_admin()
+      or public.is_workspace_member(nullif(split_part(name, '/', 1), '')::uuid, 'admin')
+    )
+  );
 
 -- =====================================================================
 -- 32. Realtime · publica eventos para sync cross-device
