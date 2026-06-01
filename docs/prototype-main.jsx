@@ -2569,6 +2569,42 @@ function _activateSupabaseData() {
     if (repsol && repsol.id) Workspaces.setCurrent(repsol.id);
   };
 
+  // ── Pills · catálogo de pills del workspace activo (Fase 2 multi-tenant)
+  // Sobrescribe el array hardcoded de docs/prototype-home.jsx para que cada
+  // workspace muestre su propio catálogo. RLS aísla por workspace_id.
+  async function _loadPills() {
+    const wsId = _wsid();
+    if (!wsId) { return; }
+    const { data, error } = await sb.from('pills')
+      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position')
+      .eq('workspace_id', wsId)
+      .order('position', { ascending: true });
+    if (error) { console.warn('[supa] pills', error.message); return; }
+    // Mapeo snake_case (DB) → camelCase (shape esperado por adapter/Wordmark)
+    const mapped = (data || []).map(p => ({
+      id: p.slug || ('p' + p.pill_number),
+      pill: p.pill_number,
+      title: p.title,
+      one: p.one_liner || p.title,
+      teacher: p.teacher,
+      duration: p.duration,
+      tone: p.tone,
+      format: p.format,
+      progress: 0,                 // per-user · no vive en la fila de pill
+      level: p.level,
+      rating: typeof p.rating === 'number' ? p.rating : parseFloat(p.rating) || 4.7,
+      enrolled: p.enrolled || 0,
+      category: p.category,
+      yt: p.yt || undefined,
+      mp4: p.mp4 || undefined,
+      poster: p.poster || undefined,
+      featured: !!p.featured,
+      newBadge: !!p.new_badge,
+    }));
+    window.PILLS = mapped;
+    window.dispatchEvent(new Event('pills-changed'));
+  }
+
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
   async function _syncAll() {
     if (!_uid()) return;
@@ -2577,18 +2613,18 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(), _loadPills(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
   if (_uid()) _syncAll();
 
-  // Cambio de workspace · recarga datos scopeados (bookmarks, members, etc.)
+  // Cambio de workspace · recarga datos scopeados (bookmarks, members, pills…)
   window.addEventListener('workspace-changed', async () => {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
