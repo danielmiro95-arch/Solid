@@ -2768,6 +2768,10 @@ function WorkspacesPanel() {
   const [editColor, setEditColor] = useEV2('#6E50EE');
   const [editLogoPreview, setEditLogoPreview] = useEV2(null);
   const [uploading, setUploading] = useEV2(false);
+  // ── Members management (Slice 1C) ──────────────────────────────────────
+  const [addEmail, setAddEmail] = useEV2('');
+  const [addRole, setAddRole] = useEV2('member');
+  const [addingMember, setAddingMember] = useEV2(false);
   useEE2(() => {
     const refresh = () => setTick(x => x + 1);
     window.addEventListener('workspaces-changed', refresh);
@@ -2820,6 +2824,35 @@ function WorkspacesPanel() {
         if (window.Toast) window.Toast.success(T('workspaces.logoUploaded','Logo subido'));
       }
     } finally { setUploading(false); e.target.value = ''; }
+  };
+
+  // ── Members handlers (Slice 1C) ─────────────────────────────────────────
+  const addMember = async () => {
+    const email = (addEmail || '').trim().toLowerCase();
+    if (!email || !editingId) return;
+    const users = (window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [];
+    const user = users.find(u => (u.email || '').toLowerCase() === email);
+    if (!user) {
+      if (window.Toast) window.Toast.error('Usuario no encontrado · que se registre primero');
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await Promise.resolve(window.Workspaces.addMember(editingId, user.id, addRole));
+      setAddEmail('');
+      if (window.Toast) window.Toast.success(user.name ? user.name + ' añadido' : 'Miembro añadido');
+    } finally { setAddingMember(false); }
+  };
+  const changeMemberRole = async (userId, newRole) => {
+    if (!editingId) return;
+    await Promise.resolve(window.Workspaces.setMemberRole(editingId, userId, newRole));
+  };
+  const removeMemberFromWs = async (member) => {
+    if (!editingId) return;
+    const name = member.name || member.email || 'este miembro';
+    if (!confirm('¿Quitar a ' + name + ' del workspace? Conserva su cuenta y sus datos en otros workspaces.')) return;
+    await Promise.resolve(window.Workspaces.removeMember(editingId, member.id));
+    if (window.Toast) window.Toast.info('Miembro retirado');
   };
 
   return (
@@ -2918,6 +2951,58 @@ function WorkspacesPanel() {
                       <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onLogoFile} disabled={uploading}
                         style={{ display:'block', marginTop: 4, width:'100%', fontSize: 11, color:'var(--fg-muted)' }}/>
                     </label>
+                    {/* Members management · Slice 1C */}
+                    <div style={{ marginTop: 6, paddingTop: 12, borderTop:'1px dashed var(--line)' }}>
+                      <div style={{ fontSize: 11, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)', marginBottom: 8, fontWeight: 700 }}>
+                        Miembros ({members.length})
+                      </div>
+                      {members.length === 0 && (
+                        <div style={{ fontSize: 12, color:'var(--fg-muted)', padding:'8px 0', fontStyle:'italic' }}>Sin miembros aún. Añade el primero abajo.</div>
+                      )}
+                      {members.map(m => (
+                        <div key={m.id} style={{ display:'flex', alignItems:'center', gap: 8, padding:'6px 0', borderBottom:'1px solid var(--line-faint, rgba(0,0,0,0.05))' }}>
+                          <div style={{ width: 26, height: 26, borderRadius:'50%', background: w.primaryColor, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                            {(m.name || m.email || '?').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name || m.email}</div>
+                            <div style={{ fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-mono)' }}>{m.email}</div>
+                          </div>
+                          <select value={m.workspaceRole || 'member'} onChange={e => changeMemberRole(m.id, e.target.value)}
+                            style={{ padding:'4px 6px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 4, fontSize: 11, color:'var(--fg)' }}>
+                            <option value="member">member</option>
+                            <option value="admin">admin</option>
+                            <option value="owner">owner</option>
+                          </select>
+                          <button onClick={() => removeMemberFromWs(m)} title="Quitar del workspace"
+                            style={{ padding:'4px 8px', background:'transparent', border:'1px solid var(--line)', color:'var(--err, #B91C1C)', borderRadius: 4, cursor:'pointer', fontSize: 10.5, fontWeight: 600 }}>
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                      {/* Add new member */}
+                      <div style={{ display:'flex', gap: 6, marginTop: 10, flexWrap:'wrap', alignItems:'center' }}>
+                        <input type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="user@empresa.com" list={'all-users-' + w.id}
+                          onKeyDown={e => { if (e.key === 'Enter') addMember(); }}
+                          style={{ flex: 1, minWidth: 180, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', outline:'none' }}/>
+                        <datalist id={'all-users-' + w.id}>
+                          {((window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || []).map(u => (
+                            <option key={u.id} value={u.email}>{u.name || u.email}</option>
+                          ))}
+                        </datalist>
+                        <select value={addRole} onChange={e => setAddRole(e.target.value)}
+                          style={{ padding:'7px 8px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)' }}>
+                          <option value="member">member</option>
+                          <option value="admin">admin</option>
+                          <option value="owner">owner</option>
+                        </select>
+                        <button onClick={addMember} disabled={!addEmail.trim() || addingMember}
+                          style={{ padding:'7px 14px', background: addEmail.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: addEmail.trim() ? '#fff' : 'var(--fg-muted)', border:'none', borderRadius: 6, cursor: addEmail.trim() ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700 }}>
+                          {addingMember ? 'Añadiendo…' : 'Añadir'}
+                        </button>
+                      </div>
+                    </div>
+
                     <button onClick={saveEdit} disabled={uploading}
                       style={{ alignSelf:'flex-start', padding:'8px 16px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: uploading ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
                       {T('common.save','Guardar cambios')}
