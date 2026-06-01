@@ -4067,33 +4067,23 @@ window.useI18n = function() {
   return { t: I18n.t, lang };
 };
 
-// ── Theme controller · aplica light/dark/auto al html en cuanto cambia ──
+// ── Theme controller · dark forzado en todo el SaaS ─────────────────────
+// La página de Analytics (AnalyticsView, view='dashboard') se autoaplica
+// data-theme="light" via useEffect propio · el resto siempre dark.
+// Settings.theme se ignora · queda en el storage pero no afecta al render.
 (function _initThemeController(){
-  function applyTheme(theme) {
-    var html = document.documentElement;
-    if (theme === 'auto') {
-      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    } else {
-      html.setAttribute('data-theme', theme || 'light');
-    }
+  function forceDark() {
+    // No tocamos si AnalyticsView ha puesto data-analytics-light="1" · ese
+    // tag indica que estamos en la pantalla de analítica y manda ella.
+    if (document.documentElement.getAttribute('data-analytics-light') === '1') return;
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
-  // Aplica el tema actual al arrancar y cuando cambian los settings
-  function syncTheme() {
-    var s = (typeof Settings !== 'undefined' ? Settings.get() : null);
-    applyTheme((s && s.theme) || 'light');
-  }
-  window.addEventListener('settings-changed', syncTheme);
-  window.addEventListener('auth-changed', syncTheme); // al loguear con otro user, su tema
-  // Reactivo al cambio del sistema cuando theme=auto
-  if (window.matchMedia) {
-    var mq = window.matchMedia('(prefers-color-scheme: dark)');
-    if (mq.addEventListener) mq.addEventListener('change', syncTheme);
-    else if (mq.addListener) mq.addListener(syncTheme);
-  }
-  // Sync inicial diferido a tras carga del DOM (Settings ya está disponible)
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncTheme);
-  else syncTheme();
+  // Aplica al boot y cada vez que algo intente cambiar theme via Settings.
+  // El listener de settings-changed pisa cualquier intento de poner light.
+  window.addEventListener('settings-changed', forceDark);
+  window.addEventListener('auth-changed', forceDark);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', forceDark);
+  else forceDark();
 })();
 
 // ── Realtime cross-tab · BroadcastChannel para sync entre pestañas ─────────

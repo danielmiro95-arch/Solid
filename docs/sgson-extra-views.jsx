@@ -1856,7 +1856,8 @@ function ProfileView({ setView }) {
    SettingsView · preferencias
    ============================================================ */
 function SettingsView({ setView }) {
-  const [theme, setTheme] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().theme) || 'auto');
+  // SaaS forzado en dark · sin selector de tema (ver theme-controller en
+  // prototype-main.jsx). Solo conservamos preferencia de idioma.
   const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
 
   // Color de acento neutro para los paneles dentro de Settings
@@ -1869,7 +1870,6 @@ function SettingsView({ setView }) {
   };
 
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
-  const themeLabels = { light: T('settings.theme.light'), dark: T('settings.theme.dark'), auto: T('settings.theme.auto') };
 
   return (
     <PageShell
@@ -1882,23 +1882,10 @@ function SettingsView({ setView }) {
         <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>{T('settings.general')}</h2>
         <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>{T('settings.general.sub')}</div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
-          {/* Tema */}
-          <div style={{ padding: 20, background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 12 }}>
-            <h3 style={{ fontFamily:'var(--font-sans)', fontSize:14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.theme.title')}</h3>
-            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>{T('settings.theme.desc')}</p>
-            <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
-              {[{k:'light'}, {k:'dark'}, {k:'auto'}].map(ti => (
-                <button key={ti.k} onClick={() => { setTheme(ti.k); save('theme', ti.k); }} style={{
-                  padding:'8px 14px', fontFamily:'var(--font-sans)', fontSize: 12.5, fontWeight: 600,
-                  background: theme === ti.k ? 'var(--fg)' : 'var(--bg-elevated)',
-                  color: theme === ti.k ? 'var(--bg-canvas)' : 'var(--fg-muted)',
-                  border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer',
-                }}>{themeLabels[ti.k]}</button>
-              ))}
-            </div>
-          </div>
-
+        {/* SaaS en dark mode forzado · selector de tema retirado. Analytics
+            tiene su propio switch a light (ver AnalyticsView). Solo dejamos
+            idioma como preferencia de usuario. */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr', gap: 14 }}>
           {/* Idioma */}
           <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
             <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.language.title')}</h3>
