@@ -197,19 +197,27 @@
     }
     const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
-    // En modo demo · el role por defecto pasa a ser "Learning Manager" y el
-    // team toma el nombre del workspace en vez de "Repsol" hardcoded.
+    // En modo demo · el role por defecto pasa a ser "Learning Manager", el
+    // team toma el nombre del workspace, y el name se fuerza a "Julio"
+    // (per spec del cliente). Los platform admins ven su nombre real para
+    // poder gestionar sin confusión.
     const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
     const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
+    const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
+    const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio' : null;
+    const finalName = _demoForceName || fullName;
+    const finalInitials = _demoForceName
+      ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+      : initials;
     const USER = {
       id:       (profile && profile.id) || (sessionUser && sessionUser.id),
-      name:     fullName,
-      initials: initials,
+      name:     finalName,
+      initials: finalInitials,
       role:     (profile && profile.role) || (sessionUser && sessionUser.role) || (_demoActiveU ? 'Learning Manager' : 'Publish Agent'),
       team:     (profile && profile.team) || (sessionUser && sessionUser.team) || (_demoActiveU ? _wsName : 'Repsol'),
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
-      isAdmin:  !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin'))),
+      isAdmin:  _isPlatformAdmin,
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 

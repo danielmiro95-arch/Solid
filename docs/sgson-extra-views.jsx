@@ -258,9 +258,20 @@ function MyPathView({ openDetail, setView, pathId }) {
   // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
   const path = pathId ? PATHS.find(p => p.id === pathId) : null;
   const pathPillIds = path && Array.isArray(path.pillIds) ? path.pillIds : (path && Array.isArray(path.pills) ? path.pills : null);
-  const PILLS = pathPillIds && pathPillIds.length
-    ? ALL_PILLS.filter(p => pathPillIds.includes(p.id))
-    : ALL_PILLS;
+  const _isDemo = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  // En demo · "Mi Lista" agrega asignados + favoritos + inscritos (per spec).
+  // Filtramos a las pills que tienen progreso > 0 (asignadas/en curso) o
+  // están bookmarkadas (favoritas/inscritas). Bookmarks es nuestro modelo
+  // de "Add to my list" + "Favorito" actualmente unificado.
+  let PILLS;
+  if (pathPillIds && pathPillIds.length) {
+    PILLS = ALL_PILLS.filter(p => pathPillIds.includes(p.id));
+  } else if (_isDemo && !path) {
+    const Bm = window.Bookmarks;
+    PILLS = ALL_PILLS.filter(p => (p.progress > 0) || (Bm && Bm.has && Bm.has(p.id)));
+  } else {
+    PILLS = ALL_PILLS;
+  }
 
   const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
   const completed = PILLS.filter(p => p.progress >= 1);
