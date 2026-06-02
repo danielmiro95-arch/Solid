@@ -308,10 +308,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
           <Ico name={mobileNavOpen ? 'close' : 'menu'} size={20}/>
         </button>
         <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
-        <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
-          <Ico name="bell" size={18}/>
-          {inboxCount ? <span className="badge">{inboxCount}</span> : null}
-        </button>
+        {/* Bell · oculto en demo · inbox no está en sidebar y bell apuntaba ahí */}
+        {!isSimplified && (
+          <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
+            <Ico name="bell" size={18}/>
+            {inboxCount ? <span className="badge">{inboxCount}</span> : null}
+          </button>
+        )}
         <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}>{initials}</button>
 
         {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
