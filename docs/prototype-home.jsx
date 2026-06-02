@@ -262,13 +262,14 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const canAdmin   = !!(window.Auth && window.Auth.can     && window.Auth.can('admin.viewPanel'));
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
-  // En demo mode con simplified_avatar_menu solo se muestran 4 items
-  // hacia "perfil" (Mi Perfil, Formación completada/en curso/días activos),
-  // que en la práctica son 1 link a profile · el resto son stats que se
-  // ven dentro del profile · así que el menú queda con un solo link.
+  // En demo · tras última reunión · el popup contiene:
+  //   Mi Perfil · Channels · Certificados (+ stats abajo)
+  // Channels se mueve aquí porque ya no está en sidebar.
   const isSimplified = window.DemoMode && window.DemoMode.flag('simplified_avatar_menu') === true;
   const menuItems = isSimplified ? [
-    { k:'profile', label: T('nav.profile'), icon:'user' },
+    { k:'profile',      label: T('nav.profile'),               icon:'user' },
+    { k:'wa',           label: T('nav.wa', 'Channels'),        icon:'broadcast' },
+    { k:'certificates', label: 'Certificados',                 icon:'award' },
   ] : [
     { k:'profile',  label:T('nav.profile'),  icon:'user' },
     { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },

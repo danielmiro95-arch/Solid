@@ -233,26 +233,33 @@
     const _dm = window.DemoMode;
     const _flag = _dm ? _dm.flag : () => undefined;
     const _label = _dm ? _dm.label : (_, f) => f;
-    // Path/Rutas usa el label del workspace. En modo demo el menú "Catálogos"
-    // (browse) se oculta y "Competencias" (rutas) toma el nombre "Catálogo".
+    // En demo · tras última reunión · sidebar reducido a 3 items:
+    //   Inicio · Catálogo (rutas) · Mis Cursos (path).
+    // Channels, Bandeja, Guardado, Mi perfil, Ajustes, BeonAI, Analytics,
+    // Recursos y Admin se ocultan · Channels y Mi Perfil se acceden desde el
+    // popup del avatar (ver TopNav menuItems).
     const _dmActive = _dm && _dm.isActive && _dm.isActive();
     const _rutaPlural = _dmActive
       ? _label('catalog_label', 'Catálogo')
       : _label('path_label_plural', 'Rutas');
+    const _myListLabel = _dmActive
+      ? _label('my_list_label', 'Mis Cursos')
+      : _label('my_list_label', 'Mi ruta');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
-      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },
+      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null,
+        hidden: _dmActive },
       { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid',
         hidden: _flag('hide_browse_catalog') === true || _dmActive },
-      { key:'path',      label: _label('my_list_label', 'Mi ruta'), icon:'route' },
       { key:'rutas',     label: _rutaPlural, icon:'compass' },
+      { key:'path',      label: _myListLabel, icon:'route' },
       { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
       { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
-      { key:'wa',        label:'Channels',   icon:'broadcast' },
+      { key:'wa',        label:'Channels',   icon:'broadcast', hidden: _dmActive },
       { key:'resources', label:'Recursos',   icon:'book',      hidden: _flag('hide_resources') === true },
-      { key:'saved',     label:'Guardado',   icon:'bookmark' },
-      { key:'profile',   label:'Mi perfil',  icon:'user' },
-      { key:'settings',  label:'Ajustes',    icon:'gear' },
+      { key:'saved',     label:'Guardado',   icon:'bookmark',  hidden: _dmActive },
+      { key:'profile',   label:'Mi perfil',  icon:'user',      hidden: _dmActive },
+      { key:'settings',  label:'Ajustes',    icon:'gear',      hidden: _dmActive },
       { key:'admin',     label:'Admin',      icon:'shield', admin: true,
         hidden: _flag('simplified_profile') === true },  // demo: oculta admin al user final
     ].filter(x => !x.hidden);

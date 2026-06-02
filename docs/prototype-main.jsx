@@ -1178,7 +1178,7 @@ window.Workspaces = Workspaces;
     catalog_label: 'Catálogo',
     hero_title_label: 'Más presentaciones eficaces',
     catalog_subheader: 'Fórmate en tu contenido',
-    my_list_label: 'Mi Lista',
+    my_list_label: 'Mis Cursos',
     paths_recommended_label: 'Cursos recomendados para ti',
     paths_recommended_sub: 'según tu perfil',
     new_row_title: 'Recién publicado',
@@ -5098,6 +5098,7 @@ function App() {
         {view === 'inbox' && <InboxView_New openDetail={openDetail}/>}
         {view === 'settings' && <SettingsView_New setView={setView}/>}
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
+        {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
