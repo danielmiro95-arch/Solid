@@ -1878,7 +1878,10 @@ function ProfileView({ setView }) {
       sub={[USER.role, USER.team || window.WORKSPACE_NAME].filter(Boolean).join(' · ') || 'Sin equipo asignado'}
       narrow>
 
-      {/* Avatar + info card */}
+      {/* Avatar + info card · oculto en demo (la cabecera de PageShell ya
+          muestra el nombre/rol; el spec pide "eliminar información
+          adicional innecesaria" dejando sólo Certificados) */}
+      {!(window.DemoMode && window.DemoMode.flag('simplified_profile') === true) && (
       <div style={{
         display: 'flex', gap: 32, padding: 32, background: 'var(--bg-surface)',
         border: '1px solid var(--line)', borderRadius: 'var(--r-2)', marginBottom: 24, alignItems: 'center',
@@ -1917,6 +1920,7 @@ function ProfileView({ setView }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Stats · ocultos en demo mode con simplified_profile · solo se ven los stats
           completed/inProgress/daysActive dentro del avatar menu */}

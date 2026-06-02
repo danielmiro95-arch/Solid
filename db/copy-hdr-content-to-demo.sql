@@ -111,6 +111,58 @@ BEGIN
 
   GET DIAGNOSTICS n_pills = ROW_COUNT;
   RAISE NOTICE 'Pills copiadas: %', n_pills;
+
+  -- ──────────────────────────────────────────────────────────────────────
+  -- Curso "Tendencias de la semana" · única opción disponible en Catálogo
+  -- per spec del cliente. Lo insertamos en position=0 para que sea el primer
+  -- card (que mi lógica de demo desbloquea siempre). Pills 9001-9004 son
+  -- NUEVAS (rango fuera de los pill_number copiados de HdR).
+  -- ──────────────────────────────────────────────────────────────────────
+  INSERT INTO public.workspace_content (
+    workspace_id, kind, slug, title, teacher, duration, tone, format, level,
+    rating, enrolled, category, position, metadata
+  ) VALUES (
+    dst_ws, 'path', 'tendencias-de-la-semana', 'Tendencias de la semana',
+    'BeonIt × Hijos de Rivera', '2 h · 4 módulos', 'teal', 'curso', 'Básico',
+    4.9, 2840, 'Tendencias', 0, '{}'::jsonb
+  )
+  ON CONFLICT (workspace_id, kind, slug) DO UPDATE SET position = 0, title = 'Tendencias de la semana';
+
+  -- Pills del curso "Tendencias de la semana" · contenido evergreen popular
+  IF has_path_id THEN
+    EXECUTE format($exec$
+      INSERT INTO public.pills (
+        workspace_id, pill_number, slug, title, one_liner, teacher, duration,
+        tone, format, level, rating, enrolled, category, featured, new_badge, position, path_id
+      )
+      SELECT %1$L::uuid, x.pill_number, x.slug, x.title, x.one_liner, x.teacher, x.duration,
+             x.tone, x.format, x.level, x.rating, x.enrolled, x.category, x.featured, x.new_badge, x.position,
+             (SELECT id FROM public.workspace_content WHERE workspace_id = %1$L::uuid AND kind='path' AND slug='tendencias-de-la-semana' LIMIT 1)
+      FROM (VALUES
+        (9001, 'tendencia-storytelling',  'Storytelling con datos',         'Convierte tu dashboard en una historia memorable',     'María López',   '5 min', 'teal',   'pill', 'Básico',    4.9, 2840, 'Tendencias', true,  true,  1),
+        (9002, 'tendencia-reuniones',     'Reuniones eficaces · 25 min',    'Agenda · objetivo · output. Termina antes de la hora.', 'Carlos Vidal',  '4 min', 'amber',  'pill', 'Básico',    4.8, 2410, 'Tendencias', false, true,  2),
+        (9003, 'tendencia-prioridades',   'Prioridades sin agobio',         'Matriz de Eisenhower aplicada a tu semana',            'Ana Ferrer',    '5 min', 'violet', 'pill', 'Básico',    4.7, 1980, 'Tendencias', false, true,  3),
+        (9004, 'tendencia-feedback-360',  'Feedback 360 que no escuece',    'Cómo decir lo que importa sin romper la relación',    'Carlos Vidal',  '6 min', 'amber',  'pill', 'Intermedio',4.8, 1720, 'Tendencias', false, false, 4)
+      ) AS x(pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, featured, new_badge, position)
+      ON CONFLICT (workspace_id, pill_number) DO NOTHING
+    $exec$, dst_ws);
+  ELSE
+    INSERT INTO public.pills (
+      workspace_id, pill_number, slug, title, one_liner, teacher, duration,
+      tone, format, level, rating, enrolled, category, featured, new_badge, position
+    )
+    SELECT dst_ws, x.pill_number, x.slug, x.title, x.one_liner, x.teacher, x.duration,
+           x.tone, x.format, x.level, x.rating, x.enrolled, x.category, x.featured, x.new_badge, x.position
+    FROM (VALUES
+      (9001, 'tendencia-storytelling',  'Storytelling con datos',         'Convierte tu dashboard en una historia memorable',     'María López',   '5 min', 'teal',   'pill', 'Básico',    4.9, 2840, 'Tendencias', true,  true,  1),
+      (9002, 'tendencia-reuniones',     'Reuniones eficaces · 25 min',    'Agenda · objetivo · output. Termina antes de la hora.', 'Carlos Vidal',  '4 min', 'amber',  'pill', 'Básico',    4.8, 2410, 'Tendencias', false, true,  2),
+      (9003, 'tendencia-prioridades',   'Prioridades sin agobio',         'Matriz de Eisenhower aplicada a tu semana',            'Ana Ferrer',    '5 min', 'violet', 'pill', 'Básico',    4.7, 1980, 'Tendencias', false, true,  3),
+      (9004, 'tendencia-feedback-360',  'Feedback 360 que no escuece',    'Cómo decir lo que importa sin romper la relación',    'Carlos Vidal',  '6 min', 'amber',  'pill', 'Intermedio',4.8, 1720, 'Tendencias', false, false, 4)
+    ) AS x(pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, featured, new_badge, position)
+    ON CONFLICT (workspace_id, pill_number) DO NOTHING;
+  END IF;
+
+  RAISE NOTICE 'Tendencias de la semana añadido en position=0 con 4 pills';
 END $$;
 
 -- ────────────────────────────────────────────────────────────────────────────
