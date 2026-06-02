@@ -1692,7 +1692,7 @@ function InviteUsersModal({ onClose }) {
   const [tab, setTab] = useSM('single'); // 'single' | 'bulk'
   const [email, setEmail] = useSM('');
   const [name, setName] = useSM('');
-  const [role, setRole] = useSM('');
+  const [role, setRole] = useSM('member');  // default invita como User
   // Team default · usa el nombre del workspace activo. El admin lo puede editar.
   const [team, setTeam] = useSM(() => {
     const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
@@ -1811,8 +1811,14 @@ function InviteUsersModal({ onClose }) {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14}}>
               <label>
                 <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+                {/* Roles del workspace · valores tal como los usa
+                    public.workspace_members (member/admin/owner) +
+                    "manager" para líderes de equipo. Determinan qué
+                    permisos tiene el user al entrar al workspace. */}
                 <select value={role} onChange={e => setRole(e.target.value)} style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)', boxSizing:'border-box'}}>
-                  {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r}>{r}</option>)}
+                  <option value="member">User · acceso a contenido y certificación</option>
+                  <option value="manager">Manager · acceso a panel de equipo</option>
+                  <option value="admin">Admin · gestiona contenido y miembros</option>
                 </select>
               </label>
               <label>
