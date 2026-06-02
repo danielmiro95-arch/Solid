@@ -348,16 +348,28 @@ function MyPathView({ openDetail, setView, pathId }) {
    ============================================================ */
 function ChannelsView() {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
-  // Estado del Channel Manager (canales conectados + canal principal)
-  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
+  // Estado del Channel Manager (canales conectados + canal principal).
+  // El listener NO confía en e.detail · el workspace-changed handler (línea
+  // ~966 de prototype-main.jsx) dispara channels-changed con new Event() sin
+  // detail · re-fetcheamos siempre de Channels.get() para no quedarnos con
+  // state undefined.
+  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}) || {});
   useEE2(() => {
-    const onChange = (e) => setChState(e.detail);
+    const onChange = () => {
+      const next = (window.Channels && window.Channels.get()) || {};
+      setChState(next);
+    };
     window.addEventListener('channels-changed', onChange);
-    return () => window.removeEventListener('channels-changed', onChange);
+    window.addEventListener('workspace-changed', onChange);
+    return () => {
+      window.removeEventListener('channels-changed', onChange);
+      window.removeEventListener('workspace-changed', onChange);
+    };
   }, []);
 
+  const safeState = chState || {};
   const catalog = (window.Channels && window.Channels.CATALOG) || [];
-  const primaryId = chState.primary || null;
+  const primaryId = safeState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
   const channelColor = primaryDef ? primaryDef.color : '#25D366';
 
@@ -1154,7 +1166,7 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
                   <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
                   <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{T('matrix.activeOfTotal').replace('{n}', channelOn).replace('{total}', TYPES.length)}</div>
                 </div>
-                {chState.primary === c.id && (
+                {safeState.primary === c.id && (
                   <div title="Canal principal" style={{ fontSize: 12, color: c.color, fontWeight: 800 }}>★</div>
                 )}
               </div>
@@ -1267,7 +1279,7 @@ function ChannelManagerPanel({ chState, catalog }) {
         {catalog.map(c => {
           const state = chState[c.id];
           const connected = !!(state && state.connected);
-          const primary = chState.primary === c.id && connected;
+          const primary = safeState.primary === c.id && connected;
           const isConnecting = connecting === c.id;
           const since = state && state.since ? Math.floor((Date.now() - state.since) / 86400000) : null;
           return (
