@@ -443,11 +443,14 @@ function HomeHero({ onPlay, onMore }) {
   const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
-    // En modo demo · el hero muestra UNA sola píldora (la featured) sin rotar,
-    // para alinear con el spec: "Mantener una única píldora principal".
+    // En modo demo · el hero funciona como sección "Seguir viendo":
+    //   1) si hay alguna pill con progreso > 0 (asignada/en curso) · la mostramos
+    //   2) si no · mostramos la pill featured ("Más presentaciones eficaces")
+    //   3) sin rotación · una sola pill
     const dm = window.DemoMode;
     if (dm && dm.isActive && dm.isActive()) {
-      const f = PILLS.find(p => p.featured) || PILLS[0];
+      const inProgress = PILLS.find(p => p.progress > 0 && p.progress < 1);
+      const f = inProgress || PILLS.find(p => p.featured) || PILLS[0];
       return f ? [f] : [];
     }
     // Pills con flag `featured: true` van primero (decisión del admin sobre
@@ -538,9 +541,32 @@ function HomeHero({ onPlay, onMore }) {
       <div className="hero-overlay"/>
 
       <div className="hero-badge">
-        <span className="label">Top esta semana</span>
-        <span className="value">en {window.WORKSPACE_NAME || 'tu workspace'}</span>
-        <span className="stroke"/>
+        {(() => {
+          const dm = window.DemoMode;
+          const demoActive = dm && dm.isActive && dm.isActive();
+          // En demo · si la pill mostrada tiene progreso → "Seguir viendo"
+          // (sección que pidieron en reunión). Si no → "Destacado" + nombre
+          // del workspace, evitando "Top esta semana en HdR Demo".
+          if (demoActive && p.progress > 0 && p.progress < 1) {
+            return <>
+              <span className="label">Seguir viendo</span>
+              <span className="value">{Math.round(p.progress * 100)}% · {p.teacher}</span>
+              <span className="stroke"/>
+            </>;
+          }
+          if (demoActive) {
+            return <>
+              <span className="label">Destacado</span>
+              <span className="value">curso recomendado para ti</span>
+              <span className="stroke"/>
+            </>;
+          }
+          return <>
+            <span className="label">Top esta semana</span>
+            <span className="value">en {window.WORKSPACE_NAME || 'tu workspace'}</span>
+            <span className="stroke"/>
+          </>;
+        })()}
       </div>
 
       <div className="hero-content" key={p.id}>
@@ -560,11 +586,12 @@ function HomeHero({ onPlay, onMore }) {
         </div>
 
         <h1 className="hero-title">{(() => {
-          // En demo · el título del hero se fuerza a "Más presentaciones eficaces"
-          // (per spec del cliente), independientemente de qué pill featured se
-          // pinte como fondo. Soporta override vía settings.hero_title_label.
+          // En demo · si hay progreso en la pill mostrada → usa pill.title
+          // (Seguir viendo el curso real). Si no → "Más presentaciones eficaces"
+          // como pill destacada per spec del cliente.
           const dm = window.DemoMode;
           if (dm && dm.isActive && dm.isActive()) {
+            if (p.progress > 0 && p.progress < 1) return p.title;
             const override = dm.label && dm.label('hero_title_label', null);
             return override || 'Más presentaciones eficaces';
           }
