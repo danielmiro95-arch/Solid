@@ -151,22 +151,53 @@ function RutasView({ setView, openPath }) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
       }}>
-        {paths.map(p => {
+        {paths.map((p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
-          const startLabel = p.isCompleted ? '✓ Completada'
+          // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
+          // primer path por posición desbloqueado para que la demo se
+          // sienta accesible.
+          const lockEnabled = demoActive && _flag('lock_unassigned_courses') === true;
+          const seed = parseInt(String(p.id || '').replace(/\D/g, ''), 10) || idx;
+          const unlockedList = (_dm && _dm.unlocked) ? _dm.unlocked() : [];
+          const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(p.id) !== -1;
+          const isLocked = lockEnabled && !(p.progress > 0) && !isUnlockedById && idx > 0 && (seed % 3) !== 0;
+          const levelBadges = (_dm && _dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
+          const levelTxt = demoActive ? levelBadges[seed % levelBadges.length] : null;
+          const pathLabelSingular = demoActive ? _label('path_label', 'Curso').toUpperCase() : 'RUTA';
+          const startLabel = isLocked ? '🔒 Bloqueado'
+                           : p.isCompleted ? '✓ Completada'
                            : pct > 0 ? 'Continuar · ' + pct + '%'
-                           : T('rutas.start');
+                           : (demoActive ? 'Inscribirse' : T('rutas.start'));
+          const handleClick = () => {
+            if (isLocked) {
+              if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+              return;
+            }
+            go(p.id);
+          };
           return (
-          <article key={p.id} className="card" onClick={() => go(p.id)} style={{ cursor: 'pointer', aspectRatio: '4/5' }}>
-            <div className={`card-cover ${p.accent || 'cat-publish'}`}/>
+          <article key={p.id} className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
+            <div className={`card-cover ${p.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>
-              RUTA · {p.completedCount || 0}/{p.totalCount || p.pills} pills · {p.hours}
+              {pathLabelSingular} · {p.completedCount || 0}/{p.totalCount || p.pills} pills{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
             </span>
-            {p.isCompleted && (
+            {p.isCompleted && !isLocked && (
               <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'var(--ok, #1E9E5A)', color:'#fff',
                 fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
                 ✓ COMPLETADA
+              </span>
+            )}
+            {isLocked && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(0,0,0,0.72)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
+                🔒 Bloqueado
+              </span>
+            )}
+            {levelTxt && !isLocked && !p.isCompleted && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(110,80,238,0.92)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
+                Nivel {levelTxt}
               </span>
             )}
             <div className="card-body" style={{ left: 20, right: 20, bottom: 18 }}>
@@ -181,11 +212,13 @@ function RutasView({ setView, openPath }) {
                 </div>
               )}
               <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
-                <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
+                <button onClick={(e) => { e.stopPropagation(); handleClick(); }} disabled={isLocked} style={{
                   padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
-                  background: p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                  background: isLocked ? 'rgba(0,0,0,0.5)' : (p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)'),
+                  color: '#fff', border: 'none', borderRadius: 'var(--r-1)',
+                  cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.7 : 1,
                 }}>{startLabel}</button>
-                {p.isCompleted && window.Certificates && (
+                {p.isCompleted && window.Certificates && !isLocked && (
                   <button onClick={(e) => {
                     e.stopPropagation();
                     const cert = window.Certificates.get(p._id || p.id);
@@ -1135,7 +1168,18 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
     return () => window.removeEventListener('test-sends-changed', onChange);
   }, []);
 
-  const TYPES = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
+  // En modo demo · sólo se expone "Test del brief antes de la reunión"
+  // (mantiene el id `meeting_brief` para no romper persistencia/state).
+  // Eliminamos del listado: weekly_recap, beonai_chat, ai_recs, daily_module,
+  // new_workshop, deadlines · por spec del cliente.
+  const _dmTypes = window.DemoMode;
+  const _dmTypesActive = _dmTypes && _dmTypes.isActive && _dmTypes.isActive();
+  const _rawTypes = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
+  const TYPES = _dmTypesActive
+    ? _rawTypes
+        .filter(t => t.id === 'meeting_brief')
+        .map(t => ({ ...t, label: 'Test del brief antes de la reunión' }))
+    : _rawTypes;
 
   if (connected.length === 0) {
     return (
