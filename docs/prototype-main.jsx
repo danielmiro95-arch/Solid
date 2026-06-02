@@ -1226,7 +1226,10 @@ window.Workspaces = Workspaces;
     },
     label: function(name, fallback) {
       const v = window.DemoMode.flag(name);
-      return (typeof v === 'string' && v) ? v : fallback;
+      // BUG fix · cadena vacía '' es un override válido (intencionalmente
+      // vacío para ocultar el sub de una row, p.ej. new_row_sub). Antes
+      // se caía al fallback porque `&& v` la trataba como falsy.
+      return (typeof v === 'string') ? v : fallback;
     },
     unlocked: function() {
       // Lista de slugs de paths abiertos · si está vacía y
