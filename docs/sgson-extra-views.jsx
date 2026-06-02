@@ -2252,6 +2252,128 @@ window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
 
+/* ============================================================
+   CertificatesView · sección dentro del popup avatar (demo)
+   Uno por cada curso. Bloqueados hasta completar el curso.
+   ============================================================ */
+function CertificatesView({ setView }) {
+  const D = window.SGS_DATA;
+  const PATHS = (D && D.LEARNING_PATHS) || [];
+  const USER = (D && D.USER) || {};
+
+  // Re-render cuando cambian certificates en window.Certificates
+  const [, setTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setTick(t => t + 1);
+    window.addEventListener('certificates-changed', r);
+    window.addEventListener('progress-changed', r);
+    return () => {
+      window.removeEventListener('certificates-changed', r);
+      window.removeEventListener('progress-changed', r);
+    };
+  }, []);
+
+  // Mapa de cert por route_id · qué cursos tienen certificado emitido
+  const certByRoute = {};
+  if (window.Certificates && window.Certificates.list) {
+    window.Certificates.list().forEach(c => { certByRoute[c.route_id] = c; });
+  }
+
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }); }
+    catch(e) { return iso; }
+  };
+
+  return (
+    <PageShell
+      eyebrow="Mi formación"
+      title={<>Certificados <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>· {USER.name || 'Julio'}</em></>}
+      sub={`Un certificado por cada curso completado · ${PATHS.length} cursos en el catálogo`}>
+
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:16,
+      }}>
+        {PATHS.map(p => {
+          const cert = certByRoute[p._id] || certByRoute[p.id];
+          const isCompleted = p.isCompleted || (p.progress >= 1);
+          const isLocked = !cert && !isCompleted;
+          return (
+            <article key={p.id} style={{
+              position:'relative', padding:'22px 20px 18px',
+              background:'var(--bg-surface)', border:'1px solid var(--line)',
+              borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+              opacity: isLocked ? 0.7 : 1,
+              filter: isLocked ? 'grayscale(0.5)' : 'none',
+            }}>
+              {/* Sello tipo medalla en la esquina */}
+              <div style={{
+                position:'absolute', top:14, right:14,
+                width:48, height:48, borderRadius:'50%',
+                background: isLocked ? 'rgba(13,17,23,0.08)' : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
+                color: isLocked ? '#64748B' : '#fff',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: 22, fontWeight:800,
+                boxShadow: isLocked ? 'none' : '0 4px 12px rgba(110,80,238,0.30)',
+              }}>{isLocked ? '🔒' : '🏆'}</div>
+
+              <div style={{
+                fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
+                textTransform:'uppercase', color: isLocked ? '#64748B' : 'var(--accent)', fontWeight:700,
+              }}>Certificado oficial</div>
+              <h3 style={{ margin:'2px 0 0', fontSize:16, fontWeight:700, color:'var(--fg)', lineHeight:1.3, paddingRight:60 }}>
+                {p.title}
+              </h3>
+              <div style={{ fontSize:12, color:'var(--fg-muted)' }}>
+                {p.completedCount || 0} de {p.totalCount || p.pills} pills completadas
+              </div>
+
+              {/* Barra de progreso para mostrar lo que falta */}
+              <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+                <div style={{
+                  height:'100%', width: Math.round((p.progress || 0) * 100) + '%',
+                  background: isLocked ? '#94A3B8' : 'var(--accent)', transition:'width .25s',
+                }}/>
+              </div>
+
+              {isLocked ? (
+                <div style={{
+                  marginTop:'auto', padding:'10px 12px', background:'rgba(13,17,23,0.04)',
+                  border:'1px dashed var(--line)', borderRadius:8, fontSize:12, color:'#64748B',
+                }}>
+                  🔒 Completa el curso para desbloquear el certificado
+                </div>
+              ) : (
+                <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                  <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:11, color:'var(--fg-muted)', letterSpacing:'0.04em' }}>
+                    {cert.cert_number || '—'} · {fmtDate(cert.completed_at)}
+                  </div>
+                  <button onClick={() => window.Certificates && window.Certificates.download(cert)} style={{
+                    padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
+                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
+                    boxShadow:'0 4px 12px rgba(110,80,238,0.30)',
+                  }}>↓ Descargar certificado</button>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      {PATHS.length === 0 && (
+        <div style={{
+          padding:60, textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:14, marginTop:24,
+        }}>
+          <div style={{ fontSize:42, marginBottom:8 }}>🏆</div>
+          <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>Aún no hay cursos en el catálogo</div>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
+window.CertificatesView = CertificatesView;
+
 // ── ResourcesView · cards launcher a documentación externa (Loop, etc.) ───
 // Los users ven y filtran; los admin pueden añadir/editar/borrar.
 // Click en card → abre URL original en pestaña nueva.
