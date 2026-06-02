@@ -780,7 +780,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       <div className="card-actions">
         {isLocked ? (
           /* Pill bloqueada · botón "Notifícame" (campana) */
-          <button className="card-action primary" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked} style={{background:'rgba(110,80,238,0.85)', color:'#fff'}}>
+          <button className="card-action primary" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked} style={{background:'rgba(0,114,190,0.85)', color:'#fff'}}>
             <Ico name="bell" size={12}/>
           </button>
         ) : isAssigned || !demoActive ? (
@@ -803,7 +803,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
           aria-label={saved ? 'Quitar favorito' : 'Favorito'}
           title={saved ? 'Quitar favorito' : 'Favorito'}
           onClick={toggleSave}
-          style={saved ? { background:'rgba(110,80,238,0.85)', color:'#fff', borderColor:'rgba(110,80,238,0.85)' } : undefined}>
+          style={saved ? { background:'rgba(0,114,190,0.85)', color:'#fff', borderColor:'rgba(0,114,190,0.85)' } : undefined}>
           <Ico name={saved ? 'check' : 'bookmark'} size={14}/>
         </button>
         {!demoActive && (
@@ -873,7 +873,7 @@ function NxPathCard({ path, onOpen }) {
       {level && !isLocked && (
         <span style={{
           position:'absolute', top:10, right:10, padding:'4px 10px',
-          background:'rgba(110,80,238,0.92)', color:'#fff', borderRadius:999,
+          background:'rgba(0,114,190,0.92)', color:'#fff', borderRadius:999,
           fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
           letterSpacing:'0.06em',
         }}>Nivel {level}</span>
