@@ -130,11 +130,23 @@ function RutasView({ setView, openPath }) {
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
 
+  // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
+  // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
+  const _dm = window.DemoMode;
+  const _label = _dm ? _dm.label : (_, f) => f;
+  const _flag  = _dm ? _dm.flag  : () => undefined;
+  const demoActive = _dm && _dm.isActive && _dm.isActive();
+  const eyebrow = demoActive ? _label('catalog_label', 'Catálogo') : T('rutas.eyebrow');
+  const title   = demoActive
+    ? _label('catalog_subheader', 'Fórmate en tu contenido')
+    : <>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>;
+  const sub     = demoActive ? '' : T('rutas.sub');
+
   return (
     <PageShell
-      eyebrow={T('rutas.eyebrow')}
-      title={<>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>}
-      sub={T('rutas.sub')}>
+      eyebrow={eyebrow}
+      title={title}
+      sub={sub}>
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
@@ -1315,7 +1327,17 @@ function ChannelManagerPanel({ chState, catalog }) {
                     cursor: isConnecting ? 'wait' : 'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12,
                     opacity: isConnecting ? 0.7 : 1,
                   }}>
-                    {isConnecting ? T('channels.connecting') : (c.authType === 'oauth' ? '🔐 ' + T('channels.connect') + ' (OAuth)' : c.authType === 'phone' ? '📱 ' + T('channels.connect') : '🔔 ' + T('common.activate'))}
+                    {(() => {
+                      // En modo demo · botón siempre dice "Activar" (sin diferenciar OAuth/phone),
+                      // alineado con spec del cliente: simplicidad por encima de precisión técnica.
+                      const _dm = window.DemoMode;
+                      const demoLabel = _dm && _dm.label && _dm.label('channels_action_label', null);
+                      if (isConnecting) return T('channels.connecting');
+                      if (demoLabel) return '🔔 ' + demoLabel;
+                      return c.authType === 'oauth' ? '🔐 ' + T('channels.connect') + ' (OAuth)'
+                           : c.authType === 'phone' ? '📱 ' + T('channels.connect')
+                           : '🔔 ' + T('common.activate');
+                    })()}
                   </button>
                 )}
                 {connected && !primary && (

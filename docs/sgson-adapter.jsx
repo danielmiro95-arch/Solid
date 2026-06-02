@@ -107,7 +107,12 @@
     if (withVideo.length > 0) {
       ROWS.push({ key:'available', title:'Disponibles ahora', sub:'reproducir directamente', pillIds: withVideo });
     }
-    ROWS.push({ key:'paths', title:'Rutas recomendadas para ti', sub:'según tu rol', isPaths: true });
+    ROWS.push({
+      key:'paths',
+      title: _label('paths_recommended_label', 'Rutas recomendadas para ti'),
+      sub:   _label('paths_recommended_sub', 'según tu rol'),
+      isPaths: true,
+    });
     ROWS.push({ key:'trending', title:'Tendencia esta semana', sub:(window.WORKSPACE_NAME ? ('en ' + window.WORKSPACE_NAME) : 'en tu workspace'), pillIds: trending, trending: true });
     if (careIds.length > 0) {
       ROWS.push({ key:'care', title:'Care', sub:'atención al cliente que de verdad funciona', pillIds: careIds });
@@ -115,7 +120,13 @@
     if (analyticsIds.length > 0) {
       ROWS.push({ key:'analytics', title:'Analytics & Integraciones', sub:'medir, integrar, mejorar', pillIds: analyticsIds });
     }
-    ROWS.push({ key:'new', title:'Nuevo en SolidStream', sub:'recién publicado en BeonIt × Repsol', pillIds: newIds, newRow: true });
+    ROWS.push({
+      key:'new',
+      title:'Nuevo en SolidStream',
+      sub: _label('new_row_sub', 'recién publicado en BeonIt × Repsol'),
+      pillIds: newIds,
+      newRow: true,
+    });
 
     // ── LEARNING_PATHS · convertir tu data al shape esperado ──
     const SRC_PATHS = window.LEARNING_PATHS || [];
@@ -202,13 +213,18 @@
     const _dm = window.DemoMode;
     const _flag = _dm ? _dm.flag : () => undefined;
     const _label = _dm ? _dm.label : (_, f) => f;
-    // Path/Rutas usa el label del workspace (Curso si el demo lo dice)
-    const _rutaPlural = _label('path_label_plural', 'Rutas');
+    // Path/Rutas usa el label del workspace. En modo demo el menú "Catálogos"
+    // (browse) se oculta y "Competencias" (rutas) toma el nombre "Catálogo".
+    const _dmActive = _dm && _dm.isActive && _dm.isActive();
+    const _rutaPlural = _dmActive
+      ? _label('catalog_label', 'Catálogo')
+      : _label('path_label_plural', 'Rutas');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
       { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },
-      { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid' },
-      { key:'path',      label:'Mi ruta',    icon:'route' },
+      { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid',
+        hidden: _flag('hide_browse_catalog') === true || _dmActive },
+      { key:'path',      label: _label('my_list_label', 'Mi ruta'), icon:'route' },
       { key:'rutas',     label: _rutaPlural, icon:'compass' },
       { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
       { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
