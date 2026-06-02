@@ -166,9 +166,12 @@ create table if not exists public.progress (
   pill_id text not null,
   progress numeric default 0 check (progress between 0 and 1),
   completed_at timestamptz,
+  watch_seconds int default 0,                  -- segundos acumulados de visionado · alimenta time_invested
   updated_at timestamptz default now(),
   primary key (user_id, workspace_id, pill_id)
 );
+-- Migration in-place para instalaciones existentes que no tienen la columna
+alter table public.progress add column if not exists watch_seconds int default 0;
 
 -- =====================================================================
 -- 7. conversations + messages · chats con BeonAI

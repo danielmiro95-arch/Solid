@@ -14,7 +14,7 @@ const METRICS = [
   { id:'nps',              label:'NPS',                   unit:'pts',      color:'var(--info)',      fmt:'nps',  real:false, source:'pendiente · tabla nps_responses' },
   { id:'engagement',       label:'Engagement score',      unit:'pts',      color:'var(--warn)',      fmt:'int',  real:false, source:'pendiente · fórmula compuesta' },
   { id:'drop_off',         label:'Drop-off rate',         unit:'%',        color:'var(--accent)',    fmt:'pct',  real:false, source:'pendiente · player tracking' },
-  { id:'time_invested',    label:'Tiempo invertido',      unit:'h',        color:'var(--bn-blue)',   fmt:'hrs',  real:false, source:'pendiente · watch_seconds en progress' },
+  { id:'time_invested',    label:'Tiempo invertido',      unit:'h',        color:'var(--bn-blue)',   fmt:'hrs',  real:true,  source:'sum(public.progress.watch_seconds) / 3600' },
   { id:'modules_started',  label:'Módulos iniciados',     unit:'módulos',  color:'var(--bn-purple)', fmt:'int',  real:true,  source:'public.progress (distinct pill_id)' },
   { id:'cert_progress',    label:'Progreso certificación', unit:'%',       color:'var(--ok)',        fmt:'pct',  real:true,  source:'public.route_exams' },
   { id:'rating_avg',       label:'Rating medio',          unit:'★',        color:'#F4B740',          fmt:'star', real:false, source:'pendiente · tabla ratings' },

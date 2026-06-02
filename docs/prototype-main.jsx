@@ -2895,7 +2895,7 @@ function _activateSupabaseData() {
     const u = _uid(); const ws = _wsid();
     if (!u || !ws) { _progressCache = {}; return; }
     const { data, error } = await sb.from('progress')
-      .select('pill_id, progress, completed_at')
+      .select('pill_id, progress, completed_at, watch_seconds')
       .eq('user_id', u).eq('workspace_id', ws);
     if (error) { console.warn('[progress] load', error.message); return; }
     _progressCache = {};
@@ -2962,32 +2962,47 @@ function _activateSupabaseData() {
       _progressCache[pillId] = { pill_id: String(pillId), progress: 0, completed_at: null };
       window.dispatchEvent(new Event('progress-changed'));
     },
-    update: async function(pillId, pct) {
+    update: async function(pillId, pct, totalSec) {
       const u = _uid(); const ws = _wsid();
       if (!u || !ws || !pillId) return;
       const next = Math.max(0, Math.min(1, pct || 0));
       const prev = _progressCache[pillId];
       if (prev && prev.progress >= next) return;
       if (prev && Math.abs((prev.progress || 0) - next) < 0.05) return;
-      const { error } = await sb.from('progress').upsert(
-        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: next, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,workspace_id,pill_id' }
-      );
+      // watch_seconds nunca decrece · usamos el máximo entre el previo y el
+      // derivado de (pct × totalSec). Si no llega totalSec, dejamos el previo.
+      const prevWatch = (prev && prev.watch_seconds) || 0;
+      const derived = totalSec ? Math.round(next * totalSec) : 0;
+      const watchSec = Math.max(prevWatch, derived);
+      const payload = {
+        user_id: u, workspace_id: ws, pill_id: String(pillId),
+        progress: next,
+        updated_at: new Date().toISOString(),
+      };
+      if (watchSec > prevWatch) payload.watch_seconds = watchSec;
+      const { error } = await sb.from('progress').upsert(payload, { onConflict: 'user_id,workspace_id,pill_id' });
       if (error) { console.warn('[progress] update', error.message); return; }
-      _progressCache[pillId] = Object.assign({}, prev || {}, { progress: next });
+      _progressCache[pillId] = Object.assign({}, prev || {}, { progress: next, watch_seconds: watchSec });
       window.dispatchEvent(new Event('progress-changed'));
     },
-    complete: async function(pillId) {
+    complete: async function(pillId, totalSec) {
       const u = _uid(); const ws = _wsid();
       if (!u || !ws || !pillId) return;
       if (_progressCache[pillId] && _progressCache[pillId].completed_at) return;
       const now = new Date().toISOString();
-      const { error } = await sb.from('progress').upsert(
-        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: 1, completed_at: now, updated_at: now },
-        { onConflict: 'user_id,workspace_id,pill_id' }
-      );
+      const prev = _progressCache[pillId];
+      const prevWatch = (prev && prev.watch_seconds) || 0;
+      // Al completar, watch_seconds = totalSec entero (si se conoce) ·
+      // si no, mantenemos el previo.
+      const finalWatch = totalSec ? Math.max(prevWatch, Math.round(totalSec)) : prevWatch;
+      const payload = {
+        user_id: u, workspace_id: ws, pill_id: String(pillId),
+        progress: 1, completed_at: now, updated_at: now,
+      };
+      if (finalWatch > 0) payload.watch_seconds = finalWatch;
+      const { error } = await sb.from('progress').upsert(payload, { onConflict: 'user_id,workspace_id,pill_id' });
       if (error) { console.warn('[progress] complete', error.message); return; }
-      _progressCache[pillId] = { pill_id: String(pillId), progress: 1, completed_at: now };
+      _progressCache[pillId] = { pill_id: String(pillId), progress: 1, completed_at: now, watch_seconds: finalWatch };
       if (window.Toast) window.Toast.success('Pill marcada como completada', { icon:'✓' });
       window.dispatchEvent(new Event('progress-changed'));
       if (window.Analytics && window.Analytics.refresh) window.Analytics.refresh();
