@@ -92,12 +92,52 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
             {pill.one && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="q">"{pill.one}."</p>}
             <div className="actions">
               <button className="btn btn-primary" onClick={goPlay}><Ico name="play" size={16}/> Reproducir</button>
-              <button className={`btn btn-icon btn-ghost${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar favorito' : 'Favorito'} title={saved ? 'Quitar favorito' : 'Favorito'} onClick={toggleSave}><Ico name={saved ? 'check' : 'plus'} size={18}/></button>
+              <button
+                className={`btn btn-icon btn-ghost${saved ? ' is-active' : ''}`}
+                aria-label={saved ? 'Quitar favorito' : 'Favorito'}
+                title={saved ? 'Quitar favorito' : 'Añadir a favoritos'}
+                onClick={toggleSave}
+                style={saved ? { background:'var(--accent)', color:'#fff', borderColor:'var(--accent)' } : undefined}>
+                <Ico name={saved ? 'check' : 'bookmark'} size={18}/>
+              </button>
               {!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
                 <button className={`btn btn-icon btn-ghost${liked ? ' is-active' : ''}`} aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'} title={liked ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}><Ico name="thumb" size={16}/></button>
               )}
               <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}><Ico name={muted ? 'mute' : 'volume'} size={16}/></button>
             </div>
+            {/* En demo · selector de puntuación 1-5 estrellas (per spec del cliente) */}
+            {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (() => {
+              const cur = (window.Ratings && window.Ratings.get) ? (window.Ratings.get(pill.id) || 0) : 0;
+              const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+              const setStars = (n) => {
+                if (window.Ratings && window.Ratings.set) window.Ratings.set(pill.id, n);
+                if (window.Toast) window.Toast.success(`Valorada con ${n} estrella${n === 1 ? '' : 's'}`, { icon:'⭐' });
+              };
+              return (
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:14 }}>
+                  <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize:10, color:'rgba(255,255,255,0.6)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700 }}>Puntuar</span>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {[1,2,3,4,5].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setStars(n)}
+                        aria-label={`${n} estrellas`}
+                        title={`${n} estrella${n === 1 ? '' : 's'}`}
+                        style={{
+                          background:'transparent', border:'none', cursor:'pointer',
+                          padding:'4px 2px', fontSize:22, lineHeight:1,
+                          color: n <= curStars ? '#FBBF24' : 'rgba(255,255,255,0.3)',
+                          transition:'transform .12s ease',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform='scale(1.18)'}
+                        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}>
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
