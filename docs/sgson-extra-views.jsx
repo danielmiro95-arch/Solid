@@ -239,12 +239,21 @@ function MyPathView({ openDetail, setView, pathId }) {
   const pDesc  = path ? (path.desc || path.roleTag || '') : '';
   const pBadge = path ? (path.badge || '') : '';
 
+  // En modo demo · esta vista se renombra a "Mi Lista" y el eyebrow usa
+  // la palabra "Curso" en lugar de "Ruta".
+  const _dm = window.DemoMode;
+  const _dmActive = _dm && _dm.isActive && _dm.isActive();
+  const _myListLabel = _dm && _dm.label ? _dm.label('my_list_label', 'Mi ruta') : 'Mi ruta';
+  const _pathSingular = _dm && _dm.label ? _dm.label('path_label', 'Ruta') : 'Ruta';
+
   return (
     <PageShell
-      eyebrow={path ? `Ruta · ${pTitle}` : `Mi ruta · ${USER.role || 'Usuario'}`}
+      eyebrow={path ? `${_pathSingular} · ${pTitle}` : `${_myListLabel} · ${USER.role || 'Usuario'}`}
       title={path
         ? <>{pTitle}{pBadge ? <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, fontSize:24, color:'var(--accent)', marginLeft:12 }}> · {pBadge}</em> : null}</>
-        : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
+        : _dmActive
+          ? <>{_myListLabel}</>
+          : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
       sub={path
         ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
         : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}

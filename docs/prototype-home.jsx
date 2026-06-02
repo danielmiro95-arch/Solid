@@ -417,6 +417,13 @@ function HomeHero({ onPlay, onMore }) {
   const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
+    // En modo demo · el hero muestra UNA sola píldora (la featured) sin rotar,
+    // para alinear con el spec: "Mantener una única píldora principal".
+    const dm = window.DemoMode;
+    if (dm && dm.isActive && dm.isActive()) {
+      const f = PILLS.find(p => p.featured) || PILLS[0];
+      return f ? [f] : [];
+    }
     // Pills con flag `featured: true` van primero (decisión del admin sobre
     // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
     // si no hay suficientes, las más populares por `enrolled`.
@@ -512,21 +519,34 @@ function HomeHero({ onPlay, onMore }) {
 
       <div className="hero-content" key={p.id}>
         <div className="hero-eyebrow">
-          <span className="pillmark">Think Pill · {p.pill}</span>
-          <span className="sep"/>
-          <span className="meta">{cat.label}</span>
+          {(() => {
+            const dm = window.DemoMode;
+            const demoActive = dm && dm.isActive && dm.isActive();
+            // En demo · sin prefijo "Think Pill · N", solo categoría
+            return demoActive
+              ? <span className="meta">{cat.label}</span>
+              : <>
+                  <span className="pillmark">Think Pill · {p.pill}</span>
+                  <span className="sep"/>
+                  <span className="meta">{cat.label}</span>
+                </>;
+          })()}
         </div>
 
         <h1 className="hero-title">{p.title}</h1>
         {p.one && p.one !== p.title && <p className="hero-quote">"{p.one}."</p>}
 
         <div className="hero-meta">
-          <span className="tag">{p.level}</span>
-          <span className="sep">/</span>
-          <span>{p.duration}</span>
+          <span className="tag">{(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? 'Nivel ' + p.level : p.level}</span>
+          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+            <span className="sep">/</span>
+            <span>{p.duration}</span>
+          </>}
           <span className="sep">/</span>
           <span>{p.teacher}</span>
-          {p.rating ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>) : null}
+          {p.rating && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+            ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>)
+            : null}
         </div>
 
         <div className="hero-actions">
@@ -542,11 +562,13 @@ function HomeHero({ onPlay, onMore }) {
         </div>
       </div>
 
-      <div className="hero-dots">
-        {featured.map((_, i) => (
-          <span key={i} className={`hero-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} style={{cursor:'pointer'}}/>
-        ))}
-      </div>
+      {featured.length > 1 && (
+        <div className="hero-dots">
+          {featured.map((_, i) => (
+            <span key={i} className={`hero-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} style={{cursor:'pointer'}}/>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

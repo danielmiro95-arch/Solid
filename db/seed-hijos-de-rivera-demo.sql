@@ -99,7 +99,7 @@ select ws.id, x.pill_number, x.slug, x.title, x.one_liner, x.teacher, x.duration
 from ws,
 (values
   -- Curso 1 · Más presentaciones eficaces (FEATURED · aparece en el hero)
-  (101, 'estructura-narrativa',     'Estructura narrativa de impacto',     'Empieza por el porqué · cierra con el call to action', 'María López',   '4 min', 'teal',    'pill', 'Básico',     4.9, 1240, 'Comunicación', null, true,  true,  1),
+  (101, 'mas-presentaciones-eficaces','Más presentaciones eficaces',       'Empieza por el porqué · cierra con el call to action', 'María López',   '4 min', 'teal',    'pill', 'Básico',     4.9, 1240, 'Comunicación', null, true,  true,  1),
   (102, 'diseno-slides-minimo',     'Diseño de slides al mínimo',          'Una idea por slide · jerarquía clara · menos texto',   'María López',   '5 min', 'teal',    'pill', 'Básico',     4.8, 980,  'Comunicación', null, false, true,  2),
   (103, 'storytelling-datos',       'Storytelling con datos',              'Convierte tu dashboard en una historia memorable',     'María López',   '6 min', 'teal',    'pill', 'Intermedio', 4.7, 870,  'Comunicación', null, false, false, 3),
   -- Curso 2 · Liderazgo de equipos comerciales (bloqueado en demo)
