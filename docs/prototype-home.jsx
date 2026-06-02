@@ -988,7 +988,7 @@ function WorkshopsCTASection() {
       </header>
       <div style={{
         display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: 14,
-        padding:'0 var(--page-pad, 48px)',
+        padding:'0 var(--row-pad, 48px)',
       }}>
         {workshops.map(w => (
           <article key={w.id} style={{
