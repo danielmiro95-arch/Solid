@@ -205,4 +205,4 @@ function DashboardView({ dash, editing, onBack, onEdit, onAddWidget, onFullscree
   );
 }
 
-Object.assign(window, { DashboardView, Widget, DASH, mkW });
+Object.assign(window, { DashboardView, Widget, mkW, blankDashboard });
