@@ -1157,6 +1157,24 @@ window.Workspaces = Workspaces;
     const w = _ws();
     return (w && w.settings) || {};
   }
+  // Detección por slug/nombre · si el workspace se llama "...demo" asumimos
+  // demo_mode aunque la flag explícita en settings no esté seteada. Cubre
+  // el caso de workspaces creados ANTES de que existiera el flag o cuando
+  // el SQL de seed no se corrió pero el workspace existe con slug "demo".
+  function _slugSuggestsDemo() {
+    const w = _ws();
+    if (!w) return false;
+    const slug = String(w.slug || '').toLowerCase();
+    const name = String(w.name || '').toLowerCase();
+    return slug.indexOf('demo') !== -1 || name.indexOf('demo') !== -1;
+  }
+  function _isDemoActive() {
+    const s = _settings();
+    // 1) flag explícita en settings tiene prioridad (puede ser true o false)
+    if (typeof s.demo_mode === 'boolean') return s.demo_mode;
+    // 2) fallback · slug/nombre del workspace contiene "demo"
+    return _slugSuggestsDemo();
+  }
   // Si demo_mode está activo · estos son los valores por defecto que
   // aplican aunque la flag individual no esté en settings. El admin puede
   // anular cualquiera setándola explícitamente a false.
@@ -1187,13 +1205,13 @@ window.Workspaces = Workspaces;
     level_badges: ['Básico','Intermedio','Experto'],
   };
   window.DemoMode = {
-    isActive: () => _settings().demo_mode === true,
+    isActive: _isDemoActive,
     flag: function(name) {
       const s = _settings();
       // Override explícito en settings tiene prioridad
       if (name in s) return s[name];
-      // Si demo_mode === true · usa preset
-      if (s.demo_mode === true && name in DEMO_PRESET) return DEMO_PRESET[name];
+      // Si demo está activo (por flag o por slug) · usa preset
+      if (_isDemoActive() && name in DEMO_PRESET) return DEMO_PRESET[name];
       return undefined;
     },
     label: function(name, fallback) {
