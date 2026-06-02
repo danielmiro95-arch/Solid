@@ -707,47 +707,66 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const isAssigned = pill && pill.progress > 0;
   const handleCardClick = () => {
     if (isLocked) {
-      if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+      if (window.Toast) window.Toast.info('🔒 Pill bloqueada · te avisaremos cuando esté disponible');
       return;
     }
     onOpen(pill);
   };
+  // En demo · pills bloqueadas se difuminan claramente (blur + saturación
+  // baja + brillo bajo) para que se entienda "viene más adelante".
+  const lockedCoverStyle = isLocked
+    ? { filter:'grayscale(0.7) brightness(0.55) blur(2px)' }
+    : undefined;
+  const notifyLocked = (e) => {
+    e.stopPropagation();
+    if (window.Toast) window.Toast.success('Te avisaremos cuando esté disponible', { icon:'🔔' });
+  };
 
   return (
-    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleCardClick} data-screen-label={`Card · ${pill.pill}`} style={isLocked ? { cursor:'not-allowed' } : undefined}>
-      <div className={`card-cover cat-${slug}`}/>
+    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleCardClick} data-screen-label={`Card · ${pill.pill}`} style={isLocked ? { cursor:'not-allowed', opacity:0.85 } : undefined}>
+      <div className={`card-cover cat-${slug}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.6)' } : undefined}/>
       {pill.poster ? (
         <img
           src={pill.poster}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : undefined}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', ...(lockedCoverStyle || {})}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : pill.yt ? (
         <img
           src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : undefined}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', ...(lockedCoverStyle || {})}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : null}
       <div className="card-grad"/>
 
-      <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
+      <span className="card-pill-num">{String(cat.label).toUpperCase()}{!demoActive ? ` · ${pill.pill}` : ''}</span>
       {(newBadge || pill.newBadge) && !isLocked && <span className="card-badge">Nuevo</span>}
       {isLocked && (
-        <span style={{
-          position:'absolute', top:10, right:10, padding:'4px 10px',
-          background:'rgba(0,0,0,0.72)', color:'#fff', borderRadius:999,
-          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
-          letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
-        }}>🔒 Bloqueado</span>
+        <>
+          <span style={{
+            position:'absolute', top:10, right:10, padding:'5px 10px',
+            background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
+            fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+            letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
+            backdropFilter:'blur(8px)',
+          }}>🔒 Bloqueado</span>
+          {/* Candado grande centrado en la card · refuerza visual de bloqueo */}
+          <div style={{
+            position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+            pointerEvents:'none', fontSize:42, opacity:0.85, color:'#fff',
+            textShadow:'0 2px 12px rgba(0,0,0,0.5)',
+          }}>🔒</div>
+        </>
       )}
 
       <div className="card-body">
         <h3 className="card-title">{pill.title}</h3>
         <div className="card-meta">
-          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+          {/* En demo · sólo nivel (sin duración · sin "·" separador) */}
+          {!demoActive && !(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
             <span>{pill.duration}</span>
             <span className="sep">·</span>
           </>}
@@ -757,8 +776,9 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
 
       <div className="card-actions">
         {isLocked ? (
-          <button className="card-action" aria-label="Bloqueado" title="Bloqueado · disponible próximamente" onClick={(e) => e.stopPropagation()} style={{cursor:'not-allowed', opacity:0.6}}>
-            🔒
+          /* Pill bloqueada · botón "Notifícame" (campana) */
+          <button className="card-action primary" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked} style={{background:'rgba(110,80,238,0.85)', color:'#fff'}}>
+            <Ico name="bell" size={12}/>
           </button>
         ) : isAssigned || !demoActive ? (
           <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
@@ -773,17 +793,26 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
             <Ico name="plus" size={12}/>
           </button>
         )}
-        <button className={`card-action${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar favorito' : 'Favorito'} title={saved ? 'Quitar favorito' : 'Favorito'} onClick={toggleSave} disabled={isLocked} style={isLocked ? {opacity:0.4, cursor:'not-allowed'} : undefined}>
-          <Ico name={saved ? 'check' : 'plus'} size={14}/>
+        {/* Favorito · disponible incluso si bloqueada (per spec: "el botón
+            guardar/marcar favorito se vea bien"); active state contrastado */}
+        <button
+          className={`card-action${saved ? ' is-active' : ''}`}
+          aria-label={saved ? 'Quitar favorito' : 'Favorito'}
+          title={saved ? 'Quitar favorito' : 'Favorito'}
+          onClick={toggleSave}
+          style={saved ? { background:'rgba(110,80,238,0.85)', color:'#fff', borderColor:'rgba(110,80,238,0.85)' } : undefined}>
+          <Ico name={saved ? 'check' : 'bookmark'} size={14}/>
         </button>
         {!demoActive && (
           <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
             <Ico name="thumb" size={13}/>
           </button>
         )}
-        <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); if (!isLocked) onOpen(pill); }} disabled={isLocked} style={isLocked ? {opacity:0.4, cursor:'not-allowed'} : undefined}>
-          <Ico name="chev-down" size={14}/>
-        </button>
+        {!isLocked && (
+          <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+            <Ico name="chev-down" size={14}/>
+          </button>
+        )}
         {!demoActive && (
           <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
         )}

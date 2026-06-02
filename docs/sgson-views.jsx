@@ -140,43 +140,34 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
               Aplica directamente en tu trabajo. Materiales descargables incluidos.
             </p>
           </div>
+          {/* En demo · aside completo oculto. Spec: "quitar Profesor,
+              Tendencias y Hashtags". */}
+          {!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
           <aside className="modal-side">
             <div className="lbl">Profesor / Mentora</div>
             <div className="val">{pill.teacher}</div>
 
             <div className="lbl">Etiquetas</div>
             <div className="val" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(() => {
-                const dm = window.DemoMode;
-                const demoActive = dm && dm.isActive && dm.isActive();
-                // En demo · sin tags "sprinklr"/"repsol" hardcoded.
-                const tags = demoActive
-                  ? [String(cat.label).toLowerCase(), String(pill.level).toLowerCase()]
-                  : ['sprinklr', String(cat.label).toLowerCase(), String(pill.level).toLowerCase(), 'repsol'];
-                return tags.map(t => (
-                  <span key={t} style={{ fontFamily:'var(--font-mono)', fontSize:10, padding:'3px 8px', border:'1px solid var(--line)', borderRadius: 'var(--r-pill)', color: 'var(--fg-muted)' }}>
-                    #{t}
-                  </span>
-                ));
-              })()}
+              {['sprinklr', String(cat.label).toLowerCase(), String(pill.level).toLowerCase(), 'repsol'].map(t => (
+                <span key={t} style={{ fontFamily:'var(--font-mono)', fontSize:10, padding:'3px 8px', border:'1px solid var(--line)', borderRadius: 'var(--r-pill)', color: 'var(--fg-muted)' }}>
+                  #{t}
+                </span>
+              ))}
             </div>
 
             <div className="lbl">Personas matriculadas</div>
             <div className="val">{(pill.enrolled || 0).toLocaleString('es-ES')}</div>
 
-            {(() => {
-              const dm = window.DemoMode;
-              const demoActive = dm && dm.isActive && dm.isActive();
-              const pathSingular = dm && dm.label ? dm.label('path_label', 'Ruta') : 'Ruta';
-              return <>
-                <div className="lbl">{pathSingular} sugerido</div>
-                <div className="val">{cat.label}{demoActive ? '' : ' · ruta del módulo'}</div>
-              </>;
-            })()}
+            <div className="lbl">Ruta sugerida</div>
+            <div className="val">{cat.label} · ruta del módulo</div>
           </aside>
+          )}
         </div>
 
-        {related.length > 0 && (
+        {/* En demo · sección "Más como esto" oculta (es contenido relacionado
+            por categoría · puede leak pills bloqueadas o de otros cursos) */}
+        {related.length > 0 && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
           <div className="modal-related">
             <h3>{T('detail.relatedTitle')} {cat.label}</h3>
             <div className="grid">
