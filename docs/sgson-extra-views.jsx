@@ -1885,9 +1885,67 @@ function ProfileView({ setView }) {
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, marginLeft: 'auto',
         }}>{T('common.logout')}</button>
       </div>
+
+      <MyCertificatesSection/>
     </PageShell>
   );
 }
+
+/* ============================================================
+   MyCertificatesSection · lista de certs del user en su Profile
+   ============================================================ */
+function MyCertificatesSection() {
+  const [, setTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setTick(t => t + 1);
+    window.addEventListener('certificates-changed', r);
+    return () => window.removeEventListener('certificates-changed', r);
+  }, []);
+  if (!window.Certificates) return null;
+  const certs = window.Certificates.list();
+
+  if (certs.length === 0) {
+    return (
+      <div style={{ marginTop: 24, padding: 32, background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:'var(--r-2)', textAlign:'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
+        <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 16, fontWeight: 700, color:'var(--fg)', margin:'0 0 6px' }}>Aún sin certificados</h3>
+        <p style={{ fontSize: 13, color:'var(--fg-muted)', margin: 0 }}>Completa todas las pills de una ruta para recibir tu primer certificado.</p>
+      </div>
+    );
+  }
+
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }); }
+    catch(e) { return iso; }
+  };
+
+  return (
+    <div style={{ marginTop: 24, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16 }}>
+        <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 16, fontWeight: 700, color:'var(--fg)', margin: 0 }}>🏆 Mis certificados</h3>
+        <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-muted)', letterSpacing:'0.06em' }}>{certs.length} {certs.length === 1 ? 'certificado' : 'certificados'}</span>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+        {certs.map(cert => (
+          <div key={cert.id} style={{ display:'flex', alignItems:'center', gap: 14, padding:'14px 16px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, background:'linear-gradient(135deg, var(--accent), var(--accent-deep))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 18, flexShrink: 0 }}>🏆</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13.5, color:'var(--fg)' }}>{cert.route_title || cert.route_id}</div>
+              <div style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-muted)', marginTop: 2, letterSpacing:'0.04em' }}>
+                {cert.cert_number || '—'} · emitido {fmtDate(cert.completed_at)}
+              </div>
+            </div>
+            <button onClick={() => window.Certificates.download(cert)} style={{
+              padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontSize: 12, fontWeight: 700,
+            }}>↓ Descargar</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+window.MyCertificatesSection = MyCertificatesSection;
 
 /* ============================================================
    SettingsView · preferencias
@@ -2043,6 +2101,10 @@ function AdminView({ setView, openLegacyAdmin }) {
       <ContentPanel kind="series"  label="Bloques formativos"     icon="📚"/>
       <ContentPanel kind="reel"    label="Quick tips (reels)"     icon="⚡"/>
       <ContentPanel kind="podcast" label="Charlas / podcasts"     icon="🎙"/>
+
+      {/* Certificados emitidos en este workspace · vista admin · uno por
+          user + ruta · descarga PDF */}
+      <CertificatesAdminPanel/>
 
       {/* BeonAI · configuración del agente (system prompt, KB, modelo) */}
       <BeonAIConfigPanel/>
@@ -3377,6 +3439,138 @@ function ContentPanel({ kind, label, icon }) {
   );
 }
 window.ContentPanel = ContentPanel;
+
+// ── CertificatesAdminPanel · admin only · todos los certs del workspace ──
+function CertificatesAdminPanel() {
+  const [items, setItems] = useEV2([]);
+  const [loading, setLoading] = useEV2(false);
+  const [error, setError] = useEV2('');
+
+  useEE2(() => {
+    if (!window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return;
+    if (!window.supabaseClient) return;
+    const load = async () => {
+      const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+      if (!ws) { setItems([]); return; }
+      setLoading(true); setError('');
+      try {
+        // RLS permite a admin del workspace leer todos los certs · joineamos
+        // con profiles para mostrar nombre + email del titular.
+        const { data, error: err } = await window.supabaseClient
+          .from('certificates')
+          .select('id, route_id, route_title, cert_number, completed_at, user_id, profiles(name, email, avatar_color)')
+          .eq('workspace_id', ws.id)
+          .order('completed_at', { ascending: false });
+        if (err) { setError(err.message); return; }
+        setItems(data || []);
+      } finally { setLoading(false); }
+    };
+    load();
+    window.addEventListener('workspace-changed', load);
+    window.addEventListener('certificates-changed', load);
+    return () => {
+      window.removeEventListener('workspace-changed', load);
+      window.removeEventListener('certificates-changed', load);
+    };
+  }, []);
+
+  if (!window.Auth || !window.Auth.can || !window.Auth.can('admin.viewPanel')) return null;
+
+  const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+  const wsName = ws ? ws.name : '—';
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleString('es-ES', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+    catch(e) { return iso; }
+  };
+  const exportCSV = () => {
+    if (items.length === 0) return;
+    const header = 'cert_number,user_name,user_email,route_title,completed_at\n';
+    const rows = items.map(c => {
+      const p = c.profiles || {};
+      return [c.cert_number, p.name || '', p.email || '', c.route_title || c.route_id, c.completed_at]
+        .map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',');
+    }).join('\n');
+    const blob = new Blob([header + rows], { type:'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'certificados-' + (ws ? ws.slug || 'workspace' : 'workspace') + '-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  };
+  const downloadOne = (cert) => {
+    if (!window.Certificates || !window.Certificates.generateHTML) return;
+    // Para descargar el PDF de un cert ajeno necesitamos sobreescribir la
+    // identidad del titular en el HTML · usamos un wrap que pasa el name
+    const html = window.Certificates.generateHTML({
+      ...cert,
+      // El user que descarga es el admin · sobreescribimos para que el cert
+      // refleje al titular real desde el join con profiles.
+    });
+    // Inyectamos el nombre del titular en el HTML · simple replace del
+    // userName que generateHTML pone (que es el admin actual).
+    const p = cert.profiles || {};
+    const titularName = p.name || (p.email ? p.email.split('@')[0] : 'Titular');
+    const replaced = html.replace(
+      /<div class="name">[^<]*<\/div>/,
+      '<div class="name">' + titularName.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])) + '</div>'
+    );
+    const blob = new Blob([replaced], { type:'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safe = s => (s||'').toString().replace(/[^A-Za-z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    a.download = 'Cert-' + safe(cert.route_title || cert.route_id) + '-' + safe(titularName) + '.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  };
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, flexWrap:'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>🏆 Certificados emitidos · {wsName}</h2>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 2 }}>
+            {loading ? 'Cargando…' : items.length === 0 ? 'Sin certificados emitidos todavía' : items.length + ' certificado' + (items.length === 1 ? '' : 's')}
+          </div>
+        </div>
+        {items.length > 0 && (
+          <button onClick={exportCSV} style={{
+            padding:'8px 14px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer',
+            fontFamily:'var(--font-sans)', fontSize: 12, fontWeight: 700,
+          }}>↓ Exportar CSV</button>
+        )}
+      </div>
+      {error && <div style={{ padding: 10, background:'rgba(224,52,31,0.1)', border:'1px solid rgba(224,52,31,0.3)', borderRadius: 6, color:'#E0341F', fontSize: 12 }}>{error}</div>}
+      {items.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+          {items.map(cert => {
+            const p = cert.profiles || {};
+            const initial = (p.name || p.email || '?').trim()[0].toUpperCase();
+            return (
+              <div key={cert.id} style={{ display:'flex', alignItems:'center', gap: 12, padding:'10px 14px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius:'50%', background: p.avatar_color || 'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{initial}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color:'var(--fg)' }}>{p.name || (p.email ? p.email.split('@')[0] : 'Usuario')}</div>
+                  <div style={{ fontSize: 11.5, color:'var(--fg-muted)' }}>{cert.route_title || cert.route_id}</div>
+                </div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)', letterSpacing:'0.04em', textAlign:'right' }}>
+                  <div>{cert.cert_number}</div>
+                  <div style={{ marginTop: 2 }}>{fmtDate(cert.completed_at)}</div>
+                </div>
+                <button onClick={() => downloadOne(cert)} title="Descargar certificado" style={{
+                  padding:'6px 10px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer',
+                  fontSize: 11.5, color:'var(--fg)',
+                }}>↓</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+window.CertificatesAdminPanel = CertificatesAdminPanel;
 
 // ── ManagerView · panel del líder de equipo · KPIs + miembros + invitar ──
 function ManagerView({ setView }) {
