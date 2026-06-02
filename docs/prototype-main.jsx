@@ -1692,8 +1692,12 @@ function InviteUsersModal({ onClose }) {
   const [tab, setTab] = useSM('single'); // 'single' | 'bulk'
   const [email, setEmail] = useSM('');
   const [name, setName] = useSM('');
-  const [role, setRole] = useSM('Publish Agent');
-  const [team, setTeam] = useSM('Repsol');
+  const [role, setRole] = useSM('');
+  // Team default · usa el nombre del workspace activo. El admin lo puede editar.
+  const [team, setTeam] = useSM(() => {
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    return ws ? ws.name : '';
+  });
   const [csv, setCsv] = useSM('');
   const [result, setResult] = useSM(null);
   const [error, setError] = useSM('');
@@ -1733,6 +1737,7 @@ function InviteUsersModal({ onClose }) {
   const sendInviteEmail = async (inv) => {
     if (!inv) return;
     const me = window.Auth && window.Auth.currentUser();
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     try {
       const r = await fetch('/api/send-invite', {
         method: 'POST',
@@ -1743,7 +1748,9 @@ function InviteUsersModal({ onClose }) {
           token: inv.token,
           role: inv.role,
           team: inv.team,
-          fromName: me ? me.name : 'Equipo BeonIt',
+          fromName: me ? me.name : '',
+          workspaceName: ws ? ws.name : '',
+          workspaceColor: ws ? (ws.primaryColor || ws.primary_color) : null,
         }),
       });
       const data = await r.json().catch(() => ({}));
@@ -1761,7 +1768,7 @@ function InviteUsersModal({ onClose }) {
     }
   };
 
-  const csvSample = 'email,name,role,team\nana.lopez@repsol.com,Ana López,Publish Agent,Repsol\njuan.perez@repsol.com,Juan Pérez,Care Agent,Repsol\nlaura.gomez@repsol.com,Laura Gómez,Content Lead,Repsol';
+  const csvSample = 'email,name,role,team\nana.garcia@empresa.com,Ana García,Manager,Marketing\njuan.perez@empresa.com,Juan Pérez,Analista,Operaciones';
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
@@ -1792,7 +1799,7 @@ function InviteUsersModal({ onClose }) {
           <form onSubmit={submitSingle}>
             <label style={{display:'block', marginBottom:12}}>
               <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email *</div>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ana.lopez@repsol.com" autoFocus
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="email@empresa.com" autoFocus
                 style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
             </label>
             <label style={{display:'block', marginBottom:12}}>
@@ -5932,10 +5939,17 @@ function PendingInvitationsBlock({ invitations }) {
 
   const sendEmail = async (inv) => {
     const me = window.Auth && window.Auth.currentUser();
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     try {
       const r = await fetch('/api/send-invite', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ email:inv.email, name:inv.name, token:inv.token, role:inv.role, team:inv.team, fromName: me ? me.name : 'Equipo BeonIt' }),
+        body: JSON.stringify({
+          email: inv.email, name: inv.name, token: inv.token,
+          role: inv.role, team: inv.team,
+          fromName: me ? me.name : '',
+          workspaceName: ws ? ws.name : '',
+          workspaceColor: ws ? (ws.primaryColor || ws.primary_color) : null,
+        }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
