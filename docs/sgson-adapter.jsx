@@ -181,9 +181,15 @@
       }
       const total = pillIds.length;
       const pct = total > 0 ? completed / total : 0;
+      // Metadata del workspace_content · contiene poster_url (cover del
+      // curso · cargado a Supabase Storage por design), cert_url (PDF/PNG
+      // del certificado), accent (color hex del manual beonit).
+      const meta = p._meta || {};
+      const accentHex = meta.accent || null;
       return {
         id:        p.id,
         _id:       p._id,            // uuid expuesto para routeProgress() externo
+        slug:      p.id,             // usado por components para match con assets
         title:     p.label || p.title || 'Ruta',
         label:     p.label || p.title || 'Ruta',
         desc:      p.desc || p.roleTag || '',
@@ -192,6 +198,9 @@
         pillIds:   pillIds,
         hours:     p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),
         accent:    TONE_BY_LABEL[p.label] || 'cat-publish',
+        accentHex: accentHex,        // color hex del design (#0072BE, #FC220D, etc.)
+        posterUrl: meta.poster_url || null,  // cover image del curso (design)
+        certUrl:   meta.cert_url || null,    // certificado descargable (design)
         // Progreso del user en esta ruta
         progress:  pct,
         completedCount: completed,

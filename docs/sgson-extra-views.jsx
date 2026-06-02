@@ -177,7 +177,19 @@ function RutasView({ setView, openPath }) {
           };
           return (
           <article key={p.id} className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
-            <div className={`card-cover ${p.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
+            {/* Cover · si design subió poster_url lo usamos; si no, gradient
+                de categoría. p.accentHex (del manual beonit) tinta el badge.
+                Locked → grayscale + brightness bajada para mantener visible. */}
+            {p.posterUrl ? (
+              <img src={p.posterUrl} alt="" loading="lazy"
+                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+                         filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
+                onError={e => { e.currentTarget.style.display='none'; }}/>
+            ) : (
+              <div className={`card-cover ${p.accent || 'cat-publish'}`}
+                style={Object.assign({}, isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : {},
+                                     p.accentHex ? { background: `linear-gradient(135deg, ${p.accentHex}, ${p.accentHex}88)` } : {})}/>
+            )}
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>
               {pathLabelSingular} · {p.completedCount || 0}/{p.totalCount || p.pills} pills{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
@@ -2417,10 +2429,20 @@ function CertificatesView({ setView }) {
                   <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:11, color:'var(--fg-muted)', letterSpacing:'0.04em' }}>
                     {cert.cert_number || '—'} · {fmtDate(cert.completed_at)}
                   </div>
-                  <button onClick={() => window.Certificates && window.Certificates.download(cert)} style={{
+                  {/* Descarga · si el path tiene certUrl (design subió PNG a
+                      Storage) abre ese link directo en pestaña nueva. Si no,
+                      usa el flujo legacy de window.Certificates.download que
+                      genera PDF en cliente. */}
+                  <button onClick={() => {
+                    if (p.certUrl) {
+                      window.open(p.certUrl, '_blank', 'noopener');
+                    } else if (window.Certificates && window.Certificates.download) {
+                      window.Certificates.download(cert);
+                    }
+                  }} style={{
                     padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
                     cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
-                    boxShadow:'0 4px 12px rgba(110,80,238,0.30)',
+                    boxShadow:'0 4px 12px rgba(0,114,190,0.30)',
                   }}>↓ Descargar certificado</button>
                 </div>
               )}

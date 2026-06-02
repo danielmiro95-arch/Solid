@@ -854,9 +854,23 @@ function NxPathCard({ path, onOpen }) {
     onOpen && onOpen(path);
   };
 
+  // Color del badge "Nivel X" · usa accentHex del manual beonit si lo trae,
+  // si no el azul por defecto.
+  const _badgeColor = path.accentHex || '#0072BE';
+
   return (
     <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
-      <div className={`card-cover ${path.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
+      {/* Cover · poster_url de Supabase Storage si existe; si no, gradient */}
+      {path.posterUrl ? (
+        <img src={path.posterUrl} alt="" loading="lazy"
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+                   filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
+          onError={e => { e.currentTarget.style.display='none'; }}/>
+      ) : (
+        <div className={`card-cover ${path.accent || 'cat-publish'}`}
+          style={Object.assign({}, isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : {},
+                               path.accentHex ? { background: `linear-gradient(135deg, ${path.accentHex}, ${path.accentHex}88)` } : {})}/>
+      )}
       <div className="card-grad"/>
       <span className="card-pill-num">{pathBadge}</span>
       {isLocked && (
@@ -870,7 +884,7 @@ function NxPathCard({ path, onOpen }) {
       {level && !isLocked && (
         <span style={{
           position:'absolute', top:10, right:10, padding:'4px 10px',
-          background:'rgba(0,114,190,0.92)', color:'#fff', borderRadius:999,
+          background:_badgeColor, color:'#fff', borderRadius:999,
           fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
           letterSpacing:'0.06em',
         }}>Nivel {level}</span>
