@@ -168,10 +168,29 @@ function RutasView({ setView, openPath }) {
                   <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
                 </div>
               )}
-              <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
-                marginTop: 14, padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
-                background: p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
-              }}>{startLabel}</button>
+              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
+                <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
+                  padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
+                  background: p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                }}>{startLabel}</button>
+                {p.isCompleted && window.Certificates && (
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    const cert = window.Certificates.get(p._id || p.id);
+                    if (cert) {
+                      window.Certificates.download(cert);
+                    } else if (window.Toast) {
+                      window.Toast.info('Generando certificado…');
+                      window.Certificates.create({ id: p._id || p.id, title: p.title }).then(c => {
+                        if (c) window.Certificates.download(c);
+                      });
+                    }
+                  }} style={{
+                    padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
+                    background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                  }}>🏆 Certificado</button>
+                )}
+              </div>
             </div>
           </article>
         );})}

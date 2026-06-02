@@ -1031,6 +1031,54 @@ exception when duplicate_object then null;
 end $$;
 
 -- =====================================================================
+-- 36. certificates · certificados emitidos al completar una ruta
+-- · El frontend dispara 'route-completed' cuando todas las pills de una
+--   ruta están en progress.completed_at IS NOT NULL.
+-- · Un listener inserta una fila aquí (idempotente por user+route).
+-- · El user descarga el PDF generado del template del frontend
+--   (Certificates.generateHTML).
+-- =====================================================================
+create table if not exists public.certificates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  route_id text not null,                       -- slug o uuid del path
+  route_title text not null,                    -- snapshot del nombre al emitir
+  cert_number text not null default ('CERT-' || to_char(now(), 'YYYY') || '-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
+  completed_at timestamptz not null default now(),
+  metadata jsonb default '{}'::jsonb,           -- score, total, etc.
+  created_at timestamptz default now(),
+  unique(user_id, workspace_id, route_id)        -- idempotente · 1 cert por user/ws/ruta
+);
+create index if not exists certificates_user_idx on public.certificates(user_id, completed_at desc);
+create index if not exists certificates_workspace_idx on public.certificates(workspace_id, completed_at desc);
+
+alter table public.certificates enable row level security;
+
+-- User lee sus propios certs
+drop policy if exists certs_read_self on public.certificates;
+create policy certs_read_self on public.certificates
+  for select using (user_id = auth.uid());
+
+-- Admins del workspace + platform admin ven todos los del workspace
+drop policy if exists certs_read_admin on public.certificates;
+create policy certs_read_admin on public.certificates
+  for select using (
+    public.is_workspace_member(workspace_id, 'admin')
+    or public.is_platform_admin()
+  );
+
+-- User puede insertar sus propios certs (cuando completa una ruta)
+drop policy if exists certs_insert_self on public.certificates;
+create policy certs_insert_self on public.certificates
+  for insert with check (user_id = auth.uid());
+
+do $$ begin
+  alter publication supabase_realtime add table public.certificates;
+exception when duplicate_object then null;
+end $$;
+
+-- =====================================================================
 -- DONE · revisa Authentication → Settings y habilita los providers que uses
 -- (email/password siempre, Azure AD opcional para SSO Microsoft).
 -- =====================================================================

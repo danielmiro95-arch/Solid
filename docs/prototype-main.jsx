@@ -3019,6 +3019,118 @@ function _activateSupabaseData() {
   // ── Pills CRUD (admin) ────────────────────────────────────────────────
   // Acciones administrativas sobre el catálogo del workspace activo.
   // Todas las funciones recargan tras la operación y devuelven el resultado.
+  // ── Certificates · persistencia + descarga PDF ───────────────────────
+  // Tabla public.certificates con UNIQUE(user_id, workspace_id, route_id).
+  // Se crea automáticamente al recibir 'route-completed' (disparado por
+  // Progress.complete cuando todas las pills de una ruta están done).
+  let _certsCache = [];
+  async function _loadCertificates() {
+    const u = _uid(); const ws = _wsid();
+    if (!u || !ws) { _certsCache = []; return; }
+    const { data, error } = await sb.from('certificates')
+      .select('id, user_id, workspace_id, route_id, route_title, cert_number, completed_at, metadata, created_at')
+      .eq('user_id', u).eq('workspace_id', ws)
+      .order('completed_at', { ascending: false });
+    if (error) { console.warn('[certs] load', error.message); return; }
+    _certsCache = data || [];
+    window.dispatchEvent(new Event('certificates-changed'));
+  }
+  window.Certificates = {
+    list: () => _certsCache.slice(),
+    get: (routeId) => _certsCache.find(c => c.route_id === String(routeId)) || null,
+    has: (routeId) => !!_certsCache.find(c => c.route_id === String(routeId)),
+    create: async function(routeInfo) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !routeInfo) return null;
+      const routeId = String(routeInfo.id || routeInfo._id || '');
+      if (!routeId) return null;
+      if (window.Certificates.has(routeId)) return window.Certificates.get(routeId);
+      const payload = {
+        user_id: u, workspace_id: ws,
+        route_id: routeId,
+        route_title: routeInfo.title || routeInfo.label || 'Ruta',
+        metadata: routeInfo.metadata || {},
+      };
+      const { data, error } = await sb.from('certificates').insert(payload).select().single();
+      if (error) {
+        // unique constraint · ya existe · refresh y devuelve el que esté
+        if (error.code === '23505') { await _loadCertificates(); return window.Certificates.get(routeId); }
+        console.warn('[certs] create', error.message); return null;
+      }
+      _certsCache.unshift(data);
+      window.dispatchEvent(new Event('certificates-changed'));
+      return data;
+    },
+    /* Genera el HTML del certificado · ABRE como blob en pestaña nueva
+     * o fuerza descarga · el user lo imprime a PDF desde el navegador. */
+    generateHTML: function(cert) {
+      const profile = (window.Auth && window.Auth.currentUser()) || {};
+      const wsName = window.WORKSPACE_NAME || (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && window.Workspaces.current().name) || 'Plataforma';
+      const today = cert.completed_at
+        ? new Date(cert.completed_at).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' })
+        : new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+      const userName = profile.name || (profile.email ? profile.email.split('@')[0] : 'Alumno');
+      const userRole = profile.role || '';
+      const userTeam = profile.team || wsName;
+      const wsColor = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && (window.Workspaces.current().primaryColor || window.Workspaces.current().primary_color)) || '#005996';
+      const esc = s => (s||'').toString().replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c]));
+      return '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + esc(userName) + '</title>'
+        + '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}'
+        + '.frame{border:6px double ' + wsColor + ';padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}'
+        + '.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}'
+        + 'h1{font-size:38px;margin:0 0 20px;color:#0D1117}'
+        + '.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}'
+        + '.name{font-style:italic;font-weight:700;font-size:58px;color:' + wsColor + ';margin:0 0 8px;letter-spacing:-.025em}'
+        + '.role{font-size:16px;color:#0D1117;margin-bottom:28px}'
+        + '.cert-line{height:2px;background:linear-gradient(90deg,' + wsColor + ',#BCD630,#8A3992,' + wsColor + ');margin:24px 0}'
+        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}'
+        + '.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}'
+        + '.cert-num{font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.1em}'
+        + '</style></head><body>'
+        + '<div class="frame">'
+        +   '<div class="kicker">SolidStream · ' + esc(wsName) + ' · Certificación oficial</div>'
+        +   '<h1>Certificado · ' + esc(cert.route_title || 'Ruta') + '</h1>'
+        +   '<div class="lead">Por la presente certificamos que la persona reseñada ha completado los módulos de esta ruta dentro de la formación oficial del programa.</div>'
+        +   '<div class="name">' + esc(userName) + '</div>'
+        +   (userRole || userTeam ? '<div class="role">' + esc([userRole, userTeam].filter(Boolean).join(' · ')) + '</div>' : '')
+        +   '<div class="cert-line"></div>'
+        +   '<div class="foot">'
+        +     '<div><strong>Fecha</strong><br/>' + esc(today) + '</div>'
+        +     '<div><strong>Nº de certificado</strong><br/><span class="cert-num">' + esc(cert.cert_number || '—') + '</span></div>'
+        +     '<div><div class="sig">' + esc(wsName) + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div>'
+        +   '</div>'
+        + '</div></body></html>';
+    },
+    /* Forza descarga como .html · el user lo imprime a PDF en el navegador.
+     * Filename sugerido: Certificado-{routeId}-{userName}.html */
+    download: function(cert) {
+      const html = window.Certificates.generateHTML(cert);
+      const blob = new Blob([html], { type:'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safe = s => (s||'').toString().replace(/[^A-Za-z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+      const profile = (window.Auth && window.Auth.currentUser()) || {};
+      a.download = 'Certificado-' + safe(cert.route_title || cert.route_id) + '-' + safe(profile.name || profile.email || 'alumno') + '.html';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    },
+  };
+  // Listener · al completar una ruta, crear cert (idempotente vía constraint
+  // UNIQUE en DB · si ya existe, simplemente devuelve el existente).
+  window.addEventListener('route-completed', async (ev) => {
+    const path = ev && ev.detail && ev.detail.path;
+    if (!path) return;
+    const cert = await window.Certificates.create({
+      id: path._id || path.id,
+      title: path.title || path.label,
+      metadata: { completed: ev.detail.completed },
+    });
+    if (cert && window.Toast) {
+      window.Toast.success('Certificado emitido · descárgalo desde "Mis certificados"', { icon:'🏆' });
+    }
+  });
+
   window.Pills = {
     list: () => (window.PILLS || []).slice(),
     // Crea una pill nueva. `data` admite el shape camelCase (igual que las
@@ -3128,7 +3240,7 @@ function _activateSupabaseData() {
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
       _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
-      _loadPills(), _loadAllContent(), _loadProgress(),
+      _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
@@ -3141,7 +3253,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -6230,7 +6342,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
   };
 
   const downloadCert = () => {
-    var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: 'Sprinklr', team: 'Repsol' };
+    var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: '', team: (window.WORKSPACE_NAME || '') };
     const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
 '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
