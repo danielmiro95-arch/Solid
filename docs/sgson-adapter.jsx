@@ -214,10 +214,10 @@
     }
     const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
-    // En modo demo · el role por defecto pasa a ser "Learning Manager", el
-    // team toma el nombre del workspace, y el name se fuerza a "Julio"
-    // (per spec del cliente). Los platform admins ven su nombre real para
-    // poder gestionar sin confusión.
+    // En modo demo · el role y team se FUERZAN (no usan profile.role/team
+    // por defecto). Esto cubre el caso en que Julio se crea desde el
+    // Dashboard y queda con role='Publish Agent' / team='Repsol' default
+    // del schema. Los platform admins ven su nombre real para gestionar.
     const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
     const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
     const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
@@ -226,12 +226,18 @@
     const finalInitials = _demoForceName
       ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
       : initials;
+    // Demo · workspace name sin sufijo "Demo" para presentación
+    const _wsNameClean = String(_wsName).replace(/\s+demo\s*$/i, '').trim() || _wsName;
     const USER = {
       id:       (profile && profile.id) || (sessionUser && sessionUser.id),
       name:     finalName,
       initials: finalInitials,
-      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || (_demoActiveU ? 'Learning Manager' : 'Publish Agent'),
-      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || (_demoActiveU ? _wsName : 'Repsol'),
+      role:     (_demoActiveU && !_isPlatformAdmin)
+                  ? 'Learning Specialist'
+                  : ((profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent'),
+      team:     (_demoActiveU && !_isPlatformAdmin)
+                  ? _wsNameClean
+                  : ((profile && profile.team) || (sessionUser && sessionUser.team) || 'Repsol'),
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
       isAdmin:  _isPlatformAdmin,
@@ -239,35 +245,40 @@
     };
 
     // ── SIDEBAR_LINKS · filtrado por DemoMode flags ──
-    // En demo · tras última reunión · sidebar reducido a 3 items:
-    //   Inicio · Catálogo (rutas) · Mis Cursos (path).
-    // Channels, Bandeja, Guardado, Mi perfil, Ajustes, BeonAI, Analytics,
-    // Recursos y Admin se ocultan · Channels y Mi Perfil se acceden desde el
-    // popup del avatar (ver TopNav menuItems).
-    // _dm / _flag / _label / _dmActive ya están definidos arriba.
-    const _rutaPlural = _dmActive
+    // Sidebar reducido en demo a 3 items: Inicio · Catálogo · Mi Playlist.
+    // El resto se oculta. Channels, Mi Perfil y Certificados se acceden
+    // desde el popup del avatar (TopNav menuItems).
+    //
+    // RUNTIME check · No usamos el snapshot `_dmActive` porque sgson-adapter.jsx
+    // carga en index.html ANTES que prototype-main.jsx (donde se define
+    // DemoMode). El polling _whenDemoReady asegura un re-setup cuando
+    // DemoMode esté listo, y aquí evaluamos demo runtime en cada construcción
+    // del array.
+    const _isDemoNow = () => !!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
+    const _demoNow = _isDemoNow();
+    const _rutaPlural = _demoNow
       ? _label('catalog_label', 'Catálogo')
       : _label('path_label_plural', 'Rutas');
-    const _myListLabel = _dmActive
+    const _myListLabel = _demoNow
       ? _label('my_list_label', 'Mi Playlist')
       : _label('my_list_label', 'Mi ruta');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
       { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null,
-        hidden: _dmActive },
+        hidden: _demoNow },
       { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid',
-        hidden: _flag('hide_browse_catalog') === true || _dmActive },
+        hidden: _flag('hide_browse_catalog') === true || _demoNow },
       { key:'rutas',     label: _rutaPlural, icon:'compass' },
       { key:'path',      label: _myListLabel, icon:'route' },
-      { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
-      { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
-      { key:'wa',        label:'Channels',   icon:'broadcast', hidden: _dmActive },
-      { key:'resources', label:'Recursos',   icon:'book',      hidden: _flag('hide_resources') === true },
-      { key:'saved',     label:'Guardado',   icon:'bookmark',  hidden: _dmActive },
-      { key:'profile',   label:'Mi perfil',  icon:'user',      hidden: _dmActive },
-      { key:'settings',  label:'Ajustes',    icon:'gear',      hidden: _dmActive },
+      { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _demoNow || _flag('hide_analytics') === true },
+      { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _demoNow || _flag('hide_beonai') === true },
+      { key:'wa',        label:'Channels',   icon:'broadcast', hidden: _demoNow },
+      { key:'resources', label:'Recursos',   icon:'book',      hidden: _demoNow || _flag('hide_resources') === true },
+      { key:'saved',     label:'Guardado',   icon:'bookmark',  hidden: _demoNow },
+      { key:'profile',   label:'Mi perfil',  icon:'user',      hidden: _demoNow },
+      { key:'settings',  label:'Ajustes',    icon:'gear',      hidden: _demoNow },
       { key:'admin',     label:'Admin',      icon:'shield', admin: true,
-        hidden: _flag('simplified_profile') === true },  // demo: oculta admin al user final
+        hidden: _demoNow || _flag('simplified_profile') === true },
     ].filter(x => !x.hidden);
 
     window.SGS_DATA = { CATS, PILLS, LEARNING_PATHS, ROWS, USER, SIDEBAR_LINKS, pillById };
