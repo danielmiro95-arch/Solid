@@ -1826,7 +1826,9 @@ function ProfileView({ setView }) {
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats · ocultos en demo mode con simplified_profile · solo se ven los stats
+          completed/inProgress/daysActive dentro del avatar menu */}
+      {!(window.DemoMode && window.DemoMode.flag('simplified_profile') === true) && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
         {[
           { label: T('profile.stats.completed'), value: completed, color: 'var(--ok)' },
@@ -1839,8 +1841,11 @@ function ProfileView({ setView }) {
           </div>
         ))}
       </div>
+      )}
 
-      {/* Acciones */}
+      {/* Acciones · ocultas en demo mode con simplified_profile · admin se
+          ve solo si el user es admin de plataforma */}
+      {!(window.DemoMode && window.DemoMode.flag('simplified_profile') === true) && (
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {!editing && (
           <button onClick={() => setEditing(true)} style={{
@@ -1885,6 +1890,17 @@ function ProfileView({ setView }) {
           fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, marginLeft: 'auto',
         }}>{T('common.logout')}</button>
       </div>
+      )}
+      {/* En demo mode el logout sigue siendo accesible vía un botón mínimo */}
+      {(window.DemoMode && window.DemoMode.flag('simplified_profile') === true) && (
+        <div style={{ marginTop: 24, display:'flex', justifyContent:'flex-end' }}>
+          <button onClick={handleLogout} style={{
+            padding: '8px 16px', background: 'transparent', color: 'var(--fg-muted)',
+            border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13,
+          }}>{T('common.logout','Cerrar sesión')}</button>
+        </div>
+      )}
 
       <MyCertificatesSection/>
     </PageShell>
@@ -2000,17 +2016,21 @@ function SettingsView({ setView }) {
       {/* PUSH NOTIFICATIONS · Web Push API · suscripción del dispositivo */}
       <PushNotificationsPanel/>
 
-      {/* SMART SCHEDULING · IA con análisis del mejor horario */}
-      <SmartSchedulingPanel/>
+      {/* Paneles avanzados ocultos en demo mode con simplified_settings · solo
+          Idioma + Notificaciones Push quedan visibles · el resto requiere admin */}
+      {!(window.DemoMode && window.DemoMode.flag('simplified_settings') === true) && (<>
+        {/* SMART SCHEDULING · IA con análisis del mejor horario */}
+        <SmartSchedulingPanel/>
 
-      {/* CONTENT PUSH · qué contenido recibir */}
-      <ContentPushPanel channelColor={accentColor}/>
+        {/* CONTENT PUSH · qué contenido recibir */}
+        <ContentPushPanel channelColor={accentColor}/>
 
-      {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
-      <SubscriptionsPanel channelColor={accentColor}/>
+        {/* SUBSCRIPTIONS · seguir categorías, skills, equipos, trainers */}
+        <SubscriptionsPanel channelColor={accentColor}/>
 
-      {/* NOTIFICATION RULES · quiet hours, vacation, digest, smart, priority */}
-      <NotificationRulesPanel channelColor={accentColor}/>
+        {/* NOTIFICATION RULES · quiet hours, vacation, digest, smart, priority */}
+        <NotificationRulesPanel channelColor={accentColor}/>
+      </>)}
     </PageShell>
   );
 }

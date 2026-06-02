@@ -1143,6 +1143,65 @@ const Workspaces = (function() {
 })();
 window.Workspaces = Workspaces;
 
+// ── DemoMode · helper que lee workspace.settings y expone flags ────────
+// Cualquier componente que quiera saber si está en modo demo (o si tiene
+// que ocultar X feature) consulta window.DemoMode.flag('hide_beonai').
+// Cuando settings.demo_mode === true se aplican TODOS los hide/rename del
+// preset · cada flag individual permite override granular para casos
+// futuros sin entrar en modo demo completo.
+(function(){
+  function _ws() {
+    return (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || null;
+  }
+  function _settings() {
+    const w = _ws();
+    return (w && w.settings) || {};
+  }
+  // Si demo_mode está activo · estos son los valores por defecto que
+  // aplican aunque la flag individual no esté en settings. El admin puede
+  // anular cualquiera setándola explícitamente a false.
+  const DEMO_PRESET = {
+    hide_beonai: true,
+    hide_analytics: true,
+    hide_resources: true,
+    hide_recommendations: true,
+    hide_durations: true,
+    hide_attribution: true,
+    simplified_avatar_menu: true,
+    simplified_settings: true,
+    simplified_profile: true,
+    lock_unassigned_courses: true,
+    path_label: 'Curso',
+    path_label_plural: 'Cursos',
+    brief_diario_label: 'Brief Diario',
+    workshops_label: 'Inscríbete a talleres',
+    catalog_label: 'Catálogo',
+    level_badges: ['Básico','Intermedio','Experto'],
+  };
+  window.DemoMode = {
+    isActive: () => _settings().demo_mode === true,
+    flag: function(name) {
+      const s = _settings();
+      // Override explícito en settings tiene prioridad
+      if (name in s) return s[name];
+      // Si demo_mode === true · usa preset
+      if (s.demo_mode === true && name in DEMO_PRESET) return DEMO_PRESET[name];
+      return undefined;
+    },
+    label: function(name, fallback) {
+      const v = window.DemoMode.flag(name);
+      return (typeof v === 'string' && v) ? v : fallback;
+    },
+    unlocked: function() {
+      // Lista de slugs de paths abiertos · si está vacía y
+      // lock_unassigned_courses=true, TODO está cerrado
+      const v = window.DemoMode.flag('unlocked_paths');
+      return Array.isArray(v) ? v : [];
+    },
+  };
+})();
+
+
 // ── Branding por workspace (Fase 1 multi-tenant) ─────────────────────────
 // Cada workspace puede tener su propio logo y color accent. Cuando cambia
 // el workspace activo, aplicamos su branding: --accent en el CSS root y
@@ -5014,10 +5073,10 @@ function App() {
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
-      {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && (
+      {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
         <window.AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
-      {view !== 'onboarding' && aiMode === 'collapsed' && (
+      {view !== 'onboarding' && aiMode === 'collapsed' && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
         <button
           className="ai-rail-btn"
           onClick={() => setAIMode('companion')}

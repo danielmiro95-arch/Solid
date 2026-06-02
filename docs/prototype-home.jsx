@@ -262,15 +262,22 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const canAdmin   = !!(window.Auth && window.Auth.can     && window.Auth.can('admin.viewPanel'));
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
-  const menuItems = [
+  // En demo mode con simplified_avatar_menu solo se muestran 4 items
+  // hacia "perfil" (Mi Perfil, Formación completada/en curso/días activos),
+  // que en la práctica son 1 link a profile · el resto son stats que se
+  // ven dentro del profile · así que el menú queda con un solo link.
+  const isSimplified = window.DemoMode && window.DemoMode.flag('simplified_avatar_menu') === true;
+  const menuItems = isSimplified ? [
+    { k:'profile', label: T('nav.profile'), icon:'user' },
+  ] : [
     { k:'profile',  label:T('nav.profile'),  icon:'user' },
     { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },
     { k:'wa',       label:T('nav.wa'),       icon:'broadcast' },
     { k:'inbox',    label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
     { k:'settings', label:T('nav.settings'), icon:'gear' },
   ];
-  if (canManager) menuItems.push({ k:'manager', label: T('nav.manager','Mi equipo'), icon:'users' });
-  if (canAdmin)   menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });
+  if (!isSimplified && canManager) menuItems.push({ k:'manager', label: T('nav.manager','Mi equipo'), icon:'users' });
+  if (!isSimplified && canAdmin)   menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });
 
   return (
     <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>
@@ -604,8 +611,10 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
       <div className="card-body">
         <h3 className="card-title">{pill.title}</h3>
         <div className="card-meta">
-          <span>{pill.duration}</span>
-          <span className="sep">·</span>
+          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+            <span>{pill.duration}</span>
+            <span className="sep">·</span>
+          </>}
           <span>{pill.level}</span>
         </div>
       </div>
@@ -646,8 +655,10 @@ function NxPathCard({ path, onOpen }) {
           {path.title}
         </h3>
         <div className="card-meta">
-          <span>{path.hours}</span>
-          <span className="sep">·</span>
+          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+            <span>{path.hours}</span>
+            <span className="sep">·</span>
+          </>}
           <span>{(path.desc || '').slice(0, 38)}…</span>
         </div>
       </div>
