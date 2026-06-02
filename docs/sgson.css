@@ -2539,9 +2539,17 @@ html[data-demo-mode="true"] .modal .modal-related h3 { color: #FFFFFF; }
 html[data-demo-mode="true"] .modal-close { color: #FFFFFF; }
 
 /* Hero badge · "Seguir viendo" / "Top esta semana" · rojo beonit (Netflix-vibe) */
-html[data-demo-mode="true"] .hero-badge { background: rgba(0,0,0,0.7); color: #FFFFFF; backdrop-filter: blur(8px); }
-html[data-demo-mode="true"] .hero-badge .label { color: #FC220D; font-weight: 800; letter-spacing: 0.06em; }
-html[data-demo-mode="true"] .hero-badge .value { color: #FFFFFF; }
+/* En demo · hero-badge contiene solo el LOGO beonit (no text/eyebrow/quote)
+ * con un frosted dark backdrop para que el logo blanco se lea sobre
+ * cualquier video. Padding + radius para que parezca una pastilla. */
+html[data-demo-mode="true"] .hero-badge {
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+}
 
 /* Hero text sigue blanco (era así) · overlay default funciona bien */
 

@@ -548,28 +548,25 @@ function HomeHero({ onPlay, onMore }) {
           const _isDemoURL = /demo/i.test(window.location.href);
           const dm = window.DemoMode;
           const demoActive = _isDemoURL || (dm && dm.isActive && dm.isActive());
-          const isTendencia = /tendencias?/i.test(String(p.category || ''))
-                           || /^tendencia-/i.test(String(p.id || p.slug || ''));
-          // En demo · si la pill mostrada es una de Tendencias → badge "Tendencias
-          // de la semana". Si tiene progreso → "Seguir viendo". Default "Destacado".
-          if (demoActive && isTendencia) {
-            return <>
-              <span className="label">Tendencias de la semana</span>
-              <span className="value">{p.teacher || 'curso recomendado'}</span>
-              <span className="stroke"/>
-            </>;
+          // En demo · el hero-badge muestra el LOGO BEONIT en lugar de
+          // "Tendencias de la semana / María López". Petición del cliente.
+          if (demoActive) {
+            return (
+              <img
+                src={`beonit-logo.png?v=${window.SOLID_VERSION || 'demo'}`}
+                alt="beonit"
+                style={{
+                  height: 36,
+                  width: 'auto',
+                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.45))',
+                }}
+              />
+            );
           }
           if (demoActive && p.progress > 0 && p.progress < 1) {
             return <>
               <span className="label">Seguir viendo</span>
               <span className="value">{Math.round(p.progress * 100)}% · {p.teacher}</span>
-              <span className="stroke"/>
-            </>;
-          }
-          if (demoActive) {
-            return <>
-              <span className="label">Destacado</span>
-              <span className="value">curso recomendado para ti</span>
               <span className="stroke"/>
             </>;
           }
