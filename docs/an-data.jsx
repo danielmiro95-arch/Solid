@@ -129,6 +129,14 @@
     Cache.scalars['completion_rate'] = { value: rate, delta: 0 };
   }
 
+  async function refreshTimeInvested(progressRows) {
+    // Suma watch_seconds de todas las filas progress del workspace · convertimos
+    // a horas (la unidad de la métrica). Si no hay rows, value=0.
+    const totalSec = (progressRows || []).reduce((s, r) => s + (r.watch_seconds || 0), 0);
+    const hours = Math.round((totalSec / 3600) * 10) / 10;  // 1 decimal
+    Cache.scalars['time_invested'] = { value: hours, delta: 0 };
+  }
+
   async function refreshCertProgress(examRows) {
     if (!examRows || examRows.length === 0) {
       Cache.scalars['cert_progress'] = { value: 0, delta: 0 };
@@ -146,7 +154,7 @@
     Cache.loading = true;
     try {
       const startISO = rangeStart(Cache.filters.range);
-      let qp = client.from('progress').select('user_id, pill_id, progress, completed_at, updated_at');
+      let qp = client.from('progress').select('user_id, pill_id, progress, completed_at, updated_at, watch_seconds');
       if (ws) qp = qp.eq('workspace_id', ws);
       if (startISO) qp = qp.gte('updated_at', startISO);
       const { data: progressRows, error: ep } = await qp;
@@ -171,6 +179,7 @@
       await refreshModulesStarted(rows);
       await refreshCompletionRate(rows, totalPills);
       await refreshCertProgress(exams);
+      await refreshTimeInvested(rows);
 
       Cache.lastRefresh = Date.now();
     } catch(e) {
@@ -208,7 +217,7 @@
   /* Refresh automáticamente cuando cambia el workspace o llegan
    * pills/progress nuevas. La vista AnalyticsApp también llama a
    * refresh() al montarse. */
-  ['workspace-changed','pills-changed','auth-changed'].forEach(ev => {
+  ['workspace-changed','pills-changed','auth-changed','progress-changed'].forEach(ev => {
     window.addEventListener(ev, () => { if (sb()) refresh(); });
   });
 

@@ -1692,8 +1692,12 @@ function InviteUsersModal({ onClose }) {
   const [tab, setTab] = useSM('single'); // 'single' | 'bulk'
   const [email, setEmail] = useSM('');
   const [name, setName] = useSM('');
-  const [role, setRole] = useSM('Publish Agent');
-  const [team, setTeam] = useSM('Repsol');
+  const [role, setRole] = useSM('');
+  // Team default · usa el nombre del workspace activo. El admin lo puede editar.
+  const [team, setTeam] = useSM(() => {
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    return ws ? ws.name : '';
+  });
   const [csv, setCsv] = useSM('');
   const [result, setResult] = useSM(null);
   const [error, setError] = useSM('');
@@ -1733,6 +1737,7 @@ function InviteUsersModal({ onClose }) {
   const sendInviteEmail = async (inv) => {
     if (!inv) return;
     const me = window.Auth && window.Auth.currentUser();
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     try {
       const r = await fetch('/api/send-invite', {
         method: 'POST',
@@ -1743,7 +1748,9 @@ function InviteUsersModal({ onClose }) {
           token: inv.token,
           role: inv.role,
           team: inv.team,
-          fromName: me ? me.name : 'Equipo BeonIt',
+          fromName: me ? me.name : '',
+          workspaceName: ws ? ws.name : '',
+          workspaceColor: ws ? (ws.primaryColor || ws.primary_color) : null,
         }),
       });
       const data = await r.json().catch(() => ({}));
@@ -1761,7 +1768,7 @@ function InviteUsersModal({ onClose }) {
     }
   };
 
-  const csvSample = 'email,name,role,team\nana.lopez@repsol.com,Ana López,Publish Agent,Repsol\njuan.perez@repsol.com,Juan Pérez,Care Agent,Repsol\nlaura.gomez@repsol.com,Laura Gómez,Content Lead,Repsol';
+  const csvSample = 'email,name,role,team\nana.garcia@empresa.com,Ana García,Manager,Marketing\njuan.perez@empresa.com,Juan Pérez,Analista,Operaciones';
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
@@ -1792,7 +1799,7 @@ function InviteUsersModal({ onClose }) {
           <form onSubmit={submitSingle}>
             <label style={{display:'block', marginBottom:12}}>
               <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Email *</div>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ana.lopez@repsol.com" autoFocus
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="email@empresa.com" autoFocus
                 style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, outline:'none', boxSizing:'border-box'}}/>
             </label>
             <label style={{display:'block', marginBottom:12}}>
@@ -2028,13 +2035,19 @@ function _activateSupabaseAuth() {
 
   Auth.signup = async function(data) {
     if (!data.password || data.password.length < 6) throw new Error('Password de al menos 6 caracteres');
+    // emailRedirectTo · explícito al origen actual (window.location.origin) ·
+    // así Supabase NO usa el Site URL del Dashboard (que por defecto está en
+    // http://localhost:3000 y rompe los emails de verificación en producción).
+    // Cada deployment usa su propio origen automáticamente.
     const { data: authData, error } = await sb.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
+        emailRedirectTo: (typeof window !== 'undefined' && window.location)
+          ? window.location.origin + '/'
+          : undefined,
         data: {
           name: data.name,
-          // role y team vacíos · los asignará el admin del workspace al invitar
           role: data.role || '',
           team: data.team || '',
           avatar_color: data.avatarColor || 'var(--bn-blue)',
@@ -2874,9 +2887,271 @@ function _activateSupabaseData() {
     },
   };
 
+  // ── Progress · tracking de pills completadas por user ────────────────
+  // Tabla public.progress · PK (user_id, workspace_id, pill_id).
+  // El Player llama:
+  //   · start(pillId)       → upsert con progress=0 (si no existe)
+  //   · update(pillId, %)   → upsert con nuevo progress (0-1)
+  //   · complete(pillId)    → upsert con progress=1 + completed_at=now
+  // Alimentación de Analytics (pills_completed, active_users, etc.) y de
+  // las cards del catálogo (badge ✓ completado). Cero efecto si no hay
+  // user o workspace activo · es opt-in silencioso.
+  let _progressCache = {};        // pill_id → { progress, completed_at }
+  async function _loadProgress() {
+    const u = _uid(); const ws = _wsid();
+    if (!u || !ws) { _progressCache = {}; return; }
+    const { data, error } = await sb.from('progress')
+      .select('pill_id, progress, completed_at, watch_seconds')
+      .eq('user_id', u).eq('workspace_id', ws);
+    if (error) { console.warn('[progress] load', error.message); return; }
+    _progressCache = {};
+    (data || []).forEach(r => { _progressCache[r.pill_id] = r; });
+    window.dispatchEvent(new Event('progress-changed'));
+  }
+  // Set de paths que ya fueron marcados como completados para este user ·
+  // se persiste en localStorage scoped al user/workspace · al cruzar el
+  // umbral por primera vez se dispara 'route-completed' (foundation para
+  // certificados en un PR siguiente).
+  function _completedRoutesKey() {
+    const u = _uid(); const ws = _wsid();
+    return 'solid-completed-routes:' + (u || 'anon') + ':' + (ws || 'none');
+  }
+  function _readCompletedRoutes() {
+    try { return new Set(JSON.parse(localStorage.getItem(_completedRoutesKey()) || '[]')); }
+    catch(e) { return new Set(); }
+  }
+  function _writeCompletedRoutes(set) {
+    try { localStorage.setItem(_completedRoutesKey(), JSON.stringify(Array.from(set))); } catch(e) {}
+  }
+  window.Progress = {
+    get: (pillId) => _progressCache[pillId] || null,
+    isCompleted: (pillId) => !!(_progressCache[pillId] && _progressCache[pillId].completed_at),
+    pct: (pillId) => { const r = _progressCache[pillId]; return r ? (r.progress || 0) : 0; },
+    list: () => Object.assign({}, _progressCache),
+
+    /* Progreso a nivel ruta/competencia · agrega completitud de las pills
+     * que pertenecen al path (link por pill.pathId === path._id ó por la
+     * lista pillIds que trae el path). Devuelve {completed,total,pct,
+     * isCompleted}. Si total===0, isCompleted=false y pct=0. */
+    routeProgress: function(pathRefOrId) {
+      let path = pathRefOrId;
+      // Acepta uuid, slug, o el objeto path entero
+      if (typeof pathRefOrId === 'string') {
+        const all = window.LEARNING_PATHS || [];
+        path = all.find(p => p._id === pathRefOrId || p.id === pathRefOrId);
+      }
+      if (!path) return { completed: 0, total: 0, pct: 0, isCompleted: false };
+      // pillIds explícito si vienen, si no derivar de window.PILLS
+      let pillIds = Array.isArray(path.pillIds) ? path.pillIds.slice() :
+                    Array.isArray(path.pills) ? path.pills.slice() : [];
+      if (pillIds.length === 0 && path._id) {
+        pillIds = (window.PILLS || [])
+          .filter(p => p.pathId && p.pathId === path._id)
+          .map(p => p.id);
+      }
+      const total = pillIds.length;
+      if (total === 0) return { completed: 0, total: 0, pct: 0, isCompleted: false };
+      const completed = pillIds.filter(id => !!(_progressCache[id] && _progressCache[id].completed_at)).length;
+      const pct = completed / total;
+      return { completed, total, pct, isCompleted: pct >= 1 };
+    },
+
+    start: async function(pillId) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      if (_progressCache[pillId]) return;
+      const { error } = await sb.from('progress').upsert(
+        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: 0, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,workspace_id,pill_id' }
+      );
+      if (error) { console.warn('[progress] start', error.message); return; }
+      _progressCache[pillId] = { pill_id: String(pillId), progress: 0, completed_at: null };
+      window.dispatchEvent(new Event('progress-changed'));
+    },
+    update: async function(pillId, pct, totalSec) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      const next = Math.max(0, Math.min(1, pct || 0));
+      const prev = _progressCache[pillId];
+      if (prev && prev.progress >= next) return;
+      if (prev && Math.abs((prev.progress || 0) - next) < 0.05) return;
+      // watch_seconds nunca decrece · usamos el máximo entre el previo y el
+      // derivado de (pct × totalSec). Si no llega totalSec, dejamos el previo.
+      const prevWatch = (prev && prev.watch_seconds) || 0;
+      const derived = totalSec ? Math.round(next * totalSec) : 0;
+      const watchSec = Math.max(prevWatch, derived);
+      const payload = {
+        user_id: u, workspace_id: ws, pill_id: String(pillId),
+        progress: next,
+        updated_at: new Date().toISOString(),
+      };
+      if (watchSec > prevWatch) payload.watch_seconds = watchSec;
+      const { error } = await sb.from('progress').upsert(payload, { onConflict: 'user_id,workspace_id,pill_id' });
+      if (error) { console.warn('[progress] update', error.message); return; }
+      _progressCache[pillId] = Object.assign({}, prev || {}, { progress: next, watch_seconds: watchSec });
+      window.dispatchEvent(new Event('progress-changed'));
+    },
+    complete: async function(pillId, totalSec) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      if (_progressCache[pillId] && _progressCache[pillId].completed_at) return;
+      const now = new Date().toISOString();
+      const prev = _progressCache[pillId];
+      const prevWatch = (prev && prev.watch_seconds) || 0;
+      // Al completar, watch_seconds = totalSec entero (si se conoce) ·
+      // si no, mantenemos el previo.
+      const finalWatch = totalSec ? Math.max(prevWatch, Math.round(totalSec)) : prevWatch;
+      const payload = {
+        user_id: u, workspace_id: ws, pill_id: String(pillId),
+        progress: 1, completed_at: now, updated_at: now,
+      };
+      if (finalWatch > 0) payload.watch_seconds = finalWatch;
+      const { error } = await sb.from('progress').upsert(payload, { onConflict: 'user_id,workspace_id,pill_id' });
+      if (error) { console.warn('[progress] complete', error.message); return; }
+      _progressCache[pillId] = { pill_id: String(pillId), progress: 1, completed_at: now, watch_seconds: finalWatch };
+      if (window.Toast) window.Toast.success('Pill marcada como completada', { icon:'✓' });
+      window.dispatchEvent(new Event('progress-changed'));
+      if (window.Analytics && window.Analytics.refresh) window.Analytics.refresh();
+
+      // ¿La ruta que contiene esta pill se acaba de completar?
+      try {
+        const paths = window.LEARNING_PATHS || [];
+        const pill = (window.PILLS || []).find(p => p.id === pillId);
+        const pid = pill && pill.pathId;
+        if (pid) {
+          const path = paths.find(p => p._id === pid);
+          if (path) {
+            const prog = window.Progress.routeProgress(path);
+            if (prog.isCompleted) {
+              const seen = _readCompletedRoutes();
+              if (!seen.has(path._id || path.id)) {
+                seen.add(path._id || path.id);
+                _writeCompletedRoutes(seen);
+                if (window.Toast) window.Toast.success('🏆 Ruta completada: ' + (path.title || path.label), { icon: '🏆' });
+                window.dispatchEvent(new CustomEvent('route-completed', { detail: { path, completed: prog } }));
+              }
+            }
+          }
+        }
+      } catch(e) { /* no rompemos el flow del complete por esto */ }
+    },
+  };
+
   // ── Pills CRUD (admin) ────────────────────────────────────────────────
   // Acciones administrativas sobre el catálogo del workspace activo.
   // Todas las funciones recargan tras la operación y devuelven el resultado.
+  // ── Certificates · persistencia + descarga PDF ───────────────────────
+  // Tabla public.certificates con UNIQUE(user_id, workspace_id, route_id).
+  // Se crea automáticamente al recibir 'route-completed' (disparado por
+  // Progress.complete cuando todas las pills de una ruta están done).
+  let _certsCache = [];
+  async function _loadCertificates() {
+    const u = _uid(); const ws = _wsid();
+    if (!u || !ws) { _certsCache = []; return; }
+    const { data, error } = await sb.from('certificates')
+      .select('id, user_id, workspace_id, route_id, route_title, cert_number, completed_at, metadata, created_at')
+      .eq('user_id', u).eq('workspace_id', ws)
+      .order('completed_at', { ascending: false });
+    if (error) { console.warn('[certs] load', error.message); return; }
+    _certsCache = data || [];
+    window.dispatchEvent(new Event('certificates-changed'));
+  }
+  window.Certificates = {
+    list: () => _certsCache.slice(),
+    get: (routeId) => _certsCache.find(c => c.route_id === String(routeId)) || null,
+    has: (routeId) => !!_certsCache.find(c => c.route_id === String(routeId)),
+    create: async function(routeInfo) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !routeInfo) return null;
+      const routeId = String(routeInfo.id || routeInfo._id || '');
+      if (!routeId) return null;
+      if (window.Certificates.has(routeId)) return window.Certificates.get(routeId);
+      const payload = {
+        user_id: u, workspace_id: ws,
+        route_id: routeId,
+        route_title: routeInfo.title || routeInfo.label || 'Ruta',
+        metadata: routeInfo.metadata || {},
+      };
+      const { data, error } = await sb.from('certificates').insert(payload).select().single();
+      if (error) {
+        // unique constraint · ya existe · refresh y devuelve el que esté
+        if (error.code === '23505') { await _loadCertificates(); return window.Certificates.get(routeId); }
+        console.warn('[certs] create', error.message); return null;
+      }
+      _certsCache.unshift(data);
+      window.dispatchEvent(new Event('certificates-changed'));
+      return data;
+    },
+    /* Genera el HTML del certificado · ABRE como blob en pestaña nueva
+     * o fuerza descarga · el user lo imprime a PDF desde el navegador. */
+    generateHTML: function(cert) {
+      const profile = (window.Auth && window.Auth.currentUser()) || {};
+      const wsName = window.WORKSPACE_NAME || (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && window.Workspaces.current().name) || 'Plataforma';
+      const today = cert.completed_at
+        ? new Date(cert.completed_at).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' })
+        : new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+      const userName = profile.name || (profile.email ? profile.email.split('@')[0] : 'Alumno');
+      const userRole = profile.role || '';
+      const userTeam = profile.team || wsName;
+      const wsColor = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && (window.Workspaces.current().primaryColor || window.Workspaces.current().primary_color)) || '#005996';
+      const esc = s => (s||'').toString().replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c]));
+      return '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + esc(userName) + '</title>'
+        + '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}'
+        + '.frame{border:6px double ' + wsColor + ';padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}'
+        + '.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}'
+        + 'h1{font-size:38px;margin:0 0 20px;color:#0D1117}'
+        + '.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}'
+        + '.name{font-style:italic;font-weight:700;font-size:58px;color:' + wsColor + ';margin:0 0 8px;letter-spacing:-.025em}'
+        + '.role{font-size:16px;color:#0D1117;margin-bottom:28px}'
+        + '.cert-line{height:2px;background:linear-gradient(90deg,' + wsColor + ',#BCD630,#8A3992,' + wsColor + ');margin:24px 0}'
+        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}'
+        + '.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}'
+        + '.cert-num{font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.1em}'
+        + '</style></head><body>'
+        + '<div class="frame">'
+        +   '<div class="kicker">SolidStream · ' + esc(wsName) + ' · Certificación oficial</div>'
+        +   '<h1>Certificado · ' + esc(cert.route_title || 'Ruta') + '</h1>'
+        +   '<div class="lead">Por la presente certificamos que la persona reseñada ha completado los módulos de esta ruta dentro de la formación oficial del programa.</div>'
+        +   '<div class="name">' + esc(userName) + '</div>'
+        +   (userRole || userTeam ? '<div class="role">' + esc([userRole, userTeam].filter(Boolean).join(' · ')) + '</div>' : '')
+        +   '<div class="cert-line"></div>'
+        +   '<div class="foot">'
+        +     '<div><strong>Fecha</strong><br/>' + esc(today) + '</div>'
+        +     '<div><strong>Nº de certificado</strong><br/><span class="cert-num">' + esc(cert.cert_number || '—') + '</span></div>'
+        +     '<div><div class="sig">' + esc(wsName) + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div>'
+        +   '</div>'
+        + '</div></body></html>';
+    },
+    /* Forza descarga como .html · el user lo imprime a PDF en el navegador.
+     * Filename sugerido: Certificado-{routeId}-{userName}.html */
+    download: function(cert) {
+      const html = window.Certificates.generateHTML(cert);
+      const blob = new Blob([html], { type:'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safe = s => (s||'').toString().replace(/[^A-Za-z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+      const profile = (window.Auth && window.Auth.currentUser()) || {};
+      a.download = 'Certificado-' + safe(cert.route_title || cert.route_id) + '-' + safe(profile.name || profile.email || 'alumno') + '.html';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    },
+  };
+  // Listener · al completar una ruta, crear cert (idempotente vía constraint
+  // UNIQUE en DB · si ya existe, simplemente devuelve el existente).
+  window.addEventListener('route-completed', async (ev) => {
+    const path = ev && ev.detail && ev.detail.path;
+    if (!path) return;
+    const cert = await window.Certificates.create({
+      id: path._id || path.id,
+      title: path.title || path.label,
+      metadata: { completed: ev.detail.completed },
+    });
+    if (cert && window.Toast) {
+      window.Toast.success('Certificado emitido · descárgalo desde "Mis certificados"', { icon:'🏆' });
+    }
+  });
+
   window.Pills = {
     list: () => (window.PILLS || []).slice(),
     // Crea una pill nueva. `data` admite el shape camelCase (igual que las
@@ -2986,7 +3261,7 @@ function _activateSupabaseData() {
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
       _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
-      _loadPills(), _loadAllContent(),
+      _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
@@ -2999,7 +3274,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -4156,12 +4431,36 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     }
   }, [open]);
 
-  // Calcular items combinados (nav + pills) para indexar con activeIdx
-  const all = (window.PILLS || []).concat(window.SERIES || []).concat(window.PODCASTS || []);
+  // Items combinados · pills + series + reels + podcasts + paths/competencias.
+  // Cada uno conserva su tipo para mostrar la etiqueta en el resultado y
+  // poder enrutar al detail correcto.
+  const taggedPills    = (window.PILLS    || []).map(x => ({ ...x, _kind:'pill',    _kindLabel:'PILL'   }));
+  const taggedSeries   = (window.SERIES   || []).map(x => ({ ...x, _kind:'series',  _kindLabel:'BLOQUE' }));
+  const taggedReels    = (window.REELS    || []).map(x => ({ ...x, _kind:'reel',    _kindLabel:'TIP'    }));
+  const taggedPodcasts = (window.PODCASTS || []).map(x => ({ ...x, _kind:'podcast', _kindLabel:'CHARLA' }));
+  const taggedPaths    = (window.LEARNING_PATHS || []).map(x => ({
+    ...x,
+    _kind: 'path',
+    _kindLabel: (function() {
+      const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+      const label = ws && ws.settings && ws.settings.path_label;
+      return (label || 'RUTA').toUpperCase();
+    })(),
+    title: x.title || x.label,
+  }));
+  const all = taggedPills.concat(taggedSeries, taggedReels, taggedPodcasts, taggedPaths);
+
   const ql = q.trim().toLowerCase();
+  const matches = (it) =>
+    (it.title       || '').toLowerCase().includes(ql) ||
+    (it.label       || '').toLowerCase().includes(ql) ||
+    (it.category    || '').toLowerCase().includes(ql) ||
+    (it.teacher     || '').toLowerCase().includes(ql) ||
+    (it.one         || '').toLowerCase().includes(ql) ||
+    (it.desc        || '').toLowerCase().includes(ql);
   const items = ql.length === 0
-    ? all.slice(0, 8)
-    : all.filter(it => (it.title || '').toLowerCase().includes(ql) || (it.category || '').toLowerCase().includes(ql) || (it.teacher || '').toLowerCase().includes(ql)).slice(0, 12);
+    ? taggedPills.slice(0, 8)              // Default · solo pills recientes
+    : all.filter(matches).slice(0, 16);
 
   const navItems = [
     { id:'home',     label:'Inicio' },
@@ -4187,8 +4486,16 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
 
   const activate = (entry) => {
     if (!entry) return;
-    if (entry.type === 'nav') { onNavigate(entry.payload.id); onClose(); }
-    else { openDetail(entry.payload); onClose(); }
+    if (entry.type === 'nav') { onNavigate(entry.payload.id); onClose(); return; }
+    // Items con _kind 'path' van a la vista de ruta (no al detail modal de pill)
+    if (entry.payload._kind === 'path') {
+      if (window.__openPath) window.__openPath(entry.payload.id);
+      else onNavigate('rutas');
+      onClose();
+      return;
+    }
+    openDetail(entry.payload);
+    onClose();
   };
 
   useEM(() => {
@@ -4252,14 +4559,18 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
               {items.map((it, i) => {
                 const offset = navItems.length + i;
                 const active = isActiveAt(offset);
+                const kindLabel = it._kindLabel || (it.format ? it.format.toUpperCase() : 'PILL');
+                const subtitle  = [it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
                 return (
-                  <button key={it.id} data-active={active}
+                  <button key={(it._kind || 'pill') + ':' + it.id} data-active={active}
                     onMouseEnter={() => setActiveIdx(offset)}
-                    onClick={() => { openDetail(it); onClose(); }}
+                    onClick={() => activate({ type: 'item', payload: it })}
                     style={{display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 18px', border:'none', background: active ? 'var(--paper-2)' : 'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)', borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent'}}>
-                    <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', flexShrink:0, width:36}}>{it.format || 'módulo'}</span>
-                    <span style={{flex:1, fontSize:13, color:'var(--ink)', fontWeight:500}}>{it.title}</span>
-                    <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{it.duration}</span>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, fontWeight:700, color:'var(--accent)', flexShrink:0, width:48, letterSpacing:'0.06em'}}>{kindLabel}</span>
+                    <span style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:13, color:'var(--ink)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.title}</div>
+                      {subtitle && <div style={{fontSize:11, color:'var(--ink-4)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:2}}>{subtitle}</div>}
+                    </span>
                   </button>
                 );
               })}
@@ -4513,6 +4824,8 @@ function App() {
     };
     window.addEventListener('keydown', h);
     window.__openPalette = () => setPaletteOpen(true);
+    // Expone openPath para que CommandPalette pueda navegar a una ruta concreta
+    window.__openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
     return () => window.removeEventListener('keydown', h);
   }, []);
 
@@ -5857,10 +6170,17 @@ function PendingInvitationsBlock({ invitations }) {
 
   const sendEmail = async (inv) => {
     const me = window.Auth && window.Auth.currentUser();
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     try {
       const r = await fetch('/api/send-invite', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ email:inv.email, name:inv.name, token:inv.token, role:inv.role, team:inv.team, fromName: me ? me.name : 'Equipo BeonIt' }),
+        body: JSON.stringify({
+          email: inv.email, name: inv.name, token: inv.token,
+          role: inv.role, team: inv.team,
+          fromName: me ? me.name : '',
+          workspaceName: ws ? ws.name : '',
+          workspaceColor: ws ? (ws.primaryColor || ws.primary_color) : null,
+        }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -6081,7 +6401,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
   };
 
   const downloadCert = () => {
-    var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: 'Sprinklr', team: 'Repsol' };
+    var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: '', team: (window.WORKSPACE_NAME || '') };
     const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
 '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +

@@ -139,24 +139,61 @@ function RutasView({ setView, openPath }) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
       }}>
-        {paths.map(p => (
+        {paths.map(p => {
+          const pct = Math.round((p.progress || 0) * 100);
+          const startLabel = p.isCompleted ? '✓ Completada'
+                           : pct > 0 ? 'Continuar · ' + pct + '%'
+                           : T('rutas.start');
+          return (
           <article key={p.id} className="card" onClick={() => go(p.id)} style={{ cursor: 'pointer', aspectRatio: '4/5' }}>
             <div className={`card-cover ${p.accent || 'cat-publish'}`}/>
             <div className="card-grad"/>
-            <span className="card-pill-num" style={{ top: 16, left: 16 }}>RUTA · {p.pills} pills · {p.hours}</span>
+            <span className="card-pill-num" style={{ top: 16, left: 16 }}>
+              RUTA · {p.completedCount || 0}/{p.totalCount || p.pills} pills · {p.hours}
+            </span>
+            {p.isCompleted && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'var(--ok, #1E9E5A)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
+                ✓ COMPLETADA
+              </span>
+            )}
             <div className="card-body" style={{ left: 20, right: 20, bottom: 18 }}>
               <h3 style={{
                 fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400,
                 fontSize: 28, color: 'var(--fg)', margin: 0, marginBottom: 8, lineHeight: 1.1,
               }}>{p.title}</h3>
               <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
-              <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
-                marginTop: 14, padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
-                background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
-              }}>{T('rutas.start')}</button>
+              {pct > 0 && pct < 100 && (
+                <div style={{ height:4, background:'rgba(255,255,255,0.1)', borderRadius:2, overflow:'hidden', marginTop:10 }}>
+                  <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
+                </div>
+              )}
+              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
+                <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
+                  padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
+                  background: p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                }}>{startLabel}</button>
+                {p.isCompleted && window.Certificates && (
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    const cert = window.Certificates.get(p._id || p.id);
+                    if (cert) {
+                      window.Certificates.download(cert);
+                    } else if (window.Toast) {
+                      window.Toast.info('Generando certificado…');
+                      window.Certificates.create({ id: p._id || p.id, title: p.title }).then(c => {
+                        if (c) window.Certificates.download(c);
+                      });
+                    }
+                  }} style={{
+                    padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
+                    background: 'transparent', color: 'var(--fg)', border: '1px solid var(--line)', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                  }}>🏆 Certificado</button>
+                )}
+              </div>
             </div>
           </article>
-        ))}
+        );})}
       </div>
     </PageShell>
   );
