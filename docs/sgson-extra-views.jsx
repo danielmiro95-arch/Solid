@@ -368,7 +368,13 @@ function ChannelsView() {
     return () => window.removeEventListener('channels-changed', onChange);
   }, []);
 
-  const catalog = (window.Channels && window.Channels.CATALOG) || [];
+  // En modo demo · solo se muestran WhatsApp, Microsoft Teams y Email
+  const _dm = window.DemoMode;
+  const _demoActive = _dm && _dm.isActive && _dm.isActive();
+  const _fullCatalog = (window.Channels && window.Channels.CATALOG) || [];
+  const catalog = _demoActive
+    ? _fullCatalog.filter(c => ['whatsapp','teams','email'].indexOf(c.id) !== -1)
+    : _fullCatalog;
   const primaryId = chState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
   const channelColor = primaryDef ? primaryDef.color : '#25D366';

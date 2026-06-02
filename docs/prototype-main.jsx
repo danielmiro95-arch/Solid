@@ -4632,6 +4632,14 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     ? taggedPills.slice(0, 8)              // Default · solo pills recientes
     : all.filter(matches).slice(0, 16);
 
+  // En modo demo · la búsqueda solo expone módulos a los que el user tiene
+  // acceso. Re-usamos D.SIDEBAR_LINKS (que ya está filtrado por DemoMode flags
+  // en sgson-adapter) como fuente de verdad: si el item no está en el sidebar,
+  // no aparece en la paleta.
+  const _dm2 = window.DemoMode;
+  const _demoSearchActive = _dm2 && _dm2.isActive && _dm2.isActive();
+  const _sidebarLinks = (window.SGS_DATA && window.SGS_DATA.SIDEBAR_LINKS) || [];
+  const _allowedKeys = _demoSearchActive ? new Set(_sidebarLinks.map(l => l.key)) : null;
   const navItems = [
     { id:'home',     label:'Inicio' },
     { id:'browse',   label:'Catálogo' },
@@ -4645,7 +4653,9 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     { id:'profile',  label:'Mi perfil' },
     { id:'settings', label:'Ajustes' },
     { id:'admin',    label:'Admin · panel' },
-  ].filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
+  ]
+    .filter(n => !_allowedKeys || _allowedKeys.has(n.id))
+    .filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
 
   // Lista combinada plana · primero nav, luego items
   const combined = navItems.map(n => ({ type:'nav', payload: n })).concat(items.map(it => ({ type:'item', payload: it })));

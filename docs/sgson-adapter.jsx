@@ -197,12 +197,16 @@
     }
     const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
+    // En modo demo · el role por defecto pasa a ser "Learning Manager" y el
+    // team toma el nombre del workspace en vez de "Repsol" hardcoded.
+    const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
     const USER = {
       id:       (profile && profile.id) || (sessionUser && sessionUser.id),
       name:     fullName,
       initials: initials,
-      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent',
-      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || 'Repsol',
+      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || (_demoActiveU ? 'Learning Manager' : 'Publish Agent'),
+      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || (_demoActiveU ? _wsName : 'Repsol'),
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
       isAdmin:  !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin'))),

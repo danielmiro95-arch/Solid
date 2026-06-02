@@ -551,7 +551,25 @@ function HomeHero({ onPlay, onMore }) {
   );
 }
 
-function NxCard({ pill, onOpen, showProgress, newBadge }) {
+// En modo demo · determina si un card debe aparecer bloqueado.
+// Reglas: 1) si demo_mode no activo o lock_unassigned_courses=false · siempre abierto.
+//         2) si forceUnlocked=true (fila trending = Tendencias de la semana) · abierto.
+//         3) si la pill está en DemoMode.unlocked() · abierta.
+//         4) si la pill tiene progress > 0 (asignada/en curso) · abierta.
+//         5) en otro caso · ~2/3 cerradas por hash determinista del id.
+function _isPillLockedDemo(pill, forceUnlocked) {
+  const dm = window.DemoMode;
+  if (!dm || !dm.isActive || !dm.isActive()) return false;
+  if (dm.flag('lock_unassigned_courses') !== true) return false;
+  if (forceUnlocked) return false;
+  if (pill && pill.progress > 0) return false;
+  const list = dm.unlocked ? dm.unlocked() : [];
+  if (Array.isArray(list) && pill && list.indexOf(pill.id) !== -1) return false;
+  const seed = parseInt(String((pill && pill.id) || '').replace(/\D/g, ''), 10) || 0;
+  return (seed % 3) !== 0;
+}
+
+function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const D = window.SGS_DATA;
   const cat = (D && D.CATS && (D.CATS[pill.category] || D.CATS[_catSlugFix(pill.category)])) || { label: pill.category || 'Módulo' };
   const slug = _catSlugFix(pill.category);
@@ -585,28 +603,47 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
     }
   };
 
+  const isLocked = _isPillLockedDemo(pill, forceUnlocked);
+  const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  const isAssigned = pill && pill.progress > 0;
+  const handleCardClick = () => {
+    if (isLocked) {
+      if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+      return;
+    }
+    onOpen(pill);
+  };
+
   return (
-    <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
+    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleCardClick} data-screen-label={`Card · ${pill.pill}`} style={isLocked ? { cursor:'not-allowed' } : undefined}>
       <div className={`card-cover cat-${slug}`}/>
       {pill.poster ? (
         <img
           src={pill.poster}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : undefined}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : pill.yt ? (
         <img
           src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : undefined}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : null}
       <div className="card-grad"/>
 
       <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
-      {(newBadge || pill.newBadge) && <span className="card-badge">Nuevo</span>}
+      {(newBadge || pill.newBadge) && !isLocked && <span className="card-badge">Nuevo</span>}
+      {isLocked && (
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'4px 10px',
+          background:'rgba(0,0,0,0.72)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
+        }}>🔒 Bloqueado</span>
+      )}
 
       <div className="card-body">
         <h3 className="card-title">{pill.title}</h3>
@@ -615,24 +652,42 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
             <span>{pill.duration}</span>
             <span className="sep">·</span>
           </>}
-          <span>{pill.level}</span>
+          <span>{demoActive && pill.level ? `Nivel ${pill.level}` : pill.level}</span>
         </div>
       </div>
 
       <div className="card-actions">
-        <button className="card-action primary" aria-label="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
-          <Ico name="play" size={12}/>
-        </button>
-        <button className={`card-action${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} title={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} onClick={toggleSave}>
+        {isLocked ? (
+          <button className="card-action" aria-label="Bloqueado" title="Bloqueado · disponible próximamente" onClick={(e) => e.stopPropagation()} style={{cursor:'not-allowed', opacity:0.6}}>
+            🔒
+          </button>
+        ) : isAssigned || !demoActive ? (
+          <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+            <Ico name="play" size={12}/>
+          </button>
+        ) : (
+          <button className="card-action primary" aria-label="Inscribirse" title="Inscribirse" onClick={(e) => {
+            e.stopPropagation();
+            if (window.Toast) window.Toast.success('Te has inscrito al curso');
+            onOpen(pill);
+          }}>
+            <Ico name="plus" size={12}/>
+          </button>
+        )}
+        <button className={`card-action${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar favorito' : 'Favorito'} title={saved ? 'Quitar favorito' : 'Favorito'} onClick={toggleSave} disabled={isLocked} style={isLocked ? {opacity:0.4, cursor:'not-allowed'} : undefined}>
           <Ico name={saved ? 'check' : 'plus'} size={14}/>
         </button>
-        <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
-          <Ico name="thumb" size={13}/>
-        </button>
-        <button className="card-action" aria-label="Más info" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+        {!demoActive && (
+          <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
+            <Ico name="thumb" size={13}/>
+          </button>
+        )}
+        <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); if (!isLocked) onOpen(pill); }} disabled={isLocked} style={isLocked ? {opacity:0.4, cursor:'not-allowed'} : undefined}>
           <Ico name="chev-down" size={14}/>
         </button>
-        <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
+        {!demoActive && (
+          <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
+        )}
       </div>
 
       {showProgress && pill.progress > 0 && (
@@ -645,11 +700,53 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
 }
 
 function NxPathCard({ path, onOpen }) {
+  const dm = window.DemoMode;
+  const demoActive = dm && dm.isActive && dm.isActive();
+  const lockEnabled = demoActive && dm.flag('lock_unassigned_courses') === true;
+  // Path bloqueado en demo si: no asignado · sin progreso · no está en lista unlocked
+  // El primer path por orden queda abierto para que se vea uno disponible.
+  const unlockedList = (dm && dm.unlocked) ? dm.unlocked() : [];
+  const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(path.id) !== -1;
+  const seed = parseInt(String(path.id || '').replace(/\D/g, ''), 10) || 0;
+  const isLocked = lockEnabled && !(path.progress > 0) && !isUnlockedById && (seed % 3) !== 0;
+
+  // Nivel inventado por hash del id (Básico / Intermedio / Experto) en demo
+  const levels = (dm && dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
+  const level = demoActive ? levels[seed % levels.length] : null;
+
+  // Etiqueta del badge: "CURSO · X pills" o "RUTA · X pills"
+  const pathLabel = (dm && dm.label) ? dm.label('path_label', 'Ruta') : 'Ruta';
+  const pathBadge = `${String(pathLabel).toUpperCase()} · ${path.pills} pills`;
+
+  const handleClick = () => {
+    if (isLocked) {
+      if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+      return;
+    }
+    onOpen && onOpen(path);
+  };
+
   return (
-    <article className="card" onClick={() => onOpen && onOpen(path)}>
-      <div className={`card-cover ${path.accent || 'cat-publish'}`}/>
+    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
+      <div className={`card-cover ${path.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
       <div className="card-grad"/>
-      <span className="card-pill-num">RUTA · {path.pills} pills</span>
+      <span className="card-pill-num">{pathBadge}</span>
+      {isLocked && (
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'4px 10px',
+          background:'rgba(0,0,0,0.72)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em',
+        }}>🔒 Bloqueado</span>
+      )}
+      {level && !isLocked && (
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'4px 10px',
+          background:'rgba(110,80,238,0.92)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em',
+        }}>Nivel {level}</span>
+      )}
       <div className="card-body" style={{ left: 16, right: 16 }}>
         <h3 className="card-title" style={{ fontSize: 17, fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>
           {path.title}
@@ -714,7 +811,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
               return (
                 <div className="trending-cell" key={id}>
                   <span className="trending-num">{String(i+1).padStart(2,'0')}</span>
-                  <NxCard pill={p} onOpen={onOpen}/>
+                  <NxCard pill={p} onOpen={onOpen} forceUnlocked={true}/>
                 </div>
               );
             })}
