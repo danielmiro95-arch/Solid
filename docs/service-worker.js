@@ -7,7 +7,7 @@
 // Versión bumpeada con cada release que cambia el shell. Si subes la versión
 // borra los caches viejos en el activate().
 
-const VERSION = 'sgson-v1-20260602demo-b30';
+const VERSION = 'sgson-v1-20260602demo-b31';
 const SHELL_CACHE = VERSION + '-shell';
 const CDN_CACHE   = VERSION + '-cdn';
 
@@ -62,8 +62,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Shell same-origin — cache-first con revalidación en background
+  // Shell same-origin
   if (url.origin === self.location.origin) {
+    // HTML (sin extensión o .html) → NETWORK-FIRST · cambios visibles inmediatamente
+    // en cada refresh, no hay que esperar 2 cargas. Fallback a cache para offline.
+    // Causa raíz de "no veo los cambios" tras cada deploy.
+    const isHtml = url.pathname === '/' || url.pathname.endsWith('/')
+                || url.pathname.endsWith('.html')
+                || !/\.[a-z0-9]+$/i.test(url.pathname);
+    if (isHtml) {
+      event.respondWith(
+        fetch(req).then((fresh) => {
+          if (fresh && fresh.ok) {
+            const copy = fresh.clone();
+            caches.open(SHELL_CACHE).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return fresh;
+        }).catch(async () => {
+          const cached = await caches.match(req);
+          return cached || new Response('Offline', { status: 503 });
+        })
+      );
+      return;
+    }
+    // Resto de assets (CSS/JSX/PNG con ?v= cache-busting) → cache-first con
+    // revalidación en background. El query string ?v= invalida cache cuando
+    // bumping versión en index.html, así que cache-first es seguro.
     event.respondWith(
       caches.open(SHELL_CACHE).then(async (cache) => {
         const cached = await cache.match(req);
