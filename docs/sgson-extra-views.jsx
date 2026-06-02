@@ -383,7 +383,7 @@ function ChannelsView() {
       <ChannelManagerPanel chState={safeState} catalog={catalog}/>
 
       {/* MATRIZ DE NOTIFICACIONES · una columna por canal conectado · estilo Sprinklr */}
-      <ChannelNotificationsMatrix chState={chState} catalog={catalog}/>
+      <ChannelNotificationsMatrix chState={safeState} catalog={catalog}/>
 
       {/* DELIVERY PREFERENCES · cuándo recibir contenido (con max/día) */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
@@ -1105,7 +1105,11 @@ function ContentPushPanel({ channelColor }) {
 // ── Channel Notifications Matrix · una columna por canal × tipos comunes ──
 function ChannelNotificationsMatrix({ chState, catalog }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
-  const connected = (catalog || []).filter(c => chState[c.id] && chState[c.id].connected);
+  // Defensive · si la prop chState llega undefined no crasheamos al leer
+  // sus props (line 1108 filter usa chState[c.id]) ni al usar safeState
+  // más abajo (línea ~1169 reads safeState.primary).
+  const safeState = chState || {};
+  const connected = (catalog || []).filter(c => safeState[c.id] && safeState[c.id].connected);
   const [state, setState] = useEV2(() => (window.ChannelNotifs ? window.ChannelNotifs.get() : {}));
   const [history, setHistory] = useEV2(() => (window.TestSends ? window.TestSends.list() : []));
 
@@ -1266,7 +1270,7 @@ function ChannelManagerPanel({ chState, catalog }) {
     }, 800);
   };
 
-  const connectedCount = catalog.filter(c => chState[c.id] && chState[c.id].connected).length;
+  const connectedCount = catalog.filter(c => safeState[c.id] && safeState[c.id].connected).length;
 
   return (
     <section>
@@ -1279,7 +1283,7 @@ function ChannelManagerPanel({ chState, catalog }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {catalog.map(c => {
-          const state = chState[c.id];
+          const state = safeState[c.id];
           const connected = !!(state && state.connected);
           const primary = safeState.primary === c.id && connected;
           const isConnecting = connecting === c.id;
