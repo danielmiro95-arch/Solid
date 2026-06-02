@@ -1143,6 +1143,65 @@ const Workspaces = (function() {
 })();
 window.Workspaces = Workspaces;
 
+// ── DemoMode · helper que lee workspace.settings y expone flags ────────
+// Cualquier componente que quiera saber si está en modo demo (o si tiene
+// que ocultar X feature) consulta window.DemoMode.flag('hide_beonai').
+// Cuando settings.demo_mode === true se aplican TODOS los hide/rename del
+// preset · cada flag individual permite override granular para casos
+// futuros sin entrar en modo demo completo.
+(function(){
+  function _ws() {
+    return (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || null;
+  }
+  function _settings() {
+    const w = _ws();
+    return (w && w.settings) || {};
+  }
+  // Si demo_mode está activo · estos son los valores por defecto que
+  // aplican aunque la flag individual no esté en settings. El admin puede
+  // anular cualquiera setándola explícitamente a false.
+  const DEMO_PRESET = {
+    hide_beonai: true,
+    hide_analytics: true,
+    hide_resources: true,
+    hide_recommendations: true,
+    hide_durations: true,
+    hide_attribution: true,
+    simplified_avatar_menu: true,
+    simplified_settings: true,
+    simplified_profile: true,
+    lock_unassigned_courses: true,
+    path_label: 'Curso',
+    path_label_plural: 'Cursos',
+    brief_diario_label: 'Brief Diario',
+    workshops_label: 'Inscríbete a talleres',
+    catalog_label: 'Catálogo',
+    level_badges: ['Básico','Intermedio','Experto'],
+  };
+  window.DemoMode = {
+    isActive: () => _settings().demo_mode === true,
+    flag: function(name) {
+      const s = _settings();
+      // Override explícito en settings tiene prioridad
+      if (name in s) return s[name];
+      // Si demo_mode === true · usa preset
+      if (s.demo_mode === true && name in DEMO_PRESET) return DEMO_PRESET[name];
+      return undefined;
+    },
+    label: function(name, fallback) {
+      const v = window.DemoMode.flag(name);
+      return (typeof v === 'string' && v) ? v : fallback;
+    },
+    unlocked: function() {
+      // Lista de slugs de paths abiertos · si está vacía y
+      // lock_unassigned_courses=true, TODO está cerrado
+      const v = window.DemoMode.flag('unlocked_paths');
+      return Array.isArray(v) ? v : [];
+    },
+  };
+})();
+
+
 // ── Branding por workspace (Fase 1 multi-tenant) ─────────────────────────
 // Cada workspace puede tener su propio logo y color accent. Cuando cambia
 // el workspace activo, aplicamos su branding: --accent en el CSS root y
@@ -1692,7 +1751,7 @@ function InviteUsersModal({ onClose }) {
   const [tab, setTab] = useSM('single'); // 'single' | 'bulk'
   const [email, setEmail] = useSM('');
   const [name, setName] = useSM('');
-  const [role, setRole] = useSM('');
+  const [role, setRole] = useSM('member');  // default invita como User
   // Team default · usa el nombre del workspace activo. El admin lo puede editar.
   const [team, setTeam] = useSM(() => {
     const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
@@ -1811,8 +1870,14 @@ function InviteUsersModal({ onClose }) {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14}}>
               <label>
                 <div style={{fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>Rol</div>
+                {/* Roles del workspace · valores tal como los usa
+                    public.workspace_members (member/admin/owner) +
+                    "manager" para líderes de equipo. Determinan qué
+                    permisos tiene el user al entrar al workspace. */}
                 <select value={role} onChange={e => setRole(e.target.value)} style={{width:'100%', padding:'10px 12px', border:'1px solid var(--line)', borderRadius:8, fontFamily:'var(--sans)', fontSize:14, background:'var(--paper)', boxSizing:'border-box'}}>
-                  {['Publish Agent','Content Lead','Analytics Lead','Care Agent','IT / Integraciones','Dirección','Administrador'].map(r => <option key={r} value={r}>{r}</option>)}
+                  <option value="member">User · acceso a contenido y certificación</option>
+                  <option value="manager">Manager · acceso a panel de equipo</option>
+                  <option value="admin">Admin · gestiona contenido y miembros</option>
                 </select>
               </label>
               <label>
@@ -2500,12 +2565,14 @@ function _activateSupabaseData() {
     const u = _uid(); if (!u) { wsCache = []; return; }
     // Lista los workspaces donde el user es member (RLS hace el resto)
     const { data: wss, error } = await sb.from('workspaces')
-      .select('id, name, slug, logo_url, primary_color, owner_id, settings, created_at');
+      .select('id, name, slug, logo_url, primary_color, owner_id, settings, archived_at, created_at');
     if (error) { console.warn('[supa] workspaces', error.message); return; }
     wsCache = (wss || []).map(w => ({
       id: w.id, name: w.name, slug: w.slug, logo: w.logo_url,
       primaryColor: w.primary_color, ownerId: w.owner_id,
-      settings: w.settings || {}, createdAt: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
+      settings: w.settings || {},
+      archivedAt: w.archived_at ? new Date(w.archived_at).getTime() : null,
+      createdAt: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
     }));
     window.dispatchEvent(new Event('workspaces-changed'));
   }
@@ -2520,10 +2587,16 @@ function _activateSupabaseData() {
     }));
   }
   // Overrides síncronos (datos del cache)
-  Workspaces.list = function() { return wsCache.slice(); };
+  Workspaces.list = function(opts) {
+    // list() devuelve solo activos por defecto · pasar { includeArchived:true }
+    // para ver los archivados (útil en el panel admin de workspaces)
+    if (opts && opts.includeArchived) return wsCache.slice();
+    return wsCache.filter(w => !w.archivedAt);
+  };
   Workspaces.listMine = function() {
-    // En Supabase mode, RLS ya filtra · la lista que recibes ES la del usuario
-    return wsCache.map(w => Object.assign({}, w));
+    // En Supabase mode, RLS ya filtra · la lista que recibes ES la del user.
+    // Filtramos archivados para que no aparezcan en el switcher del TopNav.
+    return wsCache.filter(w => !w.archivedAt).map(w => Object.assign({}, w));
   };
   Workspaces.get = function(id) { return wsCache.find(w => w.id === id) || null; };
   Workspaces.membersOf = function(wsId) { return (wsMembersCache[wsId] || []).slice(); };
@@ -2579,10 +2652,17 @@ function _activateSupabaseData() {
     if (patch.primaryColor != null) dbPatch.primary_color = patch.primaryColor;
     if (patch.logo != null)         dbPatch.logo_url = patch.logo;
     if (patch.settings != null)     dbPatch.settings = patch.settings;
+    if (patch.archivedAt !== undefined) dbPatch.archived_at = patch.archivedAt;  // null = unarchive
     const { error } = await sb.from('workspaces').update(dbPatch).eq('id', id);
     if (error) { console.warn('[supa] update ws', error.message); return null; }
     await _loadWorkspaces();
     return Workspaces.get(id);
+  };
+  Workspaces.archive = async function(id) {
+    return Workspaces.update(id, { archivedAt: new Date().toISOString() });
+  };
+  Workspaces.unarchive = async function(id) {
+    return Workspaces.update(id, { archivedAt: null });
   };
   Workspaces.remove = async function(id) {
     const { error } = await sb.from('workspaces').delete().eq('id', id);
@@ -4993,10 +5073,10 @@ function App() {
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
-      {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && (
+      {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
         <window.AISidekick setAIMode={setAIMode} aiMode={aiMode} view={view}/>
       )}
-      {view !== 'onboarding' && aiMode === 'collapsed' && (
+      {view !== 'onboarding' && aiMode === 'collapsed' && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
         <button
           className="ai-rail-btn"
           onClick={() => setAIMode('companion')}

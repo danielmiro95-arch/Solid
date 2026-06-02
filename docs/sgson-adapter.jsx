@@ -198,21 +198,28 @@
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 
-    // ── SIDEBAR_LINKS · usa los items de tu sidebar actual ──
+    // ── SIDEBAR_LINKS · filtrado por DemoMode flags ──
+    const _dm = window.DemoMode;
+    const _flag = _dm ? _dm.flag : () => undefined;
+    const _label = _dm ? _dm.label : (_, f) => f;
+    // Path/Rutas usa el label del workspace (Curso si el demo lo dice)
+    const _rutaPlural = _label('path_label_plural', 'Rutas');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
       { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },
-      { key:'browse',    label:'Catálogo',   icon:'grid' },
+      { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid' },
       { key:'path',      label:'Mi ruta',    icon:'route' },
-      { key:'rutas',     label:'Rutas',      icon:'compass' },
-      { key:'dashboard', label:'Analytics',  icon:'chart' },
-      { key:'coach',     label:'BeonAI',  icon:'spark' },
+      { key:'rutas',     label: _rutaPlural, icon:'compass' },
+      { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
+      { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
       { key:'wa',        label:'Channels',   icon:'broadcast' },
+      { key:'resources', label:'Recursos',   icon:'book',      hidden: _flag('hide_resources') === true },
       { key:'saved',     label:'Guardado',   icon:'bookmark' },
       { key:'profile',   label:'Mi perfil',  icon:'user' },
       { key:'settings',  label:'Ajustes',    icon:'gear' },
-      { key:'admin',     label:'Admin',      icon:'shield', admin: true },
-    ];
+      { key:'admin',     label:'Admin',      icon:'shield', admin: true,
+        hidden: _flag('simplified_profile') === true },  // demo: oculta admin al user final
+    ].filter(x => !x.hidden);
 
     window.SGS_DATA = { CATS, PILLS, LEARNING_PATHS, ROWS, USER, SIDEBAR_LINKS, pillById };
     window.dispatchEvent(new Event('sgs-data-ready'));
