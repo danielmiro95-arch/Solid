@@ -1702,11 +1702,13 @@ function InviteUsersModal({ onClose }) {
   const [result, setResult] = useSM(null);
   const [error, setError] = useSM('');
 
-  const submitSingle = (e) => {
+  const submitSingle = async (e) => {
     e && e.preventDefault();
     setError('');
     try {
-      const inv = Invitations.create({ email, name, role, team });
+      // En Supabase mode create es async (insert + RPC); en demo es sync.
+      // await Promise.resolve() funciona en ambos casos.
+      const inv = await Promise.resolve(Invitations.create({ email, name, role, team }));
       if (inv.duplicate) {
         setError('Ya existe un usuario o invitación pendiente con ese email.');
       } else {
@@ -1716,10 +1718,10 @@ function InviteUsersModal({ onClose }) {
       }
     } catch (err) { setError(err.message); }
   };
-  const submitBulk = () => {
+  const submitBulk = async () => {
     setError('');
     if (!csv.trim()) { setError('Pega los emails primero.'); return; }
-    const r = Invitations.bulkCreate(csv);
+    const r = await Promise.resolve(Invitations.bulkCreate(csv));
     setResult(r);
     if (window.Toast) {
       if (r.created.length > 0) window.Toast.success(r.created.length + ' invitaciones creadas', { icon: '✉' });
@@ -3152,6 +3154,88 @@ function _activateSupabaseData() {
     }
   });
 
+  // ── Invitations · override del módulo localStorage para usar Supabase ─
+  // Las invitations viven en public.invitations · permite que el invitee
+  // resuelva el token desde otro browser (la pieza que faltaba para que
+  // el sistema de email invitations funcione end-to-end). RPCs:
+  //   · get_invitation_by_token(token) → row pública por token (anon-safe)
+  //   · accept_invitation(token) → inserta workspace_members + status=accepted
+  let _invitationsCache = [];
+  async function _loadInvitations() {
+    const u = _uid(); const ws = _wsid();
+    if (!u || !ws) { _invitationsCache = []; return; }
+    const { data, error } = await sb.from('invitations')
+      .select('token, workspace_id, email, name, role, status, accepted_at, created_at, invited_by')
+      .eq('workspace_id', ws)
+      .order('created_at', { ascending: false });
+    if (error) { console.warn('[invitations] load', error.message); return; }
+    _invitationsCache = data || [];
+    window.dispatchEvent(new Event('invitations-changed'));
+  }
+  if (window.Invitations) {
+    window.Invitations.list = () => _invitationsCache.slice();
+    window.Invitations.create = async function(data) {
+      const wsId = _wsid(); const u = _uid();
+      if (!wsId) throw new Error('No hay workspace activo · cambia al workspace correcto antes de invitar');
+      if (!data || !data.email || !data.email.includes('@')) throw new Error('Email inválido');
+      const email = data.email.toLowerCase().trim();
+      const token = 'inv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const payload = {
+        token,
+        workspace_id: wsId,
+        email,
+        name: (data.name || email.split('@')[0]).trim(),
+        role: data.role || null,
+        invited_by: u,
+        status: 'pending',
+      };
+      const { data: row, error } = await sb.from('invitations').insert(payload).select().single();
+      if (error) {
+        if (error.code === '23505') return { duplicate: true, email };  // UNIQUE collision
+        throw new Error(error.message);
+      }
+      _invitationsCache.unshift(row);
+      window.dispatchEvent(new Event('invitations-changed'));
+      return row;
+    };
+    window.Invitations.getByToken = async function(token) {
+      if (!token) return null;
+      const { data, error } = await sb.rpc('get_invitation_by_token', { _token: token });
+      if (error) { console.warn('[invitations] getByToken', error.message); return null; }
+      return (data && data[0]) || null;
+    };
+    window.Invitations.markAccepted = async function(token) {
+      const { data, error } = await sb.rpc('accept_invitation', { _token: token });
+      if (error) { console.warn('[invitations] accept', error.message); return null; }
+      // El RPC ya añadió al user a workspace_members · recargamos para que
+      // Workspaces.listMine() incluya el nuevo workspace
+      if (typeof _loadWorkspaces === 'function') await _loadWorkspaces();
+      return data;
+    };
+    window.Invitations.remove = async function(token) {
+      const { error } = await sb.from('invitations').delete().eq('token', token);
+      if (error) { console.warn('[invitations] remove', error.message); return false; }
+      _invitationsCache = _invitationsCache.filter(i => i.token !== token);
+      window.dispatchEvent(new Event('invitations-changed'));
+      return true;
+    };
+    window.Invitations.bulkCreate = async function(csvText) {
+      const results = { created: [], skipped: [], errors: [] };
+      const lines = (csvText || '').split(/\n|\r/).map(l => l.trim()).filter(Boolean);
+      for (let idx = 0; idx < lines.length; idx++) {
+        const line = lines[idx];
+        if (idx === 0 && /^email/i.test(line)) continue;
+        const parts = line.split(/[;,\t]/).map(p => p.trim());
+        try {
+          const inv = await window.Invitations.create({ email: parts[0], name: parts[1], role: parts[2], team: parts[3] });
+          if (inv.duplicate) results.skipped.push({ email: inv.email, reason: 'ya tiene cuenta o invitación' });
+          else results.created.push(inv);
+        } catch (err) { results.errors.push({ line, error: err.message }); }
+      }
+      return results;
+    };
+  }
+
   window.Pills = {
     list: () => (window.PILLS || []).slice(),
     // Crea una pill nueva. `data` admite el shape camelCase (igual que las
@@ -3261,7 +3345,7 @@ function _activateSupabaseData() {
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
       _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
-      _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(),
+      _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
@@ -3274,7 +3358,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -5551,12 +5635,33 @@ function LoginScreen() {
     const params = new URLSearchParams(window.location.search);
     return params.get('invite');
   })();
-  const invitation = inviteToken && window.Invitations ? window.Invitations.getByToken(inviteToken) : null;
+  // En Supabase mode getByToken es async (RPC) · resolvemos vía useEffect.
+  // En demo mode (sin Supabase) sigue siendo sync · resolvemos inmediato.
+  const [invitation, setInvitation] = useSM(() => {
+    if (!inviteToken || !window.Invitations) return null;
+    if (window.SGSON_BACKEND === 'supabase') return null;  // se carga async
+    const res = window.Invitations.getByToken(inviteToken);
+    return res && !res.then ? res : null;
+  });
+  useEM(() => {
+    if (!inviteToken || !window.Invitations) return;
+    if (window.SGSON_BACKEND !== 'supabase') return;
+    Promise.resolve(window.Invitations.getByToken(inviteToken)).then(inv => {
+      if (inv) setInvitation(inv);
+    });
+  }, [inviteToken]);
 
-  const [mode, setMode] = useSM(invitation ? 'signup' : 'login'); // si llega por invite, vamos directo a signup
+  const [mode, setMode] = useSM(invitation ? 'signup' : 'login');
   const [email, setEmail] = useSM(invitation ? invitation.email : '');
   const [password, setPassword] = useSM('');
   const [name, setName] = useSM(invitation ? invitation.name : '');
+  // Cuando llega la invitación async, propaga los campos pre-rellenos
+  useEM(() => {
+    if (!invitation) return;
+    setMode('signup');
+    if (invitation.email && !email) setEmail(invitation.email);
+    if (invitation.name && !name) setName(invitation.name);
+  }, [invitation && invitation.token]);
   // Si llega por link de invitación, el admin ya pre-seleccionó role+team
   // en el token. Si no, signup público · ambos vacíos · los asignará el admin
   // del workspace cuando le añada al equipo.
@@ -5576,7 +5681,13 @@ function LoginScreen() {
       } else {
         const u = await Promise.resolve(Auth.signup({ email, password, name, role, team }));
         if (invitation && window.Invitations) {
-          window.Invitations.markAccepted(invitation.token);
+          // accept_invitation (RPC en Supabase mode) inserta workspace_members
+          // y marca status=accepted. En demo mode solo cambia status local.
+          await Promise.resolve(window.Invitations.markAccepted(invitation.token));
+          // Activa el workspace correcto para que el user aterrice en él
+          if (invitation.workspace_id && window.Workspaces && window.Workspaces.setCurrent) {
+            window.Workspaces.setCurrent(invitation.workspace_id);
+          }
           if (window.Activity) window.Activity.log('accept_invite', { token: invitation.token, role: invitation.role });
           if (window.history && window.history.replaceState) {
             window.history.replaceState({}, '', window.location.pathname);
@@ -5698,16 +5809,21 @@ function LoginScreen() {
               <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
-          <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
-            <button onClick={() => { setMode('login'); setError(''); }}
-              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>{T('login.mode.login')}</button>
-            <button onClick={() => { setMode('signup'); setError(''); }}
-              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>{T('login.mode.signup')}</button>
-          </div>
+          {/* Tabs login/signup · solo se ven cuando llega un ?invite=token ·
+              cuentas nuevas se crean por invitación del admin del workspace,
+              no por signup organic desde la landing. */}
+          {invitation && (
+            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
+              <button onClick={() => { setMode('login'); setError(''); }}
+                style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                  background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  transition:'all .12s'}}>{T('login.mode.login')}</button>
+              <button onClick={() => { setMode('signup'); setError(''); }}
+                style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                  background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  transition:'all .12s'}}>{T('login.mode.signup')}</button>
+            </div>
+          )}
           <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#F5F4F1', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
           <p style={{fontSize:14, color:'rgba(245,244,241,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
