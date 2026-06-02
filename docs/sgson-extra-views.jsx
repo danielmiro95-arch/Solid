@@ -380,7 +380,7 @@ function ChannelsView() {
       sub={T('channels.sub')}>
 
       {/* CHANNEL MANAGER · conectar / desconectar / re-autenticar / marcar principal */}
-      <ChannelManagerPanel chState={chState} catalog={catalog}/>
+      <ChannelManagerPanel chState={safeState} catalog={catalog}/>
 
       {/* MATRIZ DE NOTIFICACIONES · una columna por canal conectado · estilo Sprinklr */}
       <ChannelNotificationsMatrix chState={chState} catalog={catalog}/>
@@ -1253,6 +1253,8 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
 // ── Channel Manager Panel ─────────────────────────────────────────────────
 function ChannelManagerPanel({ chState, catalog }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
+  // Defensive · si el padre pasa chState undefined no crasheamos
+  const safeState = chState || {};
   const [connecting, setConnecting] = useEV2(null);
 
   const startConnect = (chId) => {
