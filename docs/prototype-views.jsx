@@ -114,7 +114,17 @@ function Player({ back, item }) {
   const mp4Url = (it && it.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(it.mp4) : null;
   const hasVideo = !!(it.yt || mp4Url);
 
-  const chapters = [
+  // Chapter markers hardcoded del player · genéricos cuando demo activo
+  // para no leak "Repsol" / "Sprinklr" que son específicos del workspace
+  // original. Sin tabla de capítulos por pill todavía.
+  const _dmChapters = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  const chapters = _dmChapters ? [
+    { n: 1, t: 'Introducción y contexto',          d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
+    { n: 2, t: 'Conceptos clave',                  d: '0:52 · 1:10', tone: 'plum',  start: 52,  end: 122 },
+    { n: 3, t: 'Flujo de trabajo paso a paso',     d: '2:02 · 1:18', tone: 'clay',  start: 122, end: 200, active: true },
+    { n: 4, t: 'Ejemplos reales',                  d: '3:20 · 0:45', tone: 'olive', start: 200, end: 245 },
+    { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm',  start: 245, end: 300 },
+  ] : [
     { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
     { n: 2, t: 'Interfaz y accesos en Sprinklr',    d: '0:52 · 1:10', tone: 'plum',  start: 52,  end: 122 },
     { n: 3, t: 'Flujo de trabajo paso a paso',      d: '2:02 · 1:18', tone: 'clay',  start: 122, end: 200, active: true },

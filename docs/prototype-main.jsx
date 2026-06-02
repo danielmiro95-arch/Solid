@@ -5108,7 +5108,7 @@ function App() {
         </button>
       )}
 
-      {view !== 'onboarding' && <OnboardingRing onClick={() => setView('onboarding')}/>}
+      {view !== 'onboarding' && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <OnboardingRing onClick={() => setView('onboarding')}/>}
 
       {tweaksOn && (
         <TweaksPanel
