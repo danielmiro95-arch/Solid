@@ -5698,16 +5698,21 @@ function LoginScreen() {
               <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
-          <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
-            <button onClick={() => { setMode('login'); setError(''); }}
-              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>{T('login.mode.login')}</button>
-            <button onClick={() => { setMode('signup'); setError(''); }}
-              style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
-                transition:'all .12s'}}>{T('login.mode.signup')}</button>
-          </div>
+          {/* Tabs login/signup · solo se ven cuando llega un ?invite=token ·
+              cuentas nuevas se crean por invitación del admin del workspace,
+              no por signup organic desde la landing. */}
+          {invitation && (
+            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
+              <button onClick={() => { setMode('login'); setError(''); }}
+                style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                  background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  transition:'all .12s'}}>{T('login.mode.login')}</button>
+              <button onClick={() => { setMode('signup'); setError(''); }}
+                style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
+                  background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  transition:'all .12s'}}>{T('login.mode.signup')}</button>
+            </div>
+          )}
           <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#F5F4F1', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
           <p style={{fontSize:14, color:'rgba(245,244,241,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
