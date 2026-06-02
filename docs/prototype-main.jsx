@@ -2874,6 +2874,81 @@ function _activateSupabaseData() {
     },
   };
 
+  // ── Progress · tracking de pills completadas por user ────────────────
+  // Tabla public.progress · PK (user_id, workspace_id, pill_id).
+  // El Player llama:
+  //   · start(pillId)       → upsert con progress=0 (si no existe)
+  //   · update(pillId, %)   → upsert con nuevo progress (0-1)
+  //   · complete(pillId)    → upsert con progress=1 + completed_at=now
+  // Alimentación de Analytics (pills_completed, active_users, etc.) y de
+  // las cards del catálogo (badge ✓ completado). Cero efecto si no hay
+  // user o workspace activo · es opt-in silencioso.
+  let _progressCache = {};        // pill_id → { progress, completed_at }
+  async function _loadProgress() {
+    const u = _uid(); const ws = _wsid();
+    if (!u || !ws) { _progressCache = {}; return; }
+    const { data, error } = await sb.from('progress')
+      .select('pill_id, progress, completed_at')
+      .eq('user_id', u).eq('workspace_id', ws);
+    if (error) { console.warn('[progress] load', error.message); return; }
+    _progressCache = {};
+    (data || []).forEach(r => { _progressCache[r.pill_id] = r; });
+    window.dispatchEvent(new Event('progress-changed'));
+  }
+  window.Progress = {
+    get: (pillId) => _progressCache[pillId] || null,
+    isCompleted: (pillId) => !!(_progressCache[pillId] && _progressCache[pillId].completed_at),
+    pct: (pillId) => { const r = _progressCache[pillId]; return r ? (r.progress || 0) : 0; },
+    list: () => Object.assign({}, _progressCache),
+    start: async function(pillId) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      // Solo upsert si no existe ya (no pisar progress avanzado)
+      if (_progressCache[pillId]) return;
+      const { error } = await sb.from('progress').upsert(
+        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: 0, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,workspace_id,pill_id' }
+      );
+      if (error) { console.warn('[progress] start', error.message); return; }
+      _progressCache[pillId] = { pill_id: String(pillId), progress: 0, completed_at: null };
+      window.dispatchEvent(new Event('progress-changed'));
+    },
+    update: async function(pillId, pct) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      const next = Math.max(0, Math.min(1, pct || 0));
+      const prev = _progressCache[pillId];
+      // No regresar · solo subir progress
+      if (prev && prev.progress >= next) return;
+      // No spam: solo escribe cada 5 puntos porcentuales
+      if (prev && Math.abs((prev.progress || 0) - next) < 0.05) return;
+      const { error } = await sb.from('progress').upsert(
+        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: next, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,workspace_id,pill_id' }
+      );
+      if (error) { console.warn('[progress] update', error.message); return; }
+      _progressCache[pillId] = Object.assign({}, prev || {}, { progress: next });
+      window.dispatchEvent(new Event('progress-changed'));
+    },
+    complete: async function(pillId) {
+      const u = _uid(); const ws = _wsid();
+      if (!u || !ws || !pillId) return;
+      // Idempotente · si ya está completado no re-escribe
+      if (_progressCache[pillId] && _progressCache[pillId].completed_at) return;
+      const now = new Date().toISOString();
+      const { error } = await sb.from('progress').upsert(
+        { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: 1, completed_at: now, updated_at: now },
+        { onConflict: 'user_id,workspace_id,pill_id' }
+      );
+      if (error) { console.warn('[progress] complete', error.message); return; }
+      _progressCache[pillId] = { pill_id: String(pillId), progress: 1, completed_at: now };
+      if (window.Toast) window.Toast.success('Pill marcada como completada', { icon:'✓' });
+      window.dispatchEvent(new Event('progress-changed'));
+      // Refresh Analytics si está cargado
+      if (window.Analytics && window.Analytics.refresh) window.Analytics.refresh();
+    },
+  };
+
   // ── Pills CRUD (admin) ────────────────────────────────────────────────
   // Acciones administrativas sobre el catálogo del workspace activo.
   // Todas las funciones recargan tras la operación y devuelven el resultado.
@@ -2986,7 +3061,7 @@ function _activateSupabaseData() {
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
       _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
-      _loadPills(), _loadAllContent(),
+      _loadPills(), _loadAllContent(), _loadProgress(),
     ]);
   }
   window.addEventListener('auth-changed', _syncAll);
@@ -2999,7 +3074,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent()]);
+    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────

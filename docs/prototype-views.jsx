@@ -138,6 +138,25 @@ function Player({ back, item }) {
     return () => clearInterval(t);
   }, [playing, speed, hasVideo]);
 
+  // ── Progress tracking · escribe en public.progress vía window.Progress ─
+  // Al abrir la pill se registra start (progress=0 si no existe). Mientras
+  // se ve, update con el % actual (throttled internamente cada 5%). Si
+  // currentSec llega al 95% del total se marca complete. Si el user es
+  // anónimo o no hay workspace, las llamadas son no-op silencioso.
+  useE2(() => {
+    if (!it || !it.id) return;
+    if (window.Progress && window.Progress.start) window.Progress.start(it.id);
+  }, [it && it.id]);
+  useE2(() => {
+    if (!it || !it.id || !window.Progress) return;
+    const pct = totalSec > 0 ? currentSec / totalSec : 0;
+    if (pct >= 0.95) {
+      window.Progress.complete(it.id);
+    } else if (pct > 0) {
+      window.Progress.update(it.id, pct);
+    }
+  }, [currentSec, it && it.id]);
+
   // Atajos de teclado: espacio = play/pause, ← → = seek 10s, M = mute
   useE2(() => {
     if (hasVideo) return; // los YT iframes capturan los eventos

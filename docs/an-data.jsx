@@ -208,7 +208,7 @@
   /* Refresh automáticamente cuando cambia el workspace o llegan
    * pills/progress nuevas. La vista AnalyticsApp también llama a
    * refresh() al montarse. */
-  ['workspace-changed','pills-changed','auth-changed'].forEach(ev => {
+  ['workspace-changed','pills-changed','auth-changed','progress-changed'].forEach(ev => {
     window.addEventListener(ev, () => { if (sb()) refresh(); });
   });
 

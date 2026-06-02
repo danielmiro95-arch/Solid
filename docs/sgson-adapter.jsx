@@ -65,7 +65,14 @@
                 (p.level || 'Básico'),
       rating:   p.rating || 4.7,
       enrolled: p.enrolled || 0,
-      progress: typeof p.progress === 'number' && p.progress > 1 ? p.progress / 100 : (p.progress || 0),
+      // Progress · primero busca el del user en window.Progress (Supabase
+       // real). Si no hay registro, cae al hardcoded de la pill (legacy).
+       progress: (() => {
+         const real = window.Progress && window.Progress.get && window.Progress.get(p.id);
+         if (real) return real.progress || 0;
+         return typeof p.progress === 'number' && p.progress > 1 ? p.progress / 100 : (p.progress || 0);
+       })(),
+       completed: !!(window.Progress && window.Progress.isCompleted && window.Progress.isCompleted(p.id)),
       yt:       p.yt,
       featured: p.featured,
       newBadge: p.newBadge,
@@ -206,6 +213,6 @@
   window.addEventListener('pills-changed', setup);
   // Cambios en paths/series/reels/podcasts también requieren rebuild de
   // SGS_DATA · son parte del catálogo expuesto en window.PATHS etc.
-  ['paths-changed','series-changed','reels-changed','podcasts-changed'].forEach(ev => window.addEventListener(ev, setup));
+  ['paths-changed','series-changed','reels-changed','podcasts-changed','progress-changed'].forEach(ev => window.addEventListener(ev, setup));
   window.addEventListener('workspace-changed', setup);
 })();
