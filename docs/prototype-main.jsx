@@ -3298,18 +3298,12 @@ function _activateSupabaseData() {
   async function _loadInvitations() {
     const u = _uid(); const ws = _wsid();
     if (!u || !ws) { _invitationsCache = []; return; }
-    // Algunas instalaciones legacy de Supabase no tienen `created_at` en
-    // invitations · primero intentamos con la columna y si falla
-    // re-intentamos sin ordenar para no romper el sync.
-    let r = await sb.from('invitations')
-      .select('token, workspace_id, email, name, role, status, accepted_at, created_at, invited_by')
-      .eq('workspace_id', ws)
-      .order('created_at', { ascending: false });
-    if (r.error && /created_at/.test(r.error.message || '')) {
-      r = await sb.from('invitations')
-        .select('token, workspace_id, email, name, role, status, accepted_at, invited_by')
-        .eq('workspace_id', ws);
-    }
+    // En esta instalación la tabla public.invitations NO tiene `created_at`
+    // así que vamos directos a la query simple sin orden. Evitamos los 400
+    // de ruido en consola.
+    const r = await sb.from('invitations')
+      .select('token, workspace_id, email, name, role, status, accepted_at, invited_by')
+      .eq('workspace_id', ws);
     if (r.error) { console.warn('[invitations] load', r.error.message); _invitationsCache = []; return; }
     _invitationsCache = r.data || [];
     window.dispatchEvent(new Event('invitations-changed'));
