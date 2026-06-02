@@ -4425,12 +4425,36 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     }
   }, [open]);
 
-  // Calcular items combinados (nav + pills) para indexar con activeIdx
-  const all = (window.PILLS || []).concat(window.SERIES || []).concat(window.PODCASTS || []);
+  // Items combinados · pills + series + reels + podcasts + paths/competencias.
+  // Cada uno conserva su tipo para mostrar la etiqueta en el resultado y
+  // poder enrutar al detail correcto.
+  const taggedPills    = (window.PILLS    || []).map(x => ({ ...x, _kind:'pill',    _kindLabel:'PILL'   }));
+  const taggedSeries   = (window.SERIES   || []).map(x => ({ ...x, _kind:'series',  _kindLabel:'BLOQUE' }));
+  const taggedReels    = (window.REELS    || []).map(x => ({ ...x, _kind:'reel',    _kindLabel:'TIP'    }));
+  const taggedPodcasts = (window.PODCASTS || []).map(x => ({ ...x, _kind:'podcast', _kindLabel:'CHARLA' }));
+  const taggedPaths    = (window.LEARNING_PATHS || []).map(x => ({
+    ...x,
+    _kind: 'path',
+    _kindLabel: (function() {
+      const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+      const label = ws && ws.settings && ws.settings.path_label;
+      return (label || 'RUTA').toUpperCase();
+    })(),
+    title: x.title || x.label,
+  }));
+  const all = taggedPills.concat(taggedSeries, taggedReels, taggedPodcasts, taggedPaths);
+
   const ql = q.trim().toLowerCase();
+  const matches = (it) =>
+    (it.title       || '').toLowerCase().includes(ql) ||
+    (it.label       || '').toLowerCase().includes(ql) ||
+    (it.category    || '').toLowerCase().includes(ql) ||
+    (it.teacher     || '').toLowerCase().includes(ql) ||
+    (it.one         || '').toLowerCase().includes(ql) ||
+    (it.desc        || '').toLowerCase().includes(ql);
   const items = ql.length === 0
-    ? all.slice(0, 8)
-    : all.filter(it => (it.title || '').toLowerCase().includes(ql) || (it.category || '').toLowerCase().includes(ql) || (it.teacher || '').toLowerCase().includes(ql)).slice(0, 12);
+    ? taggedPills.slice(0, 8)              // Default · solo pills recientes
+    : all.filter(matches).slice(0, 16);
 
   const navItems = [
     { id:'home',     label:'Inicio' },
@@ -4456,8 +4480,16 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
 
   const activate = (entry) => {
     if (!entry) return;
-    if (entry.type === 'nav') { onNavigate(entry.payload.id); onClose(); }
-    else { openDetail(entry.payload); onClose(); }
+    if (entry.type === 'nav') { onNavigate(entry.payload.id); onClose(); return; }
+    // Items con _kind 'path' van a la vista de ruta (no al detail modal de pill)
+    if (entry.payload._kind === 'path') {
+      if (window.__openPath) window.__openPath(entry.payload.id);
+      else onNavigate('rutas');
+      onClose();
+      return;
+    }
+    openDetail(entry.payload);
+    onClose();
   };
 
   useEM(() => {
@@ -4521,14 +4553,18 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
               {items.map((it, i) => {
                 const offset = navItems.length + i;
                 const active = isActiveAt(offset);
+                const kindLabel = it._kindLabel || (it.format ? it.format.toUpperCase() : 'PILL');
+                const subtitle  = [it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
                 return (
-                  <button key={it.id} data-active={active}
+                  <button key={(it._kind || 'pill') + ':' + it.id} data-active={active}
                     onMouseEnter={() => setActiveIdx(offset)}
-                    onClick={() => { openDetail(it); onClose(); }}
+                    onClick={() => activate({ type: 'item', payload: it })}
                     style={{display:'flex', alignItems:'center', gap:12, width:'100%', padding:'10px 18px', border:'none', background: active ? 'var(--paper-2)' : 'transparent', cursor:'pointer', textAlign:'left', fontFamily:'var(--sans)', borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent'}}>
-                    <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-4)', flexShrink:0, width:36}}>{it.format || 'módulo'}</span>
-                    <span style={{flex:1, fontSize:13, color:'var(--ink)', fontWeight:500}}>{it.title}</span>
-                    <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-4)'}}>{it.duration}</span>
+                    <span style={{fontFamily:'var(--mono)', fontSize:9, fontWeight:700, color:'var(--accent)', flexShrink:0, width:48, letterSpacing:'0.06em'}}>{kindLabel}</span>
+                    <span style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:13, color:'var(--ink)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.title}</div>
+                      {subtitle && <div style={{fontSize:11, color:'var(--ink-4)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:2}}>{subtitle}</div>}
+                    </span>
                   </button>
                 );
               })}
@@ -4782,6 +4818,8 @@ function App() {
     };
     window.addEventListener('keydown', h);
     window.__openPalette = () => setPaletteOpen(true);
+    // Expone openPath para que CommandPalette pueda navegar a una ruta concreta
+    window.__openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
     return () => window.removeEventListener('keydown', h);
   }, []);
 
