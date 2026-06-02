@@ -437,12 +437,21 @@ function HomeHero({ onPlay, onMore }) {
   const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
-    // En modo demo · el hero funciona como sección "Seguir viendo":
-    //   1) si hay alguna pill con progreso > 0 (asignada/en curso) · la mostramos
-    //   2) si no · mostramos la pill featured ("Más presentaciones eficaces")
-    //   3) sin rotación · una sola pill
+    // En modo demo · el hero muestra las 4 pills de "Tendencias de la semana"
+    // como carrusel Netflix-style. El cover viene de pill.poster (URLs de
+    // Supabase Storage subidas por el cliente).
+    //
+    // Filtros · category === 'Tendencias' (case-insensitive) o slug que
+    // empiece por "tendencia-". Si no hay 4 · fallback a featured/in-progress.
+    const _isDemoURL = /demo/i.test(window.location.href);
     const dm = window.DemoMode;
-    if (dm && dm.isActive && dm.isActive()) {
+    if (_isDemoURL || (dm && dm.isActive && dm.isActive())) {
+      const tendencias = PILLS
+        .filter(p => /tendencias?/i.test(String(p.category || ''))
+                  || /^tendencia-/i.test(String(p.id || p.slug || '')))
+        .sort((a, b) => (a.position || a.pill_number || 0) - (b.position || b.pill_number || 0));
+      if (tendencias.length > 0) return tendencias;
+      // Fallback si aún no hay pills de tendencias en DB
       const inProgress = PILLS.find(p => p.progress > 0 && p.progress < 1);
       const f = inProgress || PILLS.find(p => p.featured) || PILLS[0];
       return f ? [f] : [];
@@ -536,11 +545,20 @@ function HomeHero({ onPlay, onMore }) {
 
       <div className="hero-badge">
         {(() => {
+          const _isDemoURL = /demo/i.test(window.location.href);
           const dm = window.DemoMode;
-          const demoActive = dm && dm.isActive && dm.isActive();
-          // En demo · si la pill mostrada tiene progreso → "Seguir viendo"
-          // (sección que pidieron en reunión). Si no → "Destacado" + nombre
-          // del workspace, evitando "Top esta semana en HdR Demo".
+          const demoActive = _isDemoURL || (dm && dm.isActive && dm.isActive());
+          const isTendencia = /tendencias?/i.test(String(p.category || ''))
+                           || /^tendencia-/i.test(String(p.id || p.slug || ''));
+          // En demo · si la pill mostrada es una de Tendencias → badge "Tendencias
+          // de la semana". Si tiene progreso → "Seguir viendo". Default "Destacado".
+          if (demoActive && isTendencia) {
+            return <>
+              <span className="label">Tendencias de la semana</span>
+              <span className="value">{p.teacher || 'curso recomendado'}</span>
+              <span className="stroke"/>
+            </>;
+          }
           if (demoActive && p.progress > 0 && p.progress < 1) {
             return <>
               <span className="label">Seguir viendo</span>
@@ -579,18 +597,7 @@ function HomeHero({ onPlay, onMore }) {
           })()}
         </div>
 
-        <h1 className="hero-title">{(() => {
-          // En demo · si hay progreso en la pill mostrada → usa pill.title
-          // (Seguir viendo el curso real). Si no → "Más presentaciones eficaces"
-          // como pill destacada per spec del cliente.
-          const dm = window.DemoMode;
-          if (dm && dm.isActive && dm.isActive()) {
-            if (p.progress > 0 && p.progress < 1) return p.title;
-            const override = dm.label && dm.label('hero_title_label', null);
-            return override || 'Más presentaciones eficaces';
-          }
-          return p.title;
-        })()}</h1>
+        <h1 className="hero-title">{p.title}</h1>
         {p.one && p.one !== p.title && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="hero-quote">"{p.one}."</p>}
 
         <div className="hero-meta">
