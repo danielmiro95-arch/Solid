@@ -212,7 +212,7 @@
     const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
     const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
     const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
-    const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio' : null;
+    const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
     const finalName = _demoForceName || fullName;
     const finalInitials = _demoForceName
       ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()

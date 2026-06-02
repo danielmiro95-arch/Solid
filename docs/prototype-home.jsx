@@ -609,12 +609,13 @@ function HomeHero({ onPlay, onMore }) {
   );
 }
 
-// En modo demo · determina si un card debe aparecer bloqueado.
-// Reglas: 1) si demo_mode no activo o lock_unassigned_courses=false · siempre abierto.
-//         2) si forceUnlocked=true (fila trending = Tendencias de la semana) · abierto.
-//         3) si la pill está en DemoMode.unlocked() · abierta.
-//         4) si la pill tiene progress > 0 (asignada/en curso) · abierta.
-//         5) en otro caso · ~2/3 cerradas por hash determinista del id.
+// En modo demo · determina si un card de pill debe aparecer bloqueado.
+// Reglas (actualizadas tras reunión):
+//   1) si demo_mode no activo o lock_unassigned_courses=false · siempre abierto.
+//   2) si forceUnlocked=true (fila trending = Tendencias de la semana) · abierto.
+//   3) si la pill está en DemoMode.unlocked() · abierta.
+//   4) si la pill tiene progress > 0 (asignada/en curso) · abierta.
+//   5) por curso · primeras 3 pills (por position) abiertas, resto cerradas.
 function _isPillLockedDemo(pill, forceUnlocked) {
   const dm = window.DemoMode;
   if (!dm || !dm.isActive || !dm.isActive()) return false;
@@ -623,8 +624,20 @@ function _isPillLockedDemo(pill, forceUnlocked) {
   if (pill && pill.progress > 0) return false;
   const list = dm.unlocked ? dm.unlocked() : [];
   if (Array.isArray(list) && pill && list.indexOf(pill.id) !== -1) return false;
-  const seed = parseInt(String((pill && pill.id) || '').replace(/\D/g, ''), 10) || 0;
-  return (seed % 3) !== 0;
+  // Calcula la posición de la pill dentro de su curso. Si no podemos
+  // determinar a qué curso pertenece, usamos posición global ordenada.
+  const allPills = window.PILLS || [];
+  if (pill && pill.pathId) {
+    const sameCurso = allPills
+      .filter(p => p.pathId === pill.pathId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+    const idxInCurso = sameCurso.findIndex(p => p.id === pill.id);
+    if (idxInCurso !== -1) return idxInCurso >= 3;
+  }
+  // Fallback · sin pathId, ordena por position globalmente y aplica regla
+  const sortedAll = allPills.slice().sort((a, b) => (a.position || 0) - (b.position || 0));
+  const idxGlobal = sortedAll.findIndex(p => p.id === pill.id);
+  return idxGlobal >= 3;
 }
 
 function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {

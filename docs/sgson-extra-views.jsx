@@ -298,9 +298,11 @@ function MyPathView({ openDetail, setView, pathId }) {
         : _dmActive
           ? <>{_myListLabel}</>
           : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
-      sub={path
-        ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
-        : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}
+      sub={_isDemo
+        ? '' /* en demo · sin "X/N pills · N% del programa" (eliminado en reunión) */
+        : (path
+          ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
+          : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`)}
       actions={path && setView ? (
         <div style={{ display:'flex', gap: 10 }}>
           {totalProgress >= 70 && window.RouteExamModal && (
@@ -312,7 +314,8 @@ function MyPathView({ openDetail, setView, pathId }) {
         </div>
       ) : null}>
 
-      {/* Barra de progreso grande */}
+      {/* Barra de progreso grande · oculta en demo (sin "% del programa") */}
+      {!_isDemo && (
       <div style={{
         padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)',
         borderRadius: 'var(--r-2)', marginBottom: 32,
@@ -325,8 +328,10 @@ function MyPathView({ openDetail, setView, pathId }) {
           <div style={{ height: '100%', width: `${totalProgress}%`, background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))', borderRadius: 4 }}/>
         </div>
       </div>
+      )}
 
-      {/* Stats row */}
+      {/* Stats row · oculto en demo (eliminados Completadas/En curso/Por empezar) */}
+      {!_isDemo && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 40 }}>
         {[
           { label: T('mypath.completed'), value: completed.length, color: 'var(--ok)' },
@@ -339,6 +344,7 @@ function MyPathView({ openDetail, setView, pathId }) {
           </div>
         ))}
       </div>
+      )}
 
       {/* En progreso */}
       {inProgress.length > 0 && (
@@ -421,12 +427,13 @@ function ChannelsView() {
     return () => window.removeEventListener('channels-changed', onChange);
   }, []);
 
-  // En modo demo · solo se muestran WhatsApp, Microsoft Teams y Email
+  // En modo demo · sólo Microsoft Teams + Email (WhatsApp descartada en
+  // reunión por ser config de prueba, junto al "Límite diario").
   const _dm = window.DemoMode;
   const _demoActive = _dm && _dm.isActive && _dm.isActive();
   const _fullCatalog = (window.Channels && window.Channels.CATALOG) || [];
   const catalog = _demoActive
-    ? _fullCatalog.filter(c => ['whatsapp','teams','email'].indexOf(c.id) !== -1)
+    ? _fullCatalog.filter(c => ['teams','email'].indexOf(c.id) !== -1)
     : _fullCatalog;
   const primaryId = chState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
@@ -1179,17 +1186,24 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
     return () => window.removeEventListener('test-sends-changed', onChange);
   }, []);
 
-  // En modo demo · sólo se expone "Test del brief antes de la reunión"
-  // (mantiene el id `meeting_brief` para no romper persistencia/state).
-  // Eliminamos del listado: weekly_recap, beonai_chat, ai_recs, daily_module,
-  // new_workshop, deadlines · por spec del cliente.
+  // En modo demo · tras reunión · sólo:
+  //   · daily_module → "Píldora del día"
+  //   · new_workshop → "Nuevos talleres"
+  //   · ai_recs reutilizado como "Recordatorio (hora específica)"
+  // Eliminamos: meeting_brief, weekly_recap, beonai_chat, deadlines (y la
+  // pista AI del ai_recs original).
   const _dmTypes = window.DemoMode;
   const _dmTypesActive = _dmTypes && _dmTypes.isActive && _dmTypes.isActive();
   const _rawTypes = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
   const TYPES = _dmTypesActive
     ? _rawTypes
-        .filter(t => t.id === 'meeting_brief')
-        .map(t => ({ ...t, label: 'Test del brief antes de la reunión' }))
+        .filter(t => ['daily_module','new_workshop','ai_recs'].indexOf(t.id) !== -1)
+        .map(t => {
+          if (t.id === 'daily_module') return { ...t, label: 'Píldora del día',     desc: 'Tu pill del día a primera hora' };
+          if (t.id === 'new_workshop') return { ...t, label: 'Nuevos talleres',     desc: 'Aviso cuando se publica un workshop' };
+          if (t.id === 'ai_recs')      return { ...t, icon:'⏰', label: 'Recordatorio', desc: 'A la hora que tú elijas · una vez al día' };
+          return t;
+        })
     : _rawTypes;
 
   if (connected.length === 0) {
