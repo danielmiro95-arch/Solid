@@ -916,7 +916,11 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
     return (
       <div style={{padding:'120px 64px', color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-sans, Inter)', textAlign:'center'}}>
         <div style={{fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--fg-dim, #6F6D67)', marginBottom:12}}>SolidStream · cargando data del catálogo</div>
-        <div style={{fontSize:14}}>Preparando Think Pills…</div>
+        <div style={{fontSize:14}}>
+          {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+            ? 'Preparando tus cursos…'
+            : 'Preparando Think Pills…'}
+        </div>
       </div>
     );
   }

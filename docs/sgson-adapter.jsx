@@ -52,11 +52,16 @@
     });
 
     // ── Helper · convierte un pill de tu data al shape del rediseño ──
+    // En demo · el fallback de teacher pasa a "BeonIt × Hijos de Rivera"
+    // para no leak el branding de Repsol en cards sin teacher explícito.
+    const _dmMap = window.DemoMode;
+    const _dmMapActive = _dmMap && _dmMap.isActive && _dmMap.isActive();
+    const _teacherFallback = _dmMapActive ? 'BeonIt × Hijos de Rivera' : 'BeonIt × Repsol';
     const mapPill = (p) => ({
       ...p,
       pill:     String(p.pill != null ? p.pill : 0).padStart(2, '0'),
       one:      p.one || p.title,
-      teacher:  p.teacher || 'BeonIt × Repsol',
+      teacher:  p.teacher || _teacherFallback,
       duration: p.duration || '4 min',
       category: p.category, // mantenemos el label real (Care, Social Publish, etc.)
       level:    p.level === 'principiante' ? 'Básico' :

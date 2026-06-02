@@ -80,9 +80,13 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
           <div className="hero-overlay"/>
           <div className="modal-hero-body">
             <div className="hero-eyebrow" style={{ marginBottom: 14 }}>
-              <span className="pillmark">Think Pill · {pill.pill}</span>
-              <span className="sep"/>
-              <span className="meta">{cat.label}</span>
+              {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+                ? <span className="meta">{cat.label}</span>
+                : <>
+                    <span className="pillmark">Think Pill · {pill.pill}</span>
+                    <span className="sep"/>
+                    <span className="meta">{cat.label}</span>
+                  </>}
             </div>
             <h2 className="h">{pill.title}</h2>
             <p className="q">"{pill.one}."</p>
