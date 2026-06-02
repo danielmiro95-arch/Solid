@@ -2035,13 +2035,19 @@ function _activateSupabaseAuth() {
 
   Auth.signup = async function(data) {
     if (!data.password || data.password.length < 6) throw new Error('Password de al menos 6 caracteres');
+    // emailRedirectTo · explícito al origen actual (window.location.origin) ·
+    // así Supabase NO usa el Site URL del Dashboard (que por defecto está en
+    // http://localhost:3000 y rompe los emails de verificación en producción).
+    // Cada deployment usa su propio origen automáticamente.
     const { data: authData, error } = await sb.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
+        emailRedirectTo: (typeof window !== 'undefined' && window.location)
+          ? window.location.origin + '/'
+          : undefined,
         data: {
           name: data.name,
-          // role y team vacíos · los asignará el admin del workspace al invitar
           role: data.role || '',
           team: data.team || '',
           avatar_color: data.avatarColor || 'var(--bn-blue)',
