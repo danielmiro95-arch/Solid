@@ -1158,9 +1158,7 @@ window.Workspaces = Workspaces;
     return (w && w.settings) || {};
   }
   // Detección por slug/nombre · si el workspace se llama "...demo" asumimos
-  // demo_mode aunque la flag explícita en settings no esté seteada. Cubre
-  // el caso de workspaces creados ANTES de que existiera el flag o cuando
-  // el SQL de seed no se corrió pero el workspace existe con slug "demo".
+  // demo_mode aunque la flag explícita en settings no esté seteada.
   function _slugSuggestsDemo() {
     const w = _ws();
     if (!w) return false;
@@ -1168,12 +1166,24 @@ window.Workspaces = Workspaces;
     const name = String(w.name || '').toLowerCase();
     return slug.indexOf('demo') !== -1 || name.indexOf('demo') !== -1;
   }
+  // Detección por URL (?ws=*demo*) · cubre el caso en que window.Workspaces
+  // todavía no ha resuelto el workspace activo (race condition al boot).
+  function _urlSuggestsDemo() {
+    try {
+      const urlWs = String(new URLSearchParams(window.location.search).get('ws') || '').toLowerCase();
+      if (urlWs.indexOf('demo') !== -1) return true;
+    } catch (e) {}
+    return false;
+  }
   function _isDemoActive() {
+    // ORDEN · URL > slug > settings.demo_mode. La URL gana porque es el
+    // contexto explícito en el que el user está navegando (?ws=*demo*).
+    // El slug del workspace activo es segundo. Settings sólo decide en
+    // workspaces sin "demo" en el nombre.
+    if (_urlSuggestsDemo()) return true;
+    if (_slugSuggestsDemo()) return true;
     const s = _settings();
-    // 1) flag explícita en settings tiene prioridad (puede ser true o false)
-    if (typeof s.demo_mode === 'boolean') return s.demo_mode;
-    // 2) fallback · slug/nombre del workspace contiene "demo"
-    return _slugSuggestsDemo();
+    return s.demo_mode === true;
   }
   // Si demo_mode está activo · estos son los valores por defecto que
   // aplican aunque la flag individual no esté en settings. El admin puede
@@ -1223,6 +1233,21 @@ window.Workspaces = Workspaces;
       // lock_unassigned_courses=true, TODO está cerrado
       const v = window.DemoMode.flag('unlocked_paths');
       return Array.isArray(v) ? v : [];
+    },
+    debug: function() {
+      // Útil desde la consola del navegador: window.DemoMode.debug()
+      const w = _ws();
+      const out = {
+        isActive: window.DemoMode.isActive(),
+        urlSuggestsDemo: _urlSuggestsDemo(),
+        slugSuggestsDemo: _slugSuggestsDemo(),
+        workspace: w ? { id: w.id, name: w.name, slug: w.slug, settings: w.settings || {} } : null,
+        urlWs: new URLSearchParams(window.location.search).get('ws'),
+        htmlDataDemoMode: document.documentElement.getAttribute('data-demo-mode'),
+        htmlDataTheme: document.documentElement.getAttribute('data-theme'),
+      };
+      console.table(out);
+      return out;
     },
   };
 })();
