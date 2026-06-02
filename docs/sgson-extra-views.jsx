@@ -367,55 +367,11 @@ function MyPathView({ openDetail, setView, pathId }) {
       </div>
       )}
 
-      {/* En demo · Cursos que estás haciendo (paths en progreso) ENCABEZAN
-          la página antes que las pills. "Mis Cursos" tiene que mostrar
-          cursos, no solo pills. Per reunión. */}
-      {_isDemo && !path && (() => {
-        const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
-        const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
-        const coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
-        if (coursesToShow.length === 0) return null;
-        return (
-          <section style={{ marginBottom: 40 }}>
-            <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
-              Cursos en tu lista
-            </h2>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
-              {coursesToShow.map(p => {
-                const pct = Math.round((p.progress || 0) * 100);
-                return (
-                  <article key={'crs-'+p.id} onClick={() => openPath ? openPath(p.id) : setView('rutas')} style={{
-                    cursor:'pointer', padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
-                    borderRadius:14, display:'flex', flexDirection:'column', gap:10,
-                  }}>
-                    <div style={{
-                      fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
-                      textTransform:'uppercase', color:'var(--accent)', fontWeight:700,
-                    }}>Curso{p.progress > 0 ? ` · ${pct}% completado` : ''}</div>
-                    <h3 style={{ margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3 }}>{p.title}</h3>
-                    {p.desc && <div style={{ fontSize:12, color:'var(--fg-muted)', lineHeight:1.4 }}>{String(p.desc).slice(0, 80)}{p.desc.length > 80 ? '…' : ''}</div>}
-                    {pct > 0 && (
-                      <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
-                        <div style={{ height:'100%', width:pct+'%', background:'var(--accent)' }}/>
-                      </div>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); if (openPath) openPath(p.id); else setView('rutas'); }} style={{
-                      marginTop:'auto', padding:'9px 12px', background:'var(--accent)', color:'#fff', border:'none',
-                      borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
-                    }}>{pct > 0 ? 'Continuar' : 'Empezar'}</button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* En progreso · pills */}
+      {/* En progreso · pills (sección 1/3 en demo: "Pills · continuar viendo") */}
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills donde te quedaste' : T('mypath.cont')}
+            {_isDemo ? 'Pills · continuar viendo' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -439,11 +395,11 @@ function MyPathView({ openDetail, setView, pathId }) {
         </section>
       )}
 
-      {/* Próximas pills sugeridas · en demo se renombra a "Tus pills guardadas" */}
+      {/* Próximas pills sugeridas · en demo se renombra a "Pills inscritos" (sección 2/3) */}
       {next.length > 0 && (
-        <section>
+        <section style={{ marginBottom: _isDemo ? 40 : 0 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Tus pills guardadas' : T('mypath.next')}
+            {_isDemo ? 'Pills inscritos' : T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -452,11 +408,12 @@ function MyPathView({ openDetail, setView, pathId }) {
                 <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
                   <div className={`card-cover cat-${slug}`}/>
                   <div className="card-grad"/>
-                  <span className="card-pill-num">{String(p.category).toUpperCase()} · {p.pill}</span>
+                  <span className="card-pill-num">{String(p.category).toUpperCase()}{!_isDemo ? ` · ${p.pill}` : ''}</span>
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">
-                      <span>{p.duration}</span><span className="sep">·</span><span>{p.level}</span>
+                      {!_isDemo && <><span>{p.duration}</span><span className="sep">·</span></>}
+                      <span>{_isDemo ? `Nivel ${p.level}` : p.level}</span>
                     </div>
                   </div>
                 </article>
@@ -465,6 +422,54 @@ function MyPathView({ openDetail, setView, pathId }) {
           </div>
         </section>
       )}
+
+      {/* Cursos inscritos (sección 3/3 en demo) · paths bookmarkados + en progreso */}
+      {_isDemo && !path && (() => {
+        const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
+        const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
+        const coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        return (
+          <section>
+            <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+              Cursos inscritos
+            </h2>
+            {coursesToShow.length === 0 ? (
+              <div style={{ padding:40, textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:14 }}>
+                <div style={{ fontSize:32, marginBottom:8, opacity:0.5 }}>📚</div>
+                <div style={{ fontSize:14, color:'var(--fg-muted)' }}>Aún no tienes cursos en tu Mi Playlist. Inscríbete a uno desde el Catálogo.</div>
+              </div>
+            ) : (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+                {coursesToShow.map(p => {
+                  const pct = Math.round((p.progress || 0) * 100);
+                  return (
+                    <article key={'crs-'+p.id} onClick={() => openPath ? openPath(p.id) : setView('rutas')} style={{
+                      cursor:'pointer', padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+                      borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+                    }}>
+                      <div style={{
+                        fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
+                        textTransform:'uppercase', color:'var(--accent)', fontWeight:700,
+                      }}>Curso{p.progress > 0 ? ` · ${pct}% completado` : ''}</div>
+                      <h3 style={{ margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3 }}>{p.title}</h3>
+                      {p.desc && <div style={{ fontSize:12, color:'var(--fg-muted)', lineHeight:1.4 }}>{String(p.desc).slice(0, 80)}{p.desc.length > 80 ? '…' : ''}</div>}
+                      {pct > 0 && (
+                        <div style={{ height:4, background:'rgba(0,0,0,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+                          <div style={{ height:'100%', width:pct+'%', background:'var(--accent)' }}/>
+                        </div>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); if (openPath) openPath(p.id); else setView('rutas'); }} style={{
+                        marginTop:'auto', padding:'9px 12px', background:'var(--accent)', color:'#fff', border:'none',
+                        borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+                      }}>{pct > 0 ? 'Continuar' : 'Empezar'}</button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Examen final · solo si hay path y el modal global está disponible */}
       {showExam && path && window.RouteExamModal && (

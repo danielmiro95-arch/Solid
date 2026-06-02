@@ -1178,7 +1178,7 @@ window.Workspaces = Workspaces;
     catalog_label: 'Catálogo',
     hero_title_label: 'Más presentaciones eficaces',
     catalog_subheader: 'Fórmate en tu contenido',
-    my_list_label: 'Mis Cursos',
+    my_list_label: 'Mi Playlist',
     paths_recommended_label: 'Cursos recomendados para ti',
     paths_recommended_sub: 'según tu perfil',
     new_row_title: 'Recién publicado',

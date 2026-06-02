@@ -2475,14 +2475,18 @@ html[data-demo-mode="true"] {
 
 /* CINEMATIC OVERRIDE · en demo · Home/Player/Onboarding también van light.
  * Sobrescribe el bloque html[data-theme="light"] body[data-cinematic="true"]
- * que normalmente fuerza dark. */
+ * que normalmente fuerza dark.
+ *
+ * Tonos beonit claros (ni blanco puro ni dark · cream cálido que combina
+ * con el azul corporativo y el rojo del acento Netflix). */
+html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #F4F4F4;
-  --bg-canvas:      #FFFFFF;       /* beonit blanco puro */
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F4F4F4;
-  --bg-glass:       rgba(255, 255, 255, 0.85);
-  --bg-glass-strong:rgba(255, 255, 255, 0.97);
+  --bg-deep:        #ECE5D6;       /* cream profundo beonit */
+  --bg-canvas:      #F4EFE3;       /* cream principal · fondo de la página */
+  --bg-surface:     #FBF8F0;       /* superficies (cards, rows) · cream pálido */
+  --bg-elevated:    #EFE9DB;       /* elementos elevados · ligeramente más oscuro */
+  --bg-glass:       rgba(244, 239, 227, 0.82);
+  --bg-glass-strong:rgba(244, 239, 227, 0.95);
   --line-faint:     rgba(0, 0, 0, 0.06);
   --line:           rgba(0, 0, 0, 0.10);
   --line-strong:    rgba(0, 0, 0, 0.20);
@@ -2491,9 +2495,9 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
   --fg-dim:         #6B6B6B;
   --fg-faint:       #9C9C9C;
   --fg-on-accent:   #FFFFFF;
-  background: #FFFFFF;
 }
-html[data-demo-mode="true"] body[data-cinematic="true"] { background: #FFFFFF !important; }
+html[data-demo-mode="true"] body[data-cinematic="true"] { background: #F4EFE3 !important; }
+html[data-demo-mode="true"] body { background: #F4EFE3; }
 
 /* CARDS en demo · texto blanco sobre cover oscuro/gradient se mantiene
  * (legibilidad sobre poster), pero la fila/section pasa a light beonit. */
@@ -2505,12 +2509,12 @@ html[data-demo-mode="true"] .footer-strip { color: #6B6B6B; border-top: 1px soli
 
 /* Topnav glass blanco beonit */
 html[data-demo-mode="true"] .topnav {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(244, 239, 227, 0.92);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid rgba(0,0,0,0.08);
 }
-html[data-demo-mode="true"] .topnav.scrolled { background: rgba(255, 255, 255, 0.98); }
+html[data-demo-mode="true"] .topnav.scrolled { background: rgba(244, 239, 227, 0.98); }
 html[data-demo-mode="true"] .topnav .nav-item { color: #000000; }
 html[data-demo-mode="true"] .topnav .nav-item.active { color: #0072BE; }
 html[data-demo-mode="true"] .topnav .icon-btn { color: #000000; }
