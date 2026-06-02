@@ -366,31 +366,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
               </button>
             ))}
 
-            {/* En demo mode · stats del user · Formación completada / en curso / Días activos */}
-            {isSimplified && (() => {
-              const PILLS = (D && D.PILLS) || [];
-              const completed = PILLS.filter(p => p.progress >= 1).length;
-              const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1).length;
-              const daysActive = (window.Activity && window.Activity.daysActive && window.Activity.daysActive()) || 14;
-              const stats = [
-                { label: 'Formación completada', value: completed },
-                { label: 'Formación en curso',    value: inProgress },
-                { label: 'Días activos',          value: daysActive },
-              ];
-              return (
-                <>
-                  <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
-                  <div style={{padding:'10px 14px 6px'}}>
-                    {stats.map(s => (
-                      <div key={s.label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                        <span style={{fontSize:12.5, color:'rgba(245,244,241,0.75)', fontFamily:'var(--font-sans, Inter)'}}>{s.label}</span>
-                        <span style={{fontSize:14, fontWeight:700, color:'#F5F4F1', fontFamily:'var(--font-sans, Inter)'}}>{s.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
+            {/* En demo mode · stats del user (Formación completada / en curso /
+                Días activos) ELIMINADOS por petición del cliente · saturaban
+                el popup sin aportar valor en la demo. El usuario puede ver su
+                progreso real en "Mi Playlist". */}
 
             {/* Separador */}
             <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>

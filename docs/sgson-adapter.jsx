@@ -249,7 +249,7 @@
       ? _label('catalog_label', 'Catálogo')
       : _label('path_label_plural', 'Rutas');
     const _myListLabel = _dmActive
-      ? _label('my_list_label', 'Mis Cursos')
+      ? _label('my_list_label', 'Mi Playlist')
       : _label('my_list_label', 'Mi ruta');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
