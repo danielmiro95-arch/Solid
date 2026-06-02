@@ -114,7 +114,17 @@ function Player({ back, item }) {
   const mp4Url = (it && it.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(it.mp4) : null;
   const hasVideo = !!(it.yt || mp4Url);
 
-  const chapters = [
+  // Chapter markers hardcoded del player · genéricos cuando demo activo
+  // para no leak "Repsol" / "Sprinklr" que son específicos del workspace
+  // original. Sin tabla de capítulos por pill todavía.
+  const _dmChapters = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  const chapters = _dmChapters ? [
+    { n: 1, t: 'Introducción y contexto',          d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
+    { n: 2, t: 'Conceptos clave',                  d: '0:52 · 1:10', tone: 'plum',  start: 52,  end: 122 },
+    { n: 3, t: 'Flujo de trabajo paso a paso',     d: '2:02 · 1:18', tone: 'clay',  start: 122, end: 200, active: true },
+    { n: 4, t: 'Ejemplos reales',                  d: '3:20 · 0:45', tone: 'olive', start: 200, end: 245 },
+    { n: 5, t: 'Errores comunes y cómo evitarlos', d: '4:05 · 0:55', tone: 'warm',  start: 245, end: 300 },
+  ] : [
     { n: 1, t: 'Introducción y contexto en Repsol', d: '0:00 · 0:52', tone: 'teal',  start: 0,   end: 52 },
     { n: 2, t: 'Interfaz y accesos en Sprinklr',    d: '0:52 · 1:10', tone: 'plum',  start: 52,  end: 122 },
     { n: 3, t: 'Flujo de trabajo paso a paso',      d: '2:02 · 1:18', tone: 'clay',  start: 122, end: 200, active: true },
@@ -179,6 +189,13 @@ function Player({ back, item }) {
     }
   }, [currentSec, it && it.id]);
 
+  // En demo · player BLOQUEA fast-forward (seek hacia delante). Permite
+  // pausar, retroceder, y avanzar hasta donde ya hayas visto. Por spec:
+  // "en los videos no puedes darle a correr hacia delante".
+  const _demoPlayer = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  const [_maxSeen, _setMaxSeen] = useS2(0);
+  useE2(() => { _setMaxSeen(m => Math.max(m, currentSec)); }, [currentSec]);
+
   // Atajos de teclado: espacio = play/pause, ← → = seek 10s, M = mute
   useE2(() => {
     if (hasVideo) return; // los YT iframes capturan los eventos
@@ -186,14 +203,32 @@ function Player({ back, item }) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.code === 'Space') { e.preventDefault(); setPlaying(p => !p); }
       else if (e.code === 'ArrowLeft') { e.preventDefault(); setCurrentSec(c => Math.max(0, c - 10)); }
-      else if (e.code === 'ArrowRight') { e.preventDefault(); setCurrentSec(c => Math.min(totalSec, c + 10)); }
+      else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        // En demo · ArrowRight sólo permite avanzar hasta donde ya viste
+        if (_demoPlayer) {
+          setCurrentSec(c => Math.min(_maxSeen, c + 10));
+          if (window.Toast && (currentSec + 10) > _maxSeen) {
+            window.Toast.info('Esta sección aún no la has visto');
+          }
+        } else {
+          setCurrentSec(c => Math.min(totalSec, c + 10));
+        }
+      }
       else if (e.code === 'KeyM') { e.preventDefault(); setMuted(m => !m); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [hasVideo]);
+  }, [hasVideo, _demoPlayer, _maxSeen, currentSec]);
 
-  const seekTo = (sec) => setCurrentSec(Math.max(0, Math.min(totalSec, sec)));
+  const seekTo = (sec) => {
+    // Demo · sólo permite seek a posiciones ya vistas (no fast-forward)
+    if (_demoPlayer && sec > _maxSeen) {
+      if (window.Toast) window.Toast.info('No puedes saltar contenido que aún no has visto', { icon:'🔒' });
+      return;
+    }
+    setCurrentSec(Math.max(0, Math.min(totalSec, sec)));
+  };
   const seekBar = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
@@ -257,9 +292,9 @@ function Player({ back, item }) {
           <>
             <div style={{position:'absolute',inset:0, background:`linear-gradient(135deg, var(--bn-blue) 0%, #001f3d 100%)`}}/>
             <div style={{position:'absolute',inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, zIndex:1}}>
-              <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:4}}>Think Pill {it.pill ?? ''} · {it.category}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:4}}>{(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? it.category : `Think Pill ${it.pill ?? ''} · ${it.category}`}</div>
               <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontWeight:700, fontSize:'clamp(22px,3vw,36px)', color:'#fff', textAlign:'center', maxWidth:480, lineHeight:1.2, padding:'0 32px'}}>{it.title}</div>
-              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:4}}>{it.teacher} · {it.duration}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:4}}>{(window.DemoMode && window.DemoMode.flag('hide_durations') === true) ? it.teacher : `${it.teacher} · ${it.duration}`}</div>
             </div>
             <div className="player-overlay-top">
               <button className="back" onClick={back}><Icon name="back" size={12}/> Volver al módulo</button>
@@ -277,9 +312,16 @@ function Player({ back, item }) {
                 </div>
               </div>
               {/* Scrubber clickeable con marcadores de capítulos */}
-              <div className="scrubber" onClick={seekBar} style={{cursor:'pointer', position:'relative'}}>
+              <div className="scrubber" onClick={seekBar} style={{cursor: _demoPlayer ? 'default' : 'pointer', position:'relative'}}>
                 <i style={{width: (currentSec / totalSec * 100) + '%'}}/>
                 <b style={{left: (currentSec / totalSec * 100) + '%'}}/>
+                {/* En demo · zona "no vista" sombreada para indicar que está bloqueada */}
+                {_demoPlayer && _maxSeen < totalSec && (
+                  <span style={{
+                    position:'absolute', left: (_maxSeen / totalSec * 100) + '%', right:0, top:0, bottom:0,
+                    background:'rgba(0,0,0,0.4)', backdropFilter:'blur(1px)', pointerEvents:'none', borderRadius:'0 4px 4px 0',
+                  }}/>
+                )}
                 {chapters.slice(1).map(ch => (
                   <span key={ch.n} style={{position:'absolute', left: (ch.start / totalSec * 100) + '%', top:-2, width:2, height:8, background:'rgba(255,255,255,0.6)', borderRadius:1, pointerEvents:'none'}}/>
                 ))}
@@ -287,7 +329,7 @@ function Player({ back, item }) {
               <div className="player-controls">
                 <button onClick={() => seekTo(currentSec - 10)} title="Atrás 10s (←)"><Icon name="skip" size={18}/></button>
                 <button className="play" onClick={() => setPlaying(!playing)} title="Play / pausa (espacio)"><Icon name={playing ? 'pause' : 'play'} size={20}/></button>
-                <button onClick={() => seekTo(currentSec + 10)} title="Avanzar 10s (→)"><Icon name="next" size={18}/></button>
+                <button onClick={() => seekTo(currentSec + 10)} title={_demoPlayer ? 'Bloqueado en demo · no puedes saltar contenido' : 'Avanzar 10s (→)'} disabled={_demoPlayer && (currentSec + 10) > _maxSeen} style={_demoPlayer && (currentSec + 10) > _maxSeen ? {opacity:0.35, cursor:'not-allowed'} : undefined}><Icon name="next" size={18}/></button>
                 <button className="pill-btn" onClick={() => setSpeed(s => s === 1 ? 1.25 : s === 1.25 ? 1.5 : s === 1.5 ? 2 : s === 2 ? 0.75 : 1)} title="Velocidad de reproducción">{speed}×</button>
                 <button className="pill-btn" onClick={() => setShowSubs(s => !s)} style={{opacity: showSubs ? 1 : 0.5}} title="Subtítulos">SUB</button>
                 <button onClick={() => setMuted(m => !m)} title="Silenciar (M)" style={{opacity: muted ? 0.5 : 1}}><Icon name="vol" size={18}/></button>

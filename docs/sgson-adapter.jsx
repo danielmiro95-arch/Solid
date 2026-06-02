@@ -52,11 +52,16 @@
     });
 
     // ── Helper · convierte un pill de tu data al shape del rediseño ──
+    // En demo · el fallback de teacher pasa a "BeonIt × Hijos de Rivera"
+    // para no leak el branding de Repsol en cards sin teacher explícito.
+    const _dmMap = window.DemoMode;
+    const _dmMapActive = _dmMap && _dmMap.isActive && _dmMap.isActive();
+    const _teacherFallback = _dmMapActive ? 'BeonIt × Hijos de Rivera' : 'BeonIt × Repsol';
     const mapPill = (p) => ({
       ...p,
       pill:     String(p.pill != null ? p.pill : 0).padStart(2, '0'),
       one:      p.one || p.title,
-      teacher:  p.teacher || 'BeonIt × Repsol',
+      teacher:  p.teacher || _teacherFallback,
       duration: p.duration || '4 min',
       category: p.category, // mantenemos el label real (Care, Social Publish, etc.)
       level:    p.level === 'principiante' ? 'Básico' :
@@ -107,7 +112,12 @@
     if (withVideo.length > 0) {
       ROWS.push({ key:'available', title:'Disponibles ahora', sub:'reproducir directamente', pillIds: withVideo });
     }
-    ROWS.push({ key:'paths', title:'Rutas recomendadas para ti', sub:'según tu rol', isPaths: true });
+    ROWS.push({
+      key:'paths',
+      title: _label('paths_recommended_label', 'Rutas recomendadas para ti'),
+      sub:   _label('paths_recommended_sub', 'según tu rol'),
+      isPaths: true,
+    });
     ROWS.push({ key:'trending', title:'Tendencia esta semana', sub:(window.WORKSPACE_NAME ? ('en ' + window.WORKSPACE_NAME) : 'en tu workspace'), pillIds: trending, trending: true });
     if (careIds.length > 0) {
       ROWS.push({ key:'care', title:'Care', sub:'atención al cliente que de verdad funciona', pillIds: careIds });
@@ -115,7 +125,16 @@
     if (analyticsIds.length > 0) {
       ROWS.push({ key:'analytics', title:'Analytics & Integraciones', sub:'medir, integrar, mejorar', pillIds: analyticsIds });
     }
-    ROWS.push({ key:'new', title:'Nuevo en SolidStream', sub:'recién publicado en BeonIt × Repsol', pillIds: newIds, newRow: true });
+    ROWS.push({
+      key:'new',
+      // En demo · el título pasa a "Recién publicado" (per spec del cliente)
+      // y el sub se vacía. Fuera de demo se mantiene "Nuevo en SolidStream
+      // / recién publicado en BeonIt × Repsol".
+      title: _label('new_row_title', 'Nuevo en SolidStream'),
+      sub:   _label('new_row_sub',   'recién publicado en BeonIt × Repsol'),
+      pillIds: newIds,
+      newRow: true,
+    });
 
     // ── LEARNING_PATHS · convertir tu data al shape esperado ──
     const SRC_PATHS = window.LEARNING_PATHS || [];
@@ -186,15 +205,27 @@
     }
     const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
+    // En modo demo · el role por defecto pasa a ser "Learning Manager", el
+    // team toma el nombre del workspace, y el name se fuerza a "Julio"
+    // (per spec del cliente). Los platform admins ven su nombre real para
+    // poder gestionar sin confusión.
+    const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
+    const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
+    const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
+    const finalName = _demoForceName || fullName;
+    const finalInitials = _demoForceName
+      ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+      : initials;
     const USER = {
       id:       (profile && profile.id) || (sessionUser && sessionUser.id),
-      name:     fullName,
-      initials: initials,
-      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent',
-      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || 'Repsol',
+      name:     finalName,
+      initials: finalInitials,
+      role:     (profile && profile.role) || (sessionUser && sessionUser.role) || (_demoActiveU ? 'Learning Manager' : 'Publish Agent'),
+      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || (_demoActiveU ? _wsName : 'Repsol'),
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
-      isAdmin:  !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin'))),
+      isAdmin:  _isPlatformAdmin,
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 
@@ -202,21 +233,33 @@
     const _dm = window.DemoMode;
     const _flag = _dm ? _dm.flag : () => undefined;
     const _label = _dm ? _dm.label : (_, f) => f;
-    // Path/Rutas usa el label del workspace (Curso si el demo lo dice)
-    const _rutaPlural = _label('path_label_plural', 'Rutas');
+    // En demo · tras última reunión · sidebar reducido a 3 items:
+    //   Inicio · Catálogo (rutas) · Mis Cursos (path).
+    // Channels, Bandeja, Guardado, Mi perfil, Ajustes, BeonAI, Analytics,
+    // Recursos y Admin se ocultan · Channels y Mi Perfil se acceden desde el
+    // popup del avatar (ver TopNav menuItems).
+    const _dmActive = _dm && _dm.isActive && _dm.isActive();
+    const _rutaPlural = _dmActive
+      ? _label('catalog_label', 'Catálogo')
+      : _label('path_label_plural', 'Rutas');
+    const _myListLabel = _dmActive
+      ? _label('my_list_label', 'Mis Cursos')
+      : _label('my_list_label', 'Mi ruta');
     const SIDEBAR_LINKS = [
       { key:'home',      label:'Inicio',     icon:'home' },
-      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },
-      { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid' },
-      { key:'path',      label:'Mi ruta',    icon:'route' },
+      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null,
+        hidden: _dmActive },
+      { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid',
+        hidden: _flag('hide_browse_catalog') === true || _dmActive },
       { key:'rutas',     label: _rutaPlural, icon:'compass' },
+      { key:'path',      label: _myListLabel, icon:'route' },
       { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
       { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
-      { key:'wa',        label:'Channels',   icon:'broadcast' },
+      { key:'wa',        label:'Channels',   icon:'broadcast', hidden: _dmActive },
       { key:'resources', label:'Recursos',   icon:'book',      hidden: _flag('hide_resources') === true },
-      { key:'saved',     label:'Guardado',   icon:'bookmark' },
-      { key:'profile',   label:'Mi perfil',  icon:'user' },
-      { key:'settings',  label:'Ajustes',    icon:'gear' },
+      { key:'saved',     label:'Guardado',   icon:'bookmark',  hidden: _dmActive },
+      { key:'profile',   label:'Mi perfil',  icon:'user',      hidden: _dmActive },
+      { key:'settings',  label:'Ajustes',    icon:'gear',      hidden: _dmActive },
       { key:'admin',     label:'Admin',      icon:'shield', admin: true,
         hidden: _flag('simplified_profile') === true },  // demo: oculta admin al user final
     ].filter(x => !x.hidden);

@@ -262,13 +262,14 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const canAdmin   = !!(window.Auth && window.Auth.can     && window.Auth.can('admin.viewPanel'));
 
   // Items del dropdown del avatar · ANTES estaban en la sidebar
-  // En demo mode con simplified_avatar_menu solo se muestran 4 items
-  // hacia "perfil" (Mi Perfil, Formación completada/en curso/días activos),
-  // que en la práctica son 1 link a profile · el resto son stats que se
-  // ven dentro del profile · así que el menú queda con un solo link.
+  // En demo · tras última reunión · el popup contiene:
+  //   Mi Perfil · Channels · Certificados (+ stats abajo)
+  // Channels se mueve aquí porque ya no está en sidebar.
   const isSimplified = window.DemoMode && window.DemoMode.flag('simplified_avatar_menu') === true;
   const menuItems = isSimplified ? [
-    { k:'profile', label: T('nav.profile'), icon:'user' },
+    { k:'profile',      label: T('nav.profile'),               icon:'user' },
+    { k:'wa',           label: T('nav.wa', 'Channels'),        icon:'broadcast' },
+    { k:'certificates', label: 'Certificados',                 icon:'award' },
   ] : [
     { k:'profile',  label:T('nav.profile'),  icon:'user' },
     { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },
@@ -307,10 +308,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
           <Ico name={mobileNavOpen ? 'close' : 'menu'} size={20}/>
         </button>
         <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
-        <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
-          <Ico name="bell" size={18}/>
-          {inboxCount ? <span className="badge">{inboxCount}</span> : null}
-        </button>
+        {/* Bell · oculto en demo · inbox no está en sidebar y bell apuntaba ahí */}
+        {!isSimplified && (
+          <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
+            <Ico name="bell" size={18}/>
+            {inboxCount ? <span className="badge">{inboxCount}</span> : null}
+          </button>
+        )}
         <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}>{initials}</button>
 
         {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
@@ -361,6 +365,32 @@ function TopNav({ view, onView, onSearch, onLogout }) {
                 {item.badge ? <span style={{padding:'2px 7px', fontSize:10, fontWeight:700, background:'var(--accent, #6E50EE)', color:'#fff', borderRadius:999, fontFamily:'var(--font-mono, monospace)'}}>{item.badge}</span> : null}
               </button>
             ))}
+
+            {/* En demo mode · stats del user · Formación completada / en curso / Días activos */}
+            {isSimplified && (() => {
+              const PILLS = (D && D.PILLS) || [];
+              const completed = PILLS.filter(p => p.progress >= 1).length;
+              const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1).length;
+              const daysActive = (window.Activity && window.Activity.daysActive && window.Activity.daysActive()) || 14;
+              const stats = [
+                { label: 'Formación completada', value: completed },
+                { label: 'Formación en curso',    value: inProgress },
+                { label: 'Días activos',          value: daysActive },
+              ];
+              return (
+                <>
+                  <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
+                  <div style={{padding:'10px 14px 6px'}}>
+                    {stats.map(s => (
+                      <div key={s.label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                        <span style={{fontSize:12.5, color:'rgba(245,244,241,0.75)', fontFamily:'var(--font-sans, Inter)'}}>{s.label}</span>
+                        <span style={{fontSize:14, fontWeight:700, color:'#F5F4F1', fontFamily:'var(--font-sans, Inter)'}}>{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Separador */}
             <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
@@ -417,6 +447,16 @@ function HomeHero({ onPlay, onMore }) {
   const [muted, setMuted] = React.useState(true);
 
   const featured = React.useMemo(() => {
+    // En modo demo · el hero funciona como sección "Seguir viendo":
+    //   1) si hay alguna pill con progreso > 0 (asignada/en curso) · la mostramos
+    //   2) si no · mostramos la pill featured ("Más presentaciones eficaces")
+    //   3) sin rotación · una sola pill
+    const dm = window.DemoMode;
+    if (dm && dm.isActive && dm.isActive()) {
+      const inProgress = PILLS.find(p => p.progress > 0 && p.progress < 1);
+      const f = inProgress || PILLS.find(p => p.featured) || PILLS[0];
+      return f ? [f] : [];
+    }
     // Pills con flag `featured: true` van primero (decisión del admin sobre
     // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
     // si no hay suficientes, las más populares por `enrolled`.
@@ -505,28 +545,75 @@ function HomeHero({ onPlay, onMore }) {
       <div className="hero-overlay"/>
 
       <div className="hero-badge">
-        <span className="label">Top esta semana</span>
-        <span className="value">en {window.WORKSPACE_NAME || 'tu workspace'}</span>
-        <span className="stroke"/>
+        {(() => {
+          const dm = window.DemoMode;
+          const demoActive = dm && dm.isActive && dm.isActive();
+          // En demo · si la pill mostrada tiene progreso → "Seguir viendo"
+          // (sección que pidieron en reunión). Si no → "Destacado" + nombre
+          // del workspace, evitando "Top esta semana en HdR Demo".
+          if (demoActive && p.progress > 0 && p.progress < 1) {
+            return <>
+              <span className="label">Seguir viendo</span>
+              <span className="value">{Math.round(p.progress * 100)}% · {p.teacher}</span>
+              <span className="stroke"/>
+            </>;
+          }
+          if (demoActive) {
+            return <>
+              <span className="label">Destacado</span>
+              <span className="value">curso recomendado para ti</span>
+              <span className="stroke"/>
+            </>;
+          }
+          return <>
+            <span className="label">Top esta semana</span>
+            <span className="value">en {window.WORKSPACE_NAME || 'tu workspace'}</span>
+            <span className="stroke"/>
+          </>;
+        })()}
       </div>
 
       <div className="hero-content" key={p.id}>
         <div className="hero-eyebrow">
-          <span className="pillmark">Think Pill · {p.pill}</span>
-          <span className="sep"/>
-          <span className="meta">{cat.label}</span>
+          {(() => {
+            const dm = window.DemoMode;
+            const demoActive = dm && dm.isActive && dm.isActive();
+            // En demo · sin prefijo "Think Pill · N", solo categoría
+            return demoActive
+              ? <span className="meta">{cat.label}</span>
+              : <>
+                  <span className="pillmark">Think Pill · {p.pill}</span>
+                  <span className="sep"/>
+                  <span className="meta">{cat.label}</span>
+                </>;
+          })()}
         </div>
 
-        <h1 className="hero-title">{p.title}</h1>
-        {p.one && p.one !== p.title && <p className="hero-quote">"{p.one}."</p>}
+        <h1 className="hero-title">{(() => {
+          // En demo · si hay progreso en la pill mostrada → usa pill.title
+          // (Seguir viendo el curso real). Si no → "Más presentaciones eficaces"
+          // como pill destacada per spec del cliente.
+          const dm = window.DemoMode;
+          if (dm && dm.isActive && dm.isActive()) {
+            if (p.progress > 0 && p.progress < 1) return p.title;
+            const override = dm.label && dm.label('hero_title_label', null);
+            return override || 'Más presentaciones eficaces';
+          }
+          return p.title;
+        })()}</h1>
+        {p.one && p.one !== p.title && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="hero-quote">"{p.one}."</p>}
 
         <div className="hero-meta">
-          <span className="tag">{p.level}</span>
-          <span className="sep">/</span>
-          <span>{p.duration}</span>
+          <span className="tag">{(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? 'Nivel ' + p.level : p.level}</span>
+          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+            <span className="sep">/</span>
+            <span>{p.duration}</span>
+          </>}
           <span className="sep">/</span>
           <span>{p.teacher}</span>
-          {p.rating ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>) : null}
+          {p.rating && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+            ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>)
+            : null}
         </div>
 
         <div className="hero-actions">
@@ -542,16 +629,49 @@ function HomeHero({ onPlay, onMore }) {
         </div>
       </div>
 
-      <div className="hero-dots">
-        {featured.map((_, i) => (
-          <span key={i} className={`hero-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} style={{cursor:'pointer'}}/>
-        ))}
-      </div>
+      {featured.length > 1 && (
+        <div className="hero-dots">
+          {featured.map((_, i) => (
+            <span key={i} className={`hero-dot ${i === idx ? 'active' : ''}`} onClick={() => setIdx(i)} style={{cursor:'pointer'}}/>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-function NxCard({ pill, onOpen, showProgress, newBadge }) {
+// En modo demo · determina si un card de pill debe aparecer bloqueado.
+// Reglas (actualizadas tras reunión):
+//   1) si demo_mode no activo o lock_unassigned_courses=false · siempre abierto.
+//   2) si forceUnlocked=true (fila trending = Tendencias de la semana) · abierto.
+//   3) si la pill está en DemoMode.unlocked() · abierta.
+//   4) si la pill tiene progress > 0 (asignada/en curso) · abierta.
+//   5) por curso · primeras 3 pills (por position) abiertas, resto cerradas.
+function _isPillLockedDemo(pill, forceUnlocked) {
+  const dm = window.DemoMode;
+  if (!dm || !dm.isActive || !dm.isActive()) return false;
+  if (dm.flag('lock_unassigned_courses') !== true) return false;
+  if (forceUnlocked) return false;
+  if (pill && pill.progress > 0) return false;
+  const list = dm.unlocked ? dm.unlocked() : [];
+  if (Array.isArray(list) && pill && list.indexOf(pill.id) !== -1) return false;
+  // Calcula la posición de la pill dentro de su curso. Si no podemos
+  // determinar a qué curso pertenece, usamos posición global ordenada.
+  const allPills = window.PILLS || [];
+  if (pill && pill.pathId) {
+    const sameCurso = allPills
+      .filter(p => p.pathId === pill.pathId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+    const idxInCurso = sameCurso.findIndex(p => p.id === pill.id);
+    if (idxInCurso !== -1) return idxInCurso >= 3;
+  }
+  // Fallback · sin pathId, ordena por position globalmente y aplica regla
+  const sortedAll = allPills.slice().sort((a, b) => (a.position || 0) - (b.position || 0));
+  const idxGlobal = sortedAll.findIndex(p => p.id === pill.id);
+  return idxGlobal >= 3;
+}
+
+function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const D = window.SGS_DATA;
   const cat = (D && D.CATS && (D.CATS[pill.category] || D.CATS[_catSlugFix(pill.category)])) || { label: pill.category || 'Módulo' };
   const slug = _catSlugFix(pill.category);
@@ -585,54 +705,120 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
     }
   };
 
+  const isLocked = _isPillLockedDemo(pill, forceUnlocked);
+  const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  const isAssigned = pill && pill.progress > 0;
+  const handleCardClick = () => {
+    if (isLocked) {
+      if (window.Toast) window.Toast.info('🔒 Pill bloqueada · te avisaremos cuando esté disponible');
+      return;
+    }
+    onOpen(pill);
+  };
+  // En demo · pills bloqueadas se difuminan claramente (blur + saturación
+  // baja + brillo bajo) para que se entienda "viene más adelante".
+  const lockedCoverStyle = isLocked
+    ? { filter:'grayscale(0.7) brightness(0.55) blur(2px)' }
+    : undefined;
+  const notifyLocked = (e) => {
+    e.stopPropagation();
+    if (window.Toast) window.Toast.success('Te avisaremos cuando esté disponible', { icon:'🔔' });
+  };
+
   return (
-    <article className="card" onClick={() => onOpen(pill)} data-screen-label={`Card · ${pill.pill}`}>
-      <div className={`card-cover cat-${slug}`}/>
+    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleCardClick} data-screen-label={`Card · ${pill.pill}`} style={isLocked ? { cursor:'not-allowed', opacity:0.85 } : undefined}>
+      <div className={`card-cover cat-${slug}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.6)' } : undefined}/>
       {pill.poster ? (
         <img
           src={pill.poster}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', ...(lockedCoverStyle || {})}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : pill.yt ? (
         <img
           src={`https://img.youtube.com/vi/${pill.yt}/hqdefault.jpg`}
           alt=""
-          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}}
+          style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover', ...(lockedCoverStyle || {})}}
           onError={e => { e.currentTarget.style.display='none'; }}
         />
       ) : null}
       <div className="card-grad"/>
 
-      <span className="card-pill-num">{String(cat.label).toUpperCase()} · {pill.pill}</span>
-      {(newBadge || pill.newBadge) && <span className="card-badge">Nuevo</span>}
+      <span className="card-pill-num">{String(cat.label).toUpperCase()}{!demoActive ? ` · ${pill.pill}` : ''}</span>
+      {(newBadge || pill.newBadge) && !isLocked && <span className="card-badge">Nuevo</span>}
+      {isLocked && (
+        <>
+          <span style={{
+            position:'absolute', top:10, right:10, padding:'5px 10px',
+            background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
+            fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+            letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
+            backdropFilter:'blur(8px)',
+          }}>🔒 Bloqueado</span>
+          {/* Candado grande centrado en la card · refuerza visual de bloqueo */}
+          <div style={{
+            position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+            pointerEvents:'none', fontSize:42, opacity:0.85, color:'#fff',
+            textShadow:'0 2px 12px rgba(0,0,0,0.5)',
+          }}>🔒</div>
+        </>
+      )}
 
       <div className="card-body">
         <h3 className="card-title">{pill.title}</h3>
         <div className="card-meta">
-          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
+          {/* En demo · sólo nivel (sin duración · sin "·" separador) */}
+          {!demoActive && !(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
             <span>{pill.duration}</span>
             <span className="sep">·</span>
           </>}
-          <span>{pill.level}</span>
+          <span>{demoActive && pill.level ? `Nivel ${pill.level}` : pill.level}</span>
         </div>
       </div>
 
       <div className="card-actions">
-        <button className="card-action primary" aria-label="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
-          <Ico name="play" size={12}/>
+        {isLocked ? (
+          /* Pill bloqueada · botón "Notifícame" (campana) */
+          <button className="card-action primary" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked} style={{background:'rgba(110,80,238,0.85)', color:'#fff'}}>
+            <Ico name="bell" size={12}/>
+          </button>
+        ) : isAssigned || !demoActive ? (
+          <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+            <Ico name="play" size={12}/>
+          </button>
+        ) : (
+          <button className="card-action primary" aria-label="Inscribirse" title="Inscribirse" onClick={(e) => {
+            e.stopPropagation();
+            if (window.Toast) window.Toast.success('Te has inscrito al curso');
+            onOpen(pill);
+          }}>
+            <Ico name="plus" size={12}/>
+          </button>
+        )}
+        {/* Favorito · disponible incluso si bloqueada (per spec: "el botón
+            guardar/marcar favorito se vea bien"); active state contrastado */}
+        <button
+          className={`card-action${saved ? ' is-active' : ''}`}
+          aria-label={saved ? 'Quitar favorito' : 'Favorito'}
+          title={saved ? 'Quitar favorito' : 'Favorito'}
+          onClick={toggleSave}
+          style={saved ? { background:'rgba(110,80,238,0.85)', color:'#fff', borderColor:'rgba(110,80,238,0.85)' } : undefined}>
+          <Ico name={saved ? 'check' : 'bookmark'} size={14}/>
         </button>
-        <button className={`card-action${saved ? ' is-active' : ''}`} aria-label={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} title={saved ? 'Quitar de mi lista' : 'Añadir a mi lista'} onClick={toggleSave}>
-          <Ico name={saved ? 'check' : 'plus'} size={14}/>
-        </button>
-        <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
-          <Ico name="thumb" size={13}/>
-        </button>
-        <button className="card-action" aria-label="Más info" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
-          <Ico name="chev-down" size={14}/>
-        </button>
-        <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
+        {!demoActive && (
+          <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
+            <Ico name="thumb" size={13}/>
+          </button>
+        )}
+        {!isLocked && (
+          <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+            <Ico name="chev-down" size={14}/>
+          </button>
+        )}
+        {!demoActive && (
+          <span className="card-match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}% match</span>
+        )}
       </div>
 
       {showProgress && pill.progress > 0 && (
@@ -645,11 +831,53 @@ function NxCard({ pill, onOpen, showProgress, newBadge }) {
 }
 
 function NxPathCard({ path, onOpen }) {
+  const dm = window.DemoMode;
+  const demoActive = dm && dm.isActive && dm.isActive();
+  const lockEnabled = demoActive && dm.flag('lock_unassigned_courses') === true;
+  // Path bloqueado en demo si: no asignado · sin progreso · no está en lista unlocked
+  // El primer path por orden queda abierto para que se vea uno disponible.
+  const unlockedList = (dm && dm.unlocked) ? dm.unlocked() : [];
+  const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(path.id) !== -1;
+  const seed = parseInt(String(path.id || '').replace(/\D/g, ''), 10) || 0;
+  const isLocked = lockEnabled && !(path.progress > 0) && !isUnlockedById && (seed % 3) !== 0;
+
+  // Nivel inventado por hash del id (Básico / Intermedio / Experto) en demo
+  const levels = (dm && dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
+  const level = demoActive ? levels[seed % levels.length] : null;
+
+  // Etiqueta del badge: "CURSO · X pills" o "RUTA · X pills"
+  const pathLabel = (dm && dm.label) ? dm.label('path_label', 'Ruta') : 'Ruta';
+  const pathBadge = `${String(pathLabel).toUpperCase()} · ${path.pills} pills`;
+
+  const handleClick = () => {
+    if (isLocked) {
+      if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+      return;
+    }
+    onOpen && onOpen(path);
+  };
+
   return (
-    <article className="card" onClick={() => onOpen && onOpen(path)}>
-      <div className={`card-cover ${path.accent || 'cat-publish'}`}/>
+    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
+      <div className={`card-cover ${path.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
       <div className="card-grad"/>
-      <span className="card-pill-num">RUTA · {path.pills} pills</span>
+      <span className="card-pill-num">{pathBadge}</span>
+      {isLocked && (
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'4px 10px',
+          background:'rgba(0,0,0,0.72)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em',
+        }}>🔒 Bloqueado</span>
+      )}
+      {level && !isLocked && (
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'4px 10px',
+          background:'rgba(110,80,238,0.92)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em',
+        }}>Nivel {level}</span>
+      )}
       <div className="card-body" style={{ left: 16, right: 16 }}>
         <h3 className="card-title" style={{ fontSize: 17, fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>
           {path.title}
@@ -682,7 +910,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       <section className="row" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
           <h2 className="row-title">{row.title}</h2>
-          <span className="row-sub">— {row.sub}</span>
+          {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
           <button className="row-explore" onClick={() => onOpenPath && onOpenPath()}>Explorar todas <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
@@ -703,7 +931,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
           <h2 className="row-title">{row.title}</h2>
-          <span className="row-sub">— {row.sub}</span>
+          {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
           <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ranking completo <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
@@ -714,7 +942,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
               return (
                 <div className="trending-cell" key={id}>
                   <span className="trending-num">{String(i+1).padStart(2,'0')}</span>
-                  <NxCard pill={p} onOpen={onOpen}/>
+                  <NxCard pill={p} onOpen={onOpen} forceUnlocked={true}/>
                 </div>
               );
             })}
@@ -730,7 +958,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
     <section className="row" data-screen-label={`Row · ${row.key}`}>
       <header className="row-header">
         <h2 className="row-title">{row.title}</h2>
-        <span className="row-sub">— {row.sub}</span>
+        {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
         <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ver todo <Ico name="chev-right" size={12}/></button>
       </header>
       <div className="rail no-scrollbar" ref={railRef}>
@@ -761,13 +989,19 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
     return (
       <div style={{padding:'120px 64px', color:'var(--fg-muted, #A8A6A0)', fontFamily:'var(--font-sans, Inter)', textAlign:'center'}}>
         <div style={{fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--fg-dim, #6F6D67)', marginBottom:12}}>SolidStream · cargando data del catálogo</div>
-        <div style={{fontSize:14}}>Preparando Think Pills…</div>
+        <div style={{fontSize:14}}>
+          {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+            ? 'Preparando tus cursos…'
+            : 'Preparando Think Pills…'}
+        </div>
       </div>
     );
   }
 
   const onOpenPath = (p) => { if (p && p.id && openPath) openPath(p.id); else setView('rutas'); };
   const onSeeAll = () => setView('browse');
+
+  const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
 
   return (
     <div data-screen-label="Home">
@@ -776,6 +1010,8 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
+        {/* En demo · CTA "Inscríbete a talleres" como sección simple */}
+        {demoActive && <WorkshopsCTASection/>}
       </div>
       <footer className="footer-strip">
         <div className="cobranding">
@@ -790,6 +1026,68 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
     </div>
   );
 }
+
+// ── WorkshopsCTASection · CTA simple "Inscríbete a talleres" (solo demo) ──
+// Spec: próximo · fecha · hora · botón recordatorio. Sin lógica real:
+// muestra 3 talleres mock con "Crear recordatorio" → toast. Talleres
+// reales vivirían en una tabla workshops scopeada por workspace; por ahora
+// el contenido es estático y enfocado a la demo comercial.
+function WorkshopsCTASection() {
+  const _dm = window.DemoMode;
+  const title = (_dm && _dm.label) ? _dm.label('workshops_label', 'Inscríbete a talleres') : 'Inscríbete a talleres';
+
+  // Próximos talleres · fechas relativas al "hoy" para que siempre se vean futuros
+  const today = new Date();
+  const addDays = (n) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
+  };
+  const workshops = [
+    { id:'w1', title:'Storytelling con datos para presentaciones',  date: addDays(3),  time:'10:00 – 11:30', host:'María López' },
+    { id:'w2', title:'Reuniones eficaces: facilitación práctica',   date: addDays(8),  time:'16:00 – 17:00', host:'Carlos Vidal' },
+    { id:'w3', title:'Gestión del tiempo · time blocking en equipo', date: addDays(15), time:'09:30 – 11:00', host:'Ana Ferrer' },
+  ];
+
+  const setReminder = (w) => {
+    if (window.Toast) window.Toast.success(`Recordatorio creado · ${w.title}`, { icon:'⏰' });
+  };
+
+  return (
+    <section className="row" data-screen-label="Workshops CTA" style={{paddingBottom: 24}}>
+      <header className="row-header">
+        <h2 className="row-title">{title}</h2>
+        <span className="row-sub">— sesiones en directo · plazas limitadas</span>
+      </header>
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: 14,
+        padding:'0 var(--row-pad, 48px)',
+      }}>
+        {workshops.map(w => (
+          <article key={w.id} style={{
+            padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+            borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+          }}>
+            <div style={{fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent)', fontWeight:700}}>
+              {w.date} · {w.time}
+            </div>
+            <h3 style={{margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3}}>{w.title}</h3>
+            <div style={{fontSize:12, color:'var(--fg-muted)'}}>Facilita {w.host}</div>
+            <button onClick={() => setReminder(w)} style={{
+              marginTop:'auto', padding:'10px 14px', background:'var(--accent)', color:'#fff',
+              border:'none', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
+              display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              ⏰ Crear recordatorio
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+window.WorkshopsCTASection = WorkshopsCTASection;
 
 window.TopNav = TopNav;
 window.HomeHero = HomeHero;

@@ -130,31 +130,74 @@ function RutasView({ setView, openPath }) {
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
 
+  // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
+  // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
+  const _dm = window.DemoMode;
+  const _label = _dm ? _dm.label : (_, f) => f;
+  const _flag  = _dm ? _dm.flag  : () => undefined;
+  const demoActive = _dm && _dm.isActive && _dm.isActive();
+  const eyebrow = demoActive ? _label('catalog_label', 'Catálogo') : T('rutas.eyebrow');
+  const title   = demoActive
+    ? _label('catalog_subheader', 'Fórmate en tu contenido')
+    : <>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>;
+  const sub     = demoActive ? '' : T('rutas.sub');
+
   return (
     <PageShell
-      eyebrow={T('rutas.eyebrow')}
-      title={<>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>}
-      sub={T('rutas.sub')}>
+      eyebrow={eyebrow}
+      title={title}
+      sub={sub}>
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
       }}>
-        {paths.map(p => {
+        {paths.map((p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
-          const startLabel = p.isCompleted ? '✓ Completada'
+          // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
+          // primer path por posición desbloqueado para que la demo se
+          // sienta accesible.
+          const lockEnabled = demoActive && _flag('lock_unassigned_courses') === true;
+          const seed = parseInt(String(p.id || '').replace(/\D/g, ''), 10) || idx;
+          const unlockedList = (_dm && _dm.unlocked) ? _dm.unlocked() : [];
+          const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(p.id) !== -1;
+          const isLocked = lockEnabled && !(p.progress > 0) && !isUnlockedById && idx > 0 && (seed % 3) !== 0;
+          const levelBadges = (_dm && _dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
+          const levelTxt = demoActive ? levelBadges[seed % levelBadges.length] : null;
+          const pathLabelSingular = demoActive ? _label('path_label', 'Curso').toUpperCase() : 'RUTA';
+          const startLabel = isLocked ? '🔒 Bloqueado'
+                           : p.isCompleted ? '✓ Completada'
                            : pct > 0 ? 'Continuar · ' + pct + '%'
-                           : T('rutas.start');
+                           : (demoActive ? 'Inscribirse' : T('rutas.start'));
+          const handleClick = () => {
+            if (isLocked) {
+              if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+              return;
+            }
+            go(p.id);
+          };
           return (
-          <article key={p.id} className="card" onClick={() => go(p.id)} style={{ cursor: 'pointer', aspectRatio: '4/5' }}>
-            <div className={`card-cover ${p.accent || 'cat-publish'}`}/>
+          <article key={p.id} className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
+            <div className={`card-cover ${p.accent || 'cat-publish'}`} style={isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : undefined}/>
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>
-              RUTA · {p.completedCount || 0}/{p.totalCount || p.pills} pills · {p.hours}
+              {pathLabelSingular} · {p.completedCount || 0}/{p.totalCount || p.pills} pills{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
             </span>
-            {p.isCompleted && (
+            {p.isCompleted && !isLocked && (
               <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'var(--ok, #1E9E5A)', color:'#fff',
                 fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
                 ✓ COMPLETADA
+              </span>
+            )}
+            {isLocked && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(0,0,0,0.72)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
+                🔒 Bloqueado
+              </span>
+            )}
+            {levelTxt && !isLocked && !p.isCompleted && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(110,80,238,0.92)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
+                Nivel {levelTxt}
               </span>
             )}
             <div className="card-body" style={{ left: 20, right: 20, bottom: 18 }}>
@@ -168,12 +211,35 @@ function RutasView({ setView, openPath }) {
                   <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
                 </div>
               )}
-              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
-                <button onClick={(e) => { e.stopPropagation(); go(p.id); }} style={{
+              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap', alignItems:'center' }}>
+                <button onClick={(e) => { e.stopPropagation(); handleClick(); }} disabled={isLocked} style={{
                   padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
-                  background: p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer',
+                  background: isLocked ? 'rgba(0,0,0,0.5)' : (p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)'),
+                  color: '#fff', border: 'none', borderRadius: 'var(--r-1)',
+                  cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.7 : 1,
                 }}>{startLabel}</button>
-                {p.isCompleted && window.Certificates && (
+                {/* En demo · botón de favorito en cards de curso (per spec
+                    Mi Cursos agrega favoritos · necesita poder marcarlos) */}
+                {demoActive && !isLocked && (() => {
+                  const saved = window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id);
+                  return (
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.Bookmarks) {
+                        const isNow = window.Bookmarks.toggle(p.id);
+                        if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a Mis Cursos' : 'Curso quitado de Mis Cursos', { icon: isNow ? '⭐' : '○' });
+                      }
+                    }}
+                    title={saved ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    style={{
+                      padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize:14, fontWeight:700,
+                      background: saved ? 'var(--accent)' : 'rgba(255,255,255,0.12)', color:'#fff',
+                      border: saved ? 'none' : '1px solid rgba(255,255,255,0.2)', borderRadius:'var(--r-1)',
+                      cursor:'pointer', lineHeight:1,
+                    }}>{saved ? '★' : '☆'}</button>
+                  );
+                })()}
+                {p.isCompleted && window.Certificates && !isLocked && (
                   <button onClick={(e) => {
                     e.stopPropagation();
                     const cert = window.Certificates.get(p._id || p.id);
@@ -213,9 +279,20 @@ function MyPathView({ openDetail, setView, pathId }) {
   // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
   const path = pathId ? PATHS.find(p => p.id === pathId) : null;
   const pathPillIds = path && Array.isArray(path.pillIds) ? path.pillIds : (path && Array.isArray(path.pills) ? path.pills : null);
-  const PILLS = pathPillIds && pathPillIds.length
-    ? ALL_PILLS.filter(p => pathPillIds.includes(p.id))
-    : ALL_PILLS;
+  const _isDemo = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  // En demo · "Mi Lista" agrega asignados + favoritos + inscritos (per spec).
+  // Filtramos a las pills que tienen progreso > 0 (asignadas/en curso) o
+  // están bookmarkadas (favoritas/inscritas). Bookmarks es nuestro modelo
+  // de "Add to my list" + "Favorito" actualmente unificado.
+  let PILLS;
+  if (pathPillIds && pathPillIds.length) {
+    PILLS = ALL_PILLS.filter(p => pathPillIds.includes(p.id));
+  } else if (_isDemo && !path) {
+    const Bm = window.Bookmarks;
+    PILLS = ALL_PILLS.filter(p => (p.progress > 0) || (Bm && Bm.has && Bm.has(p.id)));
+  } else {
+    PILLS = ALL_PILLS;
+  }
 
   const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
   const completed = PILLS.filter(p => p.progress >= 1);
@@ -227,15 +304,26 @@ function MyPathView({ openDetail, setView, pathId }) {
   const pDesc  = path ? (path.desc || path.roleTag || '') : '';
   const pBadge = path ? (path.badge || '') : '';
 
+  // En modo demo · esta vista se renombra a "Mi Lista" y el eyebrow usa
+  // la palabra "Curso" en lugar de "Ruta".
+  const _dm = window.DemoMode;
+  const _dmActive = _dm && _dm.isActive && _dm.isActive();
+  const _myListLabel = _dm && _dm.label ? _dm.label('my_list_label', 'Mi ruta') : 'Mi ruta';
+  const _pathSingular = _dm && _dm.label ? _dm.label('path_label', 'Ruta') : 'Ruta';
+
   return (
     <PageShell
-      eyebrow={path ? `Ruta · ${pTitle}` : `Mi ruta · ${USER.role || 'Usuario'}`}
+      eyebrow={path ? `${_pathSingular} · ${pTitle}` : `${_myListLabel} · ${USER.role || 'Usuario'}`}
       title={path
         ? <>{pTitle}{pBadge ? <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, fontSize:24, color:'var(--accent)', marginLeft:12 }}> · {pBadge}</em> : null}</>
-        : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
-      sub={path
-        ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
-        : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`}
+        : _dmActive
+          ? <>{_myListLabel}</>
+          : <>Tu progreso, <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{USER.name?.split(' ')[0] || 'crece'}</em></>}
+      sub={_isDemo
+        ? '' /* en demo · sin "X/N pills · N% del programa" (eliminado en reunión) */
+        : (path
+          ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
+          : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`)}
       actions={path && setView ? (
         <div style={{ display:'flex', gap: 10 }}>
           {totalProgress >= 70 && window.RouteExamModal && (
@@ -247,7 +335,8 @@ function MyPathView({ openDetail, setView, pathId }) {
         </div>
       ) : null}>
 
-      {/* Barra de progreso grande */}
+      {/* Barra de progreso grande · oculta en demo (sin "% del programa") */}
+      {!_isDemo && (
       <div style={{
         padding: 24, background: 'var(--bg-surface)', border: '1px solid var(--line)',
         borderRadius: 'var(--r-2)', marginBottom: 32,
@@ -260,8 +349,10 @@ function MyPathView({ openDetail, setView, pathId }) {
           <div style={{ height: '100%', width: `${totalProgress}%`, background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))', borderRadius: 4 }}/>
         </div>
       </div>
+      )}
 
-      {/* Stats row */}
+      {/* Stats row · oculto en demo (eliminados Completadas/En curso/Por empezar) */}
+      {!_isDemo && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 40 }}>
         {[
           { label: T('mypath.completed'), value: completed.length, color: 'var(--ok)' },
@@ -274,12 +365,57 @@ function MyPathView({ openDetail, setView, pathId }) {
           </div>
         ))}
       </div>
+      )}
 
-      {/* En progreso */}
+      {/* En demo · Cursos que estás haciendo (paths en progreso) ENCABEZAN
+          la página antes que las pills. "Mis Cursos" tiene que mostrar
+          cursos, no solo pills. Per reunión. */}
+      {_isDemo && !path && (() => {
+        const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
+        const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
+        const coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        if (coursesToShow.length === 0) return null;
+        return (
+          <section style={{ marginBottom: 40 }}>
+            <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+              Cursos en tu lista
+            </h2>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+              {coursesToShow.map(p => {
+                const pct = Math.round((p.progress || 0) * 100);
+                return (
+                  <article key={'crs-'+p.id} onClick={() => openPath ? openPath(p.id) : setView('rutas')} style={{
+                    cursor:'pointer', padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+                    borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+                  }}>
+                    <div style={{
+                      fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
+                      textTransform:'uppercase', color:'var(--accent)', fontWeight:700,
+                    }}>Curso{p.progress > 0 ? ` · ${pct}% completado` : ''}</div>
+                    <h3 style={{ margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3 }}>{p.title}</h3>
+                    {p.desc && <div style={{ fontSize:12, color:'var(--fg-muted)', lineHeight:1.4 }}>{String(p.desc).slice(0, 80)}{p.desc.length > 80 ? '…' : ''}</div>}
+                    {pct > 0 && (
+                      <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+                        <div style={{ height:'100%', width:pct+'%', background:'var(--accent)' }}/>
+                      </div>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); if (openPath) openPath(p.id); else setView('rutas'); }} style={{
+                      marginTop:'auto', padding:'9px 12px', background:'var(--accent)', color:'#fff', border:'none',
+                      borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+                    }}>{pct > 0 ? 'Continuar' : 'Empezar'}</button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* En progreso · pills */}
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {T('mypath.cont')}
+            {_isDemo ? 'Pills donde te quedaste' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -303,11 +439,11 @@ function MyPathView({ openDetail, setView, pathId }) {
         </section>
       )}
 
-      {/* Próximas pills sugeridas */}
+      {/* Próximas pills sugeridas · en demo se renombra a "Tus pills guardadas" */}
       {next.length > 0 && (
         <section>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {T('mypath.next')}
+            {_isDemo ? 'Tus pills guardadas' : T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -356,7 +492,14 @@ function ChannelsView() {
     return () => window.removeEventListener('channels-changed', onChange);
   }, []);
 
-  const catalog = (window.Channels && window.Channels.CATALOG) || [];
+  // En modo demo · sólo Microsoft Teams + Email (WhatsApp descartada en
+  // reunión por ser config de prueba, junto al "Límite diario").
+  const _dm = window.DemoMode;
+  const _demoActive = _dm && _dm.isActive && _dm.isActive();
+  const _fullCatalog = (window.Channels && window.Channels.CATALOG) || [];
+  const catalog = _demoActive
+    ? _fullCatalog.filter(c => ['teams','email'].indexOf(c.id) !== -1)
+    : _fullCatalog;
   const primaryId = chState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
   const channelColor = primaryDef ? primaryDef.color : '#25D366';
@@ -1108,7 +1251,25 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
     return () => window.removeEventListener('test-sends-changed', onChange);
   }, []);
 
-  const TYPES = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
+  // En modo demo · tras reunión · sólo:
+  //   · daily_module → "Píldora del día"
+  //   · new_workshop → "Nuevos talleres"
+  //   · ai_recs reutilizado como "Recordatorio (hora específica)"
+  // Eliminamos: meeting_brief, weekly_recap, beonai_chat, deadlines (y la
+  // pista AI del ai_recs original).
+  const _dmTypes = window.DemoMode;
+  const _dmTypesActive = _dmTypes && _dmTypes.isActive && _dmTypes.isActive();
+  const _rawTypes = (window.ChannelNotifs && window.ChannelNotifs.TYPES) || [];
+  const TYPES = _dmTypesActive
+    ? _rawTypes
+        .filter(t => ['daily_module','new_workshop','ai_recs'].indexOf(t.id) !== -1)
+        .map(t => {
+          if (t.id === 'daily_module') return { ...t, label: 'Píldora del día',     desc: 'Tu pill del día a primera hora' };
+          if (t.id === 'new_workshop') return { ...t, label: 'Nuevos talleres',     desc: 'Aviso cuando se publica un workshop' };
+          if (t.id === 'ai_recs')      return { ...t, icon:'⏰', label: 'Recordatorio', desc: 'A la hora que tú elijas · una vez al día' };
+          return t;
+        })
+    : _rawTypes;
 
   if (connected.length === 0) {
     return (
@@ -1315,7 +1476,17 @@ function ChannelManagerPanel({ chState, catalog }) {
                     cursor: isConnecting ? 'wait' : 'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12,
                     opacity: isConnecting ? 0.7 : 1,
                   }}>
-                    {isConnecting ? T('channels.connecting') : (c.authType === 'oauth' ? '🔐 ' + T('channels.connect') + ' (OAuth)' : c.authType === 'phone' ? '📱 ' + T('channels.connect') : '🔔 ' + T('common.activate'))}
+                    {(() => {
+                      // En modo demo · botón siempre dice "Activar" (sin diferenciar OAuth/phone),
+                      // alineado con spec del cliente: simplicidad por encima de precisión técnica.
+                      const _dm = window.DemoMode;
+                      const demoLabel = _dm && _dm.label && _dm.label('channels_action_label', null);
+                      if (isConnecting) return T('channels.connecting');
+                      if (demoLabel) return '🔔 ' + demoLabel;
+                      return c.authType === 'oauth' ? '🔐 ' + T('channels.connect') + ' (OAuth)'
+                           : c.authType === 'phone' ? '📱 ' + T('channels.connect')
+                           : '🔔 ' + T('common.activate');
+                    })()}
                   </button>
                 )}
                 {connected && !primary && (
@@ -1786,7 +1957,10 @@ function ProfileView({ setView }) {
       sub={[USER.role, USER.team || window.WORKSPACE_NAME].filter(Boolean).join(' · ') || 'Sin equipo asignado'}
       narrow>
 
-      {/* Avatar + info card */}
+      {/* Avatar + info card · oculto en demo (la cabecera de PageShell ya
+          muestra el nombre/rol; el spec pide "eliminar información
+          adicional innecesaria" dejando sólo Certificados) */}
+      {!(window.DemoMode && window.DemoMode.flag('simplified_profile') === true) && (
       <div style={{
         display: 'flex', gap: 32, padding: 32, background: 'var(--bg-surface)',
         border: '1px solid var(--line)', borderRadius: 'var(--r-2)', marginBottom: 24, alignItems: 'center',
@@ -1825,6 +1999,7 @@ function ProfileView({ setView }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Stats · ocultos en demo mode con simplified_profile · solo se ven los stats
           completed/inProgress/daysActive dentro del avatar menu */}
@@ -2141,6 +2316,128 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+/* ============================================================
+   CertificatesView · sección dentro del popup avatar (demo)
+   Uno por cada curso. Bloqueados hasta completar el curso.
+   ============================================================ */
+function CertificatesView({ setView }) {
+  const D = window.SGS_DATA;
+  const PATHS = (D && D.LEARNING_PATHS) || [];
+  const USER = (D && D.USER) || {};
+
+  // Re-render cuando cambian certificates en window.Certificates
+  const [, setTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setTick(t => t + 1);
+    window.addEventListener('certificates-changed', r);
+    window.addEventListener('progress-changed', r);
+    return () => {
+      window.removeEventListener('certificates-changed', r);
+      window.removeEventListener('progress-changed', r);
+    };
+  }, []);
+
+  // Mapa de cert por route_id · qué cursos tienen certificado emitido
+  const certByRoute = {};
+  if (window.Certificates && window.Certificates.list) {
+    window.Certificates.list().forEach(c => { certByRoute[c.route_id] = c; });
+  }
+
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }); }
+    catch(e) { return iso; }
+  };
+
+  return (
+    <PageShell
+      eyebrow="Mi formación"
+      title={<>Certificados <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>· {USER.name || 'Julio'}</em></>}
+      sub={`Un certificado por cada curso completado · ${PATHS.length} cursos en el catálogo`}>
+
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:16,
+      }}>
+        {PATHS.map(p => {
+          const cert = certByRoute[p._id] || certByRoute[p.id];
+          const isCompleted = p.isCompleted || (p.progress >= 1);
+          const isLocked = !cert && !isCompleted;
+          return (
+            <article key={p.id} style={{
+              position:'relative', padding:'22px 20px 18px',
+              background:'var(--bg-surface)', border:'1px solid var(--line)',
+              borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+              opacity: isLocked ? 0.7 : 1,
+              filter: isLocked ? 'grayscale(0.5)' : 'none',
+            }}>
+              {/* Sello tipo medalla en la esquina */}
+              <div style={{
+                position:'absolute', top:14, right:14,
+                width:48, height:48, borderRadius:'50%',
+                background: isLocked ? 'rgba(13,17,23,0.08)' : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
+                color: isLocked ? '#64748B' : '#fff',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: 22, fontWeight:800,
+                boxShadow: isLocked ? 'none' : '0 4px 12px rgba(110,80,238,0.30)',
+              }}>{isLocked ? '🔒' : '🏆'}</div>
+
+              <div style={{
+                fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
+                textTransform:'uppercase', color: isLocked ? '#64748B' : 'var(--accent)', fontWeight:700,
+              }}>Certificado oficial</div>
+              <h3 style={{ margin:'2px 0 0', fontSize:16, fontWeight:700, color:'var(--fg)', lineHeight:1.3, paddingRight:60 }}>
+                {p.title}
+              </h3>
+              <div style={{ fontSize:12, color:'var(--fg-muted)' }}>
+                {p.completedCount || 0} de {p.totalCount || p.pills} pills completadas
+              </div>
+
+              {/* Barra de progreso para mostrar lo que falta */}
+              <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+                <div style={{
+                  height:'100%', width: Math.round((p.progress || 0) * 100) + '%',
+                  background: isLocked ? '#94A3B8' : 'var(--accent)', transition:'width .25s',
+                }}/>
+              </div>
+
+              {isLocked ? (
+                <div style={{
+                  marginTop:'auto', padding:'10px 12px', background:'rgba(13,17,23,0.04)',
+                  border:'1px dashed var(--line)', borderRadius:8, fontSize:12, color:'#64748B',
+                }}>
+                  🔒 Completa el curso para desbloquear el certificado
+                </div>
+              ) : (
+                <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                  <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:11, color:'var(--fg-muted)', letterSpacing:'0.04em' }}>
+                    {cert.cert_number || '—'} · {fmtDate(cert.completed_at)}
+                  </div>
+                  <button onClick={() => window.Certificates && window.Certificates.download(cert)} style={{
+                    padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
+                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
+                    boxShadow:'0 4px 12px rgba(110,80,238,0.30)',
+                  }}>↓ Descargar certificado</button>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      {PATHS.length === 0 && (
+        <div style={{
+          padding:60, textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:14, marginTop:24,
+        }}>
+          <div style={{ fontSize:42, marginBottom:8 }}>🏆</div>
+          <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>Aún no hay cursos en el catálogo</div>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
+window.CertificatesView = CertificatesView;
 
 // ── ResourcesView · cards launcher a documentación externa (Loop, etc.) ───
 // Los users ven y filtran; los admin pueden añadir/editar/borrar.

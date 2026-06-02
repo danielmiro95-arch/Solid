@@ -1176,6 +1176,14 @@ window.Workspaces = Workspaces;
     brief_diario_label: 'Brief Diario',
     workshops_label: 'Inscríbete a talleres',
     catalog_label: 'Catálogo',
+    hero_title_label: 'Más presentaciones eficaces',
+    catalog_subheader: 'Fórmate en tu contenido',
+    my_list_label: 'Mis Cursos',
+    paths_recommended_label: 'Cursos recomendados para ti',
+    paths_recommended_sub: 'según tu perfil',
+    new_row_title: 'Recién publicado',
+    new_row_sub: '',
+    channels_action_label: 'Activar',
     level_badges: ['Básico','Intermedio','Experto'],
   };
   window.DemoMode = {
@@ -4530,19 +4538,28 @@ window.useI18n = function() {
 // La página de Analytics (AnalyticsView, view='dashboard') se autoaplica
 // data-theme="light" via useEffect propio · el resto siempre dark.
 // Settings.theme se ignora · queda en el storage pero no afecta al render.
+//
+// EXCEPCIÓN · demo mode · si el workspace activo tiene settings.demo_mode=true
+// la plataforma entera (incluyendo Home/Player) usa data-theme="light"
+// per acuerdo de reunión ("fondo claro estilo Netflix").
 (function _initThemeController(){
-  function forceDark() {
-    // No tocamos si AnalyticsView ha puesto data-analytics-light="1" · ese
-    // tag indica que estamos en la pantalla de analítica y manda ella.
+  function applyTheme() {
     if (document.documentElement.getAttribute('data-analytics-light') === '1') return;
-    document.documentElement.setAttribute('data-theme', 'dark');
+    const dm = window.DemoMode;
+    const demoActive = dm && dm.isActive && dm.isActive();
+    if (demoActive) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.setAttribute('data-demo-mode', 'true');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.removeAttribute('data-demo-mode');
+    }
   }
-  // Aplica al boot y cada vez que algo intente cambiar theme via Settings.
-  // El listener de settings-changed pisa cualquier intento de poner light.
-  window.addEventListener('settings-changed', forceDark);
-  window.addEventListener('auth-changed', forceDark);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', forceDark);
-  else forceDark();
+  window.addEventListener('settings-changed', applyTheme);
+  window.addEventListener('auth-changed', applyTheme);
+  window.addEventListener('workspace-changed', applyTheme);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyTheme);
+  else applyTheme();
 })();
 
 // ── Realtime cross-tab · BroadcastChannel para sync entre pestañas ─────────
@@ -4626,6 +4643,14 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     ? taggedPills.slice(0, 8)              // Default · solo pills recientes
     : all.filter(matches).slice(0, 16);
 
+  // En modo demo · la búsqueda solo expone módulos a los que el user tiene
+  // acceso. Re-usamos D.SIDEBAR_LINKS (que ya está filtrado por DemoMode flags
+  // en sgson-adapter) como fuente de verdad: si el item no está en el sidebar,
+  // no aparece en la paleta.
+  const _dm2 = window.DemoMode;
+  const _demoSearchActive = _dm2 && _dm2.isActive && _dm2.isActive();
+  const _sidebarLinks = (window.SGS_DATA && window.SGS_DATA.SIDEBAR_LINKS) || [];
+  const _allowedKeys = _demoSearchActive ? new Set(_sidebarLinks.map(l => l.key)) : null;
   const navItems = [
     { id:'home',     label:'Inicio' },
     { id:'browse',   label:'Catálogo' },
@@ -4639,7 +4664,9 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     { id:'profile',  label:'Mi perfil' },
     { id:'settings', label:'Ajustes' },
     { id:'admin',    label:'Admin · panel' },
-  ].filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
+  ]
+    .filter(n => !_allowedKeys || _allowedKeys.has(n.id))
+    .filter(n => ql.length === 0 || n.label.toLowerCase().includes(ql));
 
   // Lista combinada plana · primero nav, luego items
   const combined = navItems.map(n => ({ type:'nav', payload: n })).concat(items.map(it => ({ type:'item', payload: it })));
@@ -5071,6 +5098,7 @@ function App() {
         {view === 'inbox' && <InboxView_New openDetail={openDetail}/>}
         {view === 'settings' && <SettingsView_New setView={setView}/>}
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
+        {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
@@ -5090,7 +5118,7 @@ function App() {
         </button>
       )}
 
-      {view !== 'onboarding' && <OnboardingRing onClick={() => setView('onboarding')}/>}
+      {view !== 'onboarding' && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <OnboardingRing onClick={() => setView('onboarding')}/>}
 
       {tweaksOn && (
         <TweaksPanel
