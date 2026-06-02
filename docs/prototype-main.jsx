@@ -4592,14 +4592,17 @@ window.useI18n = function() {
 //
 // EXCEPCIÓN · demo mode · si el workspace activo tiene settings.demo_mode=true
 // la plataforma entera (incluyendo Home/Player) usa data-theme="light"
-// per acuerdo de reunión ("fondo claro estilo Netflix").
+// per acuerdo de reunión. Tras nueva iteración (batch 28+) el demo es
+// Netflix DARK con paleta beonit · data-theme='dark' + data-demo-mode='true'.
+// El CSS de [data-demo-mode='true'] pisa los tokens dark genéricos con
+// fondo Netflix #0A0A0A + accents beonit.
 (function _initThemeController(){
   function applyTheme() {
     if (document.documentElement.getAttribute('data-analytics-light') === '1') return;
     const dm = window.DemoMode;
     const demoActive = dm && dm.isActive && dm.isActive();
     if (demoActive) {
-      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.setAttribute('data-theme', 'dark');
       document.documentElement.setAttribute('data-demo-mode', 'true');
     } else {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -4609,6 +4612,12 @@ window.useI18n = function() {
   window.addEventListener('settings-changed', applyTheme);
   window.addEventListener('auth-changed', applyTheme);
   window.addEventListener('workspace-changed', applyTheme);
+  // Re-aplicar cuando window.DemoMode esté listo (polling rápido)
+  (function _whenDemoReady(attempts) {
+    attempts = attempts || 0;
+    if (window.DemoMode || attempts > 100) { applyTheme(); return; }
+    setTimeout(function() { _whenDemoReady(attempts + 1); }, 20);
+  })();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyTheme);
   else applyTheme();
 })();
