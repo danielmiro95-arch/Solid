@@ -195,7 +195,7 @@ function RutasView({ setView, openPath }) {
               </span>
             )}
             {levelTxt && !isLocked && !p.isCompleted && (
-              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(110,80,238,0.92)', color:'#fff',
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(0,114,190,0.92)', color:'#fff',
                 fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
                 Nivel {levelTxt}
               </span>

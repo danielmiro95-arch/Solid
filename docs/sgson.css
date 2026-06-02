@@ -2449,13 +2449,24 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
    ============================================================ */
 
 html[data-demo-mode="true"] {
-  /* Tipografía Avenir Next con fallback robusto */
+  /* ── Identidad beonit (Manual de Identidad Corporativa, pp. 18-21) ──
+     Tipografía: Avenir Next (principal) con fallback Avenir + system stack.
+     Colores: paleta corporativa beonit en vez del violeta SaaS por defecto.
+     · #0072BE  beon media / blue · primary CTA y links
+     · #FC220D  beon retail / red · acento destacado (badges, hero, "Top")
+     · #FFFFFF / #000000 · base + texto */
   --font-sans: 'Avenir Next', 'Avenir', -apple-system, BlinkMacSystemFont,
                'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'Avenir Next', 'Avenir', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  /* Suaviza el accent · violeta muy intenso es agresivo en light */
-  --accent:      #6E50EE;
-  --accent-deep: #4E36C5;
+  --accent:        #0072BE;        /* beon Media · azul primario */
+  --accent-hover:  #0085D8;
+  --accent-deep:   #005C99;
+  --accent-glow:   rgba(0, 114, 190, 0.28);
+  --accent-2:      #FC220D;        /* beon Retail · rojo destacado */
+  --accent-2-deep: #C81808;
+  --ok:            #036837;        /* beon Finance · verde */
+  --warn:          #F3A525;        /* beon Media · naranja */
+  --err:           #FC220D;        /* beon Retail · rojo */
 }
 
 /* Hereda las superficies light del bloque html[data-theme="light"] de arriba,
@@ -2466,104 +2477,128 @@ html[data-demo-mode="true"] {
  * Sobrescribe el bloque html[data-theme="light"] body[data-cinematic="true"]
  * que normalmente fuerza dark. */
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #F1EFE9;
-  --bg-canvas:      #F8F6F1;
+  --bg-deep:        #F4F4F4;
+  --bg-canvas:      #FFFFFF;       /* beonit blanco puro */
   --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F1EEE6;
-  --bg-glass:       rgba(248, 246, 241, 0.82);
-  --bg-glass-strong:rgba(248, 246, 241, 0.95);
-  --line-faint:     rgba(13, 17, 23, 0.06);
-  --line:           rgba(13, 17, 23, 0.10);
-  --line-strong:    rgba(13, 17, 23, 0.20);
-  --fg:             #0F172A;
-  --fg-muted:       #475569;
-  --fg-dim:         #64748B;
-  --fg-faint:       #94A3B8;
+  --bg-elevated:    #F4F4F4;
+  --bg-glass:       rgba(255, 255, 255, 0.85);
+  --bg-glass-strong:rgba(255, 255, 255, 0.97);
+  --line-faint:     rgba(0, 0, 0, 0.06);
+  --line:           rgba(0, 0, 0, 0.10);
+  --line-strong:    rgba(0, 0, 0, 0.20);
+  --fg:             #000000;       /* beonit negro corporativo */
+  --fg-muted:       #4A4A4A;
+  --fg-dim:         #6B6B6B;
+  --fg-faint:       #9C9C9C;
   --fg-on-accent:   #FFFFFF;
-  background: #F8F6F1;
+  background: #FFFFFF;
 }
-html[data-demo-mode="true"] body[data-cinematic="true"] { background: #F8F6F1 !important; }
+html[data-demo-mode="true"] body[data-cinematic="true"] { background: #FFFFFF !important; }
 
 /* CARDS en demo · texto blanco sobre cover oscuro/gradient se mantiene
- * (legibilidad sobre poster), pero la fila/section pasa a light. */
+ * (legibilidad sobre poster), pero la fila/section pasa a light beonit. */
 html[data-demo-mode="true"] .rows { background: transparent; }
-html[data-demo-mode="true"] .row-title { color: #0F172A; }
-html[data-demo-mode="true"] .row-sub   { color: #475569; }
-html[data-demo-mode="true"] .row-explore { color: #475569; }
-html[data-demo-mode="true"] .footer-strip { color: #64748B; border-top: 1px solid rgba(13,17,23,0.10); }
+html[data-demo-mode="true"] .row-title { color: #000000; font-weight: 700; }
+html[data-demo-mode="true"] .row-sub   { color: #4A4A4A; }
+html[data-demo-mode="true"] .row-explore { color: #0072BE; font-weight: 700; }
+html[data-demo-mode="true"] .footer-strip { color: #6B6B6B; border-top: 1px solid rgba(0,0,0,0.10); }
 
-/* Topnav glass en light */
+/* Topnav glass blanco beonit */
 html[data-demo-mode="true"] .topnav {
-  background: rgba(248, 246, 241, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid rgba(13,17,23,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
 }
-html[data-demo-mode="true"] .topnav.scrolled { background: rgba(248, 246, 241, 0.98); }
-html[data-demo-mode="true"] .topnav .nav-item { color: #0F172A; }
-html[data-demo-mode="true"] .topnav .nav-item.active { color: #6E50EE; }
-html[data-demo-mode="true"] .topnav .icon-btn { color: #0F172A; }
+html[data-demo-mode="true"] .topnav.scrolled { background: rgba(255, 255, 255, 0.98); }
+html[data-demo-mode="true"] .topnav .nav-item { color: #000000; }
+html[data-demo-mode="true"] .topnav .nav-item.active { color: #0072BE; }
+html[data-demo-mode="true"] .topnav .icon-btn { color: #000000; }
 html[data-demo-mode="true"] .topnav .avatar {
-  background: linear-gradient(135deg, #6E50EE, #4E36C5);
+  background: linear-gradient(135deg, #0072BE, #005C99);
   color: #fff;
 }
 
-/* Avatar dropdown · fondo claro */
+/* Avatar dropdown · fondo blanco */
 html[data-demo-mode="true"] .avatar-menu {
   background: #FFFFFF !important;
-  border: 1px solid rgba(13,17,23,0.10) !important;
-  color: #0F172A !important;
-  box-shadow: 0 20px 60px rgba(13,17,23,0.18) !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+  color: #000000 !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18) !important;
 }
-html[data-demo-mode="true"] .avatar-menu * { color: #0F172A !important; }
-html[data-demo-mode="true"] .avatar-menu div[style*="rgba(245,244,241,0.7)"] { color: #475569 !important; }
+html[data-demo-mode="true"] .avatar-menu * { color: #000000 !important; }
+html[data-demo-mode="true"] .avatar-menu div[style*="rgba(245,244,241,0.7)"] { color: #4A4A4A !important; }
 
-/* Sidebar en demo (si está visible · normalmente solo desktop legacy) */
-html[data-demo-mode="true"] .sidebar { background: #FFFFFF; border-right: 1px solid rgba(13,17,23,0.10); }
-html[data-demo-mode="true"] .sidebar a { color: #0F172A; }
+/* Sidebar (legacy desktop) */
+html[data-demo-mode="true"] .sidebar { background: #FFFFFF; border-right: 1px solid rgba(0,0,0,0.10); }
+html[data-demo-mode="true"] .sidebar a { color: #000000; }
 
-/* Modal en light */
+/* Modal beonit blanco */
 html[data-demo-mode="true"] .modal {
   background: #FFFFFF;
-  color: #0F172A;
-  box-shadow: 0 20px 60px rgba(13,17,23,0.18);
+  color: #000000;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
 }
-html[data-demo-mode="true"] .modal .modal-body p { color: #0F172A; }
-html[data-demo-mode="true"] .modal .modal-side .lbl { color: #64748B; }
-html[data-demo-mode="true"] .modal .modal-side .val { color: #0F172A; }
-html[data-demo-mode="true"] .modal .modal-related h3 { color: #0F172A; }
-html[data-demo-mode="true"] .modal-close { color: #0F172A; }
+html[data-demo-mode="true"] .modal .modal-body p { color: #000000; }
+html[data-demo-mode="true"] .modal .modal-side .lbl { color: #6B6B6B; }
+html[data-demo-mode="true"] .modal .modal-side .val { color: #000000; }
+html[data-demo-mode="true"] .modal .modal-related h3 { color: #000000; }
+html[data-demo-mode="true"] .modal-close { color: #000000; }
 
-/* Hero badge en light */
-html[data-demo-mode="true"] .hero-badge { background: rgba(255,255,255,0.92); color: #0F172A; }
-html[data-demo-mode="true"] .hero-badge .label { color: #6E50EE; }
-html[data-demo-mode="true"] .hero-badge .value { color: #0F172A; }
+/* Hero badge · "Seguir viendo" / "Destacado" · acento rojo beonit (Netflix-vibe) */
+html[data-demo-mode="true"] .hero-badge { background: rgba(255,255,255,0.95); color: #000000; }
+html[data-demo-mode="true"] .hero-badge .label { color: #FC220D; font-weight: 800; letter-spacing: 0.06em; }
+html[data-demo-mode="true"] .hero-badge .value { color: #000000; }
 
-/* Hero text sigue blanco porque va sobre overlay oscuro del video; el
- * overlay se mantiene para que se lea bien sobre cualquier fondo */
+/* Hero text sigue blanco · va sobre overlay oscuro del video.
+ * Overlay aumentado al 65% en demo para que el título blanco se lea
+ * sobre cualquier video/poster. */
+html[data-demo-mode="true"] .hero-overlay {
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.75) 100%);
+}
 
-/* PageShell headers en light · usado por Catálogo / Profile / etc */
+/* PageShell headers · negro beonit */
 html[data-demo-mode="true"] .ssg-page,
 html[data-demo-mode="true"] .ssg-page * { color: inherit; }
 html[data-demo-mode="true"] .ssg-page h1,
-html[data-demo-mode="true"] .ssg-page h2 { color: #0F172A; }
+html[data-demo-mode="true"] .ssg-page h2 { color: #000000; }
 html[data-demo-mode="true"] .ssg-page p,
-html[data-demo-mode="true"] .ssg-page span:not(.card *) { color: #0F172A; }
+html[data-demo-mode="true"] .ssg-page span:not(.card *) { color: #000000; }
+html[data-demo-mode="true"] .ssg-page .eyebrow { color: #0072BE; font-weight: 800; letter-spacing: 0.06em; }
+html[data-demo-mode="true"] .ssg-page em { color: #0072BE !important; }
 
-/* Inputs en light */
+/* Inputs blancos */
 html[data-demo-mode="true"] input,
 html[data-demo-mode="true"] select,
 html[data-demo-mode="true"] textarea {
   background: #FFFFFF !important;
-  color: #0F172A !important;
-  border-color: rgba(13,17,23,0.15) !important;
+  color: #000000 !important;
+  border-color: rgba(0,0,0,0.15) !important;
 }
 
-/* Botones primarios mantienen accent, los outlined se adaptan */
+/* Botones · primarios azul beonit, ghost negro sobre blanco */
+html[data-demo-mode="true"] .btn-primary {
+  background: #0072BE;
+  color: #FFFFFF;
+}
+html[data-demo-mode="true"] .btn-primary:hover { background: #0085D8; }
 html[data-demo-mode="true"] .btn-secondary,
 html[data-demo-mode="true"] .btn-ghost {
-  background: rgba(13,17,23,0.05);
-  color: #0F172A;
-  border-color: rgba(13,17,23,0.15);
+  background: rgba(0,0,0,0.05);
+  color: #000000;
+  border-color: rgba(0,0,0,0.15);
 }
-html[data-demo-mode="true"] .btn-secondary:hover { background: rgba(13,17,23,0.08); }
+html[data-demo-mode="true"] .btn-secondary:hover { background: rgba(0,0,0,0.08); }
+
+/* Badge "Nuevo" en cards · usa rojo beonit (Netflix-vibe) en lugar del violeta */
+html[data-demo-mode="true"] .card-badge {
+  background: #FC220D;
+  color: #FFFFFF;
+}
+
+/* Trending num (los "01, 02, 03" gigantes de Tendencias) · negro beonit con
+ * stroke azul para destacar */
+html[data-demo-mode="true"] .trending-num {
+  color: rgba(0,0,0,0.04);
+  -webkit-text-stroke: 1.5px #0072BE;
+}
