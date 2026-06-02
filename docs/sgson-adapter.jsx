@@ -139,17 +139,34 @@
           .filter(x => x.pathId && x.pathId === p._id)
           .map(x => x.id);
       }
+      // Progreso real de la ruta · cuenta cuántas de sus pills están
+      // marcadas como completadas en window.Progress (Supabase scope user).
+      // Si total=0, progress=0. La card lo renderiza como barra + "N/M".
+      let completed = 0;
+      if (window.Progress && window.Progress.get && pillIds.length > 0) {
+        completed = pillIds.filter(id => {
+          const r = window.Progress.get(id);
+          return !!(r && r.completed_at);
+        }).length;
+      }
+      const total = pillIds.length;
+      const pct = total > 0 ? completed / total : 0;
       return {
-        id:      p.id,
-        title:   p.label || p.title || 'Ruta',
-        label:   p.label || p.title || 'Ruta',
-        desc:    p.desc || p.roleTag || '',
-        badge:   p.badge || '',
-        // `pills` cuenta para cards · `pillIds` array para MyPath
-        pills:   pillIds.length || p.totalPills || 0,
-        pillIds: pillIds,
-        hours:   p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),
-        accent:  TONE_BY_LABEL[p.label] || 'cat-publish',
+        id:        p.id,
+        _id:       p._id,            // uuid expuesto para routeProgress() externo
+        title:     p.label || p.title || 'Ruta',
+        label:     p.label || p.title || 'Ruta',
+        desc:      p.desc || p.roleTag || '',
+        badge:     p.badge || '',
+        pills:     pillIds.length || p.totalPills || 0,
+        pillIds:   pillIds,
+        hours:     p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),
+        accent:    TONE_BY_LABEL[p.label] || 'cat-publish',
+        // Progreso del user en esta ruta
+        progress:  pct,
+        completedCount: completed,
+        totalCount: total,
+        isCompleted: pct >= 1 && total > 0,
       };
     });
 

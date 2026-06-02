@@ -2902,15 +2902,57 @@ function _activateSupabaseData() {
     (data || []).forEach(r => { _progressCache[r.pill_id] = r; });
     window.dispatchEvent(new Event('progress-changed'));
   }
+  // Set de paths que ya fueron marcados como completados para este user ·
+  // se persiste en localStorage scoped al user/workspace · al cruzar el
+  // umbral por primera vez se dispara 'route-completed' (foundation para
+  // certificados en un PR siguiente).
+  function _completedRoutesKey() {
+    const u = _uid(); const ws = _wsid();
+    return 'solid-completed-routes:' + (u || 'anon') + ':' + (ws || 'none');
+  }
+  function _readCompletedRoutes() {
+    try { return new Set(JSON.parse(localStorage.getItem(_completedRoutesKey()) || '[]')); }
+    catch(e) { return new Set(); }
+  }
+  function _writeCompletedRoutes(set) {
+    try { localStorage.setItem(_completedRoutesKey(), JSON.stringify(Array.from(set))); } catch(e) {}
+  }
   window.Progress = {
     get: (pillId) => _progressCache[pillId] || null,
     isCompleted: (pillId) => !!(_progressCache[pillId] && _progressCache[pillId].completed_at),
     pct: (pillId) => { const r = _progressCache[pillId]; return r ? (r.progress || 0) : 0; },
     list: () => Object.assign({}, _progressCache),
+
+    /* Progreso a nivel ruta/competencia · agrega completitud de las pills
+     * que pertenecen al path (link por pill.pathId === path._id ó por la
+     * lista pillIds que trae el path). Devuelve {completed,total,pct,
+     * isCompleted}. Si total===0, isCompleted=false y pct=0. */
+    routeProgress: function(pathRefOrId) {
+      let path = pathRefOrId;
+      // Acepta uuid, slug, o el objeto path entero
+      if (typeof pathRefOrId === 'string') {
+        const all = window.LEARNING_PATHS || [];
+        path = all.find(p => p._id === pathRefOrId || p.id === pathRefOrId);
+      }
+      if (!path) return { completed: 0, total: 0, pct: 0, isCompleted: false };
+      // pillIds explícito si vienen, si no derivar de window.PILLS
+      let pillIds = Array.isArray(path.pillIds) ? path.pillIds.slice() :
+                    Array.isArray(path.pills) ? path.pills.slice() : [];
+      if (pillIds.length === 0 && path._id) {
+        pillIds = (window.PILLS || [])
+          .filter(p => p.pathId && p.pathId === path._id)
+          .map(p => p.id);
+      }
+      const total = pillIds.length;
+      if (total === 0) return { completed: 0, total: 0, pct: 0, isCompleted: false };
+      const completed = pillIds.filter(id => !!(_progressCache[id] && _progressCache[id].completed_at)).length;
+      const pct = completed / total;
+      return { completed, total, pct, isCompleted: pct >= 1 };
+    },
+
     start: async function(pillId) {
       const u = _uid(); const ws = _wsid();
       if (!u || !ws || !pillId) return;
-      // Solo upsert si no existe ya (no pisar progress avanzado)
       if (_progressCache[pillId]) return;
       const { error } = await sb.from('progress').upsert(
         { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: 0, updated_at: new Date().toISOString() },
@@ -2925,9 +2967,7 @@ function _activateSupabaseData() {
       if (!u || !ws || !pillId) return;
       const next = Math.max(0, Math.min(1, pct || 0));
       const prev = _progressCache[pillId];
-      // No regresar · solo subir progress
       if (prev && prev.progress >= next) return;
-      // No spam: solo escribe cada 5 puntos porcentuales
       if (prev && Math.abs((prev.progress || 0) - next) < 0.05) return;
       const { error } = await sb.from('progress').upsert(
         { user_id: u, workspace_id: ws, pill_id: String(pillId), progress: next, updated_at: new Date().toISOString() },
@@ -2940,7 +2980,6 @@ function _activateSupabaseData() {
     complete: async function(pillId) {
       const u = _uid(); const ws = _wsid();
       if (!u || !ws || !pillId) return;
-      // Idempotente · si ya está completado no re-escribe
       if (_progressCache[pillId] && _progressCache[pillId].completed_at) return;
       const now = new Date().toISOString();
       const { error } = await sb.from('progress').upsert(
@@ -2951,8 +2990,29 @@ function _activateSupabaseData() {
       _progressCache[pillId] = { pill_id: String(pillId), progress: 1, completed_at: now };
       if (window.Toast) window.Toast.success('Pill marcada como completada', { icon:'✓' });
       window.dispatchEvent(new Event('progress-changed'));
-      // Refresh Analytics si está cargado
       if (window.Analytics && window.Analytics.refresh) window.Analytics.refresh();
+
+      // ¿La ruta que contiene esta pill se acaba de completar?
+      try {
+        const paths = window.LEARNING_PATHS || [];
+        const pill = (window.PILLS || []).find(p => p.id === pillId);
+        const pid = pill && pill.pathId;
+        if (pid) {
+          const path = paths.find(p => p._id === pid);
+          if (path) {
+            const prog = window.Progress.routeProgress(path);
+            if (prog.isCompleted) {
+              const seen = _readCompletedRoutes();
+              if (!seen.has(path._id || path.id)) {
+                seen.add(path._id || path.id);
+                _writeCompletedRoutes(seen);
+                if (window.Toast) window.Toast.success('🏆 Ruta completada: ' + (path.title || path.label), { icon: '🏆' });
+                window.dispatchEvent(new CustomEvent('route-completed', { detail: { path, completed: prog } }));
+              }
+            }
+          }
+        }
+      } catch(e) { /* no rompemos el flow del complete por esto */ }
     },
   };
 
