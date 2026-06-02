@@ -2464,123 +2464,107 @@ html[data-demo-mode="true"] {
   --accent-glow:   rgba(0, 114, 190, 0.28);
   --accent-2:      #FC220D;        /* beon Retail · rojo destacado */
   --accent-2-deep: #C81808;
-  --ok:            #036837;        /* beon Finance · verde */
+  --ok:            #1DB954;        /* verde Spotify-like sobre dark */
   --warn:          #F3A525;        /* beon Media · naranja */
   --err:           #FC220D;        /* beon Retail · rojo */
 }
 
-/* Hereda las superficies light del bloque html[data-theme="light"] de arriba,
- * que ya están definidas. Aquí no necesitamos repetirlas porque demo mode
- * fuerza data-theme="light" simultáneamente. */
-
-/* CINEMATIC OVERRIDE · en demo · Home/Player/Onboarding también van light.
- * Sobrescribe el bloque html[data-theme="light"] body[data-cinematic="true"]
- * que normalmente fuerza dark.
- *
- * Tonos beonit claros (ni blanco puro ni dark · cream cálido que combina
- * con el azul corporativo y el rojo del acento Netflix). */
+/* NETFLIX DARK + paleta beonit · fondo negro absoluto · surfaces gris muy
+ * oscuro · text blanco · accents azul beonit + rojo beonit (Netflix-vibe).
+ * Mantiene el feel cinematic de Netflix con la identidad corporativa. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #ECE5D6;       /* cream profundo beonit */
-  --bg-canvas:      #F4EFE3;       /* cream principal · fondo de la página */
-  --bg-surface:     #FBF8F0;       /* superficies (cards, rows) · cream pálido */
-  --bg-elevated:    #EFE9DB;       /* elementos elevados · ligeramente más oscuro */
-  --bg-glass:       rgba(244, 239, 227, 0.82);
-  --bg-glass-strong:rgba(244, 239, 227, 0.95);
-  --line-faint:     rgba(0, 0, 0, 0.06);
-  --line:           rgba(0, 0, 0, 0.10);
-  --line-strong:    rgba(0, 0, 0, 0.20);
-  --fg:             #000000;       /* beonit negro corporativo */
-  --fg-muted:       #4A4A4A;
-  --fg-dim:         #6B6B6B;
-  --fg-faint:       #9C9C9C;
+  --bg-deep:        #000000;       /* Netflix puro */
+  --bg-canvas:      #0A0A0A;       /* fondo principal */
+  --bg-surface:     #181818;       /* cards y rows · Netflix surface */
+  --bg-elevated:    #242424;       /* modales, dropdowns elevados */
+  --bg-glass:       rgba(10, 10, 10, 0.82);
+  --bg-glass-strong:rgba(10, 10, 10, 0.95);
+  --line-faint:     rgba(255, 255, 255, 0.06);
+  --line:           rgba(255, 255, 255, 0.10);
+  --line-strong:    rgba(255, 255, 255, 0.20);
+  --fg:             #FFFFFF;       /* blanco puro · contrast máx */
+  --fg-muted:       #B3B3B3;       /* Netflix muted gray */
+  --fg-dim:         #808080;
+  --fg-faint:       #4D4D4D;
   --fg-on-accent:   #FFFFFF;
 }
-html[data-demo-mode="true"] body[data-cinematic="true"] { background: #F4EFE3 !important; }
-html[data-demo-mode="true"] body { background: #F4EFE3; }
+html[data-demo-mode="true"] body[data-cinematic="true"] { background: #0A0A0A !important; }
+html[data-demo-mode="true"] body { background: #0A0A0A; }
 
-/* CARDS en demo · texto blanco sobre cover oscuro/gradient se mantiene
- * (legibilidad sobre poster), pero la fila/section pasa a light beonit. */
+/* CARDS y rows en demo · texto blanco sobre cover/gradient · Netflix-vibe */
 html[data-demo-mode="true"] .rows { background: transparent; }
-html[data-demo-mode="true"] .row-title { color: #000000; font-weight: 700; }
-html[data-demo-mode="true"] .row-sub   { color: #4A4A4A; }
-html[data-demo-mode="true"] .row-explore { color: #0072BE; font-weight: 700; }
-html[data-demo-mode="true"] .footer-strip { color: #6B6B6B; border-top: 1px solid rgba(0,0,0,0.10); }
+html[data-demo-mode="true"] .row-title { color: #FFFFFF; font-weight: 700; letter-spacing: -0.01em; }
+html[data-demo-mode="true"] .row-sub   { color: #B3B3B3; }
+html[data-demo-mode="true"] .row-explore { color: #0085D8; font-weight: 700; }
+html[data-demo-mode="true"] .footer-strip { color: #808080; border-top: 1px solid rgba(255,255,255,0.10); }
 
-/* Topnav glass blanco beonit */
+/* Topnav glass negro Netflix con backdrop */
 html[data-demo-mode="true"] .topnav {
-  background: rgba(244, 239, 227, 0.92);
+  background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-html[data-demo-mode="true"] .topnav.scrolled { background: rgba(244, 239, 227, 0.98); }
-html[data-demo-mode="true"] .topnav .nav-item { color: #000000; }
-html[data-demo-mode="true"] .topnav .nav-item.active { color: #0072BE; }
-html[data-demo-mode="true"] .topnav .icon-btn { color: #000000; }
+html[data-demo-mode="true"] .topnav.scrolled { background: rgba(10, 10, 10, 0.98); }
+html[data-demo-mode="true"] .topnav .nav-item { color: #FFFFFF; }
+html[data-demo-mode="true"] .topnav .nav-item.active { color: #0085D8; }
+html[data-demo-mode="true"] .topnav .icon-btn { color: #FFFFFF; }
 html[data-demo-mode="true"] .topnav .avatar {
   background: linear-gradient(135deg, #0072BE, #005C99);
   color: #fff;
+  font-weight: 700;
 }
 
-/* Avatar dropdown · fondo blanco */
+/* Avatar dropdown · Netflix-style dark con borde sutil */
 html[data-demo-mode="true"] .avatar-menu {
-  background: #FFFFFF !important;
-  border: 1px solid rgba(0,0,0,0.10) !important;
-  color: #000000 !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18) !important;
+  background: #181818 !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7) !important;
 }
-html[data-demo-mode="true"] .avatar-menu * { color: #000000 !important; }
-html[data-demo-mode="true"] .avatar-menu div[style*="rgba(245,244,241,0.7)"] { color: #4A4A4A !important; }
+html[data-demo-mode="true"] .avatar-menu * { color: #FFFFFF !important; }
+html[data-demo-mode="true"] .avatar-menu div[style*="rgba(245,244,241,0.7)"] { color: #B3B3B3 !important; }
 
-/* Sidebar (legacy desktop) */
-html[data-demo-mode="true"] .sidebar { background: #FFFFFF; border-right: 1px solid rgba(0,0,0,0.10); }
-html[data-demo-mode="true"] .sidebar a { color: #000000; }
-
-/* Modal beonit blanco */
+/* Modal dark Netflix */
 html[data-demo-mode="true"] .modal {
-  background: #FFFFFF;
-  color: #000000;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  background: #181818;
+  color: #FFFFFF;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
 }
-html[data-demo-mode="true"] .modal .modal-body p { color: #000000; }
-html[data-demo-mode="true"] .modal .modal-side .lbl { color: #6B6B6B; }
-html[data-demo-mode="true"] .modal .modal-side .val { color: #000000; }
-html[data-demo-mode="true"] .modal .modal-related h3 { color: #000000; }
-html[data-demo-mode="true"] .modal-close { color: #000000; }
+html[data-demo-mode="true"] .modal .modal-body p { color: #FFFFFF; }
+html[data-demo-mode="true"] .modal .modal-side .lbl { color: #808080; }
+html[data-demo-mode="true"] .modal .modal-side .val { color: #FFFFFF; }
+html[data-demo-mode="true"] .modal .modal-related h3 { color: #FFFFFF; }
+html[data-demo-mode="true"] .modal-close { color: #FFFFFF; }
 
-/* Hero badge · "Seguir viendo" / "Destacado" · acento rojo beonit (Netflix-vibe) */
-html[data-demo-mode="true"] .hero-badge { background: rgba(255,255,255,0.95); color: #000000; }
+/* Hero badge · "Seguir viendo" / "Top esta semana" · rojo beonit (Netflix-vibe) */
+html[data-demo-mode="true"] .hero-badge { background: rgba(0,0,0,0.7); color: #FFFFFF; backdrop-filter: blur(8px); }
 html[data-demo-mode="true"] .hero-badge .label { color: #FC220D; font-weight: 800; letter-spacing: 0.06em; }
-html[data-demo-mode="true"] .hero-badge .value { color: #000000; }
+html[data-demo-mode="true"] .hero-badge .value { color: #FFFFFF; }
 
-/* Hero text sigue blanco · va sobre overlay oscuro del video.
- * Overlay aumentado al 65% en demo para que el título blanco se lea
- * sobre cualquier video/poster. */
-html[data-demo-mode="true"] .hero-overlay {
-  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.75) 100%);
-}
+/* Hero text sigue blanco (era así) · overlay default funciona bien */
 
-/* PageShell headers · negro beonit */
+/* PageShell headers · texto blanco sobre fondo dark */
 html[data-demo-mode="true"] .ssg-page,
 html[data-demo-mode="true"] .ssg-page * { color: inherit; }
 html[data-demo-mode="true"] .ssg-page h1,
-html[data-demo-mode="true"] .ssg-page h2 { color: #000000; }
+html[data-demo-mode="true"] .ssg-page h2 { color: #FFFFFF; }
 html[data-demo-mode="true"] .ssg-page p,
-html[data-demo-mode="true"] .ssg-page span:not(.card *) { color: #000000; }
-html[data-demo-mode="true"] .ssg-page .eyebrow { color: #0072BE; font-weight: 800; letter-spacing: 0.06em; }
-html[data-demo-mode="true"] .ssg-page em { color: #0072BE !important; }
+html[data-demo-mode="true"] .ssg-page span:not(.card *) { color: #FFFFFF; }
+html[data-demo-mode="true"] .ssg-page .eyebrow { color: #0085D8; font-weight: 800; letter-spacing: 0.06em; }
+html[data-demo-mode="true"] .ssg-page em { color: #0085D8 !important; }
 
-/* Inputs blancos */
+/* Inputs dark · contrast con bordes sutiles */
 html[data-demo-mode="true"] input,
 html[data-demo-mode="true"] select,
 html[data-demo-mode="true"] textarea {
-  background: #FFFFFF !important;
-  color: #000000 !important;
-  border-color: rgba(0,0,0,0.15) !important;
+  background: #181818 !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255,255,255,0.15) !important;
 }
 
-/* Botones · primarios azul beonit, ghost negro sobre blanco */
+/* Botones · primary azul beonit, ghost transparente con border claro */
 html[data-demo-mode="true"] .btn-primary {
   background: #0072BE;
   color: #FFFFFF;
@@ -2588,21 +2572,30 @@ html[data-demo-mode="true"] .btn-primary {
 html[data-demo-mode="true"] .btn-primary:hover { background: #0085D8; }
 html[data-demo-mode="true"] .btn-secondary,
 html[data-demo-mode="true"] .btn-ghost {
-  background: rgba(0,0,0,0.05);
-  color: #000000;
-  border-color: rgba(0,0,0,0.15);
+  background: rgba(255,255,255,0.10);
+  color: #FFFFFF;
+  border-color: rgba(255,255,255,0.20);
 }
-html[data-demo-mode="true"] .btn-secondary:hover { background: rgba(0,0,0,0.08); }
+html[data-demo-mode="true"] .btn-secondary:hover { background: rgba(255,255,255,0.18); }
 
-/* Badge "Nuevo" en cards · usa rojo beonit (Netflix-vibe) en lugar del violeta */
+/* Badge "Nuevo" en cards · rojo beonit (Netflix-vibe) en lugar del violeta */
 html[data-demo-mode="true"] .card-badge {
   background: #FC220D;
   color: #FFFFFF;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* Trending num (los "01, 02, 03" gigantes de Tendencias) · negro beonit con
- * stroke azul para destacar */
+/* Trending num (los "01, 02, 03" gigantes de Tendencias) · estilo Netflix
+ * con stroke en azul beonit · fill semi-transparente para que se vea sobre
+ * fondo oscuro */
 html[data-demo-mode="true"] .trending-num {
-  color: rgba(0,0,0,0.04);
-  -webkit-text-stroke: 1.5px #0072BE;
+  color: rgba(0,0,0,0.7);
+  -webkit-text-stroke: 2px #0085D8;
+  text-shadow: 0 0 24px rgba(0,114,190,0.6);
 }
+
+/* Sidebar (si aparece · legacy desktop) */
+html[data-demo-mode="true"] .sidebar { background: #0A0A0A; border-right: 1px solid rgba(255,255,255,0.10); }
+html[data-demo-mode="true"] .sidebar a { color: #FFFFFF; }
