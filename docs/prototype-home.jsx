@@ -559,8 +559,18 @@ function HomeHero({ onPlay, onMore }) {
           })()}
         </div>
 
-        <h1 className="hero-title">{p.title}</h1>
-        {p.one && p.one !== p.title && <p className="hero-quote">"{p.one}."</p>}
+        <h1 className="hero-title">{(() => {
+          // En demo · el título del hero se fuerza a "Más presentaciones eficaces"
+          // (per spec del cliente), independientemente de qué pill featured se
+          // pinte como fondo. Soporta override vía settings.hero_title_label.
+          const dm = window.DemoMode;
+          if (dm && dm.isActive && dm.isActive()) {
+            const override = dm.label && dm.label('hero_title_label', null);
+            return override || 'Más presentaciones eficaces';
+          }
+          return p.title;
+        })()}</h1>
+        {p.one && p.one !== p.title && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="hero-quote">"{p.one}."</p>}
 
         <div className="hero-meta">
           <span className="tag">{(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? 'Nivel ' + p.level : p.level}</span>
@@ -914,6 +924,8 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
   const onOpenPath = (p) => { if (p && p.id && openPath) openPath(p.id); else setView('rutas'); };
   const onSeeAll = () => setView('browse');
 
+  const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+
   return (
     <div data-screen-label="Home">
       <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
@@ -921,6 +933,8 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
+        {/* En demo · CTA "Inscríbete a talleres" como sección simple */}
+        {demoActive && <WorkshopsCTASection/>}
       </div>
       <footer className="footer-strip">
         <div className="cobranding">
@@ -935,6 +949,68 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
     </div>
   );
 }
+
+// ── WorkshopsCTASection · CTA simple "Inscríbete a talleres" (solo demo) ──
+// Spec: próximo · fecha · hora · botón recordatorio. Sin lógica real:
+// muestra 3 talleres mock con "Crear recordatorio" → toast. Talleres
+// reales vivirían en una tabla workshops scopeada por workspace; por ahora
+// el contenido es estático y enfocado a la demo comercial.
+function WorkshopsCTASection() {
+  const _dm = window.DemoMode;
+  const title = (_dm && _dm.label) ? _dm.label('workshops_label', 'Inscríbete a talleres') : 'Inscríbete a talleres';
+
+  // Próximos talleres · fechas relativas al "hoy" para que siempre se vean futuros
+  const today = new Date();
+  const addDays = (n) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
+  };
+  const workshops = [
+    { id:'w1', title:'Storytelling con datos para presentaciones',  date: addDays(3),  time:'10:00 – 11:30', host:'María López' },
+    { id:'w2', title:'Reuniones eficaces: facilitación práctica',   date: addDays(8),  time:'16:00 – 17:00', host:'Carlos Vidal' },
+    { id:'w3', title:'Gestión del tiempo · time blocking en equipo', date: addDays(15), time:'09:30 – 11:00', host:'Ana Ferrer' },
+  ];
+
+  const setReminder = (w) => {
+    if (window.Toast) window.Toast.success(`Recordatorio creado · ${w.title}`, { icon:'⏰' });
+  };
+
+  return (
+    <section className="row" data-screen-label="Workshops CTA" style={{paddingBottom: 24}}>
+      <header className="row-header">
+        <h2 className="row-title">{title}</h2>
+        <span className="row-sub">— sesiones en directo · plazas limitadas</span>
+      </header>
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: 14,
+        padding:'0 var(--page-pad, 48px)',
+      }}>
+        {workshops.map(w => (
+          <article key={w.id} style={{
+            padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+            borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+          }}>
+            <div style={{fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent)', fontWeight:700}}>
+              {w.date} · {w.time}
+            </div>
+            <h3 style={{margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3}}>{w.title}</h3>
+            <div style={{fontSize:12, color:'var(--fg-muted)'}}>Facilita {w.host}</div>
+            <button onClick={() => setReminder(w)} style={{
+              marginTop:'auto', padding:'10px 14px', background:'var(--accent)', color:'#fff',
+              border:'none', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
+              display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              ⏰ Crear recordatorio
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+window.WorkshopsCTASection = WorkshopsCTASection;
 
 window.TopNav = TopNav;
 window.HomeHero = HomeHero;

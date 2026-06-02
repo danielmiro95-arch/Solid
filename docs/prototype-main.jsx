@@ -1176,6 +1176,7 @@ window.Workspaces = Workspaces;
     brief_diario_label: 'Brief Diario',
     workshops_label: 'Inscríbete a talleres',
     catalog_label: 'Catálogo',
+    hero_title_label: 'Más presentaciones eficaces',
     catalog_subheader: 'Fórmate en tu contenido',
     my_list_label: 'Mi Lista',
     paths_recommended_label: 'Cursos recomendados para ti',
