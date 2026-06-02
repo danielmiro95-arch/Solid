@@ -348,28 +348,16 @@ function MyPathView({ openDetail, setView, pathId }) {
    ============================================================ */
 function ChannelsView() {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
-  // Estado del Channel Manager (canales conectados + canal principal).
-  // El listener NO confía en e.detail · el workspace-changed handler (línea
-  // ~966 de prototype-main.jsx) dispara channels-changed con new Event() sin
-  // detail · re-fetcheamos siempre de Channels.get() para no quedarnos con
-  // state undefined.
-  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}) || {});
+  // Estado del Channel Manager (canales conectados + canal principal)
+  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
   useEE2(() => {
-    const onChange = () => {
-      const next = (window.Channels && window.Channels.get()) || {};
-      setChState(next);
-    };
+    const onChange = (e) => setChState(e.detail);
     window.addEventListener('channels-changed', onChange);
-    window.addEventListener('workspace-changed', onChange);
-    return () => {
-      window.removeEventListener('channels-changed', onChange);
-      window.removeEventListener('workspace-changed', onChange);
-    };
+    return () => window.removeEventListener('channels-changed', onChange);
   }, []);
 
-  const safeState = chState || {};
   const catalog = (window.Channels && window.Channels.CATALOG) || [];
-  const primaryId = safeState.primary || null;
+  const primaryId = chState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
   const channelColor = primaryDef ? primaryDef.color : '#25D366';
 
@@ -380,10 +368,10 @@ function ChannelsView() {
       sub={T('channels.sub')}>
 
       {/* CHANNEL MANAGER · conectar / desconectar / re-autenticar / marcar principal */}
-      <ChannelManagerPanel chState={safeState} catalog={catalog}/>
+      <ChannelManagerPanel chState={chState} catalog={catalog}/>
 
       {/* MATRIZ DE NOTIFICACIONES · una columna por canal conectado · estilo Sprinklr */}
-      <ChannelNotificationsMatrix chState={safeState} catalog={catalog}/>
+      <ChannelNotificationsMatrix chState={chState} catalog={catalog}/>
 
       {/* DELIVERY PREFERENCES · cuándo recibir contenido (con max/día) */}
       <DeliveryPreferencesPanel channelColor={channelColor}/>
@@ -1105,11 +1093,7 @@ function ContentPushPanel({ channelColor }) {
 // ── Channel Notifications Matrix · una columna por canal × tipos comunes ──
 function ChannelNotificationsMatrix({ chState, catalog }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
-  // Defensive · si la prop chState llega undefined no crasheamos al leer
-  // sus props (line 1108 filter usa chState[c.id]) ni al usar safeState
-  // más abajo (línea ~1169 reads safeState.primary).
-  const safeState = chState || {};
-  const connected = (catalog || []).filter(c => safeState[c.id] && safeState[c.id].connected);
+  const connected = (catalog || []).filter(c => chState[c.id] && chState[c.id].connected);
   const [state, setState] = useEV2(() => (window.ChannelNotifs ? window.ChannelNotifs.get() : {}));
   const [history, setHistory] = useEV2(() => (window.TestSends ? window.TestSends.list() : []));
 
@@ -1170,7 +1154,7 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
                   <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)' }}>{c.label}</div>
                   <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-muted)' }}>{T('matrix.activeOfTotal').replace('{n}', channelOn).replace('{total}', TYPES.length)}</div>
                 </div>
-                {safeState.primary === c.id && (
+                {chState.primary === c.id && (
                   <div title="Canal principal" style={{ fontSize: 12, color: c.color, fontWeight: 800 }}>★</div>
                 )}
               </div>
@@ -1257,8 +1241,6 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
 // ── Channel Manager Panel ─────────────────────────────────────────────────
 function ChannelManagerPanel({ chState, catalog }) {
   const T = (k, f) => (window.I18n ? window.I18n.t(k, f) : (f || k));
-  // Defensive · si el padre pasa chState undefined no crasheamos
-  const safeState = chState || {};
   const [connecting, setConnecting] = useEV2(null);
 
   const startConnect = (chId) => {
@@ -1270,7 +1252,7 @@ function ChannelManagerPanel({ chState, catalog }) {
     }, 800);
   };
 
-  const connectedCount = catalog.filter(c => safeState[c.id] && safeState[c.id].connected).length;
+  const connectedCount = catalog.filter(c => chState[c.id] && chState[c.id].connected).length;
 
   return (
     <section>
@@ -1283,9 +1265,9 @@ function ChannelManagerPanel({ chState, catalog }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {catalog.map(c => {
-          const state = safeState[c.id];
+          const state = chState[c.id];
           const connected = !!(state && state.connected);
-          const primary = safeState.primary === c.id && connected;
+          const primary = chState.primary === c.id && connected;
           const isConnecting = connecting === c.id;
           const since = state && state.since ? Math.floor((Date.now() - state.since) / 86400000) : null;
           return (
