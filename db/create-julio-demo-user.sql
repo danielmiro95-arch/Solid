@@ -39,12 +39,13 @@ BEGIN
     RAISE NOTICE 'Usuario Julio ya existía · password reseteado · id %', julio_uid;
   END IF;
 
-  -- 2. Crear/actualizar profile
-  INSERT INTO public.profiles (id, email, full_name, role, system_role)
-  VALUES (julio_uid, julio_email, 'Julio Turbón de Cabo', 'Learning Manager', 'user')
+  -- 2. Crear/actualizar profile (columna se llama `name`, no `full_name`)
+  INSERT INTO public.profiles (id, email, name, role, system_role, team)
+  VALUES (julio_uid, julio_email, 'Julio Turbón de Cabo', 'Learning Manager', 'user', 'Hijos de Rivera Demo')
   ON CONFLICT (id) DO UPDATE SET
-    full_name = 'Julio Turbón de Cabo',
-    role = 'Learning Manager';
+    name = 'Julio Turbón de Cabo',
+    role = 'Learning Manager',
+    team = 'Hijos de Rivera Demo';
 
   -- 3. Buscar el workspace demo
   SELECT id INTO demo_ws FROM public.workspaces WHERE slug = 'hijos-de-rivera-demo' LIMIT 1;
@@ -69,8 +70,8 @@ END $$;
 SELECT
   u.email,
   u.email_confirmed_at IS NOT NULL AS email_ok,
-  p.full_name,
-  p.role,
+  p.name AS profile_name,
+  p.role AS profile_role,
   w.name AS workspace,
   m.role AS workspace_role
 FROM auth.users u
