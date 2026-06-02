@@ -86,6 +86,15 @@
     const PILLS = (window.PILLS || []).map(mapPill);
     const pillById = (id) => PILLS.find(p => p.id === id);
 
+    // ── DemoMode helpers · disponibles para ROWS, SIDEBAR_LINKS y USER ──
+    // BUG fix · _label/_flag se usan más abajo en ROWS antes de SIDEBAR_LINKS,
+    // y antes vivían sólo dentro del bloque de sidebar · resultado: ReferenceError
+    // en boot. Movidos aquí arriba para que estén en scope desde el principio.
+    const _dm = window.DemoMode;
+    const _flag = _dm ? _dm.flag : () => undefined;
+    const _label = _dm ? _dm.label : (_, f) => f;
+    const _dmActive = _dm && _dm.isActive && _dm.isActive();
+
     // ── ROWS · estructura de filas Home del rediseño ──
     const inProgress      = PILLS.filter(p => p.progress > 0 && p.progress < 1).map(p => p.id).slice(0, 8);
     const withVideo       = PILLS.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
@@ -230,15 +239,12 @@
     };
 
     // ── SIDEBAR_LINKS · filtrado por DemoMode flags ──
-    const _dm = window.DemoMode;
-    const _flag = _dm ? _dm.flag : () => undefined;
-    const _label = _dm ? _dm.label : (_, f) => f;
     // En demo · tras última reunión · sidebar reducido a 3 items:
     //   Inicio · Catálogo (rutas) · Mis Cursos (path).
     // Channels, Bandeja, Guardado, Mi perfil, Ajustes, BeonAI, Analytics,
     // Recursos y Admin se ocultan · Channels y Mi Perfil se acceden desde el
     // popup del avatar (ver TopNav menuItems).
-    const _dmActive = _dm && _dm.isActive && _dm.isActive();
+    // _dm / _flag / _label / _dmActive ya están definidos arriba.
     const _rutaPlural = _dmActive
       ? _label('catalog_label', 'Catálogo')
       : _label('path_label_plural', 'Rutas');
