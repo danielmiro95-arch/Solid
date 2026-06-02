@@ -276,6 +276,17 @@
 
   setup();
 
+  // BUG FIX · sgson-adapter.jsx carga ANTES que prototype-main.jsx, donde
+  // se define window.DemoMode. En el primer setup() _dm es undefined →
+  // sidebar se construye sin filtros de demo. Polling para re-ejecutar
+  // setup() en cuanto window.DemoMode esté disponible.
+  function _whenDemoReady(cb, attempts) {
+    attempts = attempts || 0;
+    if (window.DemoMode || attempts > 100) { cb(); return; }
+    setTimeout(function() { _whenDemoReady(cb, attempts + 1); }, 20);
+  }
+  _whenDemoReady(setup);
+
   // Re-construir cuando cambia el perfil del usuario (login/logout), el
   // workspace activo, o el catálogo de pills (carga desde DB en Supabase mode).
   // El badge de bandeja se mantiene en TopNav directamente (suscribe a
