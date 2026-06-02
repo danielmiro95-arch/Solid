@@ -122,8 +122,11 @@
     }
     ROWS.push({
       key:'new',
-      title:'Nuevo en SolidStream',
-      sub: _label('new_row_sub', 'recién publicado en BeonIt × Repsol'),
+      // En demo · el título pasa a "Recién publicado" (per spec del cliente)
+      // y el sub se vacía. Fuera de demo se mantiene "Nuevo en SolidStream
+      // / recién publicado en BeonIt × Repsol".
+      title: _label('new_row_title', 'Nuevo en SolidStream'),
+      sub:   _label('new_row_sub',   'recién publicado en BeonIt × Repsol'),
       pillIds: newIds,
       newRow: true,
     });

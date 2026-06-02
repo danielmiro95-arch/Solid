@@ -837,7 +837,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       <section className="row" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
           <h2 className="row-title">{row.title}</h2>
-          <span className="row-sub">— {row.sub}</span>
+          {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
           <button className="row-explore" onClick={() => onOpenPath && onOpenPath()}>Explorar todas <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
@@ -858,7 +858,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
           <h2 className="row-title">{row.title}</h2>
-          <span className="row-sub">— {row.sub}</span>
+          {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
           <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ranking completo <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
@@ -885,7 +885,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
     <section className="row" data-screen-label={`Row · ${row.key}`}>
       <header className="row-header">
         <h2 className="row-title">{row.title}</h2>
-        <span className="row-sub">— {row.sub}</span>
+        {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
         <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ver todo <Ico name="chev-right" size={12}/></button>
       </header>
       <div className="rail no-scrollbar" ref={railRef}>
