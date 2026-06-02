@@ -4538,19 +4538,28 @@ window.useI18n = function() {
 // La página de Analytics (AnalyticsView, view='dashboard') se autoaplica
 // data-theme="light" via useEffect propio · el resto siempre dark.
 // Settings.theme se ignora · queda en el storage pero no afecta al render.
+//
+// EXCEPCIÓN · demo mode · si el workspace activo tiene settings.demo_mode=true
+// la plataforma entera (incluyendo Home/Player) usa data-theme="light"
+// per acuerdo de reunión ("fondo claro estilo Netflix").
 (function _initThemeController(){
-  function forceDark() {
-    // No tocamos si AnalyticsView ha puesto data-analytics-light="1" · ese
-    // tag indica que estamos en la pantalla de analítica y manda ella.
+  function applyTheme() {
     if (document.documentElement.getAttribute('data-analytics-light') === '1') return;
-    document.documentElement.setAttribute('data-theme', 'dark');
+    const dm = window.DemoMode;
+    const demoActive = dm && dm.isActive && dm.isActive();
+    if (demoActive) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.setAttribute('data-demo-mode', 'true');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.removeAttribute('data-demo-mode');
+    }
   }
-  // Aplica al boot y cada vez que algo intente cambiar theme via Settings.
-  // El listener de settings-changed pisa cualquier intento de poner light.
-  window.addEventListener('settings-changed', forceDark);
-  window.addEventListener('auth-changed', forceDark);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', forceDark);
-  else forceDark();
+  window.addEventListener('settings-changed', applyTheme);
+  window.addEventListener('auth-changed', applyTheme);
+  window.addEventListener('workspace-changed', applyTheme);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyTheme);
+  else applyTheme();
 })();
 
 // ── Realtime cross-tab · BroadcastChannel para sync entre pestañas ─────────
