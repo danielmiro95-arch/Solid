@@ -211,13 +211,34 @@ function RutasView({ setView, openPath }) {
                   <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
                 </div>
               )}
-              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap', alignItems:'center' }}>
                 <button onClick={(e) => { e.stopPropagation(); handleClick(); }} disabled={isLocked} style={{
                   padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700,
                   background: isLocked ? 'rgba(0,0,0,0.5)' : (p.isCompleted ? 'var(--ok, #1E9E5A)' : 'var(--accent)'),
                   color: '#fff', border: 'none', borderRadius: 'var(--r-1)',
                   cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.7 : 1,
                 }}>{startLabel}</button>
+                {/* En demo · botón de favorito en cards de curso (per spec
+                    Mi Cursos agrega favoritos · necesita poder marcarlos) */}
+                {demoActive && !isLocked && (() => {
+                  const saved = window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id);
+                  return (
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.Bookmarks) {
+                        const isNow = window.Bookmarks.toggle(p.id);
+                        if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a Mis Cursos' : 'Curso quitado de Mis Cursos', { icon: isNow ? '⭐' : '○' });
+                      }
+                    }}
+                    title={saved ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    style={{
+                      padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize:14, fontWeight:700,
+                      background: saved ? 'var(--accent)' : 'rgba(255,255,255,0.12)', color:'#fff',
+                      border: saved ? 'none' : '1px solid rgba(255,255,255,0.2)', borderRadius:'var(--r-1)',
+                      cursor:'pointer', lineHeight:1,
+                    }}>{saved ? '★' : '☆'}</button>
+                  );
+                })()}
                 {p.isCompleted && window.Certificates && !isLocked && (
                   <button onClick={(e) => {
                     e.stopPropagation();
@@ -346,11 +367,55 @@ function MyPathView({ openDetail, setView, pathId }) {
       </div>
       )}
 
-      {/* En progreso */}
+      {/* En demo · Cursos que estás haciendo (paths en progreso) ENCABEZAN
+          la página antes que las pills. "Mis Cursos" tiene que mostrar
+          cursos, no solo pills. Per reunión. */}
+      {_isDemo && !path && (() => {
+        const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
+        const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
+        const coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        if (coursesToShow.length === 0) return null;
+        return (
+          <section style={{ marginBottom: 40 }}>
+            <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+              Cursos en tu lista
+            </h2>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+              {coursesToShow.map(p => {
+                const pct = Math.round((p.progress || 0) * 100);
+                return (
+                  <article key={'crs-'+p.id} onClick={() => openPath ? openPath(p.id) : setView('rutas')} style={{
+                    cursor:'pointer', padding:18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+                    borderRadius:14, display:'flex', flexDirection:'column', gap:10,
+                  }}>
+                    <div style={{
+                      fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.08em',
+                      textTransform:'uppercase', color:'var(--accent)', fontWeight:700,
+                    }}>Curso{p.progress > 0 ? ` · ${pct}% completado` : ''}</div>
+                    <h3 style={{ margin:0, fontSize:15.5, fontWeight:700, color:'var(--fg)', lineHeight:1.3 }}>{p.title}</h3>
+                    {p.desc && <div style={{ fontSize:12, color:'var(--fg-muted)', lineHeight:1.4 }}>{String(p.desc).slice(0, 80)}{p.desc.length > 80 ? '…' : ''}</div>}
+                    {pct > 0 && (
+                      <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+                        <div style={{ height:'100%', width:pct+'%', background:'var(--accent)' }}/>
+                      </div>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); if (openPath) openPath(p.id); else setView('rutas'); }} style={{
+                      marginTop:'auto', padding:'9px 12px', background:'var(--accent)', color:'#fff', border:'none',
+                      borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+                    }}>{pct > 0 ? 'Continuar' : 'Empezar'}</button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* En progreso · pills */}
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {T('mypath.cont')}
+            {_isDemo ? 'Pills donde te quedaste' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -374,11 +439,11 @@ function MyPathView({ openDetail, setView, pathId }) {
         </section>
       )}
 
-      {/* Próximas pills sugeridas */}
+      {/* Próximas pills sugeridas · en demo se renombra a "Tus pills guardadas" */}
       {next.length > 0 && (
         <section>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {T('mypath.next')}
+            {_isDemo ? 'Tus pills guardadas' : T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
