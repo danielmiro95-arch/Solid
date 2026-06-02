@@ -2506,12 +2506,14 @@ function _activateSupabaseData() {
     const u = _uid(); if (!u) { wsCache = []; return; }
     // Lista los workspaces donde el user es member (RLS hace el resto)
     const { data: wss, error } = await sb.from('workspaces')
-      .select('id, name, slug, logo_url, primary_color, owner_id, settings, created_at');
+      .select('id, name, slug, logo_url, primary_color, owner_id, settings, archived_at, created_at');
     if (error) { console.warn('[supa] workspaces', error.message); return; }
     wsCache = (wss || []).map(w => ({
       id: w.id, name: w.name, slug: w.slug, logo: w.logo_url,
       primaryColor: w.primary_color, ownerId: w.owner_id,
-      settings: w.settings || {}, createdAt: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
+      settings: w.settings || {},
+      archivedAt: w.archived_at ? new Date(w.archived_at).getTime() : null,
+      createdAt: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
     }));
     window.dispatchEvent(new Event('workspaces-changed'));
   }
@@ -2526,10 +2528,16 @@ function _activateSupabaseData() {
     }));
   }
   // Overrides síncronos (datos del cache)
-  Workspaces.list = function() { return wsCache.slice(); };
+  Workspaces.list = function(opts) {
+    // list() devuelve solo activos por defecto · pasar { includeArchived:true }
+    // para ver los archivados (útil en el panel admin de workspaces)
+    if (opts && opts.includeArchived) return wsCache.slice();
+    return wsCache.filter(w => !w.archivedAt);
+  };
   Workspaces.listMine = function() {
-    // En Supabase mode, RLS ya filtra · la lista que recibes ES la del usuario
-    return wsCache.map(w => Object.assign({}, w));
+    // En Supabase mode, RLS ya filtra · la lista que recibes ES la del user.
+    // Filtramos archivados para que no aparezcan en el switcher del TopNav.
+    return wsCache.filter(w => !w.archivedAt).map(w => Object.assign({}, w));
   };
   Workspaces.get = function(id) { return wsCache.find(w => w.id === id) || null; };
   Workspaces.membersOf = function(wsId) { return (wsMembersCache[wsId] || []).slice(); };
@@ -2585,10 +2593,17 @@ function _activateSupabaseData() {
     if (patch.primaryColor != null) dbPatch.primary_color = patch.primaryColor;
     if (patch.logo != null)         dbPatch.logo_url = patch.logo;
     if (patch.settings != null)     dbPatch.settings = patch.settings;
+    if (patch.archivedAt !== undefined) dbPatch.archived_at = patch.archivedAt;  // null = unarchive
     const { error } = await sb.from('workspaces').update(dbPatch).eq('id', id);
     if (error) { console.warn('[supa] update ws', error.message); return null; }
     await _loadWorkspaces();
     return Workspaces.get(id);
+  };
+  Workspaces.archive = async function(id) {
+    return Workspaces.update(id, { archivedAt: new Date().toISOString() });
+  };
+  Workspaces.unarchive = async function(id) {
+    return Workspaces.update(id, { archivedAt: null });
   };
   Workspaces.remove = async function(id) {
     const { error } = await sb.from('workspaces').delete().eq('id', id);

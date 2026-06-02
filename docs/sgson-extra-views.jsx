@@ -2860,6 +2860,12 @@ function WorkspacesPanel() {
   const [editColor, setEditColor] = useEV2('#6E50EE');
   const [editLogoPreview, setEditLogoPreview] = useEV2(null);
   const [uploading, setUploading] = useEV2(false);
+  // Settings extendidos · alimentan workspaces.settings jsonb
+  const [editDefaultLang, setEditDefaultLang] = useEV2('es');
+  const [editAllowSignup, setEditAllowSignup] = useEV2(false);
+  const [editAllowedDomain, setEditAllowedDomain] = useEV2('');
+  const [editPathLabel, setEditPathLabel] = useEV2('');
+  const [editPathLabelPlural, setEditPathLabelPlural] = useEV2('');
   // ── Members management (Slice 1C) ──────────────────────────────────────
   const [addEmail, setAddEmail] = useEV2('');
   const [addRole, setAddRole] = useEV2('member');
@@ -2890,13 +2896,31 @@ function WorkspacesPanel() {
     setEditName(w.name || '');
     setEditColor(w.primaryColor || '#6E50EE');
     setEditLogoPreview(w.logo || null);
+    const s = w.settings || {};
+    setEditDefaultLang(s.defaultLang || 'es');
+    setEditAllowSignup(!!s.allowSignup);
+    setEditAllowedDomain(s.allowedDomain || '');
+    setEditPathLabel(s.path_label || '');
+    setEditPathLabelPlural(s.path_label_plural || '');
   };
   const cancelEdit = () => { setEditingId(null); setEditLogoPreview(null); };
   const saveEdit = async () => {
     if (!editingId) return;
+    const w = window.Workspaces.get(editingId);
     const patch = {};
     if (editName.trim()) patch.name = editName.trim();
     patch.primaryColor = editColor;
+    // Settings · merge no destructivo con los que ya hubiera
+    const nextSettings = Object.assign({}, (w && w.settings) || {}, {
+      defaultLang: editDefaultLang,
+      allowSignup: !!editAllowSignup,
+      allowedDomain: editAllowedDomain.trim() || null,
+      path_label: editPathLabel.trim() || null,
+      path_label_plural: editPathLabelPlural.trim() || null,
+    });
+    // Limpia keys null para no llenar el jsonb de basura
+    Object.keys(nextSettings).forEach(k => { if (nextSettings[k] == null || nextSettings[k] === '') delete nextSettings[k]; });
+    patch.settings = nextSettings;
     await Promise.resolve(window.Workspaces.update(editingId, patch));
     if (window.Toast) window.Toast.success(T('workspaces.updated','Workspace actualizado'));
     cancelEdit();
@@ -3043,6 +3067,68 @@ function WorkspacesPanel() {
                       <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onLogoFile} disabled={uploading}
                         style={{ display:'block', marginTop: 4, width:'100%', fontSize: 11, color:'var(--fg-muted)' }}/>
                     </label>
+                    {/* Settings extendidos · idioma · signup · dominio · etiqueta de ruta */}
+                    <div style={{ marginTop: 6, paddingTop: 12, borderTop:'1px dashed var(--line)' }}>
+                      <div style={{ fontSize: 11, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)', marginBottom: 8, fontWeight: 700 }}>
+                        Ajustes del workspace
+                      </div>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10, marginBottom: 10 }}>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)' }}>
+                          Idioma por defecto
+                          <select value={editDefaultLang} onChange={e => setEditDefaultLang(e.target.value)}
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 8px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)' }}>
+                            <option value="es">Español</option>
+                            <option value="en">English</option>
+                            <option value="pt">Português</option>
+                          </select>
+                        </label>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+                          Auto-signup
+                          <div style={{ display:'flex', alignItems:'center', gap: 8, marginTop: 4, padding:'7px 8px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6 }}>
+                            <input type="checkbox" checked={editAllowSignup} onChange={e => setEditAllowSignup(e.target.checked)}/>
+                            <span style={{ fontSize: 11.5, color:'var(--fg)' }}>Permitir auto-registro</span>
+                          </div>
+                        </label>
+                      </div>
+                      <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', marginBottom: 10, display:'block' }}>
+                        Dominio permitido (auto-signup)
+                        <input value={editAllowedDomain} onChange={e => setEditAllowedDomain(e.target.value)}
+                          placeholder="ej. @beonit.com · deja vacío para no restringir"
+                          style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box' }}/>
+                        <span style={{ display:'block', marginTop: 3, fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}>
+                          Solo emails de este dominio podrán crear cuenta sin invitación · solo aplica si auto-signup está activo.
+                        </span>
+                      </label>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 }}>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)' }}>
+                          Etiqueta "Ruta" (singular)
+                          <input value={editPathLabel} onChange={e => setEditPathLabel(e.target.value)}
+                            placeholder="Ruta"
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box' }}/>
+                        </label>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)' }}>
+                          Plural
+                          <input value={editPathLabelPlural} onChange={e => setEditPathLabelPlural(e.target.value)}
+                            placeholder="Rutas"
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box' }}/>
+                        </label>
+                      </div>
+                    </div>
+                    {/* Archive · soft delete · oculta del switcher pero conserva datos */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10 }}>
+                      <button onClick={async () => {
+                          if (!confirm('Archivar workspace "' + (w.name) + '"? Se ocultará del switcher pero los datos se conservan. Puedes restaurarlo después.')) return;
+                          await Promise.resolve(window.Workspaces.archive(w.id));
+                          if (window.Toast) window.Toast.info('Workspace archivado');
+                          cancelEdit();
+                        }}
+                        style={{ padding:'7px 12px', background:'transparent', color:'#E08A00', border:'1px solid #E08A00', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                        📦 Archivar workspace
+                      </button>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+                        Soft delete · reversible desde el panel "Archivados"
+                      </span>
+                    </div>
                     {/* Members management · Slice 1C */}
                     <div style={{ marginTop: 6, paddingTop: 12, borderTop:'1px dashed var(--line)' }}>
                       <div style={{ fontSize: 11, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)', marginBottom: 8, fontWeight: 700 }}>
@@ -3085,6 +3171,7 @@ function WorkspacesPanel() {
                         <select value={addRole} onChange={e => setAddRole(e.target.value)}
                           style={{ padding:'7px 8px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)' }}>
                           <option value="member">member</option>
+                          <option value="manager">manager</option>
                           <option value="admin">admin</option>
                           <option value="owner">owner</option>
                         </select>

@@ -107,8 +107,11 @@ create table if not exists public.workspaces (
   primary_color text default '#6E50EE',
   owner_id uuid references public.profiles(id) on delete set null,
   settings jsonb default '{}'::jsonb,
+  archived_at timestamptz,                       -- soft delete · workspaces archivados se ocultan del switcher pero conservan datos
   created_at timestamptz default now()
 );
+-- Migration in-place para instalaciones existentes
+alter table public.workspaces add column if not exists archived_at timestamptz;
 create index if not exists workspaces_owner_idx on public.workspaces(owner_id);
 
 -- FK current_workspace_id ahora que workspaces existe
