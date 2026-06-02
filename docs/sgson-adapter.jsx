@@ -86,14 +86,16 @@
     const PILLS = (window.PILLS || []).map(mapPill);
     const pillById = (id) => PILLS.find(p => p.id === id);
 
-    // ── DemoMode helpers · disponibles para ROWS, SIDEBAR_LINKS y USER ──
-    // BUG fix · _label/_flag se usan más abajo en ROWS antes de SIDEBAR_LINKS,
-    // y antes vivían sólo dentro del bloque de sidebar · resultado: ReferenceError
-    // en boot. Movidos aquí arriba para que estén en scope desde el principio.
+    // ── DemoMode · DETECCIÓN BRUTA POR URL ──
+    // Sin race conditions, sin helpers, sin esperar a window.DemoMode.
+    // Si la URL contiene "demo" en cualquier sitio (path, query, hash),
+    // ESTAMOS EN DEMO. Punto. Esto resuelve definitivamente el problema
+    // de que sgson-adapter cargue antes que prototype-main.
+    const _isDemoURL = /demo/i.test(window.location.href);
     const _dm = window.DemoMode;
     const _flag = _dm ? _dm.flag : () => undefined;
     const _label = _dm ? _dm.label : (_, f) => f;
-    const _dmActive = _dm && _dm.isActive && _dm.isActive();
+    const _dmActive = _isDemoURL || (_dm && _dm.isActive && _dm.isActive());
 
     // ── ROWS · estructura de filas Home del rediseño ──
     const inProgress      = PILLS.filter(p => p.progress > 0 && p.progress < 1).map(p => p.id).slice(0, 8);
@@ -218,8 +220,9 @@
     // por defecto). Esto cubre el caso en que Julio se crea desde el
     // Dashboard y queda con role='Publish Agent' / team='Repsol' default
     // del schema. Los platform admins ven su nombre real para gestionar.
-    const _demoActiveU = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
-    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'tu workspace';
+    // Usamos _dmActive (URL-based ya calculado arriba) para evitar race.
+    const _demoActiveU = _dmActive;
+    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'Hijos de Rivera';
     const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
     const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
     const finalName = _demoForceName || fullName;
@@ -244,41 +247,30 @@
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 
-    // ── SIDEBAR_LINKS · filtrado por DemoMode flags ──
-    // Sidebar reducido en demo a 3 items: Inicio · Catálogo · Mi Playlist.
-    // El resto se oculta. Channels, Mi Perfil y Certificados se acceden
-    // desde el popup del avatar (TopNav menuItems).
-    //
-    // RUNTIME check · No usamos el snapshot `_dmActive` porque sgson-adapter.jsx
-    // carga en index.html ANTES que prototype-main.jsx (donde se define
-    // DemoMode). El polling _whenDemoReady asegura un re-setup cuando
-    // DemoMode esté listo, y aquí evaluamos demo runtime en cada construcción
-    // del array.
-    const _isDemoNow = () => !!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
-    const _demoNow = _isDemoNow();
-    const _rutaPlural = _demoNow
-      ? _label('catalog_label', 'Catálogo')
-      : _label('path_label_plural', 'Rutas');
-    const _myListLabel = _demoNow
-      ? _label('my_list_label', 'Mi Playlist')
-      : _label('my_list_label', 'Mi ruta');
-    const SIDEBAR_LINKS = [
+    // ── SIDEBAR_LINKS · DOS arrays separados según _dmActive (URL-based) ──
+    // En demo · sólo 3 items: Inicio + Catálogo + Mi Playlist.
+    // Channels / Certificados / Mi Perfil viven en el popup del avatar.
+    // Cero condicionales mezcladas · cero race conditions · cero excusas.
+    const SIDEBAR_LINKS = _dmActive ? [
+      { key:'home',  label:'Inicio',      icon:'home' },
+      { key:'rutas', label:'Catálogo',    icon:'compass' },
+      { key:'path',  label:'Mi Playlist', icon:'route' },
+    ] : [
       { key:'home',      label:'Inicio',     icon:'home' },
-      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null,
-        hidden: _demoNow },
+      { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },
       { key:'browse',    label: _label('catalog_label', 'Catálogo'),   icon:'grid',
-        hidden: _flag('hide_browse_catalog') === true || _demoNow },
-      { key:'rutas',     label: _rutaPlural, icon:'compass' },
-      { key:'path',      label: _myListLabel, icon:'route' },
-      { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _demoNow || _flag('hide_analytics') === true },
-      { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _demoNow || _flag('hide_beonai') === true },
-      { key:'wa',        label:'Channels',   icon:'broadcast', hidden: _demoNow },
-      { key:'resources', label:'Recursos',   icon:'book',      hidden: _demoNow || _flag('hide_resources') === true },
-      { key:'saved',     label:'Guardado',   icon:'bookmark',  hidden: _demoNow },
-      { key:'profile',   label:'Mi perfil',  icon:'user',      hidden: _demoNow },
-      { key:'settings',  label:'Ajustes',    icon:'gear',      hidden: _demoNow },
+        hidden: _flag('hide_browse_catalog') === true },
+      { key:'rutas',     label: _label('path_label_plural', 'Rutas'),  icon:'compass' },
+      { key:'path',      label: _label('my_list_label', 'Mi ruta'),    icon:'route' },
+      { key:'dashboard', label:'Analytics',  icon:'chart',     hidden: _flag('hide_analytics') === true },
+      { key:'coach',     label:'BeonAI',     icon:'spark',     hidden: _flag('hide_beonai') === true },
+      { key:'wa',        label:'Channels',   icon:'broadcast' },
+      { key:'resources', label:'Recursos',   icon:'book',      hidden: _flag('hide_resources') === true },
+      { key:'saved',     label:'Guardado',   icon:'bookmark' },
+      { key:'profile',   label:'Mi perfil',  icon:'user' },
+      { key:'settings',  label:'Ajustes',    icon:'gear' },
       { key:'admin',     label:'Admin',      icon:'shield', admin: true,
-        hidden: _demoNow || _flag('simplified_profile') === true },
+        hidden: _flag('simplified_profile') === true },
     ].filter(x => !x.hidden);
 
     window.SGS_DATA = { CATS, PILLS, LEARNING_PATHS, ROWS, USER, SIDEBAR_LINKS, pillById };
