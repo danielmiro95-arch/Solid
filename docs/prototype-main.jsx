@@ -2996,6 +2996,10 @@ function _activateSupabaseData() {
           color: undefined,
           bg: undefined,
           icon: '🎓',
+          // BUG fix · sin esto el adapter perdía la metadata (poster_url,
+          // cert_url, accent) y todos los cursos terminaban con el mismo
+          // SVG default porque no había hex distinto.
+          _meta: p._meta || {},
         };
       });
     }
