@@ -1209,7 +1209,7 @@ window.Workspaces = Workspaces;
     my_list_label: 'Mi Playlist',
     paths_recommended_label: 'Cursos recomendados para ti',
     paths_recommended_sub: 'según tu perfil',
-    new_row_title: 'Recién publicado',
+    new_row_title: 'Novedades',
     new_row_sub: '',
     channels_action_label: 'Activar',
     level_badges: ['Básico','Intermedio','Experto'],
