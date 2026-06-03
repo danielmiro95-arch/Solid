@@ -702,12 +702,55 @@ function HomeHero({ onPlay, onMore }) {
         </div>
 
         <div className="hero-actions">
-          <button className="btn btn-primary" onClick={() => onPlay(p)}>
-            <Ico name="play" size={16}/> {T('hero.play')}
-          </button>
+          {(() => {
+            const _isDemoURL = /demo/i.test(window.location.href);
+            const dm = window.DemoMode;
+            const demoActive = _isDemoURL || (dm && dm.isActive && dm.isActive());
+            const isAssigned = p && p.progress > 0;
+            // En demo · botón primario "Inscríbete" si la pill no está asignada,
+            // "Reproducir" si ya está en curso.
+            if (demoActive && !isAssigned) {
+              return (
+                <button className="btn btn-primary" onClick={() => {
+                  if (window.Toast) window.Toast.success('Te has inscrito al curso');
+                  onPlay(p);
+                }}>
+                  <Ico name="plus" size={16}/> Inscríbete
+                </button>
+              );
+            }
+            return (
+              <button className="btn btn-primary" onClick={() => onPlay(p)}>
+                <Ico name="play" size={16}/> {T('hero.play')}
+              </button>
+            );
+          })()}
           <button className="btn btn-secondary" onClick={() => onMore(p)}>
             <Ico name="info" size={16}/> {T('hero.more')}
           </button>
+          {/* Favorito en hero (demo) · idéntica lógica que en cards */}
+          {(() => {
+            const _isDemoURL = /demo/i.test(window.location.href);
+            const dm = window.DemoMode;
+            const demoActive = _isDemoURL || (dm && dm.isActive && dm.isActive());
+            if (!demoActive) return null;
+            const isFav = window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id);
+            return (
+              <button
+                className="btn btn-icon btn-ghost"
+                aria-label={isFav ? 'Quitar favorito' : 'Añadir a favoritos'}
+                title={isFav ? 'Quitar favorito' : 'Añadir a favoritos'}
+                onClick={() => {
+                  if (window.Bookmarks) {
+                    const isNow = window.Bookmarks.toggle(p.id);
+                    if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a favoritos' : 'Quitado de favoritos', { icon: isNow ? '⭐' : '○' });
+                  }
+                }}
+                style={isFav ? { background:'var(--accent)', color:'#fff', borderColor:'var(--accent)' } : undefined}>
+                <Ico name={isFav ? 'check' : 'bookmark'} size={16}/>
+              </button>
+            );
+          })()}
           <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}>
             <Ico name={muted ? 'mute' : 'volume'} size={16}/>
           </button>
@@ -1106,8 +1149,7 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
-        {/* En demo · CTA "Inscríbete a talleres" como sección simple */}
-        {demoActive && <WorkshopsCTASection/>}
+        {/* WorkshopsCTA · ocultado en demo a petición del cliente */}
       </div>
       <footer className="footer-strip">
         <div className="cobranding">

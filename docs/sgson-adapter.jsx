@@ -115,8 +115,10 @@
       const T = window.I18n ? window.I18n.t.bind(window.I18n) : (k, f) => f;
       ROWS.push({
         key: 'continue',
-        title: T('home.continue.title','Continúa, {name}').replace('{name}', firstName),
-        sub:   T('home.continue.sub','donde lo dejaste'),
+        title: _dmActive
+                  ? ('Sigue formándote, ' + firstName)
+                  : T('home.continue.title','Continúa, {name}').replace('{name}', firstName),
+        sub:   _dmActive ? '' : T('home.continue.sub','donde lo dejaste'),
         pillIds: inProgress, showProgress: true,
       });
     }
@@ -245,7 +247,7 @@
       name:     finalName,
       initials: finalInitials,
       role:     (_demoActiveU && !_isPlatformAdmin)
-                  ? 'Learning Specialist'
+                  ? 'Learning Manager'
                   : ((profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent'),
       team:     (_demoActiveU && !_isPlatformAdmin)
                   ? _wsNameClean

@@ -378,7 +378,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills · continuar viendo' : T('mypath.cont')}
+            {_isDemo ? 'Pills favoritas' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -406,7 +406,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {next.length > 0 && (
         <section style={{ marginBottom: _isDemo ? 40 : 0 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills inscritos' : T('mypath.next')}
+            {_isDemo ? 'Pills inscritas' : T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -438,7 +438,7 @@ function MyPathView({ openDetail, setView, pathId }) {
         return (
           <section>
             <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
-              Cursos inscritos
+              Cursos favoritos
             </h2>
             {coursesToShow.length === 0 ? (
               <div style={{ padding:40, textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:14 }}>
@@ -504,13 +504,13 @@ function ChannelsView() {
     return () => window.removeEventListener('channels-changed', onChange);
   }, []);
 
-  // En modo demo · sólo Microsoft Teams + Email (WhatsApp descartada en
-  // reunión por ser config de prueba, junto al "Límite diario").
+  // En demo · WhatsApp + Teams + Email visibles (el user pidió que aparezca
+  // WhatsApp ya que es el canal natural de Hijos de Rivera).
   const _dm = window.DemoMode;
   const _demoActive = _dm && _dm.isActive && _dm.isActive();
   const _fullCatalog = (window.Channels && window.Channels.CATALOG) || [];
   const catalog = _demoActive
-    ? _fullCatalog.filter(c => ['teams','email'].indexOf(c.id) !== -1)
+    ? _fullCatalog.filter(c => ['whatsapp','teams','email'].indexOf(c.id) !== -1)
     : _fullCatalog;
   const primaryId = chState.primary || null;
   const primaryDef = primaryId ? catalog.find(c => c.id === primaryId) : null;
@@ -2089,10 +2089,146 @@ function ProfileView({ setView }) {
         </div>
       )}
 
-      <MyCertificatesSection/>
+      {/* En demo · ProfileView ya no muestra MyCertificatesSection (esa va
+          al popup del avatar via CertificatesView). En su lugar mostramos
+          datos de contacto editables + Canales + Ajustes básicos integrados.
+          El cliente pidió que el perfil no fuera solo certificados. */}
+      {(window.DemoMode && window.DemoMode.flag('simplified_profile') === true)
+        ? <ProfileDemoContent USER={USER}/>
+        : <MyCertificatesSection/>}
     </PageShell>
   );
 }
+
+/* ============================================================
+   ProfileDemoContent · datos + canales + ajustes integrados (demo)
+   Solo aparece en demo · sustituye a MyCertificatesSection en
+   ProfileView. Cubre la queja del cliente "el perfil solo tiene
+   certificados, hay que incluir datos de contacto, ajustes y canales".
+   ============================================================ */
+function ProfileDemoContent({ USER }) {
+  const [phone, setPhone] = useEV2('+34 666 000 000');
+  const [lang, setLang]   = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
+  const [pushOn, setPushOn] = useEV2(true);
+  const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
+  useEE2(() => {
+    const onChange = (e) => setChState(e.detail || (window.Channels ? window.Channels.get() : {}));
+    window.addEventListener('channels-changed', onChange);
+    return () => window.removeEventListener('channels-changed', onChange);
+  }, []);
+  const _fullCatalog = (window.Channels && window.Channels.CATALOG) || [];
+  const catalog = _fullCatalog.filter(c => ['whatsapp','teams','email'].indexOf(c.id) !== -1);
+
+  const fieldStyle = {
+    padding:'10px 12px', fontSize:14, background:'var(--bg-elevated)',
+    border:'1px solid var(--line)', borderRadius:8, color:'var(--fg)', width:'100%',
+  };
+  const labelStyle = {
+    fontFamily:'var(--font-mono, monospace)', fontSize:10, color:'var(--fg-muted)',
+    letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700, marginBottom:6,
+  };
+  const cardStyle = {
+    padding:24, background:'var(--bg-surface)', border:'1px solid var(--line)',
+    borderRadius:14, marginBottom:20,
+  };
+  const sectionTitle = { fontSize:16, fontWeight:700, color:'var(--fg)', margin:'0 0 4px' };
+  const sectionSub   = { fontSize:13, color:'var(--fg-muted)', margin:'0 0 18px' };
+
+  return (
+    <div style={{ marginTop:24 }}>
+      {/* DATOS DE CONTACTO */}
+      <div style={cardStyle}>
+        <h3 style={sectionTitle}>Datos de contacto</h3>
+        <p style={sectionSub}>Información del perfil de aprendizaje · editable</p>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <label><div style={labelStyle}>Nombre completo</div>
+            <input style={fieldStyle} defaultValue={USER.name || ''} readOnly/></label>
+          <label><div style={labelStyle}>Email</div>
+            <input style={fieldStyle} defaultValue={USER.email || ''} readOnly/></label>
+          <label><div style={labelStyle}>Teléfono</div>
+            <input style={fieldStyle} value={phone} onChange={e => setPhone(e.target.value)}/></label>
+          <label><div style={labelStyle}>Cargo</div>
+            <input style={fieldStyle} defaultValue={USER.role || 'Learning Manager'} readOnly/></label>
+          <label style={{ gridColumn:'1 / -1' }}><div style={labelStyle}>Workspace</div>
+            <input style={fieldStyle} defaultValue={USER.team || 'Hijos de Rivera'} readOnly/></label>
+        </div>
+      </div>
+
+      {/* CANALES */}
+      <div style={cardStyle}>
+        <h3 style={sectionTitle}>Canales de notificación</h3>
+        <p style={sectionSub}>Recibe las pildoras del día, recordatorios y novedades por el canal que prefieras.</p>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:12 }}>
+          {catalog.map(c => {
+            const state = chState[c.id] || {};
+            const connected = !!state.connected;
+            return (
+              <div key={c.id} style={{
+                padding:14, background: connected ? `${c.color}10` : 'var(--bg-elevated)',
+                border:`1.5px solid ${connected ? c.color : 'var(--line)'}`, borderRadius:12,
+                display:'flex', flexDirection:'column', gap:8,
+              }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{
+                    width:36, height:36, borderRadius:10, background:c.color, color:'#fff',
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
+                  }}>{c.icon}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, fontWeight:700 }}>{c.label}</div>
+                    <div style={{ fontSize:11, color:'var(--fg-muted)' }}>{connected ? 'Activado' : 'Inactivo'}</div>
+                  </div>
+                </div>
+                <button onClick={() => {
+                  if (!window.Channels) return;
+                  if (connected) window.Channels.disconnect(c.id);
+                  else window.Channels.connect(c.id);
+                }} style={{
+                  padding:'8px 10px', background: connected ? 'transparent' : c.color,
+                  color: connected ? c.color : '#fff', border:`1px solid ${c.color}`,
+                  borderRadius:8, cursor:'pointer', fontWeight:700, fontSize:12,
+                }}>{connected ? 'Desactivar' : 'Activar'}</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* AJUSTES BÁSICOS */}
+      <div style={cardStyle}>
+        <h3 style={sectionTitle}>Ajustes</h3>
+        <p style={sectionSub}>Preferencias del perfil · idioma y notificaciones push.</p>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <label><div style={labelStyle}>Idioma</div>
+            <select value={lang} onChange={e => {
+              setLang(e.target.value);
+              if (window.Settings && window.Settings.update) window.Settings.update({ language: e.target.value });
+            }} style={fieldStyle}>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="pt">Português</option>
+            </select></label>
+          <label><div style={labelStyle}>Notificaciones push</div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0' }}>
+              <button onClick={() => setPushOn(v => !v)} style={{
+                width:48, height:26, borderRadius:13, padding:0,
+                background: pushOn ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
+                border:'none', cursor:'pointer', position:'relative', transition:'background .2s',
+              }}>
+                <span style={{
+                  position:'absolute', top:3, left: pushOn ? 25 : 3,
+                  width:20, height:20, borderRadius:'50%', background:'#fff',
+                  transition:'left .2s',
+                }}/>
+              </button>
+              <span style={{ fontSize:13, color:'var(--fg-muted)' }}>{pushOn ? 'Activadas' : 'Desactivadas'}</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+window.ProfileDemoContent = ProfileDemoContent;
 
 /* ============================================================
    MyCertificatesSection · lista de certs del user en su Profile
@@ -2337,6 +2473,8 @@ function CertificatesView({ setView }) {
   const D = window.SGS_DATA;
   const PATHS = (D && D.LEARNING_PATHS) || [];
   const USER = (D && D.USER) || {};
+  // Modal de preview · evita window.open que el browser bloquea como popup
+  const [previewSrc, setPreviewSrc] = useEV2(null);
 
   // Re-render cuando cambian certificates en window.Certificates
   const [, setTick] = useEV2(0);
@@ -2427,7 +2565,7 @@ function CertificatesView({ setView }) {
                     const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
                     if (window.certificateSVG) {
                       const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, 'CERT-2026-' + String((p.id || '').replace(/\D/g,'')).padStart(4,'0'), new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'}));
-                      window.open(dataUrl, '_blank', 'noopener');
+                      setPreviewSrc(dataUrl);  /* abre modal inline · no popup */
                     }
                   }} style={{
                     padding:'8px 12px', background:'transparent', color:'var(--fg)',
@@ -2479,6 +2617,44 @@ function CertificatesView({ setView }) {
         }}>
           <div style={{ fontSize:42, marginBottom:8 }}>🏆</div>
           <div style={{ fontSize:15, fontWeight:700, color:'var(--fg)' }}>Aún no hay cursos en el catálogo</div>
+        </div>
+      )}
+
+      {/* Modal de preview del certificado · render inline, no popup */}
+      {previewSrc && (
+        <div onClick={() => setPreviewSrc(null)} style={{
+          position:'fixed', inset:0, zIndex:1500, background:'rgba(0,0,0,0.85)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+          backdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            position:'relative', maxWidth:'min(96vw, 1240px)', width:'100%',
+            background:'#FFFFFF', borderRadius:8, overflow:'hidden',
+            boxShadow:'0 30px 80px rgba(0,0,0,0.6)',
+          }}>
+            <button onClick={() => setPreviewSrc(null)} aria-label="Cerrar" style={{
+              position:'absolute', top:12, right:12, width:36, height:36,
+              borderRadius:'50%', background:'rgba(0,0,0,0.06)', border:'none',
+              cursor:'pointer', fontSize:16, color:'#0A0A0A', display:'flex',
+              alignItems:'center', justifyContent:'center', zIndex:2,
+            }}>×</button>
+            <img src={previewSrc} alt="Certificado" style={{
+              display:'block', width:'100%', height:'auto',
+            }}/>
+            <div style={{
+              padding:'12px 16px', display:'flex', justifyContent:'space-between',
+              alignItems:'center', borderTop:'1px solid rgba(0,0,0,0.08)',
+            }}>
+              <span style={{ fontSize:11.5, color:'#6B6B6B', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.04em' }}>
+                Vista previa · disponible al completar el curso
+              </span>
+              <a href={previewSrc} download="certificado.svg" style={{
+                padding:'8px 14px', background:'#0072BE', color:'#FFFFFF',
+                border:'none', borderRadius:8, cursor:'pointer', textDecoration:'none',
+                fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12,
+              }}>↓ Descargar SVG</a>
+            </div>
+          </div>
         </div>
       )}
     </PageShell>
