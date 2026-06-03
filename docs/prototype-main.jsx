@@ -2301,6 +2301,26 @@ function _activateSupabaseData() {
     const { data, error } = await q;
     if (error) { console.warn('[supa] bookmarks', error.message); return; }
     bmCache = (data || []).map(r => r.pill_id);
+
+    // En demo · si Julio no tiene bookmarks aún, sembramos algunos ejemplos
+    // para que la sección Mi Playlist no salga vacía durante la demo.
+    // Sembrado en memoria (no se persiste) · transparente para el cliente.
+    try {
+      const _isDemoURL = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+      if (_isDemoURL && bmCache.length === 0) {
+        const allPills = (window.PILLS || []).filter(p => p && p.id);
+        // Cogemos las 3 primeras Tendencias + las 3 primeras pills de otros
+        // cursos para que la lista tenga variedad.
+        const tend = allPills.filter(p => /tendencias?/i.test(String(p.category||'')) || /^tendencia-/i.test(String(p.id||'')));
+        const otros = allPills.filter(p => !tend.find(t => t.id === p.id));
+        const sample = tend.slice(0, 3).concat(otros.slice(0, 3));
+        bmCache = sample.map(p => p.id);
+        // También bookmarkamos un par de cursos para "Cursos favoritos"
+        const paths = (window.LEARNING_PATHS || window.PATHS || []).filter(x => x && x.id);
+        bmCache = bmCache.concat(paths.slice(0, 2).map(p => p.id));
+      }
+    } catch (e) { /* tolerante */ }
+
     window.dispatchEvent(new Event('bookmarks-changed'));
   }
   Bookmarks.get = function() { return bmCache.slice(); };

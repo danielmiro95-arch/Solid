@@ -686,7 +686,11 @@ function HomeHero({ onPlay, onMore }) {
         </div>
 
         <h1 className="hero-title">{p.title}</h1>
-        {p.one && p.one !== p.title && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="hero-quote">"{p.one}."</p>}
+        {/* En demo · si la pill tiene pill.one (intro text en DB), lo mostramos
+            como hero-quote. Cubre el caso del cliente "texto introductorio
+            que te puse en el WhatsApp" · solo hace falta actualizar
+            pills.one_liner en Supabase. */}
+        {p.one && p.one !== p.title && <p className="hero-quote">"{p.one}."</p>}
 
         <div className="hero-meta">
           <span className="tag">{(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? 'Nivel ' + p.level : p.level}</span>
