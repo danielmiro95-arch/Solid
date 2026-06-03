@@ -2882,10 +2882,20 @@ function _activateSupabaseData() {
     // que veía el usuario: switchear a "Hijos de Ribera" mostraba los pills
     // de Repsol porque el early return dejaba window.PILLS sin tocar.
     if (!wsId) { _resetWorkspaceScopedGlobals(); return; }
-    const { data, error } = await sb.from('pills')
-      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position, path_id')
+    // Intento principal · incluye metadata jsonb (descripciones largas
+     // para "Más información"). Si la columna no existe en la instalación,
+     // reintentamos sin ella para no romper boot.
+    let { data, error } = await sb.from('pills')
+      .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position, path_id, metadata')
       .eq('workspace_id', wsId)
       .order('position', { ascending: true });
+    if (error && /metadata/.test(error.message || '')) {
+      const r2 = await sb.from('pills')
+        .select('pill_number, slug, title, one_liner, teacher, duration, tone, format, level, rating, enrolled, category, yt, mp4, poster, featured, new_badge, position, path_id')
+        .eq('workspace_id', wsId)
+        .order('position', { ascending: true });
+      data = r2.data; error = r2.error;
+    }
     if (error) {
       console.warn('[supa] pills', error.message);
       // Errores típicos: tabla pills no existe, RLS deny, red caída. En
@@ -2915,6 +2925,8 @@ function _activateSupabaseData() {
       featured: !!p.featured,
       newBadge: !!p.new_badge,
       pathId: p.path_id,                  // uuid de la competencia/ruta a la que pertenece · usado para cruzar pills↔paths en el adapter
+      description: (p.metadata && (p.metadata.description || p.metadata.more_info)) || null,
+      _meta: p.metadata || {},
     }));
     window.PILLS = mapped;
     window.dispatchEvent(new Event('pills-changed'));

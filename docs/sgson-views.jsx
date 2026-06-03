@@ -168,6 +168,19 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
               const hideDur = dm && dm.flag && dm.flag('hide_durations') === true;
               const unitWord = demoActive ? pathSingular.toLowerCase() : 'pill';
               const durTxt = hideDur ? '' : ` de ${pill.duration}`;
+              // Si la pill tiene description en pills.metadata.description
+              // (texto largo subido por el cliente) lo mostramos tal cual
+              // en lugar de la frase plantilla. Soporta \n para párrafos.
+              if (pill.description) {
+                const paras = String(pill.description).split(/\n\s*\n/);
+                return (
+                  <div>
+                    {paras.map((para, i) => (
+                      <p key={i} style={{ marginTop: i === 0 ? 0 : 14 }}>{para}</p>
+                    ))}
+                  </div>
+                );
+              }
               return (
                 <p>
                   {pill.one}. En este {unitWord}{durTxt} vas a dominar el flujo completo:
@@ -176,9 +189,11 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
                 </p>
               );
             })()}
-            <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>
-              Aplica directamente en tu trabajo. Materiales descargables incluidos.
-            </p>
+            {!pill.description && (
+              <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>
+                Aplica directamente en tu trabajo. Materiales descargables incluidos.
+              </p>
+            )}
           </div>
           {/* En demo · aside completo oculto. Spec: "quitar Profesor,
               Tendencias y Hashtags". */}
