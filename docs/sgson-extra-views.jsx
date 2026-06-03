@@ -234,7 +234,7 @@ function RutasView({ setView, openPath }) {
                       e.stopPropagation();
                       if (window.Bookmarks) {
                         const isNow = window.Bookmarks.toggle(p.id);
-                        if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a Mis Cursos' : 'Curso quitado de Mis Cursos', { icon: isNow ? '⭐' : '○' });
+                        if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a Mi Lista' : 'Curso quitado de Mi Lista', { icon: isNow ? '⭐' : '○' });
                       }
                     }}
                     title={saved ? 'Quitar de favoritos' : 'Añadir a favoritos'}
@@ -301,9 +301,24 @@ function MyPathView({ openDetail, setView, pathId }) {
     PILLS = ALL_PILLS;
   }
 
-  const inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
+  let inProgress = PILLS.filter(p => p.progress > 0 && p.progress < 1);
   const completed = PILLS.filter(p => p.progress >= 1);
-  const next = PILLS.filter(p => p.progress === 0).slice(0, 6);
+  let next = PILLS.filter(p => p.progress === 0).slice(0, 6);
+
+  // En demo · si las secciones quedan vacías (Julio nuevo sin progreso
+  // ni bookmarks), sembramos pills de muestra para que se vea contenido.
+  // Sigue formándote → 2 pills de Tendencias como si estuvieran en curso.
+  // Pills inscritas    → 4 pills de otras categorías.
+  if (_isDemo && !path) {
+    if (inProgress.length === 0) {
+      const tendencias = ALL_PILLS.filter(p => /tendencias?/i.test(String(p.category || '')) || /^tendencia-/i.test(String(p.id || ''))).slice(0, 2);
+      inProgress = tendencias.map(p => Object.assign({}, p, { progress: 0.35 }));
+    }
+    if (next.length === 0) {
+      const tendIds = new Set(inProgress.map(x => x.id));
+      next = ALL_PILLS.filter(p => !tendIds.has(p.id)).slice(0, 4);
+    }
+  }
   const totalProgress = PILLS.length > 0 ? Math.round((completed.length / PILLS.length) * 100) : 0;
 
   // Nombres robustos del path (adapter expone `title`/`label`, legacy expone `label`/`desc`/`badge`).
@@ -378,7 +393,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills favoritas' : T('mypath.cont')}
+            {_isDemo ? 'Sigue formándote' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -434,16 +449,23 @@ function MyPathView({ openDetail, setView, pathId }) {
       {_isDemo && !path && (() => {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
-        const coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        let coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        // Siembra de muestra · si Julio no tiene cursos en lista, mostramos
+        // 3 paths (excluyendo Tendencias) como si estuviera inscrito.
+        if (coursesToShow.length === 0) {
+          coursesToShow = PATHS
+            .filter(p => !/tendencias?/i.test(String(p.slug || '')))
+            .slice(0, 3);
+        }
         return (
           <section>
             <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
-              Cursos favoritos
+              Cursos a los que estás inscrito
             </h2>
             {coursesToShow.length === 0 ? (
               <div style={{ padding:40, textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:14 }}>
                 <div style={{ fontSize:32, marginBottom:8, opacity:0.5 }}>📚</div>
-                <div style={{ fontSize:14, color:'var(--fg-muted)' }}>Aún no tienes cursos en tu Mi Playlist. Inscríbete a uno desde el Catálogo.</div>
+                <div style={{ fontSize:14, color:'var(--fg-muted)' }}>Aún no tienes cursos en Mi Lista. Inscríbete a uno desde el Catálogo.</div>
               </div>
             ) : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>

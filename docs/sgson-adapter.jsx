@@ -265,7 +265,7 @@
     const SIDEBAR_LINKS = _dmActive ? [
       { key:'home',  label:'Inicio',      icon:'home' },
       { key:'rutas', label:'Catálogo',    icon:'compass' },
-      { key:'path',  label:'Mi Playlist', icon:'route' },
+      { key:'path',  label:'Mi Lista', icon:'route' },
     ] : [
       { key:'home',      label:'Inicio',     icon:'home' },
       { key:'inbox',     label:'Bandeja',    icon:'inbox', count: (window.Inbox && window.Inbox.unreadCount()) || null },

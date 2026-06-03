@@ -344,7 +344,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const items = _isDemoURL ? [
     { k:'home',  label:'Inicio' },
     { k:'rutas', label:'Catálogo' },
-    { k:'path',  label:'Mi Playlist' },
+    { k:'path',  label:'Mi Lista' },
   ] : [
     { k:'home',      label:T('nav.home') },
     { k:'browse',    label:T('nav.browse') },
