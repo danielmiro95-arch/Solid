@@ -177,19 +177,14 @@ function RutasView({ setView, openPath }) {
           };
           return (
           <article key={p.id} className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
-            {/* Cover · si design subió poster_url lo usamos; si no, gradient
-                de categoría. p.accentHex (del manual beonit) tinta el badge.
-                Locked → grayscale + brightness bajada para mantener visible. */}
-            {p.posterUrl ? (
-              <img src={p.posterUrl} alt="" loading="lazy"
-                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
-                         filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
-                onError={e => { e.currentTarget.style.display='none'; }}/>
-            ) : (
-              <div className={`card-cover ${p.accent || 'cat-publish'}`}
-                style={Object.assign({}, isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : {},
-                                     p.accentHex ? { background: `linear-gradient(135deg, ${p.accentHex}, ${p.accentHex}88)` } : {})}/>
-            )}
+            {/* Cover · posterUrl si design lo subió; si no, SVG generado
+                inline con accentHex + título + nivel + watermark BEONIT. */}
+            <img
+              src={p.posterUrl || (window.coursePosterSVG && window.coursePosterSVG(p.title, p.accentHex, levelTxt))}
+              alt={p.title || ''} loading="lazy"
+              style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+                       filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
+              onError={e => { e.currentTarget.style.display='none'; }}/>
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>
               {pathLabelSingular} · {p.completedCount || 0}/{p.totalCount || p.pills} pills{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
@@ -2418,27 +2413,53 @@ function CertificatesView({ setView }) {
               </div>
 
               {isLocked ? (
-                <div style={{
-                  marginTop:'auto', padding:'10px 12px', background:'rgba(13,17,23,0.04)',
-                  border:'1px dashed var(--line)', borderRadius:8, fontSize:12, color:'#64748B',
-                }}>
-                  🔒 Completa el curso para desbloquear el certificado
+                <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                  <div style={{
+                    padding:'8px 10px', background:'rgba(255,255,255,0.06)',
+                    border:'1px dashed rgba(255,255,255,0.15)', borderRadius:8, fontSize:11.5, color:'var(--fg-muted)',
+                  }}>
+                    🔒 Disponible al completar el curso
+                  </div>
+                  {/* Preview · permite descargar el SVG del cert aunque esté
+                      "locked" · útil para el demo y para que el user vea
+                      cómo será su certificado al terminar. */}
+                  <button onClick={() => {
+                    const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
+                    if (window.certificateSVG) {
+                      const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, 'CERT-2026-' + String((p.id || '').replace(/\D/g,'')).padStart(4,'0'), new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'}));
+                      window.open(dataUrl, '_blank', 'noopener');
+                    }
+                  }} style={{
+                    padding:'8px 12px', background:'transparent', color:'var(--fg)',
+                    border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+                    fontFamily:'var(--font-sans)', fontWeight:600, fontSize:12,
+                  }}>👁 Preview certificado</button>
                 </div>
               ) : (
                 <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:6 }}>
                   <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:11, color:'var(--fg-muted)', letterSpacing:'0.04em' }}>
                     {cert.cert_number || '—'} · {fmtDate(cert.completed_at)}
                   </div>
-                  {/* Descarga · si el path tiene certUrl (design subió PNG a
-                      Storage) abre ese link directo en pestaña nueva. Si no,
-                      usa el flujo legacy de window.Certificates.download que
-                      genera PDF en cliente. */}
+                  {/* Descarga · prioridad: certUrl (design en Storage) →
+                      SVG generado inline con el accent + título + nombre
+                      del user → Certificates.download legacy como último
+                      recurso. El SVG se descarga como .svg y se ve perfecto
+                      al abrir/imprimir desde cualquier visor. */}
                   <button onClick={() => {
                     if (p.certUrl) {
                       window.open(p.certUrl, '_blank', 'noopener');
-                    } else if (window.Certificates && window.Certificates.download) {
-                      window.Certificates.download(cert);
+                      return;
                     }
+                    if (window.certificateSVG) {
+                      const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
+                      const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, cert && cert.cert_number, cert && cert.completed_at);
+                      const a = document.createElement('a');
+                      a.href = dataUrl;
+                      a.download = 'certificado-' + (p.id || 'curso') + '.svg';
+                      document.body.appendChild(a); a.click(); a.remove();
+                      return;
+                    }
+                    if (window.Certificates && window.Certificates.download) window.Certificates.download(cert);
                   }} style={{
                     padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
                     cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
