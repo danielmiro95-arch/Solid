@@ -86,6 +86,28 @@
     const PILLS = (window.PILLS || []).map(mapPill);
     const pillById = (id) => PILLS.find(p => p.id === id);
 
+    // Fallback de poster · si una pill no tiene su propio poster, hereda
+    // el del curso padre (workspace_content.metadata.poster_url). Así con
+    // 12 imágenes (1 por curso) cubrimos las ~279 pills sin que ninguna
+    // se quede con SVG placeholder en demo.
+    const _pathPosterByUuid = {};
+    const _pathAccentByUuid = {};
+    (window.LEARNING_PATHS || []).forEach(p => {
+      const meta = p._meta || {};
+      if (p._id) {
+        if (meta.poster_url) _pathPosterByUuid[p._id] = meta.poster_url;
+        if (meta.accent)     _pathAccentByUuid[p._id] = meta.accent;
+      }
+    });
+    PILLS.forEach(p => {
+      if (!p.poster && p.pathId && _pathPosterByUuid[p.pathId]) {
+        p.poster = _pathPosterByUuid[p.pathId];
+      }
+      if (!p.accentHex && p.pathId && _pathAccentByUuid[p.pathId]) {
+        p.accentHex = _pathAccentByUuid[p.pathId];
+      }
+    });
+
     // ── DemoMode · DETECCIÓN BRUTA POR URL ──
     // Sin race conditions, sin helpers, sin esperar a window.DemoMode.
     // Si la URL contiene "demo" en cualquier sitio (path, query, hash),
