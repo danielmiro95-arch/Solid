@@ -110,7 +110,16 @@ function Player({ back, item }) {
   const [speed, setSpeed] = useS2(1);
   const [muted, setMuted] = useS2(false);
   const [showSubs, setShowSubs] = useS2(true);
-  const it = item || PILLS.find(p => p.yt) || PILLS[0];
+  // Resolución defensiva · item del prop, si no fallback a una pill con video
+  // de window.PILLS, si no la primera pill, si no null. Cubre el caso del
+  // boot con view='player' restaurado de localStorage sin item asociado.
+  const _allPills = (typeof window !== 'undefined' && window.PILLS) || [];
+  const it = item || _allPills.find(p => p && p.yt) || _allPills.find(p => p && p.mp4) || _allPills[0];
+  if (!it) {
+    // Sin pill que mostrar · vuelve al home en vez de petar
+    React.useEffect(() => { if (back) back(); }, []);
+    return null;
+  }
   const mp4Url = (it && it.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(it.mp4) : null;
   const hasVideo = !!(it.yt || mp4Url);
 
