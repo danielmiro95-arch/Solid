@@ -278,6 +278,21 @@ function RutasView({ setView, openPath }) {
 function MyPathView({ openDetail, setView, pathId }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const [showExam, setShowExam] = useEV2(false);
+  // Re-render cuando SGS_DATA o bookmarks cambien (cubre boot async)
+  const [, setRefreshTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setRefreshTick(t => t + 1);
+    window.addEventListener('sgs-data-ready', r);
+    window.addEventListener('bookmarks-changed', r);
+    window.addEventListener('pills-changed', r);
+    window.addEventListener('paths-changed', r);
+    return () => {
+      window.removeEventListener('sgs-data-ready', r);
+      window.removeEventListener('bookmarks-changed', r);
+      window.removeEventListener('pills-changed', r);
+      window.removeEventListener('paths-changed', r);
+    };
+  }, []);
   const D = window.SGS_DATA;
   const ALL_PILLS = (D && D.PILLS) || [];
   const PATHS = (D && D.LEARNING_PATHS) || [];
@@ -286,7 +301,9 @@ function MyPathView({ openDetail, setView, pathId }) {
   // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
   const path = pathId ? PATHS.find(p => p.id === pathId) : null;
   const pathPillIds = path && Array.isArray(path.pillIds) ? path.pillIds : (path && Array.isArray(path.pills) ? path.pills : null);
-  const _isDemo = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
+  // _isDemo · URL + DemoMode runtime (URL gana siempre)
+  const _isDemoURL = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+  const _isDemo = _isDemoURL || (window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
   // En demo · "Mi Lista" agrega asignados + favoritos + inscritos (per spec).
   // Filtramos a las pills que tienen progreso > 0 (asignadas/en curso) o
   // están bookmarkadas (favoritas/inscritas). Bookmarks es nuestro modelo
@@ -311,12 +328,16 @@ function MyPathView({ openDetail, setView, pathId }) {
   // Pills inscritas    → 4 pills de otras categorías.
   if (_isDemo && !path) {
     if (inProgress.length === 0) {
-      const tendencias = ALL_PILLS.filter(p => /tendencias?/i.test(String(p.category || '')) || /^tendencia-/i.test(String(p.id || ''))).slice(0, 2);
-      inProgress = tendencias.map(p => Object.assign({}, p, { progress: 0.35 }));
+      // Sección "Sigue formándote": Tendencias primero, si no hay, las
+      // 2 primeras pills cualquiera. progress=0.35 simulado.
+      let sample = ALL_PILLS.filter(p => /tendencias?/i.test(String(p.category || '')) || /^tendencia-/i.test(String(p.id || ''))).slice(0, 2);
+      if (sample.length === 0) sample = ALL_PILLS.slice(0, 2);
+      inProgress = sample.map(p => Object.assign({}, p, { progress: 0.35 }));
     }
     if (next.length === 0) {
-      const tendIds = new Set(inProgress.map(x => x.id));
-      next = ALL_PILLS.filter(p => !tendIds.has(p.id)).slice(0, 4);
+      // Sección "Pills inscritas": 4 pills no usadas arriba.
+      const usedIds = new Set(inProgress.map(x => x.id));
+      next = ALL_PILLS.filter(p => !usedIds.has(p.id)).slice(0, 4);
     }
   }
   const totalProgress = PILLS.length > 0 ? Math.round((completed.length / PILLS.length) * 100) : 0;
