@@ -16,6 +16,88 @@ function pillVideoUrl(mp4) {
 }
 if (typeof window !== 'undefined') window.pillVideoUrl = pillVideoUrl;
 
+// ── SVG placeholder generator ────────────────────────────────────────────
+// Mientras design no haya subido los assets reales a Storage, generamos
+// portadas inline en SVG que respetan el acento corporativo del curso y
+// el manual beonit (Avenir Next, geometría limpia, badge "BEONIT"). Salen
+// como data: URLs y van directas al <img src=...>, sin tocar la red.
+function _coursePosterSVG(title, accentHex, level) {
+  const safe = (s) => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const t = safe(title || 'Curso');
+  const a = accentHex || '#0072BE';
+  const lvl = safe((level || '').toUpperCase());
+  // Curso · 600×800 (3:4 portrait Netflix)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${a}" stop-opacity="1"/>
+        <stop offset="60%" stop-color="${a}" stop-opacity="0.65"/>
+        <stop offset="100%" stop-color="#0A0A0A" stop-opacity="0.95"/>
+      </linearGradient>
+      <pattern id="p" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="60" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="600" height="800" fill="url(#g)"/>
+    <rect width="600" height="800" fill="url(#p)"/>
+    <text x="40" y="64" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="3" opacity="0.85">${lvl}</text>
+    <text x="40" y="660" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="44" font-weight="800" letter-spacing="-1">
+      <tspan x="40" dy="0">${t.length > 22 ? t.slice(0, 22) : t}</tspan>
+      ${t.length > 22 ? `<tspan x="40" dy="52">${t.slice(22, 44)}</tspan>` : ''}
+    </text>
+    <text x="40" y="760" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="10" font-weight="600" letter-spacing="3" opacity="0.75">BEONIT × HIJOS DE RIVERA</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+if (typeof window !== 'undefined') window.coursePosterSVG = _coursePosterSVG;
+function _pillPosterSVG(title, accentHex) {
+  const safe = (s) => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const t = safe(title || 'Pill');
+  const a = accentHex || '#0072BE';
+  // Pill · 600×338 (16:9)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 338">
+    <defs>
+      <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${a}" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#0A0A0A" stop-opacity="0.92"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="338" fill="url(#g2)"/>
+    <text x="32" y="288" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="26" font-weight="800" letter-spacing="-0.5">${t.length > 32 ? t.slice(0, 32) + '…' : t}</text>
+    <text x="32" y="320" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="9" font-weight="600" letter-spacing="3" opacity="0.65">BEONIT</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+if (typeof window !== 'undefined') window.pillPosterSVG = _pillPosterSVG;
+function _certificateSVG(title, userName, accentHex, certNumber, dateStr) {
+  const safe = (s) => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const t = safe(title || 'Curso');
+  const u = safe(userName || 'Alumno');
+  const a = accentHex || '#0072BE';
+  const n = safe(certNumber || 'CERT-2026-0001');
+  const d = safe(dateStr || new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }));
+  // Cert · 1240×900 (4:3 landscape)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900">
+    <rect width="1240" height="900" fill="#FFFFFF"/>
+    <rect x="40" y="40" width="1160" height="820" fill="none" stroke="${a}" stroke-width="2"/>
+    <rect x="80" y="80" width="1080" height="740" fill="none" stroke="${a}" stroke-width="1" stroke-opacity="0.3"/>
+    <circle cx="1080" cy="180" r="60" fill="${a}"/>
+    <text x="1080" y="190" text-anchor="middle" fill="#FFFFFF" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="38" font-weight="800">★</text>
+    <text x="160" y="200" fill="${a}" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="4">CERTIFICADO DE FINALIZACIÓN</text>
+    <text x="160" y="330" fill="#0A0A0A" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="-1">${u}</text>
+    <text x="160" y="400" fill="#3D3D3D" font-family="Georgia, serif" font-style="italic" font-size="22">ha completado satisfactoriamente el curso</text>
+    <text x="160" y="490" fill="#0A0A0A" font-family="Georgia, serif" font-style="italic" font-size="38" font-weight="500">${t}</text>
+    <line x1="160" y1="700" x2="500" y2="700" stroke="#0A0A0A" stroke-width="1"/>
+    <text x="160" y="730" fill="#3D3D3D" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2">JULIO TURBÓN</text>
+    <text x="160" y="748" fill="#6F6F6F" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="11" letter-spacing="1">Dirección de Formación · Hijos de Rivera</text>
+    <text x="1080" y="730" text-anchor="end" fill="#3D3D3D" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="11" letter-spacing="2">${n}</text>
+    <text x="1080" y="748" text-anchor="end" fill="#6F6F6F" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="11" letter-spacing="1">${d}</text>
+    <text x="160" y="830" fill="#9A9A9A" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="10" font-weight="600" letter-spacing="3">BEONIT × HIJOS DE RIVERA</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+if (typeof window !== 'undefined') window.certificateSVG = _certificateSVG;
+
 // PILLS · catálogo · ahora vienen del DB (public.pills) filtrados
 // por workspace_id. Bundle ya no trae contenido. _loadPills() en
 // prototype-main.jsx puebla window.PILLS al cambiar de workspace.
@@ -857,17 +939,14 @@ function NxPathCard({ path, onOpen }) {
 
   return (
     <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
-      {/* Cover · poster_url de Supabase Storage si existe; si no, gradient */}
-      {path.posterUrl ? (
-        <img src={path.posterUrl} alt="" loading="lazy"
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
-                   filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
-          onError={e => { e.currentTarget.style.display='none'; }}/>
-      ) : (
-        <div className={`card-cover ${path.accent || 'cat-publish'}`}
-          style={Object.assign({}, isLocked ? { filter:'grayscale(0.6) brightness(0.55)' } : {},
-                               path.accentHex ? { background: `linear-gradient(135deg, ${path.accentHex}, ${path.accentHex}88)` } : {})}/>
-      )}
+      {/* Cover · posterUrl de Storage si existe; si no, SVG placeholder
+          generado con accentHex + título + level + watermark BEONIT. */}
+      <img
+        src={path.posterUrl || (window.coursePosterSVG && window.coursePosterSVG(path.title, path.accentHex, level))}
+        alt={path.title || ''} loading="lazy"
+        style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+                 filter: isLocked ? 'grayscale(0.6) brightness(0.55)' : 'none' }}
+        onError={e => { e.currentTarget.style.display='none'; }}/>
       <div className="card-grad"/>
       <span className="card-pill-num">{pathBadge}</span>
       {isLocked && (
