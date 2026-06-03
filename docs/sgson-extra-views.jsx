@@ -378,7 +378,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills · continuar viendo' : T('mypath.cont')}
+            {_isDemo ? 'Pills favoritas' : T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -406,7 +406,7 @@ function MyPathView({ openDetail, setView, pathId }) {
       {next.length > 0 && (
         <section style={{ marginBottom: _isDemo ? 40 : 0 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills inscritos' : T('mypath.next')}
+            {_isDemo ? 'Pills inscritas' : T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -438,7 +438,7 @@ function MyPathView({ openDetail, setView, pathId }) {
         return (
           <section>
             <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
-              Cursos inscritos
+              Cursos favoritos
             </h2>
             {coursesToShow.length === 0 ? (
               <div style={{ padding:40, textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:14 }}>

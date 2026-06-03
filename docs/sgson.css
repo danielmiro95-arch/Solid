@@ -2559,6 +2559,15 @@ html[data-demo-mode="true"] .hero-overlay {
     linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.40) 50%, rgba(0,0,0,0.85) 88%, #0A0A0A 100%);
 }
 
+/* En demo · ocultamos la barra superior del shell ("SolidStream · by BeonIt
+ * / nombre del workspace") porque el cliente NO quiere ver branding
+ * BeonIt × Repsol arriba durante el demo. La nav React (topnav-center con
+ * Inicio · Catálogo · Mi Playlist) sigue siendo la única navegación visible. */
+html[data-demo-mode="true"] .shell-tabs,
+html[data-demo-mode="true"] nav.shell-tabs {
+  display: none !important;
+}
+
 /* PageShell headers · texto blanco sobre fondo dark */
 html[data-demo-mode="true"] .ssg-page,
 html[data-demo-mode="true"] .ssg-page * { color: inherit; }

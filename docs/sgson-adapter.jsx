@@ -247,7 +247,7 @@
       name:     finalName,
       initials: finalInitials,
       role:     (_demoActiveU && !_isPlatformAdmin)
-                  ? 'Learning Specialist'
+                  ? 'Learning Manager'
                   : ((profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent'),
       team:     (_demoActiveU && !_isPlatformAdmin)
                   ? _wsNameClean
