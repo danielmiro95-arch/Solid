@@ -3907,6 +3907,28 @@ function WorkspacesPanel() {
                       </span>
                     </div>
 
+                    {/* Starter pack · siembra 4 cursos + 12 pills universales */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
+                      <button onClick={async () => {
+                          if (!confirm('Sembrar 4 cursos + 12 pills de ejemplo en "' + w.name + '"?\n\nTemas: Bienvenida · Comunicación · Liderazgo · Productividad.\nIdempotente · si ya están, hace skip.')) return;
+                          try {
+                            const sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+                            if (!sb || !sb.rpc) { alert('Supabase no disponible'); return; }
+                            const { data, error } = await sb.rpc('seed_workspace_starter_pack', { p_workspace_slug: w.slug });
+                            if (error) { alert('Error: ' + error.message); return; }
+                            if (window.Toast) window.Toast.success('✓ Starter pack sembrado · ' + data.paths + ' cursos · ' + data.pills + ' pills');
+                          } catch (e) {
+                            alert('Error: ' + e.message);
+                          }
+                        }}
+                        style={{ padding:'7px 12px', background:'transparent', color:'var(--accent)', border:'1px solid var(--accent)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                        🌱 Sembrar starter pack
+                      </button>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+                        4 cursos + 12 pills universales · útil para workspace recién creado
+                      </span>
+                    </div>
+
                     {/* Archive · soft delete · oculta del switcher pero conserva datos */}
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10 }}>
                       <button onClick={async () => {
