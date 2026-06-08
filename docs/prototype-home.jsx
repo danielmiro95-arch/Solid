@@ -1166,10 +1166,59 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
 
   const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
 
+  // Welcome message customizable por workspace via settings.welcome_message.
+  // Si no está seteado, fallback genérico personalizado con el nombre del user.
+  // Dismissible via localStorage por (user+workspace) para que no salga
+  // siempre · se vuelve a mostrar si el admin actualiza el mensaje.
+  const _wsObj    = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || null;
+  const _wsSettings = (_wsObj && _wsObj.settings) || {};
+  const _welcomeMsg = _wsSettings.welcome_message || null;
+  const _userName   = (D.USER && D.USER.name) ? String(D.USER.name).split(/\s+/)[0] : null;
+  const _wsName     = (_wsObj && _wsObj.name) ? String(_wsObj.name).replace(/\s+demo\s*$/i, '').trim() : null;
+  const _dismissKey = 'solid-welcome-dismissed:' + ((D.USER && D.USER.id) || 'anon') + ':' + ((_wsObj && _wsObj.id) || 'no-ws') + ':' + (_welcomeMsg ? _welcomeMsg.length : 0);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    try { return !!localStorage.getItem(_dismissKey); } catch (e) { return false; }
+  });
+  const dismissWelcome = () => {
+    try { localStorage.setItem(_dismissKey, '1'); } catch (e) {}
+    setWelcomeDismissed(true);
+  };
+  const showWelcome = !welcomeDismissed && (_welcomeMsg || demoActive);
+  const welcomeText = _welcomeMsg ||
+    (_userName && _wsName ? `Bienvenido a ${_wsName}, ${_userName}. Aquí encontrarás formación pensada para ti.`
+     : _userName ? `Bienvenido, ${_userName}.`
+     : 'Bienvenido a tu plataforma de formación.');
+
   return (
     <div data-screen-label="Home">
       <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
       <div className="rows">
+        {showWelcome && (
+          <section style={{
+            margin:'-32px var(--row-pad, 48px) 32px',
+            padding:'18px 22px', borderRadius:14,
+            background:'linear-gradient(135deg, rgba(0,114,190,0.16), rgba(252,34,13,0.06))',
+            border:'1px solid rgba(255,255,255,0.10)',
+            backdropFilter:'blur(12px)',
+            position:'relative', zIndex:5,
+            display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+          }}>
+            <div style={{ flex:1, minWidth:260 }}>
+              <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.12em',
+                color:'var(--accent-2, #FC220D)', fontWeight:800, textTransform:'uppercase', marginBottom:6 }}>
+                Bienvenido
+              </div>
+              <div style={{ fontSize:15.5, lineHeight:1.45, color:'var(--fg)' }}>
+                {welcomeText}
+              </div>
+            </div>
+            <button onClick={dismissWelcome} aria-label="Cerrar bienvenida" style={{
+              padding:'7px 12px', background:'transparent', color:'var(--fg-muted)',
+              border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:600, fontSize:12,
+            }}>Entendido</button>
+          </section>
+        )}
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}

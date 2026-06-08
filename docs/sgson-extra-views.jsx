@@ -445,6 +445,31 @@ function MyPathView({ openDetail, setView, pathId }) {
       </div>
       )}
 
+      {/* MASTER EMPTY STATE · user real sin actividad · ofrece CTA al
+          Catálogo. Solo aplica en demo (Mi Lista) sin path activo, sin
+          sembrado de muestra y con las 3 secciones vacías. */}
+      {_isDemo && !path && inProgress.length === 0 && next.length === 0
+        && (PATHS.filter(p => p.progress > 0 || (window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id))).length === 0) && (
+        <div style={{
+          padding:'60px 32px', textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:16, marginBottom:32,
+        }}>
+          <div style={{ fontSize:48, marginBottom:14 }}>📚</div>
+          <h3 style={{ margin:'0 0 8px', fontSize:20, fontWeight:700, color:'var(--fg)' }}>
+            Tu lista está vacía
+          </h3>
+          <p style={{ margin:'0 auto 24px', fontSize:14, color:'var(--fg-muted)', maxWidth:420, lineHeight:1.55 }}>
+            Cuando empieces un curso o guardes pills como favoritas las verás aquí.
+            Explora el catálogo y empieza por el que más te interese.
+          </p>
+          <button onClick={() => setView && setView('rutas')} style={{
+            padding:'12px 22px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:10,
+            cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:14,
+            boxShadow:'0 6px 16px rgba(0,114,190,0.30)',
+          }}>Ir al Catálogo →</button>
+        </div>
+      )}
+
       {/* En progreso · pills (sección 1/3 en demo: "Pills · continuar viendo") */}
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
@@ -3592,6 +3617,7 @@ function WorkspacesPanel() {
   const [editAllowedDomain, setEditAllowedDomain] = useEV2('');
   const [editPathLabel, setEditPathLabel] = useEV2('');
   const [editPathLabelPlural, setEditPathLabelPlural] = useEV2('');
+  const [editWelcomeMsg, setEditWelcomeMsg] = useEV2('');
   // ── Members management (Slice 1C) ──────────────────────────────────────
   const [addEmail, setAddEmail] = useEV2('');
   const [addRole, setAddRole] = useEV2('member');
@@ -3628,6 +3654,7 @@ function WorkspacesPanel() {
     setEditAllowedDomain(s.allowedDomain || '');
     setEditPathLabel(s.path_label || '');
     setEditPathLabelPlural(s.path_label_plural || '');
+    setEditWelcomeMsg(s.welcome_message || '');
   };
   const cancelEdit = () => { setEditingId(null); setEditLogoPreview(null); };
   const saveEdit = async () => {
@@ -3643,6 +3670,7 @@ function WorkspacesPanel() {
       allowedDomain: editAllowedDomain.trim() || null,
       path_label: editPathLabel.trim() || null,
       path_label_plural: editPathLabelPlural.trim() || null,
+      welcome_message: editWelcomeMsg.trim() || null,
     });
     // Limpia keys null para no llenar el jsonb de basura
     Object.keys(nextSettings).forEach(k => { if (nextSettings[k] == null || nextSettings[k] === '') delete nextSettings[k]; });
@@ -3839,6 +3867,16 @@ function WorkspacesPanel() {
                             style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box' }}/>
                         </label>
                       </div>
+                      <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', marginTop: 10, display:'block' }}>
+                        Mensaje de bienvenida (Home)
+                        <textarea value={editWelcomeMsg} onChange={e => setEditWelcomeMsg(e.target.value)}
+                          rows={2}
+                          placeholder="Bienvenido a tu plataforma de formación. Aquí encontrarás contenido pensado para ti."
+                          style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0, resize:'vertical' }}/>
+                        <span style={{ display:'block', marginTop: 3, fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}>
+                          Aparece como banner dismissible en el home. Vacío = mensaje genérico con nombre del user.
+                        </span>
+                      </label>
                     </div>
                     {/* Demo user · crea usuario predecible para presentaciones */}
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
