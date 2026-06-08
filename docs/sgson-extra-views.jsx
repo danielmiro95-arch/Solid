@@ -2215,6 +2215,70 @@ function ProfileDemoContent({ USER }) {
 
   return (
     <div style={{ marginTop:24 }}>
+      {/* AVATAR · subida directa a Supabase Storage */}
+      <div style={cardStyle}>
+        <h3 style={sectionTitle}>Foto de perfil</h3>
+        <p style={sectionSub}>Aparecerá en la barra superior y en cualquier interacción del workspace.</p>
+        <div style={{ display:'flex', alignItems:'center', gap:18 }}>
+          <div style={{
+            width:84, height:84, borderRadius:'50%',
+            background: USER.avatarUrl
+              ? `url(${USER.avatarUrl}) center/cover no-repeat`
+              : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
+            color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:30, fontWeight:800, fontFamily:'var(--font-sans)',
+            flexShrink:0, boxShadow:'0 4px 14px rgba(0,0,0,0.25)',
+            border:'2px solid var(--line)',
+          }}>{!USER.avatarUrl && (USER.initials || 'U')}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <label style={{
+              padding:'8px 14px', background:'var(--accent)', color:'#fff',
+              border:'none', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+              display:'inline-flex', alignItems:'center', gap:6, width:'fit-content',
+            }}>
+              {USER.avatarUrl ? 'Cambiar foto' : 'Subir foto'}
+              <input type="file" accept="image/*" style={{display:'none'}}
+                onChange={async (e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (!file) return;
+                  if (!window.UserProfile || !window.UserProfile.uploadAvatar) {
+                    if (window.Toast) window.Toast.info('Avatar upload no disponible');
+                    return;
+                  }
+                  setSavingField('avatar');
+                  try {
+                    const url = await window.UserProfile.uploadAvatar(file);
+                    if (url && window.Toast) window.Toast.success('Foto actualizada', { icon:'✓' });
+                  } catch (err) {
+                    if (window.Toast) window.Toast.info('No se pudo subir · ' + (err.message || 'error'));
+                  } finally {
+                    setSavingField(null);
+                    e.target.value = ''; // reset input
+                  }
+                }}/>
+            </label>
+            {USER.avatarUrl && (
+              <button onClick={async () => {
+                if (!confirm('¿Quitar foto de perfil?')) return;
+                setSavingField('avatar');
+                try {
+                  if (window.UserProfile && window.UserProfile.update) {
+                    window.UserProfile.update({ avatarUrl: null });
+                  }
+                } finally { setTimeout(() => setSavingField(null), 400); }
+              }} style={{
+                padding:'6px 12px', background:'transparent', color:'var(--fg-muted)',
+                border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+                fontFamily:'var(--font-sans)', fontWeight:600, fontSize:11.5, width:'fit-content',
+              }}>Quitar foto</button>
+            )}
+            {savingField === 'avatar' && <span style={{fontSize:11, color:'var(--accent)'}}>subiendo…</span>}
+            <span style={{fontSize:11, color:'var(--fg-muted)'}}>JPG/PNG · máx 2MB · cuadrada recomendada</span>
+          </div>
+        </div>
+      </div>
+
       {/* DATOS DE CONTACTO · editables (blur = save) */}
       <div style={cardStyle}>
         <h3 style={sectionTitle}>Datos de contacto</h3>

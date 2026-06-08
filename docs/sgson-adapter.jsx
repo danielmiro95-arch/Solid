@@ -283,6 +283,7 @@
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
       isAdmin:  _isPlatformAdmin,
+      avatarUrl: (profile && (profile.avatarUrl || profile.avatar_url)) || (sessionUser && (sessionUser.avatarUrl || sessionUser.avatar_url)) || null,
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 

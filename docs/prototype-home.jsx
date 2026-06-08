@@ -358,6 +358,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
   const initials = (D && D.USER && D.USER.initials) || 'U';
   const userName = (D && D.USER && D.USER.name) || 'Usuario';
+  const userAvatarUrl = (D && D.USER && D.USER.avatarUrl) || null;
   const userRole = (D && D.USER && D.USER.role) || '';
   const isAdmin = !!(D && D.USER && D.USER.isAdmin);
   const canManager = !!(window.Auth && window.Auth.hasRole && window.Auth.hasRole('manager'));
@@ -417,7 +418,15 @@ function TopNav({ view, onView, onSearch, onLogout }) {
             {inboxCount ? <span className="badge">{inboxCount}</span> : null}
           </button>
         )}
-        <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}>{initials}</button>
+        <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}
+          style={userAvatarUrl ? {
+            backgroundImage: `url(${userAvatarUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            color: 'transparent',
+          } : undefined}>
+          {!userAvatarUrl && initials}
+        </button>
 
         {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
         {menuOpen && (
@@ -439,7 +448,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
               display:'flex', alignItems:'center', gap:12, padding:'12px 14px 14px',
               borderBottom:'1px solid rgba(255,255,255,0.08)', marginBottom:6,
             }}>
-              <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
+              <div style={Object.assign({width:42, height:42, borderRadius:'50%', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700},
+                userAvatarUrl
+                  ? { backgroundImage:`url(${userAvatarUrl})`, backgroundSize:'cover', backgroundPosition:'center' }
+                  : { background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))' })}>{!userAvatarUrl && initials}</div>
               <div style={{flex:1, minWidth:0}}>
                 <div style={{fontSize:14, fontWeight:700, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
                 {userRole && <div style={{fontSize:11, color:'rgba(245,244,241,0.7)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}

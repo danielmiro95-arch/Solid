@@ -2152,6 +2152,7 @@ function _activateSupabaseAuth() {
       role: row.role || 'Publish Agent',
       team: row.team || 'Repsol',
       avatarColor: row.avatar_color || 'var(--bn-blue)',
+      avatarUrl: row.avatar_url || null,
       isAdmin: !!row.is_admin,
       systemRole: row.system_role || (row.is_admin ? 'admin' : 'user'),
       createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
@@ -2233,6 +2234,8 @@ function _activateSupabaseAuth() {
     if (patch.avatarColor !== undefined) dbPatch.avatar_color = patch.avatarColor;
     if (patch.email !== undefined) dbPatch.email = patch.email;
     if (patch.isAdmin !== undefined) dbPatch.is_admin = !!patch.isAdmin;
+    if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
+    if (patch.avatar_url !== undefined) dbPatch.avatar_url = patch.avatar_url;
     const { data, error } = await sb.from('profiles').update(dbPatch).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     const mapped = _mapProfileRow(data);
@@ -3689,7 +3692,8 @@ const UserProfile = (function() {
     if (!u) return Object.assign({}, DEFAULT);
     return {
       name: u.name, role: u.role, team: u.team,
-      avatarColor: u.avatarColor, email: u.email,
+      avatarColor: u.avatarColor, avatarUrl: u.avatarUrl || u.avatar_url || null,
+      email: u.email,
       isAdmin: !!u.isAdmin, id: u.id,
     };
   }
@@ -3697,14 +3701,15 @@ const UserProfile = (function() {
     if (!u) return Object.assign({}, DEFAULT);
     return {
       name: u.name, role: u.role, team: u.team,
-      avatarColor: u.avatarColor, email: u.email,
+      avatarColor: u.avatarColor, avatarUrl: u.avatarUrl || u.avatar_url || null,
+      email: u.email,
       isAdmin: !!u.isAdmin, id: u.id,
     };
   }
   function update(patch) {
     var u = window.Auth ? window.Auth.currentUser() : null;
     if (!u) return DEFAULT;
-    var fields = ['name', 'role', 'team', 'avatarColor', 'email'];
+    var fields = ['name', 'role', 'team', 'avatarColor', 'email', 'avatarUrl'];
     var clean = {};
     fields.forEach(function(f){ if (patch[f] !== undefined) clean[f] = patch[f]; });
     // Auth.updateUser puede ser sync (modo demo) o Promise (modo Supabase).
@@ -3727,7 +3732,35 @@ const UserProfile = (function() {
     return profileShape;
   }
   function reset() {/* legacy noop */}
-  return { get, update, reset, DEFAULT };
+  // Sube avatar a Supabase Storage · bucket workspace-assets, path avatars/{uid}.{ext}.
+  // Devuelve la URL pública o lanza error. Tras subir, actualiza profile.avatar_url
+  // y dispara user-profile-changed para que toda la UI se refresque.
+  async function uploadAvatar(file) {
+    if (!file) throw new Error('Sin archivo');
+    if (file.size > 2 * 1024 * 1024) throw new Error('Máx 2MB');
+    var u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+    if (!u || !u.id) throw new Error('No hay sesión');
+    var sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+    if (!sb) throw new Error('Supabase no disponible');
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5);
+    var path = 'avatars/' + u.id + '.' + ext + '?v=' + Date.now();
+    var pathToStore = 'avatars/' + u.id + '.' + ext;
+    var upRes = await sb.storage.from('workspace-assets').upload(pathToStore, file, { upsert: true, contentType: file.type });
+    if (upRes.error) throw upRes.error;
+    var pub = sb.storage.from('workspace-assets').getPublicUrl(pathToStore);
+    var url = (pub && pub.data && pub.data.publicUrl) || null;
+    if (!url) throw new Error('No se pudo resolver la URL pública');
+    // Cache-bust en el front (timestamp en la URL guardada)
+    url = url + '?v=' + Date.now();
+    // Persiste en profiles.avatar_url via Auth.updateUser (snake_case en DB)
+    if (window.Auth && window.Auth.updateUser) {
+      await Promise.resolve(window.Auth.updateUser(u.id, { avatarUrl: url, avatar_url: url }));
+    }
+    var optimistic = Object.assign({}, u, { avatarUrl: url, avatar_url: url });
+    window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: _toShape(optimistic) }));
+    return url;
+  }
+  return { get, update, reset, uploadAvatar, DEFAULT };
 })();
 window.UserProfile = UserProfile;
 
