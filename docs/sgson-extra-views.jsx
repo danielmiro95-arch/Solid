@@ -326,16 +326,17 @@ function MyPathView({ openDetail, setView, pathId }) {
   // ni bookmarks), sembramos pills de muestra para que se vea contenido.
   // Sigue formándote → 2 pills de Tendencias como si estuvieran en curso.
   // Pills inscritas    → 4 pills de otras categorías.
-  if (_isDemo && !path) {
+  // Sembrado de datos de muestra · SOLO para la URL demo de HdR · garantiza
+  // que la presentación al cliente se vea poblada aunque Julio no haya
+  // bookmarkado nada. Para users reales (non-admin en cualquier otro
+  // workspace) NUNCA mostramos datos falsos · empty state es la verdad.
+  if (_isDemoURL && !path) {
     if (inProgress.length === 0) {
-      // Sección "Sigue formándote": Tendencias primero, si no hay, las
-      // 2 primeras pills cualquiera. progress=0.35 simulado.
       let sample = ALL_PILLS.filter(p => /tendencias?/i.test(String(p.category || '')) || /^tendencia-/i.test(String(p.id || ''))).slice(0, 2);
       if (sample.length === 0) sample = ALL_PILLS.slice(0, 2);
       inProgress = sample.map(p => Object.assign({}, p, { progress: 0.35 }));
     }
     if (next.length === 0) {
-      // Sección "Pills inscritas": 4 pills no usadas arriba.
       const usedIds = new Set(inProgress.map(x => x.id));
       next = ALL_PILLS.filter(p => !usedIds.has(p.id)).slice(0, 4);
     }
@@ -471,9 +472,10 @@ function MyPathView({ openDetail, setView, pathId }) {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
         let coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
-        // Siembra de muestra · si Julio no tiene cursos en lista, mostramos
-        // 3 paths (excluyendo Tendencias) como si estuviera inscrito.
-        if (coursesToShow.length === 0) {
+        // Sembrado SOLO en URL demo HdR · para users reales mostramos empty
+        // state honesto en lugar de cursos falsos inscritos.
+        const _seedSample = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+        if (coursesToShow.length === 0 && _seedSample) {
           coursesToShow = PATHS
             .filter(p => !/tendencias?/i.test(String(p.slug || '')))
             .slice(0, 3);
