@@ -1176,14 +1176,37 @@ window.Workspaces = Workspaces;
     return false;
   }
   function _isDemoActive() {
-    // ORDEN · URL > slug > settings.demo_mode. La URL gana porque es el
-    // contexto explícito en el que el user está navegando (?ws=*demo*).
-    // El slug del workspace activo es segundo. Settings sólo decide en
-    // workspaces sin "demo" en el nombre.
+    // ORDEN de evaluación · cada nivel puede activar o desactivar el demo
+    // independientemente. El target es:
+    //   ADMIN     → siempre plataforma completa (Analytics, BeonAI, Recursos)
+    //   NON-ADMIN → siempre experiencia simplificada estilo demo
+    //   URL con "demo" → fuerza demo (permite a admin testear como user)
+    //   settings.demo_mode explícito → override (gana sobre todo lo demás)
+
+    // 1) Settings override · si está seteado boolean, gana
+    const s = _settings();
+    if (s.demo_mode === true)  return true;
+    if (s.demo_mode === false) return false;
+
+    // 2) URL con "demo" · permite a admin testear la experiencia
     if (_urlSuggestsDemo()) return true;
     if (_slugSuggestsDemo()) return true;
-    const s = _settings();
-    return s.demo_mode === true;
+
+    // 3) Default por rol · admin → completa · user → demo simplificada
+    // Esto convierte "demo UX" en la experiencia de usuario final por
+    // defecto en cualquier workspace de la plataforma, manteniendo
+    // analytics/IA/recursos solo para admins.
+    try {
+      const profile = (window.UserProfile && window.UserProfile.get && window.UserProfile.get()) || null;
+      const sess    = (window.Auth && window.Auth.currentUser && window.Auth.currentUser()) || null;
+      const isAdmin = !!(
+        (profile && (profile.isAdmin || profile.systemRole === 'admin')) ||
+        (sess && (sess.isAdmin || sess.systemRole === 'admin'))
+      );
+      return !isAdmin;
+    } catch (e) {
+      return false;
+    }
   }
   // Si demo_mode está activo · estos son los valores por defecto que
   // aplican aunque la flag individual no esté en settings. El admin puede

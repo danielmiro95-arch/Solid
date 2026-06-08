@@ -249,15 +249,19 @@
     }
     const fullName = _firstNameOrEmail(profile, _firstNameOrEmail(sessionUser, 'Usuario SGS'));
     const initials = fullName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'U';
-    // En modo demo · el role y team se FUERZAN (no usan profile.role/team
-    // por defecto). Esto cubre el caso en que Julio se crea desde el
-    // Dashboard y queda con role='Publish Agent' / team='Repsol' default
-    // del schema. Los platform admins ven su nombre real para gestionar.
-    // Usamos _dmActive (URL-based ya calculado arriba) para evitar race.
+    // ── USER overrides ──
+    // _dmActive · UX demo (sidebar simple, hide AI, etc.) · aplica a TODOS
+    //   los non-admin por defecto + admins en URL demo.
+    // _isHdRDemo · solo para la URL específica de la demo de Hijos de Rivera.
+    //   Aquí gateamos los hardcodes HdR (nombre forzado Julio Turbón) para
+    //   que NO se filtren a otros workspaces ni a usuarios reales de Repsol.
     const _demoActiveU = _dmActive;
-    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || 'Hijos de Rivera';
+    const _isHdRDemo   = _isDemoURL;  // URL contiene "demo" → contexto HdR
+    const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || '';
     const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
-    const _demoForceName = _demoActiveU && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
+    // Julio Turbón solo en el demo HdR · no en otros workspaces aunque el
+    // user sea non-admin. El profile real prima fuera del demo HdR.
+    const _demoForceName = _isHdRDemo && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
     const finalName = _demoForceName || fullName;
     const finalInitials = _demoForceName
       ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -268,12 +272,14 @@
       id:       (profile && profile.id) || (sessionUser && sessionUser.id),
       name:     finalName,
       initials: finalInitials,
-      role:     (_demoActiveU && !_isPlatformAdmin)
+      // Role · "Learning Manager" solo en demo HdR (no para todos los
+      // non-admin, que pueden tener roles reales en sus workspaces).
+      role:     (_isHdRDemo && !_isPlatformAdmin)
                   ? 'Learning Manager'
                   : ((profile && profile.role) || (sessionUser && sessionUser.role) || 'Publish Agent'),
-      team:     (_demoActiveU && !_isPlatformAdmin)
-                  ? _wsNameClean
-                  : ((profile && profile.team) || (sessionUser && sessionUser.team) || 'Repsol'),
+      // Team · usa el workspace activo · sin "Repsol" hardcoded para
+      // ningún user (anti-leak entre tenants).
+      team:     (profile && profile.team) || (sessionUser && sessionUser.team) || _wsNameClean || 'Mi equipo',
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
       isAdmin:  _isPlatformAdmin,

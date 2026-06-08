@@ -326,16 +326,17 @@ function MyPathView({ openDetail, setView, pathId }) {
   // ni bookmarks), sembramos pills de muestra para que se vea contenido.
   // Sigue formándote → 2 pills de Tendencias como si estuvieran en curso.
   // Pills inscritas    → 4 pills de otras categorías.
-  if (_isDemo && !path) {
+  // Sembrado de datos de muestra · SOLO para la URL demo de HdR · garantiza
+  // que la presentación al cliente se vea poblada aunque Julio no haya
+  // bookmarkado nada. Para users reales (non-admin en cualquier otro
+  // workspace) NUNCA mostramos datos falsos · empty state es la verdad.
+  if (_isDemoURL && !path) {
     if (inProgress.length === 0) {
-      // Sección "Sigue formándote": Tendencias primero, si no hay, las
-      // 2 primeras pills cualquiera. progress=0.35 simulado.
       let sample = ALL_PILLS.filter(p => /tendencias?/i.test(String(p.category || '')) || /^tendencia-/i.test(String(p.id || ''))).slice(0, 2);
       if (sample.length === 0) sample = ALL_PILLS.slice(0, 2);
       inProgress = sample.map(p => Object.assign({}, p, { progress: 0.35 }));
     }
     if (next.length === 0) {
-      // Sección "Pills inscritas": 4 pills no usadas arriba.
       const usedIds = new Set(inProgress.map(x => x.id));
       next = ALL_PILLS.filter(p => !usedIds.has(p.id)).slice(0, 4);
     }
@@ -471,9 +472,10 @@ function MyPathView({ openDetail, setView, pathId }) {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
         let coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
-        // Siembra de muestra · si Julio no tiene cursos en lista, mostramos
-        // 3 paths (excluyendo Tendencias) como si estuviera inscrito.
-        if (coursesToShow.length === 0) {
+        // Sembrado SOLO en URL demo HdR · para users reales mostramos empty
+        // state honesto en lugar de cursos falsos inscritos.
+        const _seedSample = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+        if (coursesToShow.length === 0 && _seedSample) {
           coursesToShow = PATHS
             .filter(p => !/tendencias?/i.test(String(p.slug || '')))
             .slice(0, 3);
@@ -2150,7 +2152,41 @@ function ProfileView({ setView }) {
    certificados, hay que incluir datos de contacto, ajustes y canales".
    ============================================================ */
 function ProfileDemoContent({ USER }) {
-  const [phone, setPhone] = useEV2('+34 666 000 000');
+  // Datos editables · persisten via UserProfile.update (name, role, team)
+  // o localStorage (phone, sin columna en schema todavía).
+  const [name, setName] = useEV2(USER.name || '');
+  const [role, setRole] = useEV2(USER.role || '');
+  const [team, setTeam] = useEV2(USER.team || '');
+  const _phoneKey = 'solid-profile-phone:' + (USER.id || 'anon');
+  const [phone, setPhone] = useEV2(() => {
+    try { return localStorage.getItem(_phoneKey) || ''; } catch (e) { return ''; }
+  });
+  const [savingField, setSavingField] = useEV2(null);
+  const saveField = (field, value) => {
+    if (field === 'phone') {
+      try { localStorage.setItem(_phoneKey, value); } catch (e) {}
+      return;
+    }
+    if (window.UserProfile && window.UserProfile.update) {
+      setSavingField(field);
+      const patch = {}; patch[field] = value;
+      try {
+        window.UserProfile.update(patch);
+        if (window.Toast) window.Toast.success('Guardado', { icon: '✓' });
+      } catch (e) {
+        if (window.Toast) window.Toast.info('No se pudo guardar', { icon: '!' });
+      } finally {
+        setTimeout(() => setSavingField(null), 600);
+      }
+    }
+  };
+  // Sincroniza locales si USER cambia por evento externo
+  useEE2(() => {
+    setName(USER.name || '');
+    setRole(USER.role || '');
+    setTeam(USER.team || '');
+  }, [USER.name, USER.role, USER.team]);
+
   const [lang, setLang]   = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
   const [pushOn, setPushOn] = useEV2(true);
   const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
@@ -2179,21 +2215,29 @@ function ProfileDemoContent({ USER }) {
 
   return (
     <div style={{ marginTop:24 }}>
-      {/* DATOS DE CONTACTO */}
+      {/* DATOS DE CONTACTO · editables (blur = save) */}
       <div style={cardStyle}>
         <h3 style={sectionTitle}>Datos de contacto</h3>
-        <p style={sectionSub}>Información del perfil de aprendizaje · editable</p>
+        <p style={sectionSub}>Edita y los cambios se guardan al salir del campo. Email no editable desde aquí.</p>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-          <label><div style={labelStyle}>Nombre completo</div>
-            <input style={fieldStyle} defaultValue={USER.name || ''} readOnly/></label>
-          <label><div style={labelStyle}>Email</div>
-            <input style={fieldStyle} defaultValue={USER.email || ''} readOnly/></label>
+          <label><div style={labelStyle}>Nombre completo {savingField === 'name' && <span style={{color:'var(--accent)'}}>· guardando…</span>}</div>
+            <input style={fieldStyle} value={name}
+              onChange={e => setName(e.target.value)}
+              onBlur={e => { if (e.target.value !== USER.name) saveField('name', e.target.value); }}/></label>
+          <label><div style={labelStyle}>Email · readonly</div>
+            <input style={Object.assign({}, fieldStyle, {opacity:0.6, cursor:'not-allowed'})} value={USER.email || ''} readOnly/></label>
           <label><div style={labelStyle}>Teléfono</div>
-            <input style={fieldStyle} value={phone} onChange={e => setPhone(e.target.value)}/></label>
-          <label><div style={labelStyle}>Cargo</div>
-            <input style={fieldStyle} defaultValue={USER.role || 'Learning Manager'} readOnly/></label>
-          <label style={{ gridColumn:'1 / -1' }}><div style={labelStyle}>Workspace</div>
-            <input style={fieldStyle} defaultValue={USER.team || 'Hijos de Rivera'} readOnly/></label>
+            <input style={fieldStyle} value={phone} placeholder="+34 6XX XXX XXX"
+              onChange={e => setPhone(e.target.value)}
+              onBlur={e => saveField('phone', e.target.value)}/></label>
+          <label><div style={labelStyle}>Cargo {savingField === 'role' && <span style={{color:'var(--accent)'}}>· guardando…</span>}</div>
+            <input style={fieldStyle} value={role}
+              onChange={e => setRole(e.target.value)}
+              onBlur={e => { if (e.target.value !== USER.role) saveField('role', e.target.value); }}/></label>
+          <label style={{ gridColumn:'1 / -1' }}><div style={labelStyle}>Equipo / Departamento {savingField === 'team' && <span style={{color:'var(--accent)'}}>· guardando…</span>}</div>
+            <input style={fieldStyle} value={team}
+              onChange={e => setTeam(e.target.value)}
+              onBlur={e => { if (e.target.value !== USER.team) saveField('team', e.target.value); }}/></label>
         </div>
       </div>
 

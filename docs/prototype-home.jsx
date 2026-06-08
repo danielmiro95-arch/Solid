@@ -642,14 +642,22 @@ function HomeHero({ onPlay, onMore }) {
           // En demo · el hero-badge muestra el LOGO BEONIT en lugar de
           // "Tendencias de la semana / María López". Petición del cliente.
           if (demoActive) {
+            // Logo del workspace activo si existe, fallback al de beonit.
+            // Permite que cada workspace muestre su propia marca en el hero
+            // sin tener que tocar código. Settear workspace.logo_url en DB.
+            const wsLogo = window.WORKSPACE_LOGO_URL || null;
+            const logoSrc = wsLogo || `beonit-logo.png?v=${window.SOLID_VERSION || 'demo'}`;
+            const logoAlt = wsLogo ? (window.WORKSPACE_NAME || 'workspace') : 'beonit';
             return (
               <img
-                src={`beonit-logo.png?v=${window.SOLID_VERSION || 'demo'}`}
-                alt="beonit"
+                src={logoSrc}
+                alt={logoAlt}
                 style={{
                   height: 36,
                   width: 'auto',
                   filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.45))',
+                  objectFit: 'contain',
+                  maxWidth: 180,
                 }}
               />
             );
