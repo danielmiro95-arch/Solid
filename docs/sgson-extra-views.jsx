@@ -3742,6 +3742,35 @@ function WorkspacesPanel() {
                         </label>
                       </div>
                     </div>
+                    {/* Demo user · crea usuario predecible para presentaciones */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
+                      <button onClick={async () => {
+                          try {
+                            const sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+                            if (!sb || !sb.rpc) { alert('Supabase no disponible'); return; }
+                            const { data, error } = await sb.rpc('create_demo_user_for_workspace', { p_workspace_slug: w.slug });
+                            if (error) { alert('Error: ' + error.message); return; }
+                            const msg = '✓ Demo user ' + (data.status === 'created' ? 'creado' : 'reseteado') +
+                                        '\n\nEmail: ' + data.email +
+                                        '\nPassword: ' + data.password +
+                                        '\nLogin: ' + data.login_url +
+                                        '\n\nCredenciales copiadas para compartir con cliente.';
+                            try {
+                              await navigator.clipboard.writeText(data.email + ' / ' + data.password + '\n' + data.login_url);
+                            } catch (e) {}
+                            alert(msg);
+                          } catch (e) {
+                            alert('Error: ' + e.message);
+                          }
+                        }}
+                        style={{ padding:'7px 12px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                        👤 Crear demo user
+                      </button>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+                        demo+{w.slug}@beonit.es · pwd Demo2026!
+                      </span>
+                    </div>
+
                     {/* Archive · soft delete · oculta del switcher pero conserva datos */}
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10 }}>
                       <button onClick={async () => {
