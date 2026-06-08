@@ -130,6 +130,15 @@ function RutasView({ setView, openPath }) {
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
 
+  // Filtro por categoría · chips arriba del grid. "Todos" por defecto.
+  const [activeCat, setActiveCat] = useEV2('Todos');
+  const categories = React.useMemo(() => {
+    const set = new Set();
+    paths.forEach(p => { if (p.badge) set.add(p.badge); });
+    return ['Todos', ...Array.from(set).sort()];
+  }, [paths.length]);
+  const filteredPaths = activeCat === 'Todos' ? paths : paths.filter(p => p.badge === activeCat);
+
   // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
   // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
   const _dm = window.DemoMode;
@@ -148,10 +157,35 @@ function RutasView({ setView, openPath }) {
       title={title}
       sub={sub}>
 
+      {/* Category chips · solo si hay más de 1 categoría distinta */}
+      {categories.length > 2 && (
+        <div style={{
+          display:'flex', gap:8, flexWrap:'wrap', marginBottom:24,
+          padding:'6px', background:'var(--bg-surface)', border:'1px solid var(--line)',
+          borderRadius:'var(--r-2, 12px)', width:'fit-content', maxWidth:'100%',
+        }}>
+          {categories.map(c => {
+            const active = c === activeCat;
+            const count = c === 'Todos' ? paths.length : paths.filter(p => p.badge === c).length;
+            return (
+              <button key={c} onClick={() => setActiveCat(c)} style={{
+                padding:'7px 14px', fontFamily:'var(--font-sans)', fontSize:12.5, fontWeight:700,
+                background: active ? 'var(--accent)' : 'transparent',
+                color:    active ? '#fff' : 'var(--fg-muted)',
+                border:'none', borderRadius:'var(--r-1, 8px)', cursor:'pointer',
+                transition:'all .15s',
+              }}>
+                {c} <span style={{opacity:0.6, marginLeft:4, fontWeight:500}}>· {count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
       }}>
-        {paths.map((p, idx) => {
+        {filteredPaths.map((p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
           // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
           // primer path por posición desbloqueado para que la demo se
