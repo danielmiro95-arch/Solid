@@ -829,13 +829,17 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const slug = _catSlugFix(pill.category);
 
   const [saved, setSaved] = React.useState(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
-  const [rated, setRated]  = React.useState(() => {
+  const _getStars = () => {
     const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
-    return typeof r === 'number' ? r >= 4 : !!(r && r.stars >= 4);
-  });
+    return typeof r === 'number' ? r : (r && r.stars) || 0;
+  };
+  const [stars, setStars] = React.useState(_getStars);
+  const rated   = stars >= 4;      // legacy alias · "Me gusta"
+  const liked   = stars === 5;
+  const disliked = stars === 1;
   React.useEffect(() => {
     const onB = () => setSaved(window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
-    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setRated(e.detail.stars >= 4); };
+    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setStars(e.detail.stars || 0); };
     window.addEventListener('bookmarks-changed', onB);
     window.addEventListener('ratings-changed', onR);
     return () => { window.removeEventListener('bookmarks-changed', onB); window.removeEventListener('ratings-changed', onR); };
@@ -851,9 +855,22 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const toggleLike = (e) => {
     e.stopPropagation();
     if (window.Ratings) {
-      const next = rated ? 0 : 5;
+      const cur = window.Ratings.get && window.Ratings.get(pill.id);
+      const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+      // Like · 5★. Si ya estaba en 5 → desactiva (0). Si era dislike (1) → cambia a 5.
+      const next = curStars === 5 ? 0 : 5;
       window.Ratings.set(pill.id, next);
-      if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Sin valoración', { icon: next ? '👍' : '○' });
+      if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Valoración eliminada', { icon: next ? '👍' : '○' });
+    }
+  };
+  const toggleDislike = (e) => {
+    e.stopPropagation();
+    if (window.Ratings) {
+      const cur = window.Ratings.get && window.Ratings.get(pill.id);
+      const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+      const next = curStars === 1 ? 0 : 1;
+      window.Ratings.set(pill.id, next);
+      if (window.Toast) window.Toast.info(next ? '👎 No me gusta' : 'Valoración eliminada', { icon: next ? '👎' : '○' });
     }
   };
 
@@ -900,21 +917,15 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       <span className="card-pill-num">{String(cat.label).toUpperCase()}{!demoActive ? ` · ${pill.pill}` : ''}</span>
       {(newBadge || pill.newBadge) && !isLocked && <span className="card-badge">Nuevo</span>}
       {isLocked && (
-        <>
-          <span style={{
-            position:'absolute', top:10, right:10, padding:'5px 10px',
-            background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
-            fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
-            letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
-            backdropFilter:'blur(8px)',
-          }}>🔒 Bloqueado</span>
-          {/* Candado grande centrado en la card · refuerza visual de bloqueo */}
-          <div style={{
-            position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-            pointerEvents:'none', fontSize:42, opacity:0.85, color:'#fff',
-            textShadow:'0 2px 12px rgba(0,0,0,0.5)',
-          }}>🔒</div>
-        </>
+        /* Card bloqueada · pill discreta arriba-derecha (sin candado central
+           grande que rompa el look Netflix · per spec del cliente) */
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'5px 11px',
+          background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:5,
+          backdropFilter:'blur(8px)',
+        }}>🔒 Bloqueado</span>
       )}
 
       <div className="card-body">
@@ -958,11 +969,24 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
           style={saved ? { background:'rgba(0,114,190,0.85)', color:'#fff', borderColor:'rgba(0,114,190,0.85)' } : undefined}>
           <Ico name={saved ? 'check' : 'bookmark'} size={14}/>
         </button>
-        {!demoActive && (
-          <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
-            <Ico name="thumb" size={13}/>
-          </button>
-        )}
+        {/* Like · 5★ · activo en azul beonit */}
+        <button
+          className={`card-action${liked ? ' is-active' : ''}`}
+          aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'}
+          title={liked ? 'Quitar Me gusta' : 'Me gusta'}
+          onClick={toggleLike}
+          style={liked ? { background:'rgba(0,114,190,0.85)', color:'#fff', borderColor:'rgba(0,114,190,0.85)' } : undefined}>
+          <Ico name="thumb" size={13}/>
+        </button>
+        {/* Dislike · 1★ · activo en rojo beonit · rotación visual del thumb */}
+        <button
+          className={`card-action${disliked ? ' is-active' : ''}`}
+          aria-label={disliked ? 'Quitar No me gusta' : 'No me gusta'}
+          title={disliked ? 'Quitar No me gusta' : 'No me gusta'}
+          onClick={toggleDislike}
+          style={Object.assign({transform:'scaleY(-1)'}, disliked ? { background:'rgba(252,34,13,0.85)', color:'#fff', borderColor:'rgba(252,34,13,0.85)' } : {})}>
+          <Ico name="thumb" size={13}/>
+        </button>
         {!isLocked && (
           <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
             <Ico name="chev-down" size={14}/>
