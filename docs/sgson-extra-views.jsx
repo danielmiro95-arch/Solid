@@ -129,6 +129,52 @@ function RutasView({ setView, openPath }) {
   const D = window.SGS_DATA;
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
+  // Re-render cuando cambien enrollments/bookmarks · para que el badge
+  // "INSCRITO" aparezca al instante tras pulsar el CTA.
+  const [, setEnrollTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setEnrollTick(t => t + 1);
+    window.addEventListener('enrollments-changed', r);
+    window.addEventListener('bookmarks-changed', r);
+    return () => {
+      window.removeEventListener('enrollments-changed', r);
+      window.removeEventListener('bookmarks-changed', r);
+    };
+  }, []);
+
+  // Filtro por categoría · chips arriba del grid. "Todos" por defecto.
+  const [activeCat, setActiveCat] = useEV2('Todos');
+  // Filtro por marca · chips independientes encima de las categorías. Solo
+  // aparecen si hay 2+ marcas distintas en el catálogo (sub-catálogos activos).
+  const [activeBrand, setActiveBrand] = useEV2('Todas');
+  // Búsqueda libre · filtra por title/desc/teacher/badge/brand. Escala mejor
+  // que las chips cuando el catálogo crece (50+ cursos).
+  const [query, setQuery] = useEV2('');
+  const categories = React.useMemo(() => {
+    const set = new Set();
+    paths.forEach(p => { if (p.badge) set.add(p.badge); });
+    return ['Todos', ...Array.from(set).sort()];
+  }, [paths.length]);
+  const brands = React.useMemo(() => {
+    const set = new Set();
+    paths.forEach(p => { if (p.brand) set.add(p.brand); });
+    return Array.from(set).sort();
+  }, [paths.length]);
+  const q = query.trim().toLowerCase();
+  const _matchQuery = (p) => {
+    if (!q) return true;
+    const hay = String((p.title || '') + ' ' + (p.desc || '') + ' ' + (p.teacher || '') + ' ' + (p.badge || '') + ' ' + (p.brand || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  };
+  const _matchCat = (p) => activeCat === 'Todos' || p.badge === activeCat;
+  // Set filtrado por categoría + búsqueda, SIN aplicar el filtro de marca ·
+  // base para los contadores de los chips de marca (que deben reflejar
+  // categoría/búsqueda activas pero no la marca seleccionada).
+  const byCatNoBrand = paths.filter(p => _matchCat(p) && _matchQuery(p));
+  // Set final · añade el filtro de marca seleccionado.
+  const filteredPaths = activeBrand === 'Todas'
+    ? byCatNoBrand
+    : byCatNoBrand.filter(p => p.brand === activeBrand);
 
   // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
   // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
@@ -142,16 +188,179 @@ function RutasView({ setView, openPath }) {
     : <>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>;
   const sub     = demoActive ? '' : T('rutas.sub');
 
+  // Autotest banner · si el workspace tiene `settings.autotest_url`, mostramos
+  // un banner discreto arriba del catálogo invitando al test (15 min). El
+  // banner se puede ocultar y queda persistido en localStorage por workspace.
+  const _wsAuto = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const _autoUrl = (_wsAuto.settings && _wsAuto.settings.autotest_url) || null;
+  const _autoKey = 'sgson:autotest-banner:' + (_wsAuto.slug || 'default');
+  const [autoHide, setAutoHide] = useEV2(() => {
+    try { return localStorage.getItem(_autoKey) === 'hidden'; } catch (e) { return false; }
+  });
+  const dismissAuto = () => {
+    setAutoHide(true);
+    try { localStorage.setItem(_autoKey, 'hidden'); } catch (e) {}
+  };
+
+  // Sub-catálogos por marca · si al menos un path tiene `brand` Y el user
+  // está viendo "Todas", dividimos el grid en secciones. Al filtrar por marca
+  // específica, el grid es plano (no tiene sentido un grupo de 1).
+  const _hasBrands = filteredPaths.some(p => p.brand);
+  const _brandGroups = (() => {
+    if (!_hasBrands) return null;
+    if (activeBrand !== 'Todas') return null;
+    const groups = new Map();
+    filteredPaths.forEach(p => {
+      const b = p.brand || 'Catálogo general';
+      if (!groups.has(b)) groups.set(b, []);
+      groups.get(b).push(p);
+    });
+    return Array.from(groups.entries()); // [[brandName, paths[]], ...]
+  })();
+
   return (
     <PageShell
       eyebrow={eyebrow}
       title={title}
       sub={sub}>
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
-      }}>
-        {paths.map((p, idx) => {
+      {/* Autotest banner · CTA al test externo si está configurado */}
+      {_autoUrl && !autoHide && (
+        <div style={{
+          marginBottom: 24, padding:'14px 18px',
+          background:'linear-gradient(90deg, rgba(89,71,255,0.14), rgba(89,71,255,0.06))',
+          border:'1px solid rgba(89,71,255,0.28)', borderRadius:12,
+          display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+        }}>
+          <span style={{ fontSize: 22 }}>🧭</span>
+          <div style={{ flex:1, minWidth: 240 }}>
+            <div style={{ fontWeight:700, fontSize:14, color:'var(--fg)' }}>¿No sabes por dónde empezar?</div>
+            <div style={{ fontSize:12.5, color:'var(--fg-muted)', marginTop:2 }}>
+              Haz el test de autodiagnóstico (15 min) y te recomendamos el itinerario que mejor encaja contigo.
+            </div>
+          </div>
+          <a href={_autoUrl} target="_blank" rel="noopener noreferrer" style={{
+            padding:'9px 16px', background:'var(--accent)', color:'#fff', textDecoration:'none',
+            borderRadius:8, fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+          }}>Empezar test</a>
+          <button onClick={dismissAuto} title="Ocultar" style={{
+            background:'transparent', border:'none', color:'var(--fg-muted)', cursor:'pointer',
+            fontSize:18, lineHeight:1, padding:'4px 8px',
+          }}>×</button>
+        </div>
+      )}
+
+      {/* Filtro de marca · chip strip cuando hay 2+ marcas (sub-catálogos) */}
+      {brands.length >= 2 && (
+        <div style={{
+          display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginBottom:14,
+        }}>
+          <span style={{
+            fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)',
+            letterSpacing:'0.1em', textTransform:'uppercase', marginRight:4,
+          }}>Marca</span>
+          {['Todas', ...brands].map(b => {
+            const active = b === activeBrand;
+            // Cuenta contra el set filtrado por categoría+búsqueda (byCat ya las
+            // aplica salvo el propio filtro de marca) · refleja lo que se vería.
+            const count = b === 'Todas'
+              ? byCatNoBrand.length
+              : byCatNoBrand.filter(x => x.brand === b).length;
+            return (
+              <button key={b} onClick={() => setActiveBrand(b)} style={{
+                padding:'6px 12px', fontFamily:'var(--font-sans)', fontSize:12, fontWeight:700,
+                background: active ? 'var(--fg)' : 'transparent',
+                color:      active ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+                border:'1px solid', borderColor: active ? 'var(--fg)' : 'var(--line)',
+                borderRadius:999, cursor:'pointer', transition:'all .15s',
+              }}>
+                {b} <span style={{ opacity: 0.55, marginLeft: 4, fontWeight: 500 }}>· {count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Búsqueda libre · siempre visible cuando hay ≥ 6 paths */}
+      {paths.length >= 6 && (
+        <div style={{ marginBottom: 16, position:'relative', maxWidth: 420 }}>
+          <input
+            type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar curso, profesor, marca…"
+            style={{
+              width:'100%', padding:'10px 14px 10px 38px',
+              background:'var(--bg-surface)', border:'1px solid var(--line)',
+              borderRadius:'var(--r-2, 10px)', color:'var(--fg)',
+              fontFamily:'var(--font-sans)', fontSize: 13.5, boxSizing:'border-box',
+              outline:'none', transition:'border-color .15s',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; }}
+          />
+          <span style={{
+            position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)',
+            color:'var(--fg-muted)', display:'inline-flex', pointerEvents:'none',
+          }}>{window.Ico ? React.createElement(window.Ico, { name:'search', size:16 }) : null}</span>
+          {query && (
+            <button onClick={() => setQuery('')} title="Limpiar" style={{
+              position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
+              background:'transparent', border:'none', color:'var(--fg-muted)',
+              fontSize: 18, lineHeight: 1, cursor:'pointer', padding:'4px 8px',
+            }}>×</button>
+          )}
+        </div>
+      )}
+
+      {/* Category chips · solo si hay más de 1 categoría distinta.
+          _catBase · set filtrado por marca+búsqueda (sin la propia categoría) ·
+          base para los contadores · refleja lo que se vería al pulsar el chip. */}
+      {categories.length > 2 && (() => {
+        const _catBase = paths.filter(p =>
+          (activeBrand === 'Todas' || p.brand === activeBrand) && _matchQuery(p));
+        return (
+        <div style={{
+          display:'flex', gap:8, flexWrap:'wrap', marginBottom:24,
+          padding:'6px', background:'var(--bg-surface)', border:'1px solid var(--line)',
+          borderRadius:'var(--r-2, 12px)', width:'fit-content', maxWidth:'100%',
+        }}>
+          {categories.map(c => {
+            const active = c === activeCat;
+            const count = c === 'Todos' ? _catBase.length : _catBase.filter(p => p.badge === c).length;
+            return (
+              <button key={c} onClick={() => setActiveCat(c)} style={{
+                padding:'7px 14px', fontFamily:'var(--font-sans)', fontSize:12.5, fontWeight:700,
+                background: active ? 'var(--accent)' : 'transparent',
+                color:    active ? '#fff' : 'var(--fg-muted)',
+                border:'none', borderRadius:'var(--r-1, 8px)', cursor:'pointer',
+                transition:'all .15s',
+              }}>
+                {c} <span style={{opacity:0.6, marginLeft:4, fontWeight:500}}>· {count}</span>
+              </button>
+            );
+          })}
+        </div>
+        );
+      })()}
+
+      {/* Empty state · búsqueda sin resultados */}
+      {q && filteredPaths.length === 0 && (
+        <div style={{
+          padding:'48px 24px', textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:12, marginTop: 8,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>
+            Sin resultados para "{query}"
+          </div>
+          <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+            Prueba con otra palabra o limpia el filtro.
+          </div>
+        </div>
+      )}
+
+      {(() => {
+        if (q && filteredPaths.length === 0) return null;
+        const renderCard = (p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
           // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
           // primer path por posición desbloqueado para que la demo se
@@ -164,14 +373,23 @@ function RutasView({ setView, openPath }) {
           const levelBadges = (_dm && _dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
           const levelTxt = demoActive ? levelBadges[seed % levelBadges.length] : null;
           const pathLabelSingular = demoActive ? _label('path_label', 'Curso').toUpperCase() : 'RUTA';
+          const enrolled = window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id);
           const startLabel = isLocked ? '🔒 Bloqueado'
                            : p.isCompleted ? '✓ Completada'
                            : pct > 0 ? 'Continuar · ' + pct + '%'
-                           : (demoActive ? 'Inscribirse' : T('rutas.start'));
+                           : (enrolled ? 'Empezar curso'
+                              : (demoActive ? 'Inscribirse' : T('rutas.start')));
           const handleClick = () => {
             if (isLocked) {
               if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
               return;
+            }
+            // Si el user no está inscrito y aún no empezó, lo inscribimos antes
+            // de navegar. Hace explícito "ahora estás en este curso" y permite
+            // mostrarlo en "Mis cursos inscritos".
+            if (!enrolled && pct === 0 && !p.isCompleted && window.Enrollments) {
+              window.Enrollments.add(p.id);
+              if (window.Toast) window.Toast.success('Inscrito en ' + p.title, { icon: '✓' });
             }
             go(p.id);
           };
@@ -195,6 +413,12 @@ function RutasView({ setView, openPath }) {
                 ✓ COMPLETADA
               </span>
             )}
+            {enrolled && !p.isCompleted && !isLocked && pct === 0 && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(89,71,255,0.92)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
+                ✓ INSCRITO
+              </span>
+            )}
             {isLocked && (
               <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(0,0,0,0.72)', color:'#fff',
                 fontFamily:'var(--font-mono)', fontSize:10, fontWeight:700, letterSpacing:'0.06em', borderRadius:999 }}>
@@ -212,7 +436,20 @@ function RutasView({ setView, openPath }) {
                 fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400,
                 fontSize: 28, color: 'var(--fg)', margin: 0, marginBottom: 8, lineHeight: 1.1,
               }}>{p.title}</h3>
-              <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
+              {/* Descripción · competencia · nivel · #pills · director del programa */}
+              <p style={{ fontSize: 12.5, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>
+                {(() => {
+                  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+                  const director = (ws.settings && ws.settings.program_director) || null;
+                  const totalPills = p.totalCount || p.pills || 0;
+                  const parts = [];
+                  if (p.badge) parts.push(p.badge);
+                  if (levelTxt) parts.push('Nivel ' + levelTxt);
+                  if (totalPills) parts.push(totalPills + ' pills');
+                  if (director) parts.push('Dirige ' + director);
+                  return parts.join(' · ');
+                })()}
+              </p>
               {pct > 0 && pct < 100 && (
                 <div style={{ height:4, background:'rgba(255,255,255,0.1)', borderRadius:2, overflow:'hidden', marginTop:10 }}>
                   <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
@@ -266,8 +503,47 @@ function RutasView({ setView, openPath }) {
               </div>
             </div>
           </article>
-        );})}
-      </div>
+        );};
+
+        if (!_brandGroups) {
+          return (
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:20,
+            }}>
+              {filteredPaths.map((p, idx) => renderCard(p, idx))}
+            </div>
+          );
+        }
+
+        // Brand-grouped · una sección por marca con header tipo "sub-catálogo".
+        // El índice se calcula GLOBAL (posición en filteredPaths), no local al
+        // grupo · así el candado por posición (idx > 0) deja desbloqueado solo
+        // el primer curso del catálogo, no el primero de cada marca.
+        const _globalIdx = new Map();
+        filteredPaths.forEach((p, i) => { _globalIdx.set(p.id, i); });
+        return _brandGroups.map(([brandName, brandPaths]) => (
+          <section key={brandName} style={{ marginBottom: 36 }}>
+            <header style={{
+              display:'flex', alignItems:'baseline', gap:10, marginBottom:14,
+              paddingBottom:8, borderBottom:'1px solid var(--line)',
+            }}>
+              <h2 style={{
+                margin:0, fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400,
+                fontSize:22, color:'var(--fg)', letterSpacing:'-0.01em',
+              }}>{brandName}</h2>
+              <span style={{
+                fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)',
+                letterSpacing:'0.08em', textTransform:'uppercase',
+              }}>{brandPaths.length} {brandPaths.length === 1 ? 'curso' : 'cursos'}</span>
+            </header>
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:20,
+            }}>
+              {brandPaths.map(p => renderCard(p, _globalIdx.get(p.id)))}
+            </div>
+          </section>
+        ));
+      })()}
     </PageShell>
   );
 }
@@ -284,11 +560,13 @@ function MyPathView({ openDetail, setView, pathId }) {
     const r = () => setRefreshTick(t => t + 1);
     window.addEventListener('sgs-data-ready', r);
     window.addEventListener('bookmarks-changed', r);
+    window.addEventListener('enrollments-changed', r);
     window.addEventListener('pills-changed', r);
     window.addEventListener('paths-changed', r);
     return () => {
       window.removeEventListener('sgs-data-ready', r);
       window.removeEventListener('bookmarks-changed', r);
+      window.removeEventListener('enrollments-changed', r);
       window.removeEventListener('pills-changed', r);
       window.removeEventListener('paths-changed', r);
     };
@@ -411,6 +689,31 @@ function MyPathView({ openDetail, setView, pathId }) {
       </div>
       )}
 
+      {/* MASTER EMPTY STATE · user real sin actividad · ofrece CTA al
+          Catálogo. Solo aplica en demo (Mi Lista) sin path activo, sin
+          sembrado de muestra y con las 3 secciones vacías. */}
+      {_isDemo && !path && inProgress.length === 0 && next.length === 0
+        && (PATHS.filter(p => p.progress > 0 || (window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id))).length === 0) && (
+        <div style={{
+          padding:'60px 32px', textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:16, marginBottom:32,
+        }}>
+          <div style={{ fontSize:48, marginBottom:14 }}>📚</div>
+          <h3 style={{ margin:'0 0 8px', fontSize:20, fontWeight:700, color:'var(--fg)' }}>
+            Tu lista está vacía
+          </h3>
+          <p style={{ margin:'0 auto 24px', fontSize:14, color:'var(--fg-muted)', maxWidth:420, lineHeight:1.55 }}>
+            Cuando empieces un curso o guardes pills como favoritas las verás aquí.
+            Explora el catálogo y empieza por el que más te interese.
+          </p>
+          <button onClick={() => setView && setView('rutas')} style={{
+            padding:'12px 22px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:10,
+            cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:14,
+            boxShadow:'0 6px 16px rgba(0,114,190,0.30)',
+          }}>Ir al Catálogo →</button>
+        </div>
+      )}
+
       {/* En progreso · pills (sección 1/3 en demo: "Pills · continuar viendo") */}
       {inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
@@ -467,11 +770,15 @@ function MyPathView({ openDetail, setView, pathId }) {
         </section>
       )}
 
-      {/* Cursos inscritos (sección 3/3 en demo) · paths bookmarkados + en progreso */}
+      {/* Cursos inscritos (sección 3/3 en demo) · enrolled + en progreso + bookmarked */}
       {_isDemo && !path && (() => {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
+        const coursesEnrolled   = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id));
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
-        let coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        // Orden · en progreso primero (más relevante), luego inscritos, luego bookmarks. Sin duplicados.
+        const seen = new Set();
+        const dedup = (arr) => arr.filter(x => { if (seen.has(x.id)) return false; seen.add(x.id); return true; });
+        let coursesToShow = [...dedup(coursesInProgress), ...dedup(coursesEnrolled), ...dedup(coursesBookmarked)];
         // Sembrado SOLO en URL demo HdR · para users reales mostramos empty
         // state honesto en lugar de cursos falsos inscritos.
         const _seedSample = typeof window !== 'undefined' && /demo/i.test(window.location.href);
@@ -1817,13 +2124,17 @@ function InboxView({ openDetail }) {
 
   const onItemClick = (m) => {
     if (window.Inbox && window.Inbox.markRead) window.Inbox.markRead(tab, m.id);
-    // Si la notificación tiene `link` con pill id → abre el detalle
-    if (m && m.link && openDetail) {
-      const linkStr = String(m.link);
-      const pillId = linkStr.startsWith('pill:') ? linkStr.slice(5) : linkStr;
-      const pill = PILLS_BY_ID[pillId];
-      if (pill) openDetail(pill);
+    if (!m || !m.link) return;
+    // Soporta prefijos `pill:` y `path:` (con o sin `#` opcional). Admin
+    // assign genera `#path:<id>`; pills viejas usan `pill:<id>`.
+    const linkStr = String(m.link).replace(/^#/, '');
+    if (linkStr.startsWith('path:')) {
+      const pathId = linkStr.slice(5);
+      if (window.__openPath) { window.__openPath(pathId); return; }
     }
+    const pillId = linkStr.startsWith('pill:') ? linkStr.slice(5) : linkStr;
+    const pill = PILLS_BY_ID[pillId];
+    if (pill && openDetail) openDetail(pill);
   };
 
   const renderItem = (m) => {
@@ -2215,6 +2526,70 @@ function ProfileDemoContent({ USER }) {
 
   return (
     <div style={{ marginTop:24 }}>
+      {/* AVATAR · subida directa a Supabase Storage */}
+      <div style={cardStyle}>
+        <h3 style={sectionTitle}>Foto de perfil</h3>
+        <p style={sectionSub}>Aparecerá en la barra superior y en cualquier interacción del workspace.</p>
+        <div style={{ display:'flex', alignItems:'center', gap:18 }}>
+          <div style={{
+            width:84, height:84, borderRadius:'50%',
+            background: USER.avatarUrl
+              ? `url(${USER.avatarUrl}) center/cover no-repeat`
+              : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
+            color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:30, fontWeight:800, fontFamily:'var(--font-sans)',
+            flexShrink:0, boxShadow:'0 4px 14px rgba(0,0,0,0.25)',
+            border:'2px solid var(--line)',
+          }}>{!USER.avatarUrl && (USER.initials || 'U')}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <label style={{
+              padding:'8px 14px', background:'var(--accent)', color:'#fff',
+              border:'none', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+              display:'inline-flex', alignItems:'center', gap:6, width:'fit-content',
+            }}>
+              {USER.avatarUrl ? 'Cambiar foto' : 'Subir foto'}
+              <input type="file" accept="image/*" style={{display:'none'}}
+                onChange={async (e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (!file) return;
+                  if (!window.UserProfile || !window.UserProfile.uploadAvatar) {
+                    if (window.Toast) window.Toast.info('Avatar upload no disponible');
+                    return;
+                  }
+                  setSavingField('avatar');
+                  try {
+                    const url = await window.UserProfile.uploadAvatar(file);
+                    if (url && window.Toast) window.Toast.success('Foto actualizada', { icon:'✓' });
+                  } catch (err) {
+                    if (window.Toast) window.Toast.info('No se pudo subir · ' + (err.message || 'error'));
+                  } finally {
+                    setSavingField(null);
+                    e.target.value = ''; // reset input
+                  }
+                }}/>
+            </label>
+            {USER.avatarUrl && (
+              <button onClick={async () => {
+                if (!confirm('¿Quitar foto de perfil?')) return;
+                setSavingField('avatar');
+                try {
+                  if (window.UserProfile && window.UserProfile.update) {
+                    window.UserProfile.update({ avatarUrl: null });
+                  }
+                } finally { setTimeout(() => setSavingField(null), 400); }
+              }} style={{
+                padding:'6px 12px', background:'transparent', color:'var(--fg-muted)',
+                border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+                fontFamily:'var(--font-sans)', fontWeight:600, fontSize:11.5, width:'fit-content',
+              }}>Quitar foto</button>
+            )}
+            {savingField === 'avatar' && <span style={{fontSize:11, color:'var(--accent)'}}>subiendo…</span>}
+            <span style={{fontSize:11, color:'var(--fg-muted)'}}>JPG/PNG · máx 2MB · cuadrada recomendada</span>
+          </div>
+        </div>
+      </div>
+
       {/* DATOS DE CONTACTO · editables (blur = save) */}
       <div style={cardStyle}>
         <h3 style={sectionTitle}>Datos de contacto</h3>
@@ -2312,6 +2687,29 @@ function ProfileDemoContent({ USER }) {
           </label>
         </div>
       </div>
+
+      {/* Bases legales · link discreto si el workspace lo tiene configurado */}
+      {(() => {
+        const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+        const legalUrl = (ws.settings && ws.settings.legal_url) || null;
+        if (!legalUrl) return null;
+        return (
+          <div style={{
+            marginTop: 18, padding:'12px 16px', background:'var(--bg-surface)',
+            border:'1px solid var(--line)', borderRadius: 8,
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, flexWrap:'wrap',
+          }}>
+            <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+              Bases legales y política de privacidad del programa.
+            </div>
+            <a href={legalUrl} target="_blank" rel="noopener noreferrer" style={{
+              padding:'6px 12px', background:'transparent', color:'var(--accent)',
+              textDecoration:'none', border:'1px solid var(--line)', borderRadius: 6,
+              fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
+            }}>Ver bases legales →</a>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -3494,6 +3892,10 @@ function WorkspacesPanel() {
   const [editAllowedDomain, setEditAllowedDomain] = useEV2('');
   const [editPathLabel, setEditPathLabel] = useEV2('');
   const [editPathLabelPlural, setEditPathLabelPlural] = useEV2('');
+  const [editWelcomeMsg, setEditWelcomeMsg] = useEV2('');
+  const [editProgramDirector, setEditProgramDirector] = useEV2('');
+  const [editLegalUrl, setEditLegalUrl] = useEV2('');
+  const [editAutoTestUrl, setEditAutoTestUrl] = useEV2('');
   // ── Members management (Slice 1C) ──────────────────────────────────────
   const [addEmail, setAddEmail] = useEV2('');
   const [addRole, setAddRole] = useEV2('member');
@@ -3530,6 +3932,10 @@ function WorkspacesPanel() {
     setEditAllowedDomain(s.allowedDomain || '');
     setEditPathLabel(s.path_label || '');
     setEditPathLabelPlural(s.path_label_plural || '');
+    setEditWelcomeMsg(s.welcome_message || '');
+    setEditProgramDirector(s.program_director || '');
+    setEditLegalUrl(s.legal_url || '');
+    setEditAutoTestUrl(s.autotest_url || '');
   };
   const cancelEdit = () => { setEditingId(null); setEditLogoPreview(null); };
   const saveEdit = async () => {
@@ -3545,6 +3951,10 @@ function WorkspacesPanel() {
       allowedDomain: editAllowedDomain.trim() || null,
       path_label: editPathLabel.trim() || null,
       path_label_plural: editPathLabelPlural.trim() || null,
+      welcome_message: editWelcomeMsg.trim() || null,
+      program_director: editProgramDirector.trim() || null,
+      legal_url: editLegalUrl.trim() || null,
+      autotest_url: editAutoTestUrl.trim() || null,
     });
     // Limpia keys null para no llenar el jsonb de basura
     Object.keys(nextSettings).forEach(k => { if (nextSettings[k] == null || nextSettings[k] === '') delete nextSettings[k]; });
@@ -3741,7 +4151,91 @@ function WorkspacesPanel() {
                             style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box' }}/>
                         </label>
                       </div>
+                      <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', marginTop: 10, display:'block' }}>
+                        Mensaje de bienvenida (Home)
+                        <textarea value={editWelcomeMsg} onChange={e => setEditWelcomeMsg(e.target.value)}
+                          rows={2}
+                          placeholder="Bienvenido a tu plataforma de formación. Aquí encontrarás contenido pensado para ti."
+                          style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0, resize:'vertical' }}/>
+                        <span style={{ display:'block', marginTop: 3, fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}>
+                          Aparece como banner dismissible en el home. Vacío = mensaje genérico con nombre del user.
+                        </span>
+                      </label>
+                      <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', marginTop: 10, display:'block' }}>
+                        Director del programa (valor fijo en cards)
+                        <input value={editProgramDirector} onChange={e => setEditProgramDirector(e.target.value)}
+                          placeholder="Ej · Carmen Martínez · Directora de Formación"
+                          style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        <span style={{ display:'block', marginTop: 3, fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}>
+                          Aparece en la descripción de cada curso ("Dirige · {'<nombre>'}").
+                        </span>
+                      </label>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10, marginTop: 10 }}>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', display:'block' }}>
+                          URL Bases Legales
+                          <input value={editLegalUrl} onChange={e => setEditLegalUrl(e.target.value)}
+                            placeholder="https://..."
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        </label>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', display:'block' }}>
+                          URL Test autodiagnóstico
+                          <input value={editAutoTestUrl} onChange={e => setEditAutoTestUrl(e.target.value)}
+                            placeholder="https://forms..."
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        </label>
+                      </div>
                     </div>
+                    {/* Demo user · crea usuario predecible para presentaciones */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
+                      <button onClick={async () => {
+                          try {
+                            const sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+                            if (!sb || !sb.rpc) { alert('Supabase no disponible'); return; }
+                            const { data, error } = await sb.rpc('create_demo_user_for_workspace', { p_workspace_slug: w.slug });
+                            if (error) { alert('Error: ' + error.message); return; }
+                            const msg = '✓ Demo user ' + (data.status === 'created' ? 'creado' : 'reseteado') +
+                                        '\n\nEmail: ' + data.email +
+                                        '\nPassword: ' + data.password +
+                                        '\nLogin: ' + data.login_url +
+                                        '\n\nCredenciales copiadas para compartir con cliente.';
+                            try {
+                              await navigator.clipboard.writeText(data.email + ' / ' + data.password + '\n' + data.login_url);
+                            } catch (e) {}
+                            alert(msg);
+                          } catch (e) {
+                            alert('Error: ' + e.message);
+                          }
+                        }}
+                        style={{ padding:'7px 12px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                        👤 Crear demo user
+                      </button>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+                        demo+{w.slug}@beonit.es · pwd Demo2026!
+                      </span>
+                    </div>
+
+                    {/* Starter pack · siembra 4 cursos + 12 pills universales */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
+                      <button onClick={async () => {
+                          if (!confirm('Sembrar 4 cursos + 12 pills de ejemplo en "' + w.name + '"?\n\nTemas: Bienvenida · Comunicación · Liderazgo · Productividad.\nIdempotente · si ya están, hace skip.')) return;
+                          try {
+                            const sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+                            if (!sb || !sb.rpc) { alert('Supabase no disponible'); return; }
+                            const { data, error } = await sb.rpc('seed_workspace_starter_pack', { p_workspace_slug: w.slug });
+                            if (error) { alert('Error: ' + error.message); return; }
+                            if (window.Toast) window.Toast.success('✓ Starter pack sembrado · ' + data.paths + ' cursos · ' + data.pills + ' pills');
+                          } catch (e) {
+                            alert('Error: ' + e.message);
+                          }
+                        }}
+                        style={{ padding:'7px 12px', background:'transparent', color:'var(--accent)', border:'1px solid var(--accent)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>
+                        🌱 Sembrar starter pack
+                      </button>
+                      <span style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
+                        4 cursos + 12 pills universales · útil para workspace recién creado
+                      </span>
+                    </div>
+
                     {/* Archive · soft delete · oculta del switcher pero conserva datos */}
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10 }}>
                       <button onClick={async () => {
@@ -4017,6 +4511,8 @@ function ContentPanel({ kind, label, icon }) {
   const [, setTick] = useEV2(0);
   const [openId, setOpenId] = useEV2(null);
   const [draft, setDraft] = useEV2({});
+  // Asignación a miembros · cuando se abre, contiene el path target.
+  const [assignFor, setAssignFor] = useEV2(null);
 
   React.useEffect(() => {
     const r = () => setTick(t => t + 1);
@@ -4039,16 +4535,22 @@ function ContentPanel({ kind, label, icon }) {
   const wsName = ws ? ws.name : '—';
   const items = window.Content.list(kind);
 
-  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it }); };
-  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0 }); };
+  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it, brand: (it._meta && it._meta.brand) || '' }); };
+  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0, brand: '' }); };
   const cancel = () => { setOpenId(null); setDraft({}); };
 
   const save = async () => {
     if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    // Brand vive en metadata.brand · lo extraemos del draft plano y lo
+    // pasamos como patch.metadata para que content.update haga merge.
+    const { brand, ...rest } = draft;
+    const payload = brand !== undefined && kind === 'path'
+      ? Object.assign({}, rest, { metadata: { brand: brand.trim() || null } })
+      : rest;
     if (openId === 'new') {
-      await window.Content.create(kind, draft);
+      await window.Content.create(kind, payload);
     } else {
-      await window.Content.update(kind, openId, draft);
+      await window.Content.update(kind, openId, payload);
       if (window.Toast) window.Toast.success('Actualizado');
     }
     setOpenId(null); setDraft({});
@@ -4082,9 +4584,22 @@ function ContentPanel({ kind, label, icon }) {
           {items.map(it => (
             <div key={it._id} style={{ padding:'12px 14px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8, display:'flex', alignItems:'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)' }}>{it.title}</div>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)', display:'flex', alignItems:'center', gap: 8 }}>
+                  {it.title}
+                  {kind === 'path' && it._meta && it._meta.brand && (
+                    <span style={{ padding:'2px 8px', background:'rgba(89,71,255,0.14)', color:'var(--accent)', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing:'0.04em' }}>{it._meta.brand}</span>
+                  )}
+                </div>
                 <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2 }}>{[it.teacher, it.duration, it.category].filter(Boolean).join(' · ') || '—'}</div>
               </div>
+              {kind === 'path' && (
+                <button
+                  onClick={() => setAssignFor(it)}
+                  title="Asignar a miembros del workspace"
+                  style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--accent)' }}>
+                  📨 Asignar
+                </button>
+              )}
               <button onClick={() => startEdit(it)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--fg)' }}>Editar</button>
               <button onClick={() => remove(it._id, it.title)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'#E63946' }}>Eliminar</button>
             </div>
@@ -4120,6 +4635,17 @@ function ContentPanel({ kind, label, icon }) {
                 <input value={draft.category || ''} onChange={e => setDraft({ ...draft, category: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
               </label>
             )}
+            {kind === 'path' && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Marca (sub-catálogo)</div>
+                <input value={draft.brand || ''} onChange={e => setDraft({ ...draft, brand: e.target.value })}
+                  placeholder="Ej · 1906, Estrella Galicia, Anchois Cuca"
+                  style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+                <span style={{ fontSize: 10, color:'var(--fg-muted)', marginTop: 4, display:'block' }}>
+                  Agrupa el catálogo por marca. Vacío = "Catálogo general".
+                </span>
+              </label>
+            )}
             {showLevel && (
               <label>
                 <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Nivel</div>
@@ -4150,10 +4676,128 @@ function ContentPanel({ kind, label, icon }) {
           </div>
         </div>
       )}
+      {assignFor && (
+        <AssignMembersModal
+          path={assignFor}
+          onClose={() => setAssignFor(null)}
+        />
+      )}
     </section>
   );
 }
 window.ContentPanel = ContentPanel;
+
+// ── AssignMembersModal · picker para asignar un curso a miembros específicos ─
+// Lee Workspaces.membersOf(currentId) · checkbox por user · "Seleccionar
+// todos" para volver al comportamiento broadcast. Solo crea notificaciones,
+// no fuerza enrollment (el user decide al hacer click en la notificación).
+function AssignMembersModal({ path, onClose }) {
+  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const members = ((window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(ws.id) : []) || [];
+  // Excluye usuarios sin id válido (defensivo)
+  const valid = members.filter(m => m.user_id || m.id);
+  const [selected, setSelected] = useEV2(() => new Set(valid.map(m => m.user_id || m.id)));
+  const [query, setQuery] = useEV2('');
+  const [sending, setSending] = useEV2(false);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q ? valid.filter(m =>
+    (m.name || '').toLowerCase().indexOf(q) !== -1 ||
+    (m.email || '').toLowerCase().indexOf(q) !== -1
+  ) : valid;
+
+  const toggle = (id) => {
+    const s = new Set(selected);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setSelected(s);
+  };
+  const selectAll = () => setSelected(new Set(valid.map(m => m.user_id || m.id)));
+  const selectNone = () => setSelected(new Set());
+
+  const send = async () => {
+    if (selected.size === 0) { if (window.Toast) window.Toast.error('Selecciona al menos un miembro'); return; }
+    if (!window.Inbox || !window.Inbox.broadcastToWorkspace) { if (window.Toast) window.Toast.error('Inbox no disponible'); return; }
+    setSending(true);
+    const r = await window.Inbox.broadcastToWorkspace(
+      'Tienes un nuevo curso asignado · ' + path.title,
+      { kind: 'info', icon: '📚', link: '#path:' + path.id, userIds: Array.from(selected) }
+    );
+    setSending(false);
+    if (r.ok) {
+      if (window.Toast) window.Toast.success('Asignado a ' + r.count + (r.count === 1 ? ' miembro' : ' miembros'));
+      onClose();
+    } else {
+      if (window.Toast) window.Toast.error('Error: ' + (r.error || 'desconocido'));
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(13,17,23,0.65)',
+      backdropFilter:'blur(4px)', zIndex: 650,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 14,
+        boxShadow:'0 30px 80px rgba(0,0,0,0.45)',
+        width:'min(520px, 100%)', maxHeight:'80vh', display:'flex', flexDirection:'column',
+      }}>
+        <div style={{ padding:'18px 22px 12px', borderBottom:'1px solid var(--line)' }}>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom: 4 }}>Asignar curso</div>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color:'var(--fg)' }}>{path.title}</h3>
+          <div style={{ marginTop: 6, fontSize: 12, color:'var(--fg-muted)' }}>{valid.length} {valid.length === 1 ? 'miembro' : 'miembros'} en el workspace</div>
+        </div>
+        <div style={{ padding:'12px 22px', borderBottom:'1px solid var(--line)', display:'flex', gap: 10, alignItems:'center', flexWrap:'wrap' }}>
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre o email…"
+            style={{ flex: 1, minWidth: 180, padding:'8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg)', fontSize: 12.5 }}/>
+          <button onClick={selectAll} style={{ padding:'6px 10px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg-muted)', fontSize: 11, cursor:'pointer' }}>Todos</button>
+          <button onClick={selectNone} style={{ padding:'6px 10px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg-muted)', fontSize: 11, cursor:'pointer' }}>Ninguno</button>
+        </div>
+        <div style={{ flex: 1, overflowY:'auto', padding:'8px 22px 12px' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding:'24px 0', textAlign:'center', color:'var(--fg-muted)', fontSize: 12.5 }}>
+              {q ? 'Sin resultados para "' + query + '"' : 'No hay miembros en el workspace.'}
+            </div>
+          ) : filtered.map(m => {
+            const id = m.user_id || m.id;
+            const isSel = selected.has(id);
+            return (
+              <label key={id} style={{
+                display:'flex', alignItems:'center', gap: 12, padding:'10px 6px',
+                borderBottom:'1px solid var(--line)', cursor:'pointer',
+              }}>
+                <input type="checkbox" checked={isSel} onChange={() => toggle(id)}
+                  style={{ width: 16, height: 16, cursor:'pointer' }}/>
+                <div style={{
+                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+                  background: m.avatar_color || 'var(--accent)', color:'#fff',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: 12, fontWeight: 700,
+                }}>{(m.name || m.email || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color:'var(--fg)' }}>{m.name || (m.email ? m.email.split('@')[0] : 'Sin nombre')}</div>
+                  <div style={{ fontSize: 11, color:'var(--fg-muted)' }}>{m.email || '—'}{m.workspaceRole ? ' · ' + m.workspaceRole : ''}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10 }}>
+          <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+            {selected.size} {selected.size === 1 ? 'seleccionado' : 'seleccionados'}
+          </div>
+          <div style={{ display:'flex', gap: 8 }}>
+            <button onClick={onClose} disabled={sending} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 12.5, color:'var(--fg-muted)' }}>Cancelar</button>
+            <button onClick={send} disabled={sending || selected.size === 0} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor: (sending || selected.size === 0) ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 12.5, opacity: (sending || selected.size === 0) ? 0.6 : 1 }}>
+              {sending ? 'Asignando…' : 'Asignar a ' + selected.size}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+window.AssignMembersModal = AssignMembersModal;
 
 // ── CertificatesAdminPanel · admin only · todos los certs del workspace ──
 function CertificatesAdminPanel() {

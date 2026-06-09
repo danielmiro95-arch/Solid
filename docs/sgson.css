@@ -407,6 +407,19 @@ img { display: block; max-width: 100%; }
   transition: color var(--t-fast), background var(--t-fast);
 }
 .icon-btn:hover { color: var(--fg); background: var(--bg-elevated); }
+/* Safety net · un icon-btn nunca debe perder su glyph al hover. Garantiza
+   contraste mínimo y que cualquier <svg> herede currentColor visible. */
+.icon-btn { cursor: pointer; }
+.icon-btn svg { color: inherit; }
+.icon-btn:hover svg { opacity: 1; }
+/* Search btn con hint Cmd+K · ancho automático para acomodar el badge */
+.icon-btn.topnav-search {
+  width: auto;
+  padding: 0 10px 0 12px;
+  border-radius: 18px;
+  gap: 6px;
+}
+.icon-btn.topnav-search:hover .topnav-search-kbd { border-color: var(--accent); color: var(--fg); }
 
 .icon-btn .badge {
   position: absolute;
@@ -751,11 +764,14 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
   color: var(--fg-muted);
   display: inline-flex; align-items: center; gap: 6px;
-  opacity: 0;
+  /* Base visible (0.55) en vez de 0 · antes era invisible hasta hover y nunca
+     aparecía en táctil. Full opacity + color fg al hover. */
+  opacity: 0.55;
+  cursor: pointer;
   transition: opacity var(--t-fast), color var(--t-fast);
 }
 .row:hover .row-explore { opacity: 1; }
-.row-explore:hover { color: var(--fg); }
+.row-explore:hover { color: var(--fg); opacity: 1; }
 
 .rail {
   position: relative;
@@ -2342,6 +2358,8 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
   .topnav-right .icon-btn { width: 36px; height: 36px; }
   .topnav-right .avatar { width: 32px; height: 32px; font-size: 12px; }
   .topnav-hamburger { display: inline-flex; }
+  /* Cmd+K hint solo tiene sentido en desktop */
+  .topnav-search-kbd { display: none; }
   /* Avatar trigger se oculta en mobile · su contenido está en el drawer */
   .topnav-right .avatar-trigger { display: none; }
 
@@ -2567,13 +2585,18 @@ html[data-demo-mode="true"] .hero-overlay {
     linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.40) 50%, rgba(15,16,20,0.92) 88%, #14151A 100%);
 }
 
-/* En demo · ocultamos la barra superior del shell ("SolidStream · by BeonIt
- * / nombre del workspace") porque el cliente NO quiere ver branding
- * BeonIt × Repsol arriba durante el demo. La nav React (topnav-center con
- * Inicio · Catálogo · Mi Playlist) sigue siendo la única navegación visible. */
-html[data-demo-mode="true"] .shell-tabs,
-html[data-demo-mode="true"] nav.shell-tabs {
-  display: none !important;
+/* En demo · shell-tabs ahora muestra el LOGO DEL CLIENTE (workspace.logo_url)
+ * en lugar del logo beonit, con "SOL Stream" discreto al lado. Per spec del
+ * producto: "Mostrar siempre el logotipo del cliente en la cabecera" +
+ * "Incluir de forma discreta las referencias SOL y Stream junto al branding".
+ * La lógica de qué logo cargar vive en el script de index.html (sync). */
+html[data-demo-mode="true"] .shell-tabs {
+  background: rgba(22, 23, 28, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+html[data-demo-mode="true"] .shell-tabs .shell-wordmark span,
+html[data-demo-mode="true"] #ws-tenant-name {
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 
 /* PageShell headers · texto blanco sobre fondo dark */

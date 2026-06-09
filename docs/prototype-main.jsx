@@ -1230,9 +1230,9 @@ window.Workspaces = Workspaces;
     hero_title_label: 'Más presentaciones eficaces',
     catalog_subheader: 'Sigue formándote',
     my_list_label: 'Mi Lista',
-    paths_recommended_label: 'Cursos recomendados para ti',
-    paths_recommended_sub: 'según tu perfil',
-    new_row_title: 'Novedades',
+    paths_recommended_label: 'Recomendados para ti',
+    paths_recommended_sub: 'según tu rol',
+    new_row_title: 'Próximamente',
     new_row_sub: '',
     channels_action_label: 'Activar',
     level_badges: ['Básico','Intermedio','Experto'],
@@ -2152,6 +2152,7 @@ function _activateSupabaseAuth() {
       role: row.role || 'Publish Agent',
       team: row.team || 'Repsol',
       avatarColor: row.avatar_color || 'var(--bn-blue)',
+      avatarUrl: row.avatar_url || null,
       isAdmin: !!row.is_admin,
       systemRole: row.system_role || (row.is_admin ? 'admin' : 'user'),
       createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
@@ -2233,6 +2234,8 @@ function _activateSupabaseAuth() {
     if (patch.avatarColor !== undefined) dbPatch.avatar_color = patch.avatarColor;
     if (patch.email !== undefined) dbPatch.email = patch.email;
     if (patch.isAdmin !== undefined) dbPatch.is_admin = !!patch.isAdmin;
+    if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
+    if (patch.avatar_url !== undefined) dbPatch.avatar_url = patch.avatar_url;
     const { data, error } = await sb.from('profiles').update(dbPatch).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     const mapped = _mapProfileRow(data);
@@ -2644,6 +2647,33 @@ function _activateSupabaseData() {
       user_id: u, from_name: from, subject, body,
       is_admin: !!opts.fromAdmin, avatar_color: opts.fromAvatarColor,
     }).then(() => _loadInbox());
+  };
+  // Broadcast a miembros del workspace activo. Por defecto envía a TODOS;
+  // pasar opts.userIds = [id1, id2, …] para filtrar a un subconjunto.
+  // Solo callable por admins (la RLS del lado servidor impone el check real).
+  // Inserta en una sola operación bulk para evitar N requests.
+  Inbox.broadcastToWorkspace = async function(text, opts) {
+    const w = _wsid(); if (!w) return { ok: false, error: 'no workspace' };
+    opts = opts || {};
+    const members = (window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(w) : [];
+    if (!members.length) return { ok: false, error: 'no members' };
+    let targets = members;
+    if (Array.isArray(opts.userIds) && opts.userIds.length) {
+      const want = new Set(opts.userIds);
+      targets = members.filter(m => want.has(m.user_id || m.id));
+      if (!targets.length) return { ok: false, error: 'no targets match' };
+    }
+    const rows = targets.map(m => ({
+      category: 'notifications',
+      user_id: m.user_id || m.id,
+      workspace_id: w,
+      text, kind: opts.kind || 'info',
+      icon: opts.icon || '🔔', link: opts.link || null,
+    }));
+    const { error } = await sb.from('inbox_messages').insert(rows);
+    if (error) return { ok: false, error: error.message };
+    await _loadInbox();
+    return { ok: true, count: rows.length };
   };
   Inbox.deleteItem = function(category, id) {
     if (category === 'releases') return;
@@ -3057,6 +3087,12 @@ function _activateSupabaseData() {
         category: data.category || null,
         position: data.position != null ? data.position : nextPos,
       };
+      // metadata (brand, poster_url, cert_url, accent…) · se pasa tal cual si
+      // viene en data. Sin esto, crear un curso con marca la perdía (solo
+      // update la persistía).
+      if (data.metadata && typeof data.metadata === 'object') {
+        payload.metadata = data.metadata;
+      }
       const { data: row, error } = await sb.from('workspace_content').insert(payload).select().single();
       if (error) { console.warn('[supa] content.create', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
       await _loadContent(kind);
@@ -3068,6 +3104,14 @@ function _activateSupabaseData() {
       ['title','teacher','duration','tone','format','level','rating','enrolled','category','position','slug'].forEach(k => {
         if (patch[k] !== undefined) dbPatch[k] = patch[k];
       });
+      // Metadata · merge superficial. Si patch.metadata es objeto, lo fusionamos
+      // con el actual (read-modify-write). Permite settear brand, poster_url,
+      // cert_url, accent sin pisar otras keys.
+      if (patch.metadata && typeof patch.metadata === 'object') {
+        const { data: cur } = await sb.from('workspace_content').select('metadata').eq('id', id).maybeSingle();
+        const merged = Object.assign({}, (cur && cur.metadata) || {}, patch.metadata);
+        dbPatch.metadata = merged;
+      }
       const { error } = await sb.from('workspace_content').update(dbPatch).eq('id', id);
       if (error) { console.warn('[supa] content.update', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
       await _loadContent(kind);
@@ -3680,6 +3724,39 @@ const Bookmarks = (function() {
 })();
 window.Bookmarks = Bookmarks;
 
+// ── Enrollments (cursos "inscritos") por usuario+workspace ──────────────────
+// Diferenciamos:
+//   · Bookmarks → "Guardado" / "Favorito" (star button, intención débil)
+//   · Enrollments → "Inscrito" en el curso (intención fuerte, CTA principal)
+// El user puede tener bookmark sin inscribirse y viceversa. Persistimos en
+// localStorage scopeado por user+workspace para no requerir migración de
+// schema en Supabase. Migrable a tabla `enrollments` a futuro sin tocar UI.
+const Enrollments = (function() {
+  function _key() { return _userScopedKey('solid-enrollments'); }
+  function get() { try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch(e) { return []; } }
+  function save(ids) { localStorage.setItem(_key(), JSON.stringify(ids)); window.dispatchEvent(new Event('enrollments-changed')); }
+  function has(id) { return get().includes(id); }
+  function add(id) {
+    const ids = get();
+    if (!ids.includes(id)) { ids.unshift(id); save(ids); return true; }
+    return false;
+  }
+  function remove(id) {
+    const ids = get().filter(x => x !== id);
+    save(ids);
+  }
+  function toggle(id) {
+    const ids = get();
+    const idx = ids.indexOf(id);
+    if (idx >= 0) ids.splice(idx, 1); else ids.unshift(id);
+    save(ids);
+    return idx < 0;
+  }
+  function clear() { save([]); }
+  return { get, has, add, remove, toggle, clear };
+})();
+window.Enrollments = Enrollments;
+
 // ── User profile (editable) — derivado del usuario autenticado ────────────
 // Lee del Auth.currentUser() y guarda los cambios en el registro de usuarios.
 const UserProfile = (function() {
@@ -3689,7 +3766,8 @@ const UserProfile = (function() {
     if (!u) return Object.assign({}, DEFAULT);
     return {
       name: u.name, role: u.role, team: u.team,
-      avatarColor: u.avatarColor, email: u.email,
+      avatarColor: u.avatarColor, avatarUrl: u.avatarUrl || u.avatar_url || null,
+      email: u.email,
       isAdmin: !!u.isAdmin, id: u.id,
     };
   }
@@ -3697,14 +3775,15 @@ const UserProfile = (function() {
     if (!u) return Object.assign({}, DEFAULT);
     return {
       name: u.name, role: u.role, team: u.team,
-      avatarColor: u.avatarColor, email: u.email,
+      avatarColor: u.avatarColor, avatarUrl: u.avatarUrl || u.avatar_url || null,
+      email: u.email,
       isAdmin: !!u.isAdmin, id: u.id,
     };
   }
   function update(patch) {
     var u = window.Auth ? window.Auth.currentUser() : null;
     if (!u) return DEFAULT;
-    var fields = ['name', 'role', 'team', 'avatarColor', 'email'];
+    var fields = ['name', 'role', 'team', 'avatarColor', 'email', 'avatarUrl'];
     var clean = {};
     fields.forEach(function(f){ if (patch[f] !== undefined) clean[f] = patch[f]; });
     // Auth.updateUser puede ser sync (modo demo) o Promise (modo Supabase).
@@ -3727,7 +3806,35 @@ const UserProfile = (function() {
     return profileShape;
   }
   function reset() {/* legacy noop */}
-  return { get, update, reset, DEFAULT };
+  // Sube avatar a Supabase Storage · bucket workspace-assets, path avatars/{uid}.{ext}.
+  // Devuelve la URL pública o lanza error. Tras subir, actualiza profile.avatar_url
+  // y dispara user-profile-changed para que toda la UI se refresque.
+  async function uploadAvatar(file) {
+    if (!file) throw new Error('Sin archivo');
+    if (file.size > 2 * 1024 * 1024) throw new Error('Máx 2MB');
+    var u = window.Auth && window.Auth.currentUser && window.Auth.currentUser();
+    if (!u || !u.id) throw new Error('No hay sesión');
+    var sb = window.supabaseClient || (typeof supabase !== 'undefined' && supabase);
+    if (!sb) throw new Error('Supabase no disponible');
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5);
+    var path = 'avatars/' + u.id + '.' + ext + '?v=' + Date.now();
+    var pathToStore = 'avatars/' + u.id + '.' + ext;
+    var upRes = await sb.storage.from('workspace-assets').upload(pathToStore, file, { upsert: true, contentType: file.type });
+    if (upRes.error) throw upRes.error;
+    var pub = sb.storage.from('workspace-assets').getPublicUrl(pathToStore);
+    var url = (pub && pub.data && pub.data.publicUrl) || null;
+    if (!url) throw new Error('No se pudo resolver la URL pública');
+    // Cache-bust en el front (timestamp en la URL guardada)
+    url = url + '?v=' + Date.now();
+    // Persiste en profiles.avatar_url via Auth.updateUser (snake_case en DB)
+    if (window.Auth && window.Auth.updateUser) {
+      await Promise.resolve(window.Auth.updateUser(u.id, { avatarUrl: url, avatar_url: url }));
+    }
+    var optimistic = Object.assign({}, u, { avatarUrl: url, avatar_url: url });
+    window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: _toShape(optimistic) }));
+    return url;
+  }
+  return { get, update, reset, uploadAvatar, DEFAULT };
 })();
 window.UserProfile = UserProfile;
 
@@ -4754,7 +4861,9 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     (it.category    || '').toLowerCase().includes(ql) ||
     (it.teacher     || '').toLowerCase().includes(ql) ||
     (it.one         || '').toLowerCase().includes(ql) ||
-    (it.desc        || '').toLowerCase().includes(ql);
+    (it.desc        || '').toLowerCase().includes(ql) ||
+    (it.brand       || '').toLowerCase().includes(ql) ||
+    (it.badge       || '').toLowerCase().includes(ql);
   const items = ql.length === 0
     ? taggedPills.slice(0, 8)              // Default · solo pills recientes
     : all.filter(matches).slice(0, 16);
@@ -4867,7 +4976,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
                 const offset = navItems.length + i;
                 const active = isActiveAt(offset);
                 const kindLabel = it._kindLabel || (it.format ? it.format.toUpperCase() : 'PILL');
-                const subtitle  = [it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
+                const subtitle  = [it.brand, it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
                 return (
                   <button key={(it._kind || 'pill') + ':' + it.id} data-active={active}
                     onMouseEnter={() => setActiveIdx(offset)}

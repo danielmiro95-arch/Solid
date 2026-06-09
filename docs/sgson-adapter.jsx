@@ -127,9 +127,16 @@
     const analyticsIds    = PILLS.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').map(p => p.id).slice(0, 10);
     const newIds          = PILLS.slice(-12).reverse().map(p => p.id);
 
+    // ── ROWS · orden definido en el spec del producto ──
+    // 1. Sigue formándote (cursos en progreso)
+    // 2. Recomendados para ti (según rol/puesto)
+    // 3. Top 10 cursos · [Nombre de la marca]
+    // 4. Disponibles
+    // 5. Próximamente
     const ROWS = [];
+
+    // 1. SIGUE FORMÁNDOTE
     if (inProgress.length > 0) {
-      // Nombre del user actual · fallback genérico si no hay sesión
       const userProf = window.UserProfile ? window.UserProfile.get() : null;
       const firstName = (userProf && userProf.name && userProf.name !== 'Sin sesión')
         ? String(userProf.name).split(/\s+/)[0]
@@ -144,29 +151,48 @@
         pillIds: inProgress, showProgress: true,
       });
     }
-    if (withVideo.length > 0) {
-      ROWS.push({ key:'available', title:'Disponibles ahora', sub:'reproducir directamente', pillIds: withVideo });
-    }
+
+    // 2. RECOMENDADOS PARA TI (según rol)
+    // El orden se calcula con un score simple per path:
+    //   +3 · badge/desc match con el rol del user (lower-case)
+    //   +2 · path en progreso (continuidad)
+    //   +1 · path con bookmark (interés explícito)
+    // El recomendador real (embeddings, colaborativo) vive a futuro · esto es
+    // suficiente para una demo creíble: el rol de Marketing ve Marketing 1º,
+    // el de Tech ve Tech 1º, etc. Sin rol declarado → orden original.
     ROWS.push({
       key:'paths',
-      title: _label('paths_recommended_label', 'Rutas recomendadas para ti'),
+      title: _label('paths_recommended_label', 'Recomendados para ti'),
       sub:   _label('paths_recommended_sub', 'según tu rol'),
       isPaths: true,
+      _recommended: true,
     });
-    ROWS.push({ key:'trending', title:'Tendencia esta semana', sub:(window.WORKSPACE_NAME ? ('en ' + window.WORKSPACE_NAME) : 'en tu workspace'), pillIds: trending, trending: true });
-    if (careIds.length > 0) {
-      ROWS.push({ key:'care', title:'Care', sub:'atención al cliente que de verdad funciona', pillIds: careIds });
+
+    // 3. TOP 10 CURSOS · [Nombre marca] · trending limitado a 10
+    const _brandName = (window.WORKSPACE_NAME || '').trim() || 'tu marca';
+    ROWS.push({
+      key:'trending',
+      title: 'Top 10 cursos · ' + _brandName,
+      sub: 'lo más visto esta semana',
+      pillIds: trending.slice(0, 10),
+      trending: true,
+    });
+
+    // 4. DISPONIBLES
+    if (withVideo.length > 0) {
+      ROWS.push({
+        key:'available',
+        title: 'Disponibles',
+        sub: 'reproducir directamente',
+        pillIds: withVideo,
+      });
     }
-    if (analyticsIds.length > 0) {
-      ROWS.push({ key:'analytics', title:'Analytics & Integraciones', sub:'medir, integrar, mejorar', pillIds: analyticsIds });
-    }
+
+    // 5. PRÓXIMAMENTE
     ROWS.push({
       key:'new',
-      // En demo · el título pasa a "Recién publicado" (per spec del cliente)
-      // y el sub se vacía. Fuera de demo se mantiene "Nuevo en SolidStream
-      // / recién publicado en BeonIt × Repsol".
-      title: _label('new_row_title', 'Nuevo en SolidStream'),
-      sub:   _label('new_row_sub',   'recién publicado en BeonIt × Repsol'),
+      title: _label('new_row_title', 'Próximamente'),
+      sub:   _label('new_row_sub',   ''),
       pillIds: newIds,
       newRow: true,
     });
@@ -218,6 +244,11 @@
         label:     p.label || p.title || 'Ruta',
         desc:      p.desc || p.roleTag || '',
         badge:     p.badge || '',
+        // Brand (sub-catálogo) · workspace_content.metadata.brand. Permite
+        // agrupar paths por marca dentro de un workspace (HdR: 1906,
+        // Estrella Galicia, Anchois Cuca…). Si no hay brand, queda null y
+        // RutasView trata todo como "Catálogo general".
+        brand:     meta.brand || null,
         pills:     pillIds.length || p.totalPills || 0,
         pillIds:   pillIds,
         hours:     p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),
@@ -283,6 +314,7 @@
       email:    (profile && profile.email) || (sessionUser && sessionUser.email),
       market:   'IB · España',
       isAdmin:  _isPlatformAdmin,
+      avatarUrl: (profile && (profile.avatarUrl || profile.avatar_url)) || (sessionUser && (sessionUser.avatarUrl || sessionUser.avatar_url)) || null,
       systemRole: (sessionUser && sessionUser.systemRole) || (profile && profile.systemRole) || 'user',
     };
 

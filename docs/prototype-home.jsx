@@ -358,6 +358,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const D = (typeof window !== 'undefined' && window.SGS_DATA) || null;
   const initials = (D && D.USER && D.USER.initials) || 'U';
   const userName = (D && D.USER && D.USER.name) || 'Usuario';
+  const userAvatarUrl = (D && D.USER && D.USER.avatarUrl) || null;
   const userRole = (D && D.USER && D.USER.role) || '';
   const isAdmin = !!(D && D.USER && D.USER.isAdmin);
   const canManager = !!(window.Auth && window.Auth.hasRole && window.Auth.hasRole('manager'));
@@ -409,7 +410,17 @@ function TopNav({ view, onView, onSearch, onLogout }) {
         <button className="topnav-hamburger icon-btn" onClick={() => setMobileNavOpen(o => !o)} aria-label="Menú" title="Menú">
           <Ico name={mobileNavOpen ? 'close' : 'menu'} size={20}/>
         </button>
-        <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
+        <button className="icon-btn topnav-search" onClick={onSearch}
+          title="Buscar (⌘K / Ctrl+K)" aria-label="Buscar"
+          style={{ position:'relative', display:'inline-flex', alignItems:'center', gap:8 }}>
+          <Ico name="search" size={18}/>
+          <span className="topnav-search-kbd" aria-hidden="true" style={{
+            fontFamily:'var(--mono, "JetBrains Mono", monospace)', fontSize: 9.5, fontWeight: 700,
+            color:'var(--ink-4)', letterSpacing:'0.04em',
+            padding:'2px 6px', border:'1px solid var(--line)', borderRadius: 4,
+            background:'rgba(255,255,255,0.06)',
+          }}>⌘K</span>
+        </button>
         {/* Bell · oculto en demo · inbox no está en sidebar y bell apuntaba ahí */}
         {!isSimplified && (
           <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
@@ -417,7 +428,15 @@ function TopNav({ view, onView, onSearch, onLogout }) {
             {inboxCount ? <span className="badge">{inboxCount}</span> : null}
           </button>
         )}
-        <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}>{initials}</button>
+        <button className="avatar" aria-label="Menú de usuario" onClick={() => setMenuOpen(o => !o)}
+          style={userAvatarUrl ? {
+            backgroundImage: `url(${userAvatarUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            color: 'transparent',
+          } : undefined}>
+          {!userAvatarUrl && initials}
+        </button>
 
         {/* Dropdown del avatar · contiene lo que antes estaba en sidebar */}
         {menuOpen && (
@@ -439,7 +458,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
               display:'flex', alignItems:'center', gap:12, padding:'12px 14px 14px',
               borderBottom:'1px solid rgba(255,255,255,0.08)', marginBottom:6,
             }}>
-              <div style={{width:42, height:42, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>{initials}</div>
+              <div style={Object.assign({width:42, height:42, borderRadius:'50%', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700},
+                userAvatarUrl
+                  ? { backgroundImage:`url(${userAvatarUrl})`, backgroundSize:'cover', backgroundPosition:'center' }
+                  : { background:'linear-gradient(135deg, var(--accent, #6E50EE), var(--accent-deep, #4E36C5))' })}>{!userAvatarUrl && initials}</div>
               <div style={{flex:1, minWidth:0}}>
                 <div style={{fontSize:14, fontWeight:700, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{userName}</div>
                 {userRole && <div style={{fontSize:11, color:'rgba(245,244,241,0.7)', fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.06em', textTransform:'uppercase'}}>{userRole}</div>}
@@ -817,13 +839,17 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const slug = _catSlugFix(pill.category);
 
   const [saved, setSaved] = React.useState(() => window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
-  const [rated, setRated]  = React.useState(() => {
+  const _getStars = () => {
     const r = window.Ratings && window.Ratings.get && window.Ratings.get(pill.id);
-    return typeof r === 'number' ? r >= 4 : !!(r && r.stars >= 4);
-  });
+    return typeof r === 'number' ? r : (r && r.stars) || 0;
+  };
+  const [stars, setStars] = React.useState(_getStars);
+  const rated   = stars >= 4;      // legacy alias · "Me gusta"
+  const liked   = stars === 5;
+  const disliked = stars === 1;
   React.useEffect(() => {
     const onB = () => setSaved(window.Bookmarks ? window.Bookmarks.has(pill.id) : false);
-    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setRated(e.detail.stars >= 4); };
+    const onR = (e) => { if (e && e.detail && e.detail.pillId === pill.id) setStars(e.detail.stars || 0); };
     window.addEventListener('bookmarks-changed', onB);
     window.addEventListener('ratings-changed', onR);
     return () => { window.removeEventListener('bookmarks-changed', onB); window.removeEventListener('ratings-changed', onR); };
@@ -839,9 +865,22 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
   const toggleLike = (e) => {
     e.stopPropagation();
     if (window.Ratings) {
-      const next = rated ? 0 : 5;
+      const cur = window.Ratings.get && window.Ratings.get(pill.id);
+      const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+      // Like · 5★. Si ya estaba en 5 → desactiva (0). Si era dislike (1) → cambia a 5.
+      const next = curStars === 5 ? 0 : 5;
       window.Ratings.set(pill.id, next);
-      if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Sin valoración', { icon: next ? '👍' : '○' });
+      if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Valoración eliminada', { icon: next ? '👍' : '○' });
+    }
+  };
+  const toggleDislike = (e) => {
+    e.stopPropagation();
+    if (window.Ratings) {
+      const cur = window.Ratings.get && window.Ratings.get(pill.id);
+      const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+      const next = curStars === 1 ? 0 : 1;
+      window.Ratings.set(pill.id, next);
+      if (window.Toast) window.Toast.info(next ? '👎 No me gusta' : 'Valoración eliminada', { icon: next ? '👎' : '○' });
     }
   };
 
@@ -888,21 +927,15 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       <span className="card-pill-num">{String(cat.label).toUpperCase()}{!demoActive ? ` · ${pill.pill}` : ''}</span>
       {(newBadge || pill.newBadge) && !isLocked && <span className="card-badge">Nuevo</span>}
       {isLocked && (
-        <>
-          <span style={{
-            position:'absolute', top:10, right:10, padding:'5px 10px',
-            background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
-            fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
-            letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:4,
-            backdropFilter:'blur(8px)',
-          }}>🔒 Bloqueado</span>
-          {/* Candado grande centrado en la card · refuerza visual de bloqueo */}
-          <div style={{
-            position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-            pointerEvents:'none', fontSize:42, opacity:0.85, color:'#fff',
-            textShadow:'0 2px 12px rgba(0,0,0,0.5)',
-          }}>🔒</div>
-        </>
+        /* Card bloqueada · pill discreta arriba-derecha (sin candado central
+           grande que rompa el look Netflix · per spec del cliente) */
+        <span style={{
+          position:'absolute', top:10, right:10, padding:'5px 11px',
+          background:'rgba(15,23,42,0.85)', color:'#fff', borderRadius:999,
+          fontFamily:'var(--font-mono, monospace)', fontSize:10, fontWeight:700,
+          letterSpacing:'0.06em', display:'inline-flex', alignItems:'center', gap:5,
+          backdropFilter:'blur(8px)',
+        }}>🔒 Bloqueado</span>
       )}
 
       <div className="card-body">
@@ -946,11 +979,24 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
           style={saved ? { background:'rgba(0,114,190,0.85)', color:'#fff', borderColor:'rgba(0,114,190,0.85)' } : undefined}>
           <Ico name={saved ? 'check' : 'bookmark'} size={14}/>
         </button>
-        {!demoActive && (
-          <button className={`card-action${rated ? ' is-active' : ''}`} aria-label={rated ? 'Quitar Me gusta' : 'Me gusta'} title={rated ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
-            <Ico name="thumb" size={13}/>
-          </button>
-        )}
+        {/* Like · 5★ · activo en azul beonit */}
+        <button
+          className={`card-action${liked ? ' is-active' : ''}`}
+          aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'}
+          title={liked ? 'Quitar Me gusta' : 'Me gusta'}
+          onClick={toggleLike}
+          style={liked ? { background:'rgba(0,114,190,0.85)', color:'#fff', borderColor:'rgba(0,114,190,0.85)' } : undefined}>
+          <Ico name="thumb" size={13}/>
+        </button>
+        {/* Dislike · 1★ · activo en rojo beonit · rotación visual del thumb */}
+        <button
+          className={`card-action${disliked ? ' is-active' : ''}`}
+          aria-label={disliked ? 'Quitar No me gusta' : 'No me gusta'}
+          title={disliked ? 'Quitar No me gusta' : 'No me gusta'}
+          onClick={toggleDislike}
+          style={Object.assign({transform:'scaleY(-1)'}, disliked ? { background:'rgba(252,34,13,0.85)', color:'#fff', borderColor:'rgba(252,34,13,0.85)' } : {})}>
+          <Ico name="thumb" size={13}/>
+        </button>
         {!isLocked && (
           <button className="card-action" aria-label="Más info" title="Más información" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
             <Ico name="chev-down" size={14}/>
@@ -1034,11 +1080,25 @@ function NxPathCard({ path, onOpen }) {
           {path.title}
         </h3>
         <div className="card-meta">
-          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
-            <span>{path.hours}</span>
-            <span className="sep">·</span>
-          </>}
-          <span>{(path.desc || '').slice(0, 38)}…</span>
+          {/* Descripción: competencia · nivel · # pills · director del programa
+              (per spec del cliente). El director se setea en workspace.settings.
+              program_director y se hereda automáticamente a todos los paths. */}
+          {(() => {
+            const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+            const director = (ws.settings && ws.settings.program_director) || null;
+            const pills = path.totalCount || path.pills || 0;
+            const parts = [];
+            if (path.badge) parts.push(path.badge);
+            if (level) parts.push('Nivel ' + level);
+            if (pills) parts.push(pills + ' pills');
+            if (director) parts.push('Dirige: ' + director);
+            return parts.map((part, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span className="sep">·</span>}
+                <span>{part}</span>
+              </React.Fragment>
+            ));
+          })()}
         </div>
       </div>
     </article>
@@ -1055,8 +1115,34 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   };
 
   if (row.isPaths) {
-    const paths = (D && D.LEARNING_PATHS) || [];
+    let paths = (D && D.LEARNING_PATHS) || [];
     if (paths.length === 0) return null;
+    // Recomendación por rol · scoring simple. Solo si el row pidió ranking
+    // ("_recommended": true en el adapter) reordenamos. Sino preservamos
+    // el orden de inserción del backend.
+    if (row._recommended) {
+      const user = (D && D.USER) || {};
+      const role = String(user.role || '').toLowerCase();
+      const team = String(user.team || '').toLowerCase();
+      // length >= 2 · roles/equipos de 2 letras (IT, UX, PM, QA, RH, BI) son
+      // comunes y deben puntuar. Filtramos solo tokens de 1 char (ruido).
+      const tokens = (role + ' ' + team).split(/[\s,·\-/]+/).filter(t => t.length >= 2);
+      const Bm = window.Bookmarks;
+      // Cache de bookmarks · una sola lectura de localStorage por scoring pass
+      // (Bookmarks.has hace JSON.parse en cada llamada · evitamos N parses).
+      const _bmSet = Bm && Bm.get ? new Set(Bm.get()) : null;
+      const scoreOf = (p) => {
+        let s = 0;
+        const hay = String((p.badge || '') + ' ' + (p.desc || '') + ' ' + (p.title || '')).toLowerCase();
+        if (tokens.some(tok => hay.indexOf(tok) !== -1)) s += 3;
+        if (p.progress > 0 && p.progress < 1) s += 2;
+        if (_bmSet && _bmSet.has(p.id)) s += 1;
+        return s;
+      };
+      paths = paths.slice().map((p, i) => ({ p, i, s: scoreOf(p) }))
+                   .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+                   .map(x => x.p);
+    }
     return (
       <section className="row" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
@@ -1127,6 +1213,131 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   );
 }
 
+// ── OnboardingWizard · tour de 4 pasos la primera vez que entra el user ───
+// Visible solo si:
+//   · existe sesión y D.USER.id
+//   · localStorage no marca al user como "onboarded"
+//   · el user no es admin (admins no necesitan tour)
+// Persiste el flag por user (no por workspace) para que no se repita al
+// cambiar de tenant. Pasos:
+//   1 · Bienvenida personalizada con workspace name
+//   2 · Catálogo (donde están los cursos)
+//   3 · Mi Lista (sigue formándote)
+//   4 · Test autodiagnóstico (si workspace lo tiene) o cierre
+function OnboardingWizard({ setView }) {
+  const D = window.SGS_DATA;
+  const USER = (D && D.USER) || {};
+  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const autoUrl = (ws.settings && ws.settings.autotest_url) || null;
+  const _storeKey = 'solid-onboarded:' + (USER.id || 'anon');
+  const [step, setStep] = useState(0);
+  const [hidden, setHidden] = useState(() => {
+    try {
+      if (USER.isAdmin) return true;
+      if (!USER.id) return true;
+      return localStorage.getItem(_storeKey) === '1';
+    } catch (e) { return false; }
+  });
+  if (hidden) return null;
+
+  const dismiss = () => {
+    try { localStorage.setItem(_storeKey, '1'); } catch (e) {}
+    setHidden(true);
+  };
+  const firstName = (USER.name || '').split(/\s+/)[0] || 'hola';
+  const wsName = (ws.name || '').replace(/\s+demo\s*$/i, '').trim() || 'tu plataforma';
+
+  const steps = [
+    {
+      icon: '👋',
+      title: `¡Hola, ${firstName}!`,
+      body: `Bienvenido a ${wsName}. En 30 segundos te enseñamos cómo aprovecharlo al máximo.`,
+      cta: 'Empezar tour',
+    },
+    {
+      icon: '📚',
+      title: 'Catálogo',
+      body: 'Aquí encuentras todos los cursos disponibles para ti. Filtra por marca, categoría o busca por nombre.',
+      cta: 'Siguiente',
+      action: () => setView && setView('rutas'),
+    },
+    {
+      icon: '✓',
+      title: 'Mi Lista',
+      body: 'Tus cursos inscritos, en progreso y favoritos viven aquí. Es tu zona personal de aprendizaje.',
+      cta: 'Siguiente',
+      action: () => setView && setView('path'),
+    },
+    autoUrl ? {
+      icon: '🧭',
+      title: 'Test autodiagnóstico',
+      body: '¿No sabes por dónde empezar? Haz el test (15 min) y te recomendamos el itinerario que mejor encaja contigo.',
+      cta: 'Hacer test ahora',
+      action: () => { window.open(autoUrl, '_blank', 'noopener'); },
+      altCta: 'Hacerlo después',
+    } : {
+      icon: '🚀',
+      title: 'Listo para empezar',
+      body: 'Explora el catálogo y empieza por el curso que más te llame la atención. Si tienes dudas, tu admin puede ayudarte.',
+      cta: 'Ver catálogo',
+      action: () => setView && setView('rutas'),
+    },
+  ];
+  const s = steps[step];
+  const isLast = step === steps.length - 1;
+  const next = () => {
+    if (s.action) s.action();
+    if (isLast) dismiss();
+    else setStep(step + 1);
+  };
+
+  return (
+    <div onClick={dismiss} style={{
+      position:'fixed', inset:0, background:'rgba(13,17,23,0.72)',
+      backdropFilter:'blur(6px)', zIndex: 700,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 16,
+        boxShadow:'0 30px 80px rgba(0,0,0,0.45)',
+        width:'min(460px, 100%)', padding:'32px 28px 24px', textAlign:'center',
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 18, lineHeight: 1 }}>{s.icon}</div>
+        <h2 style={{
+          margin:'0 0 10px', fontSize: 22, fontWeight: 800, color:'var(--fg)',
+          fontFamily:'var(--font-sans)', letterSpacing:'-0.01em',
+        }}>{s.title}</h2>
+        <p style={{
+          margin:'0 0 26px', fontSize: 14, color:'var(--fg-muted)', lineHeight: 1.55,
+        }}>{s.body}</p>
+        {/* Step dots */}
+        <div style={{ display:'flex', gap: 6, justifyContent:'center', marginBottom: 22 }}>
+          {steps.map((_, i) => (
+            <span key={i} style={{
+              width: i === step ? 22 : 7, height: 7, borderRadius: 4,
+              background: i === step ? 'var(--accent)' : 'rgba(255,255,255,0.18)',
+              transition:'all .2s',
+            }}/>
+          ))}
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+          <button onClick={next} style={{
+            padding:'12px 20px', background:'var(--accent)', color:'#fff', border:'none',
+            borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)',
+            fontWeight: 700, fontSize: 14,
+          }}>{s.cta}</button>
+          <button onClick={s.altCta ? () => { if (isLast) dismiss(); else setStep(step + 1); } : dismiss} style={{
+            padding:'9px 16px', background:'transparent', color:'var(--fg-muted)',
+            border:'none', cursor:'pointer', fontFamily:'var(--font-sans)',
+            fontWeight: 500, fontSize: 12.5,
+          }}>{s.altCta || (isLast ? 'Cerrar' : 'Saltar tour')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+window.OnboardingWizard = OnboardingWizard;
+
 function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
   useEffect(() => {
@@ -1154,10 +1365,60 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
 
   const demoActive = window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive();
 
+  // Welcome message customizable por workspace via settings.welcome_message.
+  // Si no está seteado, fallback genérico personalizado con el nombre del user.
+  // Dismissible via localStorage por (user+workspace) para que no salga
+  // siempre · se vuelve a mostrar si el admin actualiza el mensaje.
+  const _wsObj    = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || null;
+  const _wsSettings = (_wsObj && _wsObj.settings) || {};
+  const _welcomeMsg = _wsSettings.welcome_message || null;
+  const _userName   = (D.USER && D.USER.name) ? String(D.USER.name).split(/\s+/)[0] : null;
+  const _wsName     = (_wsObj && _wsObj.name) ? String(_wsObj.name).replace(/\s+demo\s*$/i, '').trim() : null;
+  const _dismissKey = 'solid-welcome-dismissed:' + ((D.USER && D.USER.id) || 'anon') + ':' + ((_wsObj && _wsObj.id) || 'no-ws') + ':' + (_welcomeMsg ? _welcomeMsg.length : 0);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    try { return !!localStorage.getItem(_dismissKey); } catch (e) { return false; }
+  });
+  const dismissWelcome = () => {
+    try { localStorage.setItem(_dismissKey, '1'); } catch (e) {}
+    setWelcomeDismissed(true);
+  };
+  const showWelcome = !welcomeDismissed && (_welcomeMsg || demoActive);
+  const welcomeText = _welcomeMsg ||
+    (_userName && _wsName ? `Bienvenido a ${_wsName}, ${_userName}. Aquí encontrarás formación pensada para ti.`
+     : _userName ? `Bienvenido, ${_userName}.`
+     : 'Bienvenido a tu plataforma de formación.');
+
   return (
     <div data-screen-label="Home">
+      <OnboardingWizard setView={setView}/>
       <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
       <div className="rows">
+        {showWelcome && (
+          <section style={{
+            margin:'-32px var(--row-pad, 48px) 32px',
+            padding:'18px 22px', borderRadius:14,
+            background:'linear-gradient(135deg, rgba(0,114,190,0.16), rgba(252,34,13,0.06))',
+            border:'1px solid rgba(255,255,255,0.10)',
+            backdropFilter:'blur(12px)',
+            position:'relative', zIndex:5,
+            display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+          }}>
+            <div style={{ flex:1, minWidth:260 }}>
+              <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:10, letterSpacing:'0.12em',
+                color:'var(--accent-2, #FC220D)', fontWeight:800, textTransform:'uppercase', marginBottom:6 }}>
+                Bienvenido
+              </div>
+              <div style={{ fontSize:15.5, lineHeight:1.45, color:'var(--fg)' }}>
+                {welcomeText}
+              </div>
+            </div>
+            <button onClick={dismissWelcome} aria-label="Cerrar bienvenida" style={{
+              padding:'7px 12px', background:'transparent', color:'var(--fg-muted)',
+              border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+              fontFamily:'var(--font-sans)', fontWeight:600, fontSize:12,
+            }}>Entendido</button>
+          </section>
+        )}
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
@@ -1170,6 +1431,19 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
           <span>by BeonIt</span>
           <span>·</span>
           <span>{window.WORKSPACE_NAME || 'Plataforma de formación'}</span>
+          {(() => {
+            const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+            const legalUrl = (ws.settings && ws.settings.legal_url) || null;
+            if (!legalUrl) return null;
+            return (
+              <>
+                <span>·</span>
+                <a href={legalUrl} target="_blank" rel="noopener noreferrer" style={{
+                  color:'var(--fg-muted)', textDecoration:'underline',
+                }}>Bases legales</a>
+              </>
+            );
+          })()}
         </div>
         <div>v 2.0 · MAY 2026</div>
       </footer>
