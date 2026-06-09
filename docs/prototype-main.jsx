@@ -6072,7 +6072,16 @@ function LoginScreen() {
       if (error) throw error;
       // Browser redirige a Microsoft, no llegamos aquí normalmente
     } catch (err) {
-      setError('SSO Microsoft falló: ' + (err.message || err));
+      // Mensaje claro según la causa más común · Azure provider no habilitado
+      // en Supabase (Authentication → Providers) o redirect URL no permitida.
+      const raw = (err && (err.message || err.error_description || err.msg)) || String(err);
+      let hint = raw;
+      if (/provider is not enabled|unsupported provider|not enabled/i.test(raw)) {
+        hint = 'El proveedor Azure no está habilitado en Supabase · Authentication → Providers → Azure. Lee docs/EMAIL-AND-SSO-SETUP.md (sección B).';
+      } else if (/redirect|callback|url/i.test(raw)) {
+        hint = 'URL de redirect no permitida · añade ' + window.location.origin + '/ en Supabase · Authentication → URL Configuration → Redirect URLs.';
+      }
+      setError('SSO Microsoft: ' + hint);
       setSubmitting(false);
     }
   };
