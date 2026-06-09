@@ -977,6 +977,10 @@ img { display: block; max-width: 100%; }
 }
 .card:hover .card-actions { transform: translateY(0); }
 .card:hover .card-body { opacity: 0; transition: opacity var(--t-fast); }
+/* Cards de curso/ruta (.card-path) · su contenido y botones viven en
+   .card-body y NO usan la action-bar de las pill-cards · deben quedar
+   visibles al hover (antes desaparecían y no salía nada). */
+.card.card-path:hover .card-body { opacity: 1; }
 
 .card-action {
   width: 30px; height: 30px;
