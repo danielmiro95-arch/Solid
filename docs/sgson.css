@@ -4,13 +4,14 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (cool dark, NOT Netflix #141414) ── */
-  --bg-deep:        #08080B;  /* deepest, behind hero gradient */
-  --bg-canvas:      #0E0E12;  /* page background */
-  --bg-surface:     #16161C;  /* cards, rows, modals */
-  --bg-elevated:    #1F1F27;  /* hover, raised, dropdowns */
-  --bg-glass:       rgba(14, 14, 18, 0.72);  /* nav scrolled */
-  --bg-glass-strong:rgba(14, 14, 18, 0.92);
+  /* ── Color · Surfaces (grafito · subido para no ser tan negro) ── */
+  --bg-deep:        #131419;  /* deepest, behind hero gradient */
+  --bg-canvas:      #1A1B21;  /* page background · grafito */
+  --bg-surface:     #23242C;  /* cards, rows, modals */
+  --bg-elevated:    #2D2E38;  /* hover, raised, dropdowns */
+  --bg-glass:       rgba(26, 27, 33, 0.74);  /* nav scrolled */
+  --bg-glass-strong:rgba(26, 27, 33, 0.93);
+  --scrim:          rgba(19, 20, 25, 0.85);  /* fades de carrusel/nav · = bg-deep */
 
   /* ── Color · Lines & dividers ── */
   --line-faint:     rgba(255,255,255,0.06);
@@ -138,8 +139,15 @@ html[data-theme="light"] body[data-cinematic="true"] {
   --fg-dim:         #6F6D67;
   --fg-faint:       #46453F;
 }
-/* Body en cinematic: fondo dark forzado independientemente del theme */
-body[data-cinematic="true"] { background: #08080B; }
+/* Body en cinematic: fondo grafito con gradient sutil · ya no negro plano.
+ * Dos glows tenues en las esquinas superiores + base diagonal para profundidad. */
+body[data-cinematic="true"] {
+  background:
+    radial-gradient(ellipse at 0% 0%, #25262F 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #202430 0%, transparent 50%),
+    linear-gradient(180deg, #1A1B21 0%, #17181E 60%, #15161B 100%);
+  background-attachment: fixed;
+}
 
 /* Cards de vídeo (.card) llevan overlay oscuro sobre thumbnail por design,
  * el texto SIEMPRE va blanco. Igual para card-pill-num y card-meta. */
@@ -295,7 +303,7 @@ img { display: block; max-width: 100%; }
   transition: background var(--t-base) var(--ease-out),
               backdrop-filter var(--t-base) var(--ease-out),
               border-color var(--t-base) var(--ease-out);
-  background: linear-gradient(180deg, rgba(8,8,11,0.85) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--scrim, rgba(8,8,11,0.85)) 0%, transparent 100%);
   border-bottom: 1px solid transparent;
 }
 
@@ -791,7 +799,7 @@ img { display: block; max-width: 100%; }
   position: absolute;
   top: 0; bottom: 80px;
   width: 64px;
-  background: linear-gradient(90deg, rgba(8,8,11,0.85), transparent);
+  background: linear-gradient(90deg, var(--scrim, rgba(8,8,11,0.85)), transparent);
   display: flex; align-items: center; justify-content: flex-start;
   padding-left: 18px;
   color: var(--fg);
@@ -802,7 +810,7 @@ img { display: block; max-width: 100%; }
 }
 .rail-arrow.right {
   left: auto; right: 0;
-  background: linear-gradient(270deg, rgba(8,8,11,0.85), transparent);
+  background: linear-gradient(270deg, var(--scrim, rgba(8,8,11,0.85)), transparent);
   justify-content: flex-end;
   padding-left: 0;
   padding-right: 18px;
@@ -2493,28 +2501,30 @@ html[data-demo-mode="true"] {
  * para que las cards se separen del fondo sin necesitar bordes fuertes. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #0F1014;       /* base del gradient · gris-azul muy oscuro */
-  --bg-canvas:      #16171C;       /* fondo principal · ligeramente más claro */
-  --bg-surface:     #1F2027;       /* cards y rows · separación clara */
-  --bg-elevated:    #292A33;       /* modales, dropdowns, hovers */
-  --bg-glass:       rgba(22, 23, 28, 0.85);
-  --bg-glass-strong:rgba(22, 23, 28, 0.96);
+  --bg-deep:        #1A1C22;       /* base del gradient · grafito */
+  --bg-canvas:      #20222A;       /* fondo principal · grafito claro */
+  --bg-surface:     #2A2D36;       /* cards y rows · separación clara */
+  --bg-elevated:    #353945;       /* modales, dropdowns, hovers */
+  --bg-glass:       rgba(32, 34, 42, 0.85);
+  --bg-glass-strong:rgba(32, 34, 42, 0.96);
+  --scrim:          rgba(26, 28, 34, 0.85);  /* fades · = bg-deep demo */
   --line-faint:     rgba(255, 255, 255, 0.05);
-  --line:           rgba(255, 255, 255, 0.09);
+  --line:           rgba(255, 255, 255, 0.10);
   --line-strong:    rgba(255, 255, 255, 0.18);
   --fg:             #F4F4F6;       /* blanco cálido (no #FFF puro) */
-  --fg-muted:       #B8B9BF;
-  --fg-dim:         #8A8B92;
-  --fg-faint:       #545561;
+  --fg-muted:       #BFC1C8;
+  --fg-dim:         #91939C;
+  --fg-faint:       #5E606B;
   --fg-on-accent:   #FFFFFF;
 }
-/* Body con gradient sutil · diagonal de #0F1014 → #16171C → #1A1B22.
- * Da profundidad sin que se note el "negro pintado" plano. */
+/* Body con gradient grafito · dos glows sutiles en las esquinas superiores +
+ * base diagonal. Da profundidad y un punto de color sin "negro plano". */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #1F2030 0%, transparent 60%),
-    linear-gradient(180deg, #16171C 0%, #14151A 50%, #131418 100%) !important;
+    radial-gradient(ellipse at 0% 0%, #2E3142 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #262A3A 0%, transparent 50%),
+    linear-gradient(180deg, #20222A 0%, #1D1F27 55%, #1B1D24 100%) !important;
   background-attachment: fixed;
 }
 
