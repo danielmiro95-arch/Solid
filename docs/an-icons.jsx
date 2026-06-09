@@ -3,7 +3,7 @@
    Superset of sgson-icons + analytics/builder specific glyphs
    ============================================================ */
 
-const Ico = ({ name, size = 18, stroke = 1.7 }) => {
+const _IcoAn = ({ name, size = 18, stroke = 1.7 }) => {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round' };
   switch (name) {
     /* ── base (from sgson-icons) ── */
@@ -58,6 +58,15 @@ const Ico = ({ name, size = 18, stroke = 1.7 }) => {
     case 'arrow-right':return (<svg {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>);
     case 'drag-h':     return (<svg {...p}><path d="M8 9l-3 3 3 3M16 9l3 3-3 3M5 12h14"/></svg>);
 
+    /* ── glyphs que faltaban en ambos sets (causa de iconos invisibles) ── */
+    case 'award':      return (<svg {...p}><circle cx="12" cy="9" r="6"/><path d="M9 14l-1.5 7L12 18l4.5 3L15 14"/></svg>);
+    case 'book':       return (<svg {...p}><path d="M5 4h12a1 1 0 0 1 1 1v15H7a2 2 0 0 1-2-2z"/><path d="M5 17h13"/></svg>);
+    case 'caption':    return (<svg {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 11h3M14 11h3M7 15h6"/></svg>);
+    case 'back':       return (<svg {...p}><path d="M19 12H5M11 6l-6 6 6 6"/></svg>);
+    case 'next':       return (<svg {...p}><path d="M6 5l8 7-8 7zM18 5v14"/></svg>);
+    case 'skip':       return (<svg {...p}><path d="M18 5l-8 7 8 7zM6 5v14"/></svg>);
+    case 'vol':        return (<svg {...p}><path d="M4 10v4h3l5 4V6L7 10H4zM16 9a4 4 0 0 1 0 6"/></svg>);
+
     /* ── visualization type glyphs (for builder / library) ── */
     case 'viz-kpi':    return (<svg {...p}><path d="M4 14h3M9 9v5M14 6v8M19 11v3" strokeWidth="2.4"/></svg>);
     case 'viz-line':   return (<svg {...p}><path d="M3 16l5-5 4 3 6-8" /><path d="M3 20h18" opacity="0.4"/></svg>);
@@ -74,4 +83,15 @@ const Ico = ({ name, size = 18, stroke = 1.7 }) => {
   }
 };
 
-window.Ico = Ico;
+// MERGE en vez de overwrite · este archivo carga DESPUÉS de sgson-icons.jsx.
+// Antes hacía `window.Ico = Ico` y machacaba el set base · los iconos que solo
+// existían en sgson-icons (play, info, inbox, route, compass, spark, broadcast,
+// bookmark, thumb, shield…) quedaban en null → invisibles por toda la app.
+// Ahora intentamos primero el set de analytics y caemos al previo si falta.
+// Renombrado a _IcoAn para evitar la colisión `const Ico` ya declarado.
+const _IcoPrev = (typeof window !== 'undefined' && window.Ico) || null;
+window.Ico = function Ico(props) {
+  const r = _IcoAn(props);
+  if (r !== null && r !== undefined) return r;
+  return _IcoPrev ? _IcoPrev(props) : null;
+};

@@ -160,15 +160,21 @@ function RutasView({ setView, openPath }) {
     paths.forEach(p => { if (p.brand) set.add(p.brand); });
     return Array.from(set).sort();
   }, [paths.length]);
-  const byBrand = activeBrand === 'Todas' ? paths : paths.filter(p => p.brand === activeBrand);
-  const byCat = activeCat === 'Todos' ? byBrand : byBrand.filter(p => p.badge === activeCat);
   const q = query.trim().toLowerCase();
-  const filteredPaths = q
-    ? byCat.filter(p => {
-        const hay = String((p.title || '') + ' ' + (p.desc || '') + ' ' + (p.teacher || '') + ' ' + (p.badge || '') + ' ' + (p.brand || '')).toLowerCase();
-        return hay.indexOf(q) !== -1;
-      })
-    : byCat;
+  const _matchQuery = (p) => {
+    if (!q) return true;
+    const hay = String((p.title || '') + ' ' + (p.desc || '') + ' ' + (p.teacher || '') + ' ' + (p.badge || '') + ' ' + (p.brand || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  };
+  const _matchCat = (p) => activeCat === 'Todos' || p.badge === activeCat;
+  // Set filtrado por categoría + búsqueda, SIN aplicar el filtro de marca ·
+  // base para los contadores de los chips de marca (que deben reflejar
+  // categoría/búsqueda activas pero no la marca seleccionada).
+  const byCatNoBrand = paths.filter(p => _matchCat(p) && _matchQuery(p));
+  // Set final · añade el filtro de marca seleccionado.
+  const filteredPaths = activeBrand === 'Todas'
+    ? byCatNoBrand
+    : byCatNoBrand.filter(p => p.brand === activeBrand);
 
   // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
   // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
@@ -255,7 +261,11 @@ function RutasView({ setView, openPath }) {
           }}>Marca</span>
           {['Todas', ...brands].map(b => {
             const active = b === activeBrand;
-            const count = b === 'Todas' ? paths.length : paths.filter(x => x.brand === b).length;
+            // Cuenta contra el set filtrado por categoría+búsqueda (byCat ya las
+            // aplica salvo el propio filtro de marca) · refleja lo que se vería.
+            const count = b === 'Todas'
+              ? byCatNoBrand.length
+              : byCatNoBrand.filter(x => x.brand === b).length;
             return (
               <button key={b} onClick={() => setActiveBrand(b)} style={{
                 padding:'6px 12px', fontFamily:'var(--font-sans)', fontSize:12, fontWeight:700,
@@ -288,9 +298,9 @@ function RutasView({ setView, openPath }) {
             onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; }}
           />
           <span style={{
-            position:'absolute', left: 14, top:'50%', transform:'translateY(-50%)',
-            color:'var(--fg-muted)', fontSize: 15, pointerEvents:'none',
-          }}>⌕</span>
+            position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)',
+            color:'var(--fg-muted)', display:'inline-flex', pointerEvents:'none',
+          }}>{window.Ico ? React.createElement(window.Ico, { name:'search', size:16 }) : null}</span>
           {query && (
             <button onClick={() => setQuery('')} title="Limpiar" style={{
               position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
@@ -301,8 +311,13 @@ function RutasView({ setView, openPath }) {
         </div>
       )}
 
-      {/* Category chips · solo si hay más de 1 categoría distinta */}
-      {categories.length > 2 && (
+      {/* Category chips · solo si hay más de 1 categoría distinta.
+          _catBase · set filtrado por marca+búsqueda (sin la propia categoría) ·
+          base para los contadores · refleja lo que se vería al pulsar el chip. */}
+      {categories.length > 2 && (() => {
+        const _catBase = paths.filter(p =>
+          (activeBrand === 'Todas' || p.brand === activeBrand) && _matchQuery(p));
+        return (
         <div style={{
           display:'flex', gap:8, flexWrap:'wrap', marginBottom:24,
           padding:'6px', background:'var(--bg-surface)', border:'1px solid var(--line)',
@@ -310,7 +325,7 @@ function RutasView({ setView, openPath }) {
         }}>
           {categories.map(c => {
             const active = c === activeCat;
-            const count = c === 'Todos' ? paths.length : paths.filter(p => p.badge === c).length;
+            const count = c === 'Todos' ? _catBase.length : _catBase.filter(p => p.badge === c).length;
             return (
               <button key={c} onClick={() => setActiveCat(c)} style={{
                 padding:'7px 14px', fontFamily:'var(--font-sans)', fontSize:12.5, fontWeight:700,
@@ -324,7 +339,8 @@ function RutasView({ setView, openPath }) {
             );
           })}
         </div>
-      )}
+        );
+      })()}
 
       {/* Empty state · búsqueda sin resultados */}
       {q && filteredPaths.length === 0 && (
@@ -499,7 +515,12 @@ function RutasView({ setView, openPath }) {
           );
         }
 
-        // Brand-grouped · una sección por marca con header tipo "sub-catálogo"
+        // Brand-grouped · una sección por marca con header tipo "sub-catálogo".
+        // El índice se calcula GLOBAL (posición en filteredPaths), no local al
+        // grupo · así el candado por posición (idx > 0) deja desbloqueado solo
+        // el primer curso del catálogo, no el primero de cada marca.
+        const _globalIdx = new Map();
+        filteredPaths.forEach((p, i) => { _globalIdx.set(p.id, i); });
         return _brandGroups.map(([brandName, brandPaths]) => (
           <section key={brandName} style={{ marginBottom: 36 }}>
             <header style={{
@@ -518,7 +539,7 @@ function RutasView({ setView, openPath }) {
             <div style={{
               display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:20,
             }}>
-              {brandPaths.map((p, idx) => renderCard(p, idx))}
+              {brandPaths.map(p => renderCard(p, _globalIdx.get(p.id)))}
             </div>
           </section>
         ));

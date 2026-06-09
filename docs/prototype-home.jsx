@@ -1124,14 +1124,19 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       const user = (D && D.USER) || {};
       const role = String(user.role || '').toLowerCase();
       const team = String(user.team || '').toLowerCase();
-      const tokens = (role + ' ' + team).split(/[\s,·\-/]+/).filter(t => t.length > 2);
+      // length >= 2 · roles/equipos de 2 letras (IT, UX, PM, QA, RH, BI) son
+      // comunes y deben puntuar. Filtramos solo tokens de 1 char (ruido).
+      const tokens = (role + ' ' + team).split(/[\s,·\-/]+/).filter(t => t.length >= 2);
       const Bm = window.Bookmarks;
+      // Cache de bookmarks · una sola lectura de localStorage por scoring pass
+      // (Bookmarks.has hace JSON.parse en cada llamada · evitamos N parses).
+      const _bmSet = Bm && Bm.get ? new Set(Bm.get()) : null;
       const scoreOf = (p) => {
         let s = 0;
         const hay = String((p.badge || '') + ' ' + (p.desc || '') + ' ' + (p.title || '')).toLowerCase();
         if (tokens.some(tok => hay.indexOf(tok) !== -1)) s += 3;
         if (p.progress > 0 && p.progress < 1) s += 2;
-        if (Bm && Bm.has && Bm.has(p.id)) s += 1;
+        if (_bmSet && _bmSet.has(p.id)) s += 1;
         return s;
       };
       paths = paths.slice().map((p, i) => ({ p, i, s: scoreOf(p) }))

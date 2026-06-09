@@ -3087,6 +3087,12 @@ function _activateSupabaseData() {
         category: data.category || null,
         position: data.position != null ? data.position : nextPos,
       };
+      // metadata (brand, poster_url, cert_url, accent…) · se pasa tal cual si
+      // viene en data. Sin esto, crear un curso con marca la perdía (solo
+      // update la persistía).
+      if (data.metadata && typeof data.metadata === 'object') {
+        payload.metadata = data.metadata;
+      }
       const { data: row, error } = await sb.from('workspace_content').insert(payload).select().single();
       if (error) { console.warn('[supa] content.create', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
       await _loadContent(kind);
