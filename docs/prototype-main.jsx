@@ -2648,16 +2648,22 @@ function _activateSupabaseData() {
       is_admin: !!opts.fromAdmin, avatar_color: opts.fromAvatarColor,
     }).then(() => _loadInbox());
   };
-  // Broadcast a TODOS los miembros del workspace activo. Útil para "Asignar
-  // curso a todos" o "Anunciar release". Solo callable por admins (la RLS
-  // del lado servidor impone el check real). Inserta N filas en una sola
-  // operación bulk para evitar N requests.
+  // Broadcast a miembros del workspace activo. Por defecto envía a TODOS;
+  // pasar opts.userIds = [id1, id2, …] para filtrar a un subconjunto.
+  // Solo callable por admins (la RLS del lado servidor impone el check real).
+  // Inserta en una sola operación bulk para evitar N requests.
   Inbox.broadcastToWorkspace = async function(text, opts) {
     const w = _wsid(); if (!w) return { ok: false, error: 'no workspace' };
     opts = opts || {};
     const members = (window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(w) : [];
     if (!members.length) return { ok: false, error: 'no members' };
-    const rows = members.map(m => ({
+    let targets = members;
+    if (Array.isArray(opts.userIds) && opts.userIds.length) {
+      const want = new Set(opts.userIds);
+      targets = members.filter(m => want.has(m.user_id || m.id));
+      if (!targets.length) return { ok: false, error: 'no targets match' };
+    }
+    const rows = targets.map(m => ({
       category: 'notifications',
       user_id: m.user_id || m.id,
       workspace_id: w,

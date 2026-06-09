@@ -4490,6 +4490,8 @@ function ContentPanel({ kind, label, icon }) {
   const [, setTick] = useEV2(0);
   const [openId, setOpenId] = useEV2(null);
   const [draft, setDraft] = useEV2({});
+  // Asignación a miembros · cuando se abre, contiene el path target.
+  const [assignFor, setAssignFor] = useEV2(null);
 
   React.useEffect(() => {
     const r = () => setTick(t => t + 1);
@@ -4571,20 +4573,8 @@ function ContentPanel({ kind, label, icon }) {
               </div>
               {kind === 'path' && (
                 <button
-                  onClick={async () => {
-                    if (!window.Inbox || !window.Inbox.broadcastToWorkspace) { if (window.Toast) window.Toast.error('Inbox no disponible'); return; }
-                    if (!confirm('¿Asignar "' + it.title + '" a TODOS los miembros del workspace?\n\nRecibirán una notificación en su bandeja.')) return;
-                    const r = await window.Inbox.broadcastToWorkspace(
-                      'Tienes un nuevo curso asignado · ' + it.title,
-                      { kind: 'info', icon: '📚', link: '#path:' + it.id }
-                    );
-                    if (r.ok) {
-                      if (window.Toast) window.Toast.success('Asignado a ' + r.count + (r.count === 1 ? ' miembro' : ' miembros'));
-                    } else {
-                      if (window.Toast) window.Toast.error('Error: ' + (r.error || 'desconocido'));
-                    }
-                  }}
-                  title="Asignar a todos los miembros del workspace"
+                  onClick={() => setAssignFor(it)}
+                  title="Asignar a miembros del workspace"
                   style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--accent)' }}>
                   📨 Asignar
                 </button>
@@ -4665,10 +4655,128 @@ function ContentPanel({ kind, label, icon }) {
           </div>
         </div>
       )}
+      {assignFor && (
+        <AssignMembersModal
+          path={assignFor}
+          onClose={() => setAssignFor(null)}
+        />
+      )}
     </section>
   );
 }
 window.ContentPanel = ContentPanel;
+
+// ── AssignMembersModal · picker para asignar un curso a miembros específicos ─
+// Lee Workspaces.membersOf(currentId) · checkbox por user · "Seleccionar
+// todos" para volver al comportamiento broadcast. Solo crea notificaciones,
+// no fuerza enrollment (el user decide al hacer click en la notificación).
+function AssignMembersModal({ path, onClose }) {
+  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const members = ((window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(ws.id) : []) || [];
+  // Excluye usuarios sin id válido (defensivo)
+  const valid = members.filter(m => m.user_id || m.id);
+  const [selected, setSelected] = useEV2(() => new Set(valid.map(m => m.user_id || m.id)));
+  const [query, setQuery] = useEV2('');
+  const [sending, setSending] = useEV2(false);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q ? valid.filter(m =>
+    (m.name || '').toLowerCase().indexOf(q) !== -1 ||
+    (m.email || '').toLowerCase().indexOf(q) !== -1
+  ) : valid;
+
+  const toggle = (id) => {
+    const s = new Set(selected);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setSelected(s);
+  };
+  const selectAll = () => setSelected(new Set(valid.map(m => m.user_id || m.id)));
+  const selectNone = () => setSelected(new Set());
+
+  const send = async () => {
+    if (selected.size === 0) { if (window.Toast) window.Toast.error('Selecciona al menos un miembro'); return; }
+    if (!window.Inbox || !window.Inbox.broadcastToWorkspace) { if (window.Toast) window.Toast.error('Inbox no disponible'); return; }
+    setSending(true);
+    const r = await window.Inbox.broadcastToWorkspace(
+      'Tienes un nuevo curso asignado · ' + path.title,
+      { kind: 'info', icon: '📚', link: '#path:' + path.id, userIds: Array.from(selected) }
+    );
+    setSending(false);
+    if (r.ok) {
+      if (window.Toast) window.Toast.success('Asignado a ' + r.count + (r.count === 1 ? ' miembro' : ' miembros'));
+      onClose();
+    } else {
+      if (window.Toast) window.Toast.error('Error: ' + (r.error || 'desconocido'));
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(13,17,23,0.65)',
+      backdropFilter:'blur(4px)', zIndex: 650,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 14,
+        boxShadow:'0 30px 80px rgba(0,0,0,0.45)',
+        width:'min(520px, 100%)', maxHeight:'80vh', display:'flex', flexDirection:'column',
+      }}>
+        <div style={{ padding:'18px 22px 12px', borderBottom:'1px solid var(--line)' }}>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom: 4 }}>Asignar curso</div>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color:'var(--fg)' }}>{path.title}</h3>
+          <div style={{ marginTop: 6, fontSize: 12, color:'var(--fg-muted)' }}>{valid.length} {valid.length === 1 ? 'miembro' : 'miembros'} en el workspace</div>
+        </div>
+        <div style={{ padding:'12px 22px', borderBottom:'1px solid var(--line)', display:'flex', gap: 10, alignItems:'center', flexWrap:'wrap' }}>
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre o email…"
+            style={{ flex: 1, minWidth: 180, padding:'8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg)', fontSize: 12.5 }}/>
+          <button onClick={selectAll} style={{ padding:'6px 10px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg-muted)', fontSize: 11, cursor:'pointer' }}>Todos</button>
+          <button onClick={selectNone} style={{ padding:'6px 10px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg-muted)', fontSize: 11, cursor:'pointer' }}>Ninguno</button>
+        </div>
+        <div style={{ flex: 1, overflowY:'auto', padding:'8px 22px 12px' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding:'24px 0', textAlign:'center', color:'var(--fg-muted)', fontSize: 12.5 }}>
+              {q ? 'Sin resultados para "' + query + '"' : 'No hay miembros en el workspace.'}
+            </div>
+          ) : filtered.map(m => {
+            const id = m.user_id || m.id;
+            const isSel = selected.has(id);
+            return (
+              <label key={id} style={{
+                display:'flex', alignItems:'center', gap: 12, padding:'10px 6px',
+                borderBottom:'1px solid var(--line)', cursor:'pointer',
+              }}>
+                <input type="checkbox" checked={isSel} onChange={() => toggle(id)}
+                  style={{ width: 16, height: 16, cursor:'pointer' }}/>
+                <div style={{
+                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+                  background: m.avatar_color || 'var(--accent)', color:'#fff',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: 12, fontWeight: 700,
+                }}>{(m.name || m.email || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color:'var(--fg)' }}>{m.name || (m.email ? m.email.split('@')[0] : 'Sin nombre')}</div>
+                  <div style={{ fontSize: 11, color:'var(--fg-muted)' }}>{m.email || '—'}{m.workspaceRole ? ' · ' + m.workspaceRole : ''}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10 }}>
+          <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+            {selected.size} {selected.size === 1 ? 'seleccionado' : 'seleccionados'}
+          </div>
+          <div style={{ display:'flex', gap: 8 }}>
+            <button onClick={onClose} disabled={sending} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 12.5, color:'var(--fg-muted)' }}>Cancelar</button>
+            <button onClick={send} disabled={sending || selected.size === 0} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 6, cursor: (sending || selected.size === 0) ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 12.5, opacity: (sending || selected.size === 0) ? 0.6 : 1 }}>
+              {sending ? 'Asignando…' : 'Asignar a ' + selected.size}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+window.AssignMembersModal = AssignMembersModal;
 
 // ── CertificatesAdminPanel · admin only · todos los certs del workspace ──
 function CertificatesAdminPanel() {
