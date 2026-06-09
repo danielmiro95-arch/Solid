@@ -2648,6 +2648,27 @@ function _activateSupabaseData() {
       is_admin: !!opts.fromAdmin, avatar_color: opts.fromAvatarColor,
     }).then(() => _loadInbox());
   };
+  // Broadcast a TODOS los miembros del workspace activo. Útil para "Asignar
+  // curso a todos" o "Anunciar release". Solo callable por admins (la RLS
+  // del lado servidor impone el check real). Inserta N filas en una sola
+  // operación bulk para evitar N requests.
+  Inbox.broadcastToWorkspace = async function(text, opts) {
+    const w = _wsid(); if (!w) return { ok: false, error: 'no workspace' };
+    opts = opts || {};
+    const members = (window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(w) : [];
+    if (!members.length) return { ok: false, error: 'no members' };
+    const rows = members.map(m => ({
+      category: 'notifications',
+      user_id: m.user_id || m.id,
+      workspace_id: w,
+      text, kind: opts.kind || 'info',
+      icon: opts.icon || '🔔', link: opts.link || null,
+    }));
+    const { error } = await sb.from('inbox_messages').insert(rows);
+    if (error) return { ok: false, error: error.message };
+    await _loadInbox();
+    return { ok: true, count: rows.length };
+  };
   Inbox.deleteItem = function(category, id) {
     if (category === 'releases') return;
     inboxCache[category] = (inboxCache[category] || []).filter(x => x.id !== id);

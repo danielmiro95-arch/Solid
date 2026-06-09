@@ -2103,13 +2103,17 @@ function InboxView({ openDetail }) {
 
   const onItemClick = (m) => {
     if (window.Inbox && window.Inbox.markRead) window.Inbox.markRead(tab, m.id);
-    // Si la notificación tiene `link` con pill id → abre el detalle
-    if (m && m.link && openDetail) {
-      const linkStr = String(m.link);
-      const pillId = linkStr.startsWith('pill:') ? linkStr.slice(5) : linkStr;
-      const pill = PILLS_BY_ID[pillId];
-      if (pill) openDetail(pill);
+    if (!m || !m.link) return;
+    // Soporta prefijos `pill:` y `path:` (con o sin `#` opcional). Admin
+    // assign genera `#path:<id>`; pills viejas usan `pill:<id>`.
+    const linkStr = String(m.link).replace(/^#/, '');
+    if (linkStr.startsWith('path:')) {
+      const pathId = linkStr.slice(5);
+      if (window.__openPath) { window.__openPath(pathId); return; }
     }
+    const pillId = linkStr.startsWith('pill:') ? linkStr.slice(5) : linkStr;
+    const pill = PILLS_BY_ID[pillId];
+    if (pill && openDetail) openDetail(pill);
   };
 
   const renderItem = (m) => {
@@ -4565,6 +4569,26 @@ function ContentPanel({ kind, label, icon }) {
                 </div>
                 <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2 }}>{[it.teacher, it.duration, it.category].filter(Boolean).join(' · ') || '—'}</div>
               </div>
+              {kind === 'path' && (
+                <button
+                  onClick={async () => {
+                    if (!window.Inbox || !window.Inbox.broadcastToWorkspace) { if (window.Toast) window.Toast.error('Inbox no disponible'); return; }
+                    if (!confirm('¿Asignar "' + it.title + '" a TODOS los miembros del workspace?\n\nRecibirán una notificación en su bandeja.')) return;
+                    const r = await window.Inbox.broadcastToWorkspace(
+                      'Tienes un nuevo curso asignado · ' + it.title,
+                      { kind: 'info', icon: '📚', link: '#path:' + it.id }
+                    );
+                    if (r.ok) {
+                      if (window.Toast) window.Toast.success('Asignado a ' + r.count + (r.count === 1 ? ' miembro' : ' miembros'));
+                    } else {
+                      if (window.Toast) window.Toast.error('Error: ' + (r.error || 'desconocido'));
+                    }
+                  }}
+                  title="Asignar a todos los miembros del workspace"
+                  style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--accent)' }}>
+                  📨 Asignar
+                </button>
+              )}
               <button onClick={() => startEdit(it)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--fg)' }}>Editar</button>
               <button onClick={() => remove(it._id, it.title)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'#E63946' }}>Eliminar</button>
             </div>
