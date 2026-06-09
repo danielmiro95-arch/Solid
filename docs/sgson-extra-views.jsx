@@ -384,17 +384,17 @@ function RutasView({ setView, openPath }) {
               if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
               return;
             }
-            // Si el user no está inscrito y aún no empezó, lo inscribimos antes
-            // de navegar. Hace explícito "ahora estás en este curso" y permite
-            // mostrarlo en "Mis cursos inscritos".
-            if (!enrolled && pct === 0 && !p.isCompleted && window.Enrollments) {
+            // Al abrir el curso lo inscribimos (si no lo estaba) · así "Mi Lista"
+            // refleja TODO lo que el user abre/empieza, sin importar el progreso.
+            // Toast solo la primera vez para no ser repetitivo.
+            if (!enrolled && window.Enrollments) {
               window.Enrollments.add(p.id);
               if (window.Toast) window.Toast.success('Inscrito en ' + p.title, { icon: '✓' });
             }
             go(p.id);
           };
           return (
-          <article key={p.id} className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
+          <article key={p.id} className={`card card-path${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', aspectRatio: '4/5' }}>
             {/* Cover · posterUrl si design lo subió; si no, SVG generado
                 inline con accentHex + título + nivel + watermark BEONIT. */}
             <img

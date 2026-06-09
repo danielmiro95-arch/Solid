@@ -1048,7 +1048,7 @@ function NxPathCard({ path, onOpen }) {
   const _badgeColor = path.accentHex || '#0072BE';
 
   return (
-    <article className={`card${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
+    <article className={`card card-path${isLocked ? ' is-locked' : ''}`} onClick={handleClick} style={isLocked ? { cursor:'not-allowed' } : undefined}>
       {/* Cover · posterUrl de Storage si existe; si no, SVG placeholder
           generado con accentHex + título + level + watermark BEONIT. */}
       <img

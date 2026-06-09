@@ -5124,7 +5124,12 @@ function App() {
   const setView = (v) => { _setView(prev => { if (prev !== v) setPrevView(prev); return v; }); };
   // pathId activo · seteado por RutasView al pulsar una ruta concreta
   const [activePathId, setActivePathId] = useSM(saved.activePathId || null);
-  const openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
+  const openPath = (pathId) => {
+    // Abrir un curso = inscribirse · tracking centralizado de "Mi Lista" desde
+    // cualquier origen (home, catálogo, búsqueda). Idempotente.
+    if (pathId && window.Enrollments && window.Enrollments.add) window.Enrollments.add(pathId);
+    setActivePathId(pathId); setView('path');
+  };
   // AI oculta por defecto · entra como overlay solo cuando el usuario pulsa la rail-btn
   const [aiMode, setAIMode] = useSM(saved.aiMode || 'collapsed'); // hero | companion | collapsed
   // Exposición global · permite que componentes que no reciben setAIMode como prop (Player) puedan abrir BeonAI
@@ -5241,7 +5246,13 @@ function App() {
     window.addEventListener('keydown', h);
     window.__openPalette = () => setPaletteOpen(true);
     // Expone openPath para que CommandPalette pueda navegar a una ruta concreta
-    window.__openPath = (pathId) => { setActivePathId(pathId); setView('path'); };
+    window.__openPath = (pathId) => {
+      // Abrir un curso = inscribirse · centraliza el tracking de "Mi Lista"
+      // sin importar el origen (home, catálogo, búsqueda, notificación).
+      // Idempotente · Enrollments.add ignora duplicados.
+      if (pathId && window.Enrollments && window.Enrollments.add) window.Enrollments.add(pathId);
+      setActivePathId(pathId); setView('path');
+    };
     return () => window.removeEventListener('keydown', h);
   }, []);
 
