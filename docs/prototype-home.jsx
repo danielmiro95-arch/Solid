@@ -1208,6 +1208,131 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   );
 }
 
+// ── OnboardingWizard · tour de 4 pasos la primera vez que entra el user ───
+// Visible solo si:
+//   · existe sesión y D.USER.id
+//   · localStorage no marca al user como "onboarded"
+//   · el user no es admin (admins no necesitan tour)
+// Persiste el flag por user (no por workspace) para que no se repita al
+// cambiar de tenant. Pasos:
+//   1 · Bienvenida personalizada con workspace name
+//   2 · Catálogo (donde están los cursos)
+//   3 · Mi Lista (sigue formándote)
+//   4 · Test autodiagnóstico (si workspace lo tiene) o cierre
+function OnboardingWizard({ setView }) {
+  const D = window.SGS_DATA;
+  const USER = (D && D.USER) || {};
+  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const autoUrl = (ws.settings && ws.settings.autotest_url) || null;
+  const _storeKey = 'solid-onboarded:' + (USER.id || 'anon');
+  const [step, setStep] = useState(0);
+  const [hidden, setHidden] = useState(() => {
+    try {
+      if (USER.isAdmin) return true;
+      if (!USER.id) return true;
+      return localStorage.getItem(_storeKey) === '1';
+    } catch (e) { return false; }
+  });
+  if (hidden) return null;
+
+  const dismiss = () => {
+    try { localStorage.setItem(_storeKey, '1'); } catch (e) {}
+    setHidden(true);
+  };
+  const firstName = (USER.name || '').split(/\s+/)[0] || 'hola';
+  const wsName = (ws.name || '').replace(/\s+demo\s*$/i, '').trim() || 'tu plataforma';
+
+  const steps = [
+    {
+      icon: '👋',
+      title: `¡Hola, ${firstName}!`,
+      body: `Bienvenido a ${wsName}. En 30 segundos te enseñamos cómo aprovecharlo al máximo.`,
+      cta: 'Empezar tour',
+    },
+    {
+      icon: '📚',
+      title: 'Catálogo',
+      body: 'Aquí encuentras todos los cursos disponibles para ti. Filtra por marca, categoría o busca por nombre.',
+      cta: 'Siguiente',
+      action: () => setView && setView('rutas'),
+    },
+    {
+      icon: '✓',
+      title: 'Mi Lista',
+      body: 'Tus cursos inscritos, en progreso y favoritos viven aquí. Es tu zona personal de aprendizaje.',
+      cta: 'Siguiente',
+      action: () => setView && setView('path'),
+    },
+    autoUrl ? {
+      icon: '🧭',
+      title: 'Test autodiagnóstico',
+      body: '¿No sabes por dónde empezar? Haz el test (15 min) y te recomendamos el itinerario que mejor encaja contigo.',
+      cta: 'Hacer test ahora',
+      action: () => { window.open(autoUrl, '_blank', 'noopener'); },
+      altCta: 'Hacerlo después',
+    } : {
+      icon: '🚀',
+      title: 'Listo para empezar',
+      body: 'Explora el catálogo y empieza por el curso que más te llame la atención. Si tienes dudas, tu admin puede ayudarte.',
+      cta: 'Ver catálogo',
+      action: () => setView && setView('rutas'),
+    },
+  ];
+  const s = steps[step];
+  const isLast = step === steps.length - 1;
+  const next = () => {
+    if (s.action) s.action();
+    if (isLast) dismiss();
+    else setStep(step + 1);
+  };
+
+  return (
+    <div onClick={dismiss} style={{
+      position:'fixed', inset:0, background:'rgba(13,17,23,0.72)',
+      backdropFilter:'blur(6px)', zIndex: 700,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 16,
+        boxShadow:'0 30px 80px rgba(0,0,0,0.45)',
+        width:'min(460px, 100%)', padding:'32px 28px 24px', textAlign:'center',
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 18, lineHeight: 1 }}>{s.icon}</div>
+        <h2 style={{
+          margin:'0 0 10px', fontSize: 22, fontWeight: 800, color:'var(--fg)',
+          fontFamily:'var(--font-sans)', letterSpacing:'-0.01em',
+        }}>{s.title}</h2>
+        <p style={{
+          margin:'0 0 26px', fontSize: 14, color:'var(--fg-muted)', lineHeight: 1.55,
+        }}>{s.body}</p>
+        {/* Step dots */}
+        <div style={{ display:'flex', gap: 6, justifyContent:'center', marginBottom: 22 }}>
+          {steps.map((_, i) => (
+            <span key={i} style={{
+              width: i === step ? 22 : 7, height: 7, borderRadius: 4,
+              background: i === step ? 'var(--accent)' : 'rgba(255,255,255,0.18)',
+              transition:'all .2s',
+            }}/>
+          ))}
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+          <button onClick={next} style={{
+            padding:'12px 20px', background:'var(--accent)', color:'#fff', border:'none',
+            borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)',
+            fontWeight: 700, fontSize: 14,
+          }}>{s.cta}</button>
+          <button onClick={s.altCta ? () => { if (isLast) dismiss(); else setStep(step + 1); } : dismiss} style={{
+            padding:'9px 16px', background:'transparent', color:'var(--fg-muted)',
+            border:'none', cursor:'pointer', fontFamily:'var(--font-sans)',
+            fontWeight: 500, fontSize: 12.5,
+          }}>{s.altCta || (isLast ? 'Cerrar' : 'Saltar tour')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+window.OnboardingWizard = OnboardingWizard;
+
 function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
   useEffect(() => {
@@ -1260,6 +1385,7 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
 
   return (
     <div data-screen-label="Home">
+      <OnboardingWizard setView={setView}/>
       <HomeHero onPlay={(p) => openPlayer(p)} onMore={(p) => openDetail(p)}/>
       <div className="rows">
         {showWelcome && (
