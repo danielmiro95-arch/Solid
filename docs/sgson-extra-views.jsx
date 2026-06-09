@@ -132,12 +132,22 @@ function RutasView({ setView, openPath }) {
 
   // Filtro por categoría · chips arriba del grid. "Todos" por defecto.
   const [activeCat, setActiveCat] = useEV2('Todos');
+  // Búsqueda libre · filtra por title/desc/teacher/badge/brand. Escala mejor
+  // que las chips cuando el catálogo crece (50+ cursos).
+  const [query, setQuery] = useEV2('');
   const categories = React.useMemo(() => {
     const set = new Set();
     paths.forEach(p => { if (p.badge) set.add(p.badge); });
     return ['Todos', ...Array.from(set).sort()];
   }, [paths.length]);
-  const filteredPaths = activeCat === 'Todos' ? paths : paths.filter(p => p.badge === activeCat);
+  const byCat = activeCat === 'Todos' ? paths : paths.filter(p => p.badge === activeCat);
+  const q = query.trim().toLowerCase();
+  const filteredPaths = q
+    ? byCat.filter(p => {
+        const hay = String((p.title || '') + ' ' + (p.desc || '') + ' ' + (p.teacher || '') + ' ' + (p.badge || '') + ' ' + (p.brand || '')).toLowerCase();
+        return hay.indexOf(q) !== -1;
+      })
+    : byCat;
 
   // En modo demo el bloque de Competencias se renombra a "Catálogo" y la
   // subcabecera pasa a ser un CTA simple: "Fórmate en tu contenido".
@@ -212,6 +222,36 @@ function RutasView({ setView, openPath }) {
         </div>
       )}
 
+      {/* Búsqueda libre · siempre visible cuando hay ≥ 6 paths */}
+      {paths.length >= 6 && (
+        <div style={{ marginBottom: 16, position:'relative', maxWidth: 420 }}>
+          <input
+            type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar curso, profesor, marca…"
+            style={{
+              width:'100%', padding:'10px 14px 10px 38px',
+              background:'var(--bg-surface)', border:'1px solid var(--line)',
+              borderRadius:'var(--r-2, 10px)', color:'var(--fg)',
+              fontFamily:'var(--font-sans)', fontSize: 13.5, boxSizing:'border-box',
+              outline:'none', transition:'border-color .15s',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; }}
+          />
+          <span style={{
+            position:'absolute', left: 14, top:'50%', transform:'translateY(-50%)',
+            color:'var(--fg-muted)', fontSize: 15, pointerEvents:'none',
+          }}>⌕</span>
+          {query && (
+            <button onClick={() => setQuery('')} title="Limpiar" style={{
+              position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
+              background:'transparent', border:'none', color:'var(--fg-muted)',
+              fontSize: 18, lineHeight: 1, cursor:'pointer', padding:'4px 8px',
+            }}>×</button>
+          )}
+        </div>
+      )}
+
       {/* Category chips · solo si hay más de 1 categoría distinta */}
       {categories.length > 2 && (
         <div style={{
@@ -237,7 +277,24 @@ function RutasView({ setView, openPath }) {
         </div>
       )}
 
+      {/* Empty state · búsqueda sin resultados */}
+      {q && filteredPaths.length === 0 && (
+        <div style={{
+          padding:'48px 24px', textAlign:'center', background:'var(--bg-surface)',
+          border:'1px dashed var(--line)', borderRadius:12, marginTop: 8,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color:'var(--fg)', marginBottom: 4 }}>
+            Sin resultados para "{query}"
+          </div>
+          <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+            Prueba con otra palabra o limpia el filtro.
+          </div>
+        </div>
+      )}
+
       {(() => {
+        if (q && filteredPaths.length === 0) return null;
         const renderCard = (p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
           // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
@@ -2535,6 +2592,29 @@ function ProfileDemoContent({ USER }) {
           </label>
         </div>
       </div>
+
+      {/* Bases legales · link discreto si el workspace lo tiene configurado */}
+      {(() => {
+        const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+        const legalUrl = (ws.settings && ws.settings.legal_url) || null;
+        if (!legalUrl) return null;
+        return (
+          <div style={{
+            marginTop: 18, padding:'12px 16px', background:'var(--bg-surface)',
+            border:'1px solid var(--line)', borderRadius: 8,
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, flexWrap:'wrap',
+          }}>
+            <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+              Bases legales y política de privacidad del programa.
+            </div>
+            <a href={legalUrl} target="_blank" rel="noopener noreferrer" style={{
+              padding:'6px 12px', background:'transparent', color:'var(--accent)',
+              textDecoration:'none', border:'1px solid var(--line)', borderRadius: 6,
+              fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
+            }}>Ver bases legales →</a>
+          </div>
+        );
+      })()}
     </div>
   );
 }
