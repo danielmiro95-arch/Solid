@@ -3691,6 +3691,39 @@ const Bookmarks = (function() {
 })();
 window.Bookmarks = Bookmarks;
 
+// ── Enrollments (cursos "inscritos") por usuario+workspace ──────────────────
+// Diferenciamos:
+//   · Bookmarks → "Guardado" / "Favorito" (star button, intención débil)
+//   · Enrollments → "Inscrito" en el curso (intención fuerte, CTA principal)
+// El user puede tener bookmark sin inscribirse y viceversa. Persistimos en
+// localStorage scopeado por user+workspace para no requerir migración de
+// schema en Supabase. Migrable a tabla `enrollments` a futuro sin tocar UI.
+const Enrollments = (function() {
+  function _key() { return _userScopedKey('solid-enrollments'); }
+  function get() { try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch(e) { return []; } }
+  function save(ids) { localStorage.setItem(_key(), JSON.stringify(ids)); window.dispatchEvent(new Event('enrollments-changed')); }
+  function has(id) { return get().includes(id); }
+  function add(id) {
+    const ids = get();
+    if (!ids.includes(id)) { ids.unshift(id); save(ids); return true; }
+    return false;
+  }
+  function remove(id) {
+    const ids = get().filter(x => x !== id);
+    save(ids);
+  }
+  function toggle(id) {
+    const ids = get();
+    const idx = ids.indexOf(id);
+    if (idx >= 0) ids.splice(idx, 1); else ids.unshift(id);
+    save(ids);
+    return idx < 0;
+  }
+  function clear() { save([]); }
+  return { get, has, add, remove, toggle, clear };
+})();
+window.Enrollments = Enrollments;
+
 // ── User profile (editable) — derivado del usuario autenticado ────────────
 // Lee del Auth.currentUser() y guarda los cambios en el registro de usuarios.
 const UserProfile = (function() {

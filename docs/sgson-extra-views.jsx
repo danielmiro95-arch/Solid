@@ -129,6 +129,18 @@ function RutasView({ setView, openPath }) {
   const D = window.SGS_DATA;
   const paths = (D && D.LEARNING_PATHS) || [];
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
+  // Re-render cuando cambien enrollments/bookmarks · para que el badge
+  // "INSCRITO" aparezca al instante tras pulsar el CTA.
+  const [, setEnrollTick] = useEV2(0);
+  useEE2(() => {
+    const r = () => setEnrollTick(t => t + 1);
+    window.addEventListener('enrollments-changed', r);
+    window.addEventListener('bookmarks-changed', r);
+    return () => {
+      window.removeEventListener('enrollments-changed', r);
+      window.removeEventListener('bookmarks-changed', r);
+    };
+  }, []);
 
   // Filtro por categoría · chips arriba del grid. "Todos" por defecto.
   const [activeCat, setActiveCat] = useEV2('Todos');
@@ -308,14 +320,23 @@ function RutasView({ setView, openPath }) {
           const levelBadges = (_dm && _dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
           const levelTxt = demoActive ? levelBadges[seed % levelBadges.length] : null;
           const pathLabelSingular = demoActive ? _label('path_label', 'Curso').toUpperCase() : 'RUTA';
+          const enrolled = window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id);
           const startLabel = isLocked ? '🔒 Bloqueado'
                            : p.isCompleted ? '✓ Completada'
                            : pct > 0 ? 'Continuar · ' + pct + '%'
-                           : (demoActive ? 'Inscribirse' : T('rutas.start'));
+                           : (enrolled ? 'Empezar curso'
+                              : (demoActive ? 'Inscribirse' : T('rutas.start')));
           const handleClick = () => {
             if (isLocked) {
               if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
               return;
+            }
+            // Si el user no está inscrito y aún no empezó, lo inscribimos antes
+            // de navegar. Hace explícito "ahora estás en este curso" y permite
+            // mostrarlo en "Mis cursos inscritos".
+            if (!enrolled && pct === 0 && !p.isCompleted && window.Enrollments) {
+              window.Enrollments.add(p.id);
+              if (window.Toast) window.Toast.success('Inscrito en ' + p.title, { icon: '✓' });
             }
             go(p.id);
           };
@@ -337,6 +358,12 @@ function RutasView({ setView, openPath }) {
               <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'var(--ok, #1E9E5A)', color:'#fff',
                 fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
                 ✓ COMPLETADA
+              </span>
+            )}
+            {enrolled && !p.isCompleted && !isLocked && pct === 0 && (
+              <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'rgba(89,71,255,0.92)', color:'#fff',
+                fontFamily:'var(--font-mono)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', borderRadius:999 }}>
+                ✓ INSCRITO
               </span>
             )}
             {isLocked && (
@@ -475,11 +502,13 @@ function MyPathView({ openDetail, setView, pathId }) {
     const r = () => setRefreshTick(t => t + 1);
     window.addEventListener('sgs-data-ready', r);
     window.addEventListener('bookmarks-changed', r);
+    window.addEventListener('enrollments-changed', r);
     window.addEventListener('pills-changed', r);
     window.addEventListener('paths-changed', r);
     return () => {
       window.removeEventListener('sgs-data-ready', r);
       window.removeEventListener('bookmarks-changed', r);
+      window.removeEventListener('enrollments-changed', r);
       window.removeEventListener('pills-changed', r);
       window.removeEventListener('paths-changed', r);
     };
@@ -683,11 +712,15 @@ function MyPathView({ openDetail, setView, pathId }) {
         </section>
       )}
 
-      {/* Cursos inscritos (sección 3/3 en demo) · paths bookmarkados + en progreso */}
+      {/* Cursos inscritos (sección 3/3 en demo) · enrolled + en progreso + bookmarked */}
       {_isDemo && !path && (() => {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
+        const coursesEnrolled   = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id));
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
-        let coursesToShow = [...coursesInProgress, ...coursesBookmarked.filter(b => !coursesInProgress.find(c => c.id === b.id))];
+        // Orden · en progreso primero (más relevante), luego inscritos, luego bookmarks. Sin duplicados.
+        const seen = new Set();
+        const dedup = (arr) => arr.filter(x => { if (seen.has(x.id)) return false; seen.add(x.id); return true; });
+        let coursesToShow = [...dedup(coursesInProgress), ...dedup(coursesEnrolled), ...dedup(coursesBookmarked)];
         // Sembrado SOLO en URL demo HdR · para users reales mostramos empty
         // state honesto en lugar de cursos falsos inscritos.
         const _seedSample = typeof window !== 'undefined' && /demo/i.test(window.location.href);
