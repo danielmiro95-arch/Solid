@@ -165,6 +165,21 @@ function RutasView({ setView, openPath }) {
     try { localStorage.setItem(_autoKey, 'hidden'); } catch (e) {}
   };
 
+  // Sub-catálogos por marca · si al menos un path tiene `brand`, dividimos
+  // el grid en secciones (una por marca · "Sin marca" para los que no tengan).
+  // Si ningún path tiene brand, renderizamos el grid plano como antes.
+  const _hasBrands = filteredPaths.some(p => p.brand);
+  const _brandGroups = (() => {
+    if (!_hasBrands) return null;
+    const groups = new Map();
+    filteredPaths.forEach(p => {
+      const b = p.brand || 'Catálogo general';
+      if (!groups.has(b)) groups.set(b, []);
+      groups.get(b).push(p);
+    });
+    return Array.from(groups.entries()); // [[brandName, paths[]], ...]
+  })();
+
   return (
     <PageShell
       eyebrow={eyebrow}
@@ -222,10 +237,8 @@ function RutasView({ setView, openPath }) {
         </div>
       )}
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20,
-      }}>
-        {filteredPaths.map((p, idx) => {
+      {(() => {
+        const renderCard = (p, idx) => {
           const pct = Math.round((p.progress || 0) * 100);
           // En demo · ~2/3 cerrados por hash determinista. Mantenemos el
           // primer path por posición desbloqueado para que la demo se
@@ -353,8 +366,42 @@ function RutasView({ setView, openPath }) {
               </div>
             </div>
           </article>
-        );})}
-      </div>
+        );};
+
+        if (!_brandGroups) {
+          return (
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:20,
+            }}>
+              {filteredPaths.map((p, idx) => renderCard(p, idx))}
+            </div>
+          );
+        }
+
+        // Brand-grouped · una sección por marca con header tipo "sub-catálogo"
+        return _brandGroups.map(([brandName, brandPaths]) => (
+          <section key={brandName} style={{ marginBottom: 36 }}>
+            <header style={{
+              display:'flex', alignItems:'baseline', gap:10, marginBottom:14,
+              paddingBottom:8, borderBottom:'1px solid var(--line)',
+            }}>
+              <h2 style={{
+                margin:0, fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400,
+                fontSize:22, color:'var(--fg)', letterSpacing:'-0.01em',
+              }}>{brandName}</h2>
+              <span style={{
+                fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)',
+                letterSpacing:'0.08em', textTransform:'uppercase',
+              }}>{brandPaths.length} {brandPaths.length === 1 ? 'curso' : 'cursos'}</span>
+            </header>
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:20,
+            }}>
+              {brandPaths.map((p, idx) => renderCard(p, idx))}
+            </div>
+          </section>
+        ));
+      })()}
     </PageShell>
   );
 }

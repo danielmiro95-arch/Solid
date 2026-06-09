@@ -244,6 +244,11 @@
         label:     p.label || p.title || 'Ruta',
         desc:      p.desc || p.roleTag || '',
         badge:     p.badge || '',
+        // Brand (sub-catálogo) · workspace_content.metadata.brand. Permite
+        // agrupar paths por marca dentro de un workspace (HdR: 1906,
+        // Estrella Galicia, Anchois Cuca…). Si no hay brand, queda null y
+        // RutasView trata todo como "Catálogo general".
+        brand:     meta.brand || null,
         pills:     pillIds.length || p.totalPills || 0,
         pillIds:   pillIds,
         hours:     p.duration || (pillIds.length ? (pillIds.length * 5) + ' min' : '—'),

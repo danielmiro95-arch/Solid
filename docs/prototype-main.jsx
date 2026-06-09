@@ -3071,6 +3071,14 @@ function _activateSupabaseData() {
       ['title','teacher','duration','tone','format','level','rating','enrolled','category','position','slug'].forEach(k => {
         if (patch[k] !== undefined) dbPatch[k] = patch[k];
       });
+      // Metadata · merge superficial. Si patch.metadata es objeto, lo fusionamos
+      // con el actual (read-modify-write). Permite settear brand, poster_url,
+      // cert_url, accent sin pisar otras keys.
+      if (patch.metadata && typeof patch.metadata === 'object') {
+        const { data: cur } = await sb.from('workspace_content').select('metadata').eq('id', id).maybeSingle();
+        const merged = Object.assign({}, (cur && cur.metadata) || {}, patch.metadata);
+        dbPatch.metadata = merged;
+      }
       const { error } = await sb.from('workspace_content').update(dbPatch).eq('id', id);
       if (error) { console.warn('[supa] content.update', error.message); if (window.Toast) window.Toast.error('Error: ' + error.message); return null; }
       await _loadContent(kind);
