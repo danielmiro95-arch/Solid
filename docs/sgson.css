@@ -407,6 +407,14 @@ img { display: block; max-width: 100%; }
   transition: color var(--t-fast), background var(--t-fast);
 }
 .icon-btn:hover { color: var(--fg); background: var(--bg-elevated); }
+/* Search btn con hint Cmd+K · ancho automático para acomodar el badge */
+.icon-btn.topnav-search {
+  width: auto;
+  padding: 0 10px 0 12px;
+  border-radius: 18px;
+  gap: 6px;
+}
+.icon-btn.topnav-search:hover .topnav-search-kbd { border-color: var(--accent); color: var(--fg); }
 
 .icon-btn .badge {
   position: absolute;
@@ -2342,6 +2350,8 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
   .topnav-right .icon-btn { width: 36px; height: 36px; }
   .topnav-right .avatar { width: 32px; height: 32px; font-size: 12px; }
   .topnav-hamburger { display: inline-flex; }
+  /* Cmd+K hint solo tiene sentido en desktop */
+  .topnav-search-kbd { display: none; }
   /* Avatar trigger se oculta en mobile · su contenido está en el drawer */
   .topnav-right .avatar-trigger { display: none; }
 

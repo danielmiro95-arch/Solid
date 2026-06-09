@@ -4828,7 +4828,9 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
     (it.category    || '').toLowerCase().includes(ql) ||
     (it.teacher     || '').toLowerCase().includes(ql) ||
     (it.one         || '').toLowerCase().includes(ql) ||
-    (it.desc        || '').toLowerCase().includes(ql);
+    (it.desc        || '').toLowerCase().includes(ql) ||
+    (it.brand       || '').toLowerCase().includes(ql) ||
+    (it.badge       || '').toLowerCase().includes(ql);
   const items = ql.length === 0
     ? taggedPills.slice(0, 8)              // Default · solo pills recientes
     : all.filter(matches).slice(0, 16);
@@ -4941,7 +4943,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
                 const offset = navItems.length + i;
                 const active = isActiveAt(offset);
                 const kindLabel = it._kindLabel || (it.format ? it.format.toUpperCase() : 'PILL');
-                const subtitle  = [it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
+                const subtitle  = [it.brand, it.teacher, it.category, it.duration].filter(Boolean).join(' · ');
                 return (
                   <button key={(it._kind || 'pill') + ':' + it.id} data-active={active}
                     onMouseEnter={() => setActiveIdx(offset)}

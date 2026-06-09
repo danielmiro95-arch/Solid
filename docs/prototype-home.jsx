@@ -410,7 +410,17 @@ function TopNav({ view, onView, onSearch, onLogout }) {
         <button className="topnav-hamburger icon-btn" onClick={() => setMobileNavOpen(o => !o)} aria-label="Menú" title="Menú">
           <Ico name={mobileNavOpen ? 'close' : 'menu'} size={20}/>
         </button>
-        <button className="icon-btn" onClick={onSearch} aria-label="Buscar"><Ico name="search" size={18}/></button>
+        <button className="icon-btn topnav-search" onClick={onSearch}
+          title="Buscar (⌘K / Ctrl+K)" aria-label="Buscar"
+          style={{ position:'relative', display:'inline-flex', alignItems:'center', gap:8 }}>
+          <Ico name="search" size={18}/>
+          <span className="topnav-search-kbd" aria-hidden="true" style={{
+            fontFamily:'var(--mono, "JetBrains Mono", monospace)', fontSize: 9.5, fontWeight: 700,
+            color:'var(--ink-4)', letterSpacing:'0.04em',
+            padding:'2px 6px', border:'1px solid var(--line)', borderRadius: 4,
+            background:'rgba(255,255,255,0.06)',
+          }}>⌘K</span>
+        </button>
         {/* Bell · oculto en demo · inbox no está en sidebar y bell apuntaba ahí */}
         {!isSimplified && (
           <button className="icon-btn" aria-label="Notificaciones" onClick={() => onView('inbox')}>
