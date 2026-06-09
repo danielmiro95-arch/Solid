@@ -144,6 +144,9 @@ function RutasView({ setView, openPath }) {
 
   // Filtro por categoría · chips arriba del grid. "Todos" por defecto.
   const [activeCat, setActiveCat] = useEV2('Todos');
+  // Filtro por marca · chips independientes encima de las categorías. Solo
+  // aparecen si hay 2+ marcas distintas en el catálogo (sub-catálogos activos).
+  const [activeBrand, setActiveBrand] = useEV2('Todas');
   // Búsqueda libre · filtra por title/desc/teacher/badge/brand. Escala mejor
   // que las chips cuando el catálogo crece (50+ cursos).
   const [query, setQuery] = useEV2('');
@@ -152,7 +155,13 @@ function RutasView({ setView, openPath }) {
     paths.forEach(p => { if (p.badge) set.add(p.badge); });
     return ['Todos', ...Array.from(set).sort()];
   }, [paths.length]);
-  const byCat = activeCat === 'Todos' ? paths : paths.filter(p => p.badge === activeCat);
+  const brands = React.useMemo(() => {
+    const set = new Set();
+    paths.forEach(p => { if (p.brand) set.add(p.brand); });
+    return Array.from(set).sort();
+  }, [paths.length]);
+  const byBrand = activeBrand === 'Todas' ? paths : paths.filter(p => p.brand === activeBrand);
+  const byCat = activeCat === 'Todos' ? byBrand : byBrand.filter(p => p.badge === activeCat);
   const q = query.trim().toLowerCase();
   const filteredPaths = q
     ? byCat.filter(p => {
@@ -187,12 +196,13 @@ function RutasView({ setView, openPath }) {
     try { localStorage.setItem(_autoKey, 'hidden'); } catch (e) {}
   };
 
-  // Sub-catálogos por marca · si al menos un path tiene `brand`, dividimos
-  // el grid en secciones (una por marca · "Sin marca" para los que no tengan).
-  // Si ningún path tiene brand, renderizamos el grid plano como antes.
+  // Sub-catálogos por marca · si al menos un path tiene `brand` Y el user
+  // está viendo "Todas", dividimos el grid en secciones. Al filtrar por marca
+  // específica, el grid es plano (no tiene sentido un grupo de 1).
   const _hasBrands = filteredPaths.some(p => p.brand);
   const _brandGroups = (() => {
     if (!_hasBrands) return null;
+    if (activeBrand !== 'Todas') return null;
     const groups = new Map();
     filteredPaths.forEach(p => {
       const b = p.brand || 'Catálogo general';
@@ -231,6 +241,33 @@ function RutasView({ setView, openPath }) {
             background:'transparent', border:'none', color:'var(--fg-muted)', cursor:'pointer',
             fontSize:18, lineHeight:1, padding:'4px 8px',
           }}>×</button>
+        </div>
+      )}
+
+      {/* Filtro de marca · chip strip cuando hay 2+ marcas (sub-catálogos) */}
+      {brands.length >= 2 && (
+        <div style={{
+          display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginBottom:14,
+        }}>
+          <span style={{
+            fontFamily:'var(--font-mono)', fontSize:10, color:'var(--fg-dim)',
+            letterSpacing:'0.1em', textTransform:'uppercase', marginRight:4,
+          }}>Marca</span>
+          {['Todas', ...brands].map(b => {
+            const active = b === activeBrand;
+            const count = b === 'Todas' ? paths.length : paths.filter(x => x.brand === b).length;
+            return (
+              <button key={b} onClick={() => setActiveBrand(b)} style={{
+                padding:'6px 12px', fontFamily:'var(--font-sans)', fontSize:12, fontWeight:700,
+                background: active ? 'var(--fg)' : 'transparent',
+                color:      active ? 'var(--bg-canvas)' : 'var(--fg-muted)',
+                border:'1px solid', borderColor: active ? 'var(--fg)' : 'var(--line)',
+                borderRadius:999, cursor:'pointer', transition:'all .15s',
+              }}>
+                {b} <span style={{ opacity: 0.55, marginLeft: 4, fontWeight: 500 }}>· {count}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
