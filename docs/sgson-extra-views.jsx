@@ -151,11 +151,51 @@ function RutasView({ setView, openPath }) {
     : <>{T('rutas.title')} <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>{T('rutas.titleEm')}</em></>;
   const sub     = demoActive ? '' : T('rutas.sub');
 
+  // Autotest banner · si el workspace tiene `settings.autotest_url`, mostramos
+  // un banner discreto arriba del catálogo invitando al test (15 min). El
+  // banner se puede ocultar y queda persistido en localStorage por workspace.
+  const _wsAuto = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const _autoUrl = (_wsAuto.settings && _wsAuto.settings.autotest_url) || null;
+  const _autoKey = 'sgson:autotest-banner:' + (_wsAuto.slug || 'default');
+  const [autoHide, setAutoHide] = useEV2(() => {
+    try { return localStorage.getItem(_autoKey) === 'hidden'; } catch (e) { return false; }
+  });
+  const dismissAuto = () => {
+    setAutoHide(true);
+    try { localStorage.setItem(_autoKey, 'hidden'); } catch (e) {}
+  };
+
   return (
     <PageShell
       eyebrow={eyebrow}
       title={title}
       sub={sub}>
+
+      {/* Autotest banner · CTA al test externo si está configurado */}
+      {_autoUrl && !autoHide && (
+        <div style={{
+          marginBottom: 24, padding:'14px 18px',
+          background:'linear-gradient(90deg, rgba(89,71,255,0.14), rgba(89,71,255,0.06))',
+          border:'1px solid rgba(89,71,255,0.28)', borderRadius:12,
+          display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+        }}>
+          <span style={{ fontSize: 22 }}>🧭</span>
+          <div style={{ flex:1, minWidth: 240 }}>
+            <div style={{ fontWeight:700, fontSize:14, color:'var(--fg)' }}>¿No sabes por dónde empezar?</div>
+            <div style={{ fontSize:12.5, color:'var(--fg-muted)', marginTop:2 }}>
+              Haz el test de autodiagnóstico (15 min) y te recomendamos el itinerario que mejor encaja contigo.
+            </div>
+          </div>
+          <a href={_autoUrl} target="_blank" rel="noopener noreferrer" style={{
+            padding:'9px 16px', background:'var(--accent)', color:'#fff', textDecoration:'none',
+            borderRadius:8, fontFamily:'var(--font-sans)', fontWeight:700, fontSize:12.5,
+          }}>Empezar test</a>
+          <button onClick={dismissAuto} title="Ocultar" style={{
+            background:'transparent', border:'none', color:'var(--fg-muted)', cursor:'pointer',
+            fontSize:18, lineHeight:1, padding:'4px 8px',
+          }}>×</button>
+        </div>
+      )}
 
       {/* Category chips · solo si hay más de 1 categoría distinta */}
       {categories.length > 2 && (
@@ -246,7 +286,20 @@ function RutasView({ setView, openPath }) {
                 fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400,
                 fontSize: 28, color: 'var(--fg)', margin: 0, marginBottom: 8, lineHeight: 1.1,
               }}>{p.title}</h3>
-              <p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
+              {/* Descripción · competencia · nivel · #pills · director del programa */}
+              <p style={{ fontSize: 12.5, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>
+                {(() => {
+                  const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+                  const director = (ws.settings && ws.settings.program_director) || null;
+                  const totalPills = p.totalCount || p.pills || 0;
+                  const parts = [];
+                  if (p.badge) parts.push(p.badge);
+                  if (levelTxt) parts.push('Nivel ' + levelTxt);
+                  if (totalPills) parts.push(totalPills + ' pills');
+                  if (director) parts.push('Dirige ' + director);
+                  return parts.join(' · ');
+                })()}
+              </p>
               {pct > 0 && pct < 100 && (
                 <div style={{ height:4, background:'rgba(255,255,255,0.1)', borderRadius:2, overflow:'hidden', marginTop:10 }}>
                   <div style={{ height:'100%', width:pct+'%', background:'var(--accent)', transition:'width .25s' }}/>
@@ -3618,6 +3671,9 @@ function WorkspacesPanel() {
   const [editPathLabel, setEditPathLabel] = useEV2('');
   const [editPathLabelPlural, setEditPathLabelPlural] = useEV2('');
   const [editWelcomeMsg, setEditWelcomeMsg] = useEV2('');
+  const [editProgramDirector, setEditProgramDirector] = useEV2('');
+  const [editLegalUrl, setEditLegalUrl] = useEV2('');
+  const [editAutoTestUrl, setEditAutoTestUrl] = useEV2('');
   // ── Members management (Slice 1C) ──────────────────────────────────────
   const [addEmail, setAddEmail] = useEV2('');
   const [addRole, setAddRole] = useEV2('member');
@@ -3655,6 +3711,9 @@ function WorkspacesPanel() {
     setEditPathLabel(s.path_label || '');
     setEditPathLabelPlural(s.path_label_plural || '');
     setEditWelcomeMsg(s.welcome_message || '');
+    setEditProgramDirector(s.program_director || '');
+    setEditLegalUrl(s.legal_url || '');
+    setEditAutoTestUrl(s.autotest_url || '');
   };
   const cancelEdit = () => { setEditingId(null); setEditLogoPreview(null); };
   const saveEdit = async () => {
@@ -3671,6 +3730,9 @@ function WorkspacesPanel() {
       path_label: editPathLabel.trim() || null,
       path_label_plural: editPathLabelPlural.trim() || null,
       welcome_message: editWelcomeMsg.trim() || null,
+      program_director: editProgramDirector.trim() || null,
+      legal_url: editLegalUrl.trim() || null,
+      autotest_url: editAutoTestUrl.trim() || null,
     });
     // Limpia keys null para no llenar el jsonb de basura
     Object.keys(nextSettings).forEach(k => { if (nextSettings[k] == null || nextSettings[k] === '') delete nextSettings[k]; });
@@ -3877,6 +3939,29 @@ function WorkspacesPanel() {
                           Aparece como banner dismissible en el home. Vacío = mensaje genérico con nombre del user.
                         </span>
                       </label>
+                      <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', marginTop: 10, display:'block' }}>
+                        Director del programa (valor fijo en cards)
+                        <input value={editProgramDirector} onChange={e => setEditProgramDirector(e.target.value)}
+                          placeholder="Ej · Carmen Martínez · Directora de Formación"
+                          style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        <span style={{ display:'block', marginTop: 3, fontSize: 10, color:'var(--fg-muted)', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}>
+                          Aparece en la descripción de cada curso ("Dirige · {'<nombre>'}").
+                        </span>
+                      </label>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10, marginTop: 10 }}>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', display:'block' }}>
+                          URL Bases Legales
+                          <input value={editLegalUrl} onChange={e => setEditLegalUrl(e.target.value)}
+                            placeholder="https://..."
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        </label>
+                        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fg-muted)', display:'block' }}>
+                          URL Test autodiagnóstico
+                          <input value={editAutoTestUrl} onChange={e => setEditAutoTestUrl(e.target.value)}
+                            placeholder="https://forms..."
+                            style={{ display:'block', marginTop: 4, width:'100%', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)', boxSizing:'border-box', fontFamily:'var(--font-sans)', textTransform:'none', letterSpacing: 0 }}/>
+                        </label>
+                      </div>
                     </div>
                     {/* Demo user · crea usuario predecible para presentaciones */}
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop:'1px dashed var(--line)', display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap' }}>

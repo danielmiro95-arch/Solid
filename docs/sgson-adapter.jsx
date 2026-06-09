@@ -153,11 +153,19 @@
     }
 
     // 2. RECOMENDADOS PARA TI (según rol)
+    // El orden se calcula con un score simple per path:
+    //   +3 · badge/desc match con el rol del user (lower-case)
+    //   +2 · path en progreso (continuidad)
+    //   +1 · path con bookmark (interés explícito)
+    // El recomendador real (embeddings, colaborativo) vive a futuro · esto es
+    // suficiente para una demo creíble: el rol de Marketing ve Marketing 1º,
+    // el de Tech ve Tech 1º, etc. Sin rol declarado → orden original.
     ROWS.push({
       key:'paths',
       title: _label('paths_recommended_label', 'Recomendados para ti'),
       sub:   _label('paths_recommended_sub', 'según tu rol'),
       isPaths: true,
+      _recommended: true,
     });
 
     // 3. TOP 10 CURSOS · [Nombre marca] · trending limitado a 10

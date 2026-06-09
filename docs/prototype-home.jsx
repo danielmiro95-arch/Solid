@@ -1070,11 +1070,25 @@ function NxPathCard({ path, onOpen }) {
           {path.title}
         </h3>
         <div className="card-meta">
-          {!(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
-            <span>{path.hours}</span>
-            <span className="sep">·</span>
-          </>}
-          <span>{(path.desc || '').slice(0, 38)}…</span>
+          {/* Descripción: competencia · nivel · # pills · director del programa
+              (per spec del cliente). El director se setea en workspace.settings.
+              program_director y se hereda automáticamente a todos los paths. */}
+          {(() => {
+            const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+            const director = (ws.settings && ws.settings.program_director) || null;
+            const pills = path.totalCount || path.pills || 0;
+            const parts = [];
+            if (path.badge) parts.push(path.badge);
+            if (level) parts.push('Nivel ' + level);
+            if (pills) parts.push(pills + ' pills');
+            if (director) parts.push('Dirige: ' + director);
+            return parts.map((part, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span className="sep">·</span>}
+                <span>{part}</span>
+              </React.Fragment>
+            ));
+          })()}
         </div>
       </div>
     </article>
@@ -1091,8 +1105,29 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   };
 
   if (row.isPaths) {
-    const paths = (D && D.LEARNING_PATHS) || [];
+    let paths = (D && D.LEARNING_PATHS) || [];
     if (paths.length === 0) return null;
+    // Recomendación por rol · scoring simple. Solo si el row pidió ranking
+    // ("_recommended": true en el adapter) reordenamos. Sino preservamos
+    // el orden de inserción del backend.
+    if (row._recommended) {
+      const user = (D && D.USER) || {};
+      const role = String(user.role || '').toLowerCase();
+      const team = String(user.team || '').toLowerCase();
+      const tokens = (role + ' ' + team).split(/[\s,·\-/]+/).filter(t => t.length > 2);
+      const Bm = window.Bookmarks;
+      const scoreOf = (p) => {
+        let s = 0;
+        const hay = String((p.badge || '') + ' ' + (p.desc || '') + ' ' + (p.title || '')).toLowerCase();
+        if (tokens.some(tok => hay.indexOf(tok) !== -1)) s += 3;
+        if (p.progress > 0 && p.progress < 1) s += 2;
+        if (Bm && Bm.has && Bm.has(p.id)) s += 1;
+        return s;
+      };
+      paths = paths.slice().map((p, i) => ({ p, i, s: scoreOf(p) }))
+                   .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+                   .map(x => x.p);
+    }
     return (
       <section className="row" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
@@ -1255,6 +1290,19 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
           <span>by BeonIt</span>
           <span>·</span>
           <span>{window.WORKSPACE_NAME || 'Plataforma de formación'}</span>
+          {(() => {
+            const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+            const legalUrl = (ws.settings && ws.settings.legal_url) || null;
+            if (!legalUrl) return null;
+            return (
+              <>
+                <span>·</span>
+                <a href={legalUrl} target="_blank" rel="noopener noreferrer" style={{
+                  color:'var(--fg-muted)', textDecoration:'underline',
+                }}>Bases legales</a>
+              </>
+            );
+          })()}
         </div>
         <div>v 2.0 · MAY 2026</div>
       </footer>
