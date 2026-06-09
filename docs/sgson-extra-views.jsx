@@ -4358,16 +4358,22 @@ function ContentPanel({ kind, label, icon }) {
   const wsName = ws ? ws.name : '—';
   const items = window.Content.list(kind);
 
-  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it }); };
-  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0 }); };
+  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it, brand: (it._meta && it._meta.brand) || '' }); };
+  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0, brand: '' }); };
   const cancel = () => { setOpenId(null); setDraft({}); };
 
   const save = async () => {
     if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    // Brand vive en metadata.brand · lo extraemos del draft plano y lo
+    // pasamos como patch.metadata para que content.update haga merge.
+    const { brand, ...rest } = draft;
+    const payload = brand !== undefined && kind === 'path'
+      ? Object.assign({}, rest, { metadata: { brand: brand.trim() || null } })
+      : rest;
     if (openId === 'new') {
-      await window.Content.create(kind, draft);
+      await window.Content.create(kind, payload);
     } else {
-      await window.Content.update(kind, openId, draft);
+      await window.Content.update(kind, openId, payload);
       if (window.Toast) window.Toast.success('Actualizado');
     }
     setOpenId(null); setDraft({});
@@ -4401,7 +4407,12 @@ function ContentPanel({ kind, label, icon }) {
           {items.map(it => (
             <div key={it._id} style={{ padding:'12px 14px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8, display:'flex', alignItems:'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)' }}>{it.title}</div>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)', display:'flex', alignItems:'center', gap: 8 }}>
+                  {it.title}
+                  {kind === 'path' && it._meta && it._meta.brand && (
+                    <span style={{ padding:'2px 8px', background:'rgba(89,71,255,0.14)', color:'var(--accent)', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing:'0.04em' }}>{it._meta.brand}</span>
+                  )}
+                </div>
                 <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 2 }}>{[it.teacher, it.duration, it.category].filter(Boolean).join(' · ') || '—'}</div>
               </div>
               <button onClick={() => startEdit(it)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--fg)' }}>Editar</button>
@@ -4437,6 +4448,17 @@ function ContentPanel({ kind, label, icon }) {
               <label>
                 <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Categoría</div>
                 <input value={draft.category || ''} onChange={e => setDraft({ ...draft, category: e.target.value })} style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+              </label>
+            )}
+            {kind === 'path' && (
+              <label>
+                <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Marca (sub-catálogo)</div>
+                <input value={draft.brand || ''} onChange={e => setDraft({ ...draft, brand: e.target.value })}
+                  placeholder="Ej · 1906, Estrella Galicia, Anchois Cuca"
+                  style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+                <span style={{ fontSize: 10, color:'var(--fg-muted)', marginTop: 4, display:'block' }}>
+                  Agrupa el catálogo por marca. Vacío = "Catálogo general".
+                </span>
               </label>
             )}
             {showLevel && (
