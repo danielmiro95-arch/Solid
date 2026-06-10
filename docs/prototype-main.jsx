@@ -1894,7 +1894,7 @@ function InviteUsersModal({ onClose }) {
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
         if (r.status === 503) {
-          if (window.Toast) window.Toast.error('Email no configurado · lee docs/EMAIL-AND-SSO-SETUP.md');
+          if (window.Toast) window.Toast.error('Email no configurado · usa "Copiar link" y compártelo a mano (o configura RESEND_API_KEY en Vercel)');
         } else {
           if (window.Toast) window.Toast.error('No se pudo enviar: ' + (data.error || r.status));
         }
