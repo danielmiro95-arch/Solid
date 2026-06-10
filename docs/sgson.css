@@ -4,14 +4,14 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (claro · crema cálido) ── */
-  --bg-deep:        #EFE7DA;                       /* fondo más profundo, tras el hero */
-  --bg-canvas:      #F7F3EC;                       /* fondo de página (crema cálido) */
-  --bg-surface:     #FFFFFF;                       /* tarjetas, filas, modales */
-  --bg-elevated:    #F0EADF;                       /* hover, elementos elevados, dropdowns */
-  --bg-glass:       rgba(247, 243, 236, 0.76);     /* nav translúcida */
-  --bg-glass-strong:rgba(247, 243, 236, 0.93);     /* nav scrolled / sidebar */
-  --scrim:          rgba(247, 243, 236, 0.85);     /* fades de carrusel/nav */
+  /* ── Color · Surfaces (claro · crema cálido un punto más profundo) ── */
+  --bg-deep:        #E7DDC9;                       /* base del gradient, tras el hero */
+  --bg-canvas:      #EEE5D2;                       /* fondo de página · crema más tostado */
+  --bg-surface:     #FFFFFF;                       /* cards/modales · blanco para que destaquen sobre el canvas */
+  --bg-elevated:    #E5DCC4;                       /* hover, elementos elevados, dropdowns */
+  --bg-glass:       rgba(238, 229, 210, 0.78);     /* nav translúcida */
+  --bg-glass-strong:rgba(238, 229, 210, 0.94);     /* nav scrolled / sidebar */
+  --scrim:          rgba(231, 221, 201, 0.85);     /* fades de carrusel/nav (= bg-deep) */
 
   /* ── Color · Lines & dividers (tinta translúcida sobre claro) ── */
   --line-faint:     rgba(20, 18, 15, 0.06);
@@ -96,9 +96,9 @@ html[data-theme="light"] body[data-cinematic="true"] {
 /* Body en cinematic: fondo crema con gradient muy sutil. */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, #FDF8EE 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #F5EDE0 0%, transparent 50%),
-    linear-gradient(180deg, #F7F3EC 0%, #F1EBDF 60%, #EFE7DA 100%);
+    radial-gradient(ellipse at 0% 0%, #F6EDD8 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #ECE2CB 0%, transparent 50%),
+    linear-gradient(180deg, #EEE5D2 0%, #E8DEC8 60%, #E2D8BF 100%);
   background-attachment: fixed;
 }
 
@@ -2468,13 +2468,13 @@ html[data-demo-mode="true"] {
  * #EC1C24 en :root) · solo aseguramos surfaces/scrim coherentes. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #EFE7DA;
-  --bg-canvas:      #F7F3EC;
+  --bg-deep:        #E7DDC9;
+  --bg-canvas:      #EEE5D2;
   --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F0EADF;
-  --bg-glass:       rgba(247, 243, 236, 0.76);
-  --bg-glass-strong:rgba(247, 243, 236, 0.93);
-  --scrim:          rgba(247, 243, 236, 0.85);
+  --bg-elevated:    #E5DCC4;
+  --bg-glass:       rgba(238, 229, 210, 0.78);
+  --bg-glass-strong:rgba(238, 229, 210, 0.94);
+  --scrim:          rgba(231, 221, 201, 0.85);
   --line-faint:     rgba(20, 18, 15, 0.06);
   --line:           rgba(20, 18, 15, 0.10);
   --line-strong:    rgba(20, 18, 15, 0.18);
@@ -2488,9 +2488,9 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #FDF8EE 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #F5EDE0 0%, transparent 50%),
-    linear-gradient(180deg, #F7F3EC 0%, #F1EBDF 60%, #EFE7DA 100%) !important;
+    radial-gradient(ellipse at 0% 0%, #F6EDD8 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #ECE2CB 0%, transparent 50%),
+    linear-gradient(180deg, #EEE5D2 0%, #E8DEC8 60%, #E2D8BF 100%) !important;
   background-attachment: fixed;
 }
 
