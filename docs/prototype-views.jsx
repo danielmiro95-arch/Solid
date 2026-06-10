@@ -3068,3 +3068,6 @@ function Dashboard() {
 
 
 Object.assign(window, { Player, AISidekick, Onboarding, Dashboard, LEARNING_PATHS, ColumnChart, StackedBarChart, DonutChart, AreaChart, HeatmapChart, GaugeChart, FunnelChart, StarRating });
+// Expone callMentorAPI para que otros componentes (NextStepIA en Home) puedan
+// llamar a Claude sin duplicar la lógica de auth/streaming.
+window.callMentorAPI = callMentorAPI;

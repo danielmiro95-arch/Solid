@@ -7,7 +7,7 @@
 // Versión bumpeada con cada release que cambia el shell. Si subes la versión
 // borra los caches viejos en el activate().
 
-const VERSION = 'sgson-v1-20260602demo-b102';
+const VERSION = 'sgson-v1-20260602demo-b103';
 const SHELL_CACHE = VERSION + '-shell';
 const CDN_CACHE   = VERSION + '-cdn';
 
