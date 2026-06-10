@@ -531,22 +531,48 @@ function AISidekick({ setAIMode, aiMode, view }) {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [dynMsgs.length, loading]);
 
+  // Actualiza el texto del ÚLTIMO mensaje de asistente (para streaming).
+  const _patchLastAssistant = (patch) => setDynMsgs(m => {
+    const c = [...m];
+    for (let i = c.length - 1; i >= 0; i--) { if (c[i].role === 'assistant') { c[i] = { ...c[i], ...patch }; break; } }
+    return c;
+  });
+
   const sendMsg = async (overrideQ) => {
     const q = (overrideQ || input).trim();
     if (!q || loading) return;
-    setDynMsgs(m => [...m, { role: 'user', text: q }]);
+    const history = dynMsgs;
+    setDynMsgs(m => [...m, { role: 'user', text: q }, { role: 'assistant', text: '', streaming: true }]);
     setInput('');
     setLoading(true);
+
+    // Persistencia · asegura conversación activa y guarda el mensaje de usuario.
+    // El overlay ahora comparte historial con la vista Coach (antes no guardaba).
+    let convId = null;
     try {
-      const reply = await callMentorAPI([...dynMsgs, { role: 'user', text: q }]);
-      setDynMsgs(m => [...m, { role: 'assistant', text: reply }]);
+      const CH = window.ChatHistory;
+      if (CH) {
+        convId = (CH.activeId && CH.activeId()) || null;
+        if (!convId && CH.create) { const c = CH.create([]); convId = c && c.id; }
+        if (convId && CH.appendMessage) CH.appendMessage(convId, { role: 'user', text: q });
+      }
+    } catch (e) {}
+
+    let streamed = '';
+    try {
+      const reply = await callMentorAPI([...history, { role: 'user', text: q }], (delta, full) => {
+        streamed = full;
+        _patchLastAssistant({ text: full, streaming: true });
+      });
+      const finalText = reply || streamed;
+      _patchLastAssistant({ text: finalText, streaming: false });
+      try { if (convId && window.ChatHistory && window.ChatHistory.appendMessage) window.ChatHistory.appendMessage(convId, { role: 'assistant', text: finalText }); } catch (e) {}
     } catch (err) {
       const detail = (err && err.message) || 'sin detalle';
-      setDynMsgs(m => [...m, {
-        role: 'assistant',
+      _patchLastAssistant({
         text: '⚠ BeonAI no está disponible ahora mismo. Si esto persiste, comprueba que el admin del workspace ha configurado el panel de BeonAI (Admin → BeonAI). Detalle técnico: ' + detail,
-        isError: true,
-      }]);
+        streaming: false, isError: true,
+      });
     }
     setLoading(false);
     setHappyPulse(true);
@@ -641,7 +667,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
             <div key={i} style={{display:'flex', gap:10, alignItems:'flex-start'}}>
               {window.BeonAIChar && <BeonAIChar size={28} mood="neutral" interactive={false}/>}
               <div style={{flex:1, padding:'12px 14px', background:SURFACE_2, border:`1px solid ${BORDER}`, borderRadius:'4px 12px 12px 12px', color:INK, fontSize:13.5, lineHeight:1.55, whiteSpace:'pre-wrap'}}>
-                {m.text}
+                {m.text}{m.streaming ? <span style={{opacity:0.6}}> ▍</span> : ''}
               </div>
             </div>
           ) : (
@@ -653,8 +679,9 @@ function AISidekick({ setAIMode, aiMode, view }) {
           )
         ))}
 
-        {/* Loading indicator con BeonAIChar thinking */}
-        {loading && (
+        {/* Loading indicator · solo si NO hay ya una burbuja en streaming
+            (con streaming el cursor ▍ de la burbuja cubre el "pensando"). */}
+        {loading && !dynMsgs.some(m => m.streaming) && (
           <div style={{display:'flex', gap:10, alignItems:'center'}}>
             {window.BeonAIChar && <BeonAIChar size={28} mood="thinking" interactive={false}/>}
             <div style={{padding:'12px 14px', background:SURFACE_2, border:`1px solid ${BORDER}`, borderRadius:'4px 12px 12px 12px', display:'flex', gap:5, alignItems:'center'}}>

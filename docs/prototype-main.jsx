@@ -2601,6 +2601,11 @@ function _activateSupabaseData() {
   ChatHistory.get = function(id) { return chatsCache.find(c => c.id === id) || null; };
   ChatHistory.activeId = function() { return activeIdCache; };
   ChatHistory.setActive = function(id) { activeIdCache = id || null; window.dispatchEvent(new Event('chats-changed')); };
+  // Remapeo tmp→real y cola de mensajes pendientes · evita la RACE en la que
+  // appendMessage(tmpId) corría antes de que el insert async devolviera el id
+  // real (mensaje perdido o conversation_id inválido en DB).
+  let _convIdRemap = {};      // tmpId → realId
+  let _pendingConvMsgs = {};  // tmpId → [msg,...] encolados mientras se crea la conv
   ChatHistory.create = function(initial) {
     const u = _uid(); if (!u) return null;
     const localId = 'tmp_' + Date.now().toString(36); // se reemplaza por el real
@@ -2611,7 +2616,7 @@ function _activateSupabaseData() {
     sb.from('conversations').insert({ user_id: u, title: 'Nueva conversación' }).select().single().then(async ({ data, error }) => {
       if (error) { console.warn('[supa] create conv', error.message); return; }
       const realId = data.id;
-      // mover mensajes locales si los hay
+      _convIdRemap[localId] = realId;
       const idx = chatsCache.findIndex(c => c.id === localId);
       if (idx >= 0) {
         chatsCache[idx].id = realId;
@@ -2619,26 +2624,43 @@ function _activateSupabaseData() {
         chatsCache[idx].updatedAt = new Date(data.updated_at).getTime();
       }
       if (activeIdCache === localId) activeIdCache = realId;
-      // si tenía mensajes iniciales, insertarlos
-      if (initial && initial.length > 0) {
-        await sb.from('messages').insert(initial.map(m => ({ conversation_id: realId, role: m.role, content: m.text })));
+      // Mensajes iniciales + los encolados mientras la conv no existía en DB
+      const queued = (initial || []).concat(_pendingConvMsgs[localId] || []);
+      if (queued.length > 0) {
+        await sb.from('messages').insert(queued.map(m => ({ conversation_id: realId, role: m.role, content: m.text })));
       }
+      // Sincroniza el título con el primer mensaje de usuario, si aplica
+      const ci = chatsCache.findIndex(c => c.id === realId);
+      if (ci >= 0 && chatsCache[ci].title && chatsCache[ci].title !== 'Nueva conversación') {
+        sb.from('conversations').update({ title: chatsCache[ci].title, updated_at: new Date().toISOString() }).eq('id', realId).then(()=>{});
+      }
+      delete _pendingConvMsgs[localId];
       window.dispatchEvent(new Event('chats-changed'));
     });
     return chat;
   };
   ChatHistory.appendMessage = function(id, msg) {
-    const idx = chatsCache.findIndex(c => c.id === id);
+    // Resuelve el id real si ya hubo remap; encuentra el chat por real o tmp.
+    const realId = _convIdRemap[id] || id;
+    let idx = chatsCache.findIndex(c => c.id === realId);
+    if (idx < 0) idx = chatsCache.findIndex(c => c.id === id);
     if (idx < 0) return;
     chatsCache[idx].messages = (chatsCache[idx].messages || []).concat([msg]);
     chatsCache[idx].updatedAt = Date.now();
+    const targetId = chatsCache[idx].id;            // ya remapeado en cache si resolvió
+    const isTmp = String(targetId).startsWith('tmp_');
     if (chatsCache[idx].title === 'Nueva conversación' && msg.role === 'user') {
       chatsCache[idx].title = msg.text.slice(0, 50) + (msg.text.length > 50 ? '…' : '');
-      sb.from('conversations').update({ title: chatsCache[idx].title, updated_at: new Date().toISOString() }).eq('id', id).then(()=>{});
-    } else {
-      sb.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', id).then(()=>{});
+      if (!isTmp) sb.from('conversations').update({ title: chatsCache[idx].title, updated_at: new Date().toISOString() }).eq('id', targetId).then(()=>{});
+    } else if (!isTmp) {
+      sb.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', targetId).then(()=>{});
     }
-    sb.from('messages').insert({ conversation_id: id, role: msg.role, content: msg.text }).then(()=>{});
+    if (isTmp) {
+      // La conversación aún no existe en DB · encola hasta que create resuelva.
+      _pendingConvMsgs[id] = (_pendingConvMsgs[id] || []).concat([msg]);
+    } else {
+      sb.from('messages').insert({ conversation_id: targetId, role: msg.role, content: msg.text }).then(()=>{});
+    }
     window.dispatchEvent(new Event('chats-changed'));
   };
   ChatHistory.update = function(id, patch) {
