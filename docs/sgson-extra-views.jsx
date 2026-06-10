@@ -3061,7 +3061,12 @@ function CertificatesView({ setView }) {
               ) : (
                 <div style={{ marginTop:'auto', display:'flex', flexDirection:'column', gap:6 }}>
                   <div style={{ fontFamily:'var(--font-mono, monospace)', fontSize:11, color:'var(--fg-muted)', letterSpacing:'0.04em' }}>
-                    {cert.cert_number || '—'} · {fmtDate(cert.completed_at)}
+                    {/* cert puede ser undefined · curso completado sin fila de
+                        certificado emitida todavía. Sin esta guarda, deref de
+                        cert.cert_number crasheaba toda la app (pantalla blanca). */}
+                    {cert
+                      ? ((cert.cert_number || '—') + ' · ' + fmtDate(cert.completed_at))
+                      : 'Completado · genera tu certificado'}
                   </div>
                   {/* Descarga · prioridad: certUrl (design en Storage) →
                       SVG generado inline con el accent + título + nombre

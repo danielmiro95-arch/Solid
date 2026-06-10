@@ -531,9 +531,12 @@ img { display: block; max-width: 100%; }
 .hero-overlay {
   position: absolute;
   inset: 0;
+  /* El fade inferior usa --scrim (derivado del canvas) en vez de rgba(8,8,11)
+     fijo · antes, con el fondo claro nuevo, había una banda dura donde el
+     casi-negro chocaba con el canvas claro. Ahora mezcla con el propio fondo. */
   background:
-    linear-gradient(90deg, rgba(8,8,11,0.95) 0%, rgba(8,8,11,0.65) 35%, rgba(8,8,11,0.10) 65%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, transparent 50%, rgba(8,8,11,0.85) 88%, var(--bg-canvas) 100%);
+    linear-gradient(90deg, var(--scrim, rgba(8,8,11,0.95)) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0.08) 65%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, transparent 55%, var(--scrim, rgba(8,8,11,0.85)) 90%, var(--bg-canvas) 100%);
   pointer-events: none;
 }
 
