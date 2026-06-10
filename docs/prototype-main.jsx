@@ -6672,6 +6672,26 @@ function AdminPanel({ setView }) {
     return () => window.removeEventListener('auth-users-changed', refresh);
   }, []);
 
+  // Métricas por usuario desde Supabase (RPC workspace_user_metrics) · en modo
+  // Supabase los contadores por-usuario de OTROS usuarios no están en
+  // localStorage, así que los traemos del backend (requiere
+  // db/workspace-user-metrics.sql). Mapa userId → {bookmarks,chats,completed,enrolled}.
+  const [dbMetrics, setDbMetrics] = useSM(null);
+  useEM(() => {
+    let alive = true;
+    const sb = window.supabaseClient;
+    const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+    if (!sb || !sb.rpc || !wsId) { setDbMetrics(null); return; }
+    sb.rpc('workspace_user_metrics', { p_workspace_id: wsId }).then(({ data, error }) => {
+      if (!alive) return;
+      if (error) { console.warn('[admin] workspace_user_metrics', error.message); setDbMetrics(null); return; }
+      const map = {};
+      (data || []).forEach(r => { map[r.user_id] = { bookmarks: Number(r.bookmarks)||0, chats: Number(r.chats)||0, completed: Number(r.completed)||0, enrolled: Number(r.enrolled)||0 }; });
+      setDbMetrics(map);
+    });
+    return () => { alive = false; };
+  }, []);
+
   const filtered = users.filter(u => !filter || (u.name + ' ' + u.email + ' ' + u.role + ' ' + u.team).toLowerCase().includes(filter.toLowerCase()));
   const totalUsers = users.length;
   const totalAdmins = users.filter(u => u.isAdmin).length;
@@ -6767,13 +6787,17 @@ function AdminPanel({ setView }) {
   const _meId = (window.Auth && window.Auth.currentUserId && window.Auth.currentUserId()) || null;
   const userMetrics = users.map(u => {
     let bookmarks = 0, chats = 0, completed = 0;
-    if (u.id === _meId) {
-      // Usuario actual · cachés vivas (Supabase o local)
+    // 1) Si hay métricas del backend (RPC), son la fuente de verdad para TODOS.
+    if (dbMetrics && dbMetrics[u.id]) {
+      const m = dbMetrics[u.id];
+      bookmarks = m.bookmarks; chats = m.chats; completed = m.completed;
+    } else if (u.id === _meId) {
+      // 2) Usuario actual · cachés vivas (Supabase o local · sin RPC todavía)
       try { bookmarks = (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get().length) || 0; } catch(e) {}
       try { chats = (window.ChatHistory && window.ChatHistory.list && window.ChatHistory.list().length) || 0; } catch(e) {}
       try { completed = (window.Progress && window.Progress.completedCount && window.Progress.completedCount()) || ((window.SGS_DATA && window.SGS_DATA.PILLS) || []).filter(p => p.progress >= 1).length; } catch(e) {}
     } else {
-      // Otros usuarios · solo disponible en modo localStorage (clave correcta)
+      // 3) Otros usuarios sin RPC · solo disponible en modo localStorage
       try { bookmarks = JSON.parse(localStorage.getItem('solid-bookmarks:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
       try { chats = JSON.parse(localStorage.getItem('solid-chats:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
       try { completed = JSON.parse(localStorage.getItem('solid-completed-routes:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
