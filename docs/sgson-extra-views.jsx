@@ -2479,6 +2479,12 @@ function ProfileDemoContent({ USER }) {
   const [phone, setPhone] = useEV2(() => {
     try { return localStorage.getItem(_phoneKey) || ''; } catch (e) { return ''; }
   });
+  // Áreas de mejora declaradas por el user (resultado del test autodiagnóstico).
+  // Influye en la fila "Recomendados para ti" (scoring +4 por match).
+  const _focusKey = 'solid-autotest-focus:' + (USER.id || 'anon');
+  const [autotestFocus, setAutotestFocus] = useEV2(() => {
+    try { return localStorage.getItem(_focusKey) || ''; } catch (e) { return ''; }
+  });
   const [savingField, setSavingField] = useEV2(null);
   const saveField = (field, value) => {
     if (field === 'phone') {
@@ -2659,6 +2665,15 @@ function ProfileDemoContent({ USER }) {
             <input style={fieldStyle} value={team}
               onChange={e => setTeam(e.target.value)}
               onBlur={e => { if (e.target.value !== USER.team) saveField('team', e.target.value); }}/></label>
+          <label style={{ gridColumn:'1 / -1' }}>
+            <div style={labelStyle}>Áreas en las que quiero mejorar (test autodiagnóstico)</div>
+            <input style={fieldStyle} value={autotestFocus} placeholder="ej · comunicación, liderazgo, productividad"
+              onChange={e => setAutotestFocus(e.target.value)}
+              onBlur={e => { try { localStorage.setItem(_focusKey, e.target.value); } catch (err) {} if (window.Toast) window.Toast.success('Tus recomendaciones se actualizarán al volver al inicio', { icon: '✓' }); }}/>
+            <div style={{ fontSize: 11, color:'var(--fg-muted)', marginTop: 4, fontStyle:'italic' }}>
+              Separa las áreas por comas. Influye en la fila "Recomendados para ti" del home.
+            </div>
+          </label>
         </div>
       </div>
 

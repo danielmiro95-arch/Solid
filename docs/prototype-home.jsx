@@ -962,10 +962,25 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
 
       <div className="card-actions">
         {isLocked ? (
-          /* Pill bloqueada · botón "Notifícame" (campana) */
-          <button className="card-action primary" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked} style={{background:'rgba(0,114,190,0.85)', color:'#fff'}}>
-            <Ico name="bell" size={12}/>
-          </button>
+          /* Pill bloqueada · 3 acciones (per spec): Inscribirte · Notifícame · Más info.
+             "Añadir a mi lista" sigue siendo el botón de bookmark de abajo (siempre visible). */
+          <>
+            <button className="card-action primary" aria-label="Inscribirte" title="Inscribirte (te avisaremos al desbloquear)" onClick={(e) => {
+              e.stopPropagation();
+              const id = pill.pathId || pill.id;
+              let added = false;
+              if (window.Enrollments && window.Enrollments.add) added = window.Enrollments.add(id);
+              if (window.Toast) window.Toast.success(added ? 'Te has inscrito · te avisaremos cuando se desbloquee' : 'Ya estabas inscrito', { icon: '✓' });
+            }}>
+              <Ico name="plus" size={12}/>
+            </button>
+            <button className="card-action" aria-label="Notifícame" title="Notifícame cuando esté disponible" onClick={notifyLocked}>
+              <Ico name="bell" size={12}/>
+            </button>
+            <button className="card-action" aria-label="Más información" title="Más información" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+              <Ico name="info" size={12}/>
+            </button>
+          </>
         ) : isAssigned || !demoActive ? (
           <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
             <Ico name="play" size={12}/>
@@ -1142,14 +1157,25 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       // length >= 2 · roles/equipos de 2 letras (IT, UX, PM, QA, RH, BI) son
       // comunes y deben puntuar. Filtramos solo tokens de 1 char (ruido).
       const tokens = (role + ' ' + team).split(/[\s,·\-/]+/).filter(t => t.length >= 2);
+      // Resultado del autotest · si el user lo declaró (palabras clave de áreas
+      // de mejora: "liderazgo, comunicación") suman al match → la rec se
+      // orienta según el test, no solo el rol. Se guarda en
+      // localStorage 'solid-autotest-focus:userId' (campo en perfil + libre).
+      const _focusKey = 'solid-autotest-focus:' + ((user && user.id) || 'anon');
+      let focusTokens = [];
+      try {
+        const raw = localStorage.getItem(_focusKey) || '';
+        focusTokens = raw.toLowerCase().split(/[\s,·\-/;]+/).filter(t => t.length >= 3);
+      } catch (e) {}
       const Bm = window.Bookmarks;
-      // Cache de bookmarks · una sola lectura de localStorage por scoring pass
-      // (Bookmarks.has hace JSON.parse en cada llamada · evitamos N parses).
       const _bmSet = Bm && Bm.get ? new Set(Bm.get()) : null;
       const scoreOf = (p) => {
         let s = 0;
         const hay = String((p.badge || '') + ' ' + (p.desc || '') + ' ' + (p.title || '')).toLowerCase();
         if (tokens.some(tok => hay.indexOf(tok) !== -1)) s += 3;
+        // Match con áreas declaradas en el autotest · pesa más que el rol (es
+        // input explícito del propio user) · +4 por coincidencia.
+        if (focusTokens.length && focusTokens.some(tok => hay.indexOf(tok) !== -1)) s += 4;
         if (p.progress > 0 && p.progress < 1) s += 2;
         if (_bmSet && _bmSet.has(p.id)) s += 1;
         return s;
@@ -1540,6 +1566,67 @@ function NextStepIA({ setView, openPath, openDetail }) {
 }
 window.NextStepIA = NextStepIA;
 
+// ── AutotestReminder · recordatorio del test si pasan 15 días desde el primer
+// acceso del user en este workspace y no lo ha hecho. Marca de primer acceso
+// en localStorage (solid-first-access:userId:wsId). Si el admin no configuró
+// settings.autotest_url, no se muestra. Dismissable (recuerda el resultado:
+// "done" o "skipped") y reaparece si el admin cambia la URL del test.
+const AUTOTEST_REMIND_DAYS = 15;
+function AutotestReminder({ setView }) {
+  const USER = (window.SGS_DATA && window.SGS_DATA.USER) || {};
+  const ws   = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
+  const autoUrl = (ws.settings && ws.settings.autotest_url) || null;
+  const uid = USER.id || 'anon';
+  const wsId = ws.id || 'noWs';
+  const _firstAccessKey = 'solid-first-access:' + uid + ':' + wsId;
+  const _statusKey = 'solid-autotest-status:' + uid + ':' + wsId;
+  const [status, setStatus] = useState(() => {
+    try { return localStorage.getItem(_statusKey) || ''; } catch (e) { return ''; }
+  });
+  // Garantiza first-access marcado UNA vez por user+workspace.
+  React.useEffect(() => {
+    try { if (!localStorage.getItem(_firstAccessKey)) localStorage.setItem(_firstAccessKey, String(Date.now())); } catch (e) {}
+  }, [uid, wsId]);
+  if (!autoUrl) return null;
+  if (status === 'done' || status === 'skipped') return null;
+  let first = 0;
+  try { first = parseInt(localStorage.getItem(_firstAccessKey), 10) || Date.now(); } catch (e) { first = Date.now(); }
+  const elapsedDays = (Date.now() - first) / 86400000;
+  if (elapsedDays < AUTOTEST_REMIND_DAYS) return null;
+  const setDone    = () => { try { localStorage.setItem(_statusKey, 'done'); } catch (e) {} setStatus('done'); };
+  const setSkipped = () => { try { localStorage.setItem(_statusKey, 'skipped'); } catch (e) {} setStatus('skipped'); };
+  return (
+    <section style={{
+      margin:'-12px var(--row-pad, 60px) 28px',
+      padding:'16px 22px',
+      background:'linear-gradient(135deg, rgba(243,183,64,0.12), rgba(243,183,64,0.04))',
+      border:'1px solid rgba(243,183,64,0.35)',
+      borderRadius: 14, position:'relative', zIndex: 4,
+      display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap',
+    }}>
+      <div style={{ fontSize: 22 }}>🧭</div>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'#F3B740', letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700, marginBottom: 4 }}>Test autodiagnóstico · 15 min</div>
+        <div style={{ fontSize: 14, color:'var(--fg)', lineHeight: 1.45 }}>
+          Aún no has hecho el test inicial. Te orientará en el itinerario formativo que mejor encaja contigo.
+        </div>
+      </div>
+      <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+        <a href={autoUrl} target="_blank" rel="noopener noreferrer" onClick={setDone} style={{
+          padding:'10px 16px', background:'var(--accent)', color:'#fff', textDecoration:'none',
+          borderRadius: 8, fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13,
+        }}>Hacer test ahora</a>
+        <button onClick={setSkipped} style={{
+          padding:'9px 12px', background:'transparent', color:'var(--fg-muted)',
+          border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer',
+          fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
+        }}>No me interesa</button>
+      </div>
+    </section>
+  );
+}
+window.AutotestReminder = AutotestReminder;
+
 function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
   // welcomeDismissed como flag manual · DEBE declararse antes de cualquier
@@ -1629,6 +1716,8 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         )}
         {/* "Tu próximo paso" · banner IA personalizado · va ENCIMA de las rows */}
         <NextStepIA setView={setView} openPath={openPath} openDetail={openDetail}/>
+        {/* Recordatorio del test autodiagnóstico · sale tras 15 días sin hacerlo */}
+        <AutotestReminder setView={setView}/>
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
@@ -1643,8 +1732,9 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
           <span>{window.WORKSPACE_NAME || 'Plataforma de formación'}</span>
           {(() => {
             const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
-            const legalUrl = (ws.settings && ws.settings.legal_url) || null;
-            if (!legalUrl) return null;
+            // Si el admin no configuró legal_url, mostramos un fallback a la
+            // política de BeonIt · "Bases legales" siempre visible en el footer.
+            const legalUrl = (ws.settings && ws.settings.legal_url) || 'https://beonit.com/legal';
             return (
               <>
                 <span>·</span>
