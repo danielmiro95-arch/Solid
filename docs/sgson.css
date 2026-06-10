@@ -18,12 +18,15 @@
   --line:           rgba(255, 255, 255, 0.09);
   --line-strong:    rgba(255, 255, 255, 0.18);
 
-  /* ── Color · Text (blanco cálido sobre gris neutro · sin tinte azul) ── */
-  --fg:             #EDEDEC;
-  --fg-muted:       #A8A8A6;
-  --fg-dim:         #7A7A78;
-  --fg-faint:       #5A5A58;
+  /* ── Color · Text (blanco neutro · contraste WCAG sobre gris oscuro) ── */
+  --fg:             #F2F2F1;  /* títulos / texto principal · ~13:1 */
+  --fg-muted:       #B9B9B7;  /* texto secundario · ~7:1 (subido de #A8A8A6) */
+  --fg-dim:         #9C9C9A;  /* texto terciario · ~4.7:1 · pasa body (era #7A7A78 = 3.3:1) */
+  --fg-faint:       #7E7E7C;  /* separadores / placeholders · ~3.2:1 (era #5A5A58 = 2:1, ilegible) */
   --fg-on-accent:   #FFFFFF;
+  /* Texto blanco sobre covers/gradientes oscuros de las cards (siempre claro,
+     independiente del tema). Tokeniza los #fff hardcodeados de las cards. */
+  --fg-on-cover:    #FFFFFF;
 
   /* ── Color · Accent (Repsol rojo) ── */
   --accent:         #EC1C24;
@@ -87,13 +90,7 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-/* CINEMATIC · Home/Player/Onboarding · ahora en CLARO también (toda la app
- * repintada). Body recibe data-cinematic="true" desde el router del App. Se
- * mantiene el selector por si en el futuro se vuelve a desviar del tema base. */
-html[data-theme="light"] body[data-cinematic="true"] {
-  /* Hereda del :root claro · no se sobreescribe nada. */
-}
-/* Body en cinematic: fondo crema con gradient muy sutil. */
+/* Body en cinematic (Home/Player/Onboarding) · fondo gris oscuro con gradient sutil. */
 body[data-cinematic="true"] {
   background:
     radial-gradient(ellipse at 0% 0%, #2A2A2A 0%, transparent 55%),
@@ -117,45 +114,18 @@ body[data-cinematic="true"] {
 .card .card-action.primary:hover { background: #FFFFFF; }
 .card-progress         { background: rgba(255,255,255,0.18); }
 
-/* Modal de detalle · el hero del modal también lleva overlay oscuro */
-html[data-theme="light"] .modal-media,
-html[data-theme="light"] .modal-hero-body { color: #F5F4F1; }
-html[data-theme="light"] .modal-hero-body .h { color: #F5F4F1 !important; }
-html[data-theme="light"] .modal-hero-body .q { color: rgba(245,244,241,0.85) !important; }
+/* Modal de detalle · el hero del modal lleva overlay/imagen oscura SIEMPRE ·
+ * el texto va claro independientemente del tema (no condicional · antes solo
+ * aplicaba bajo data-theme="light" que nunca se activa → texto invisible). */
+.modal-media,
+.modal-hero-body { color: var(--fg-on-cover); }
+.modal-hero-body .h { color: var(--fg-on-cover) !important; }
+.modal-hero-body .q { color: rgba(255,255,255,0.85) !important; }
 
-/* TopNav sticky se queda en glass-dark (cinematic) en ambos modos.
- * En light mode necesita opacity alta para contraste con el fondo claro,
- * sino los items del nav central quedan ilegibles. */
-html[data-theme="light"] .topnav {
-  background: rgba(14, 14, 18, 0.94);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  color: #F5F4F1;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-/* Items de nav central · selector real es .nav-item (no .top-nav-item) */
-html[data-theme="light"] .topnav .nav-item,
-html[data-theme="light"] .topnav .top-nav-item { color: rgba(245,244,241,0.78); }
-html[data-theme="light"] .topnav .nav-item:hover,
-html[data-theme="light"] .topnav .top-nav-item:hover { color: #F5F4F1; }
-html[data-theme="light"] .topnav .nav-item.active { color: #F5F4F1; font-weight: 700; }
-html[data-theme="light"] .topnav .menu-trigger { color: #F5F4F1; }
-/* TopNav scrolled mantiene solidez en light · evita degradación visual */
-html[data-theme="light"] .topnav.scrolled { background: rgba(14, 14, 18, 0.98); }
-/* Wordmark / workspace switcher dentro del TopNav · invertir colores en light
- * para que sean legibles sobre el fondo oscuro forzado del TopNav. */
-html[data-theme="light"] .topnav .wordmark,
-html[data-theme="light"] .topnav .wordmark .on { color: #F5F4F1 !important; }
-html[data-theme="light"] .topnav .workspace-switcher,
-html[data-theme="light"] .topnav .workspace-switcher * { color: #F5F4F1 !important; }
-html[data-theme="light"] .topnav .workspace-switcher button { color: #F5F4F1 !important; border-color: rgba(255,255,255,0.18) !important; background: rgba(255,255,255,0.06) !important; }
-
-/* Avatar dropdown (menú arriba-derecha) · es un panel dark-glass independiente
- * del tema · forzar contenido claro en ambos temas para evitar texto ilegible
- * cuando el theme global pinta hijos en color oscuro. */
+/* Avatar dropdown (menú arriba-derecha) · panel oscuro · texto claro. */
 .avatar-menu,
-.avatar-menu * { color: #F5F4F1; }
-.avatar-menu button { color: #F5F4F1 !important; }
+.avatar-menu * { color: var(--fg); }
+.avatar-menu button { color: var(--fg) !important; }
 .avatar-menu button span { color: inherit !important; }
 .avatar-menu .badge { color: #fff !important; }
 /* El botón "Cerrar sesión" conserva su color acento (lila) */
@@ -2476,11 +2446,12 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
   --line-faint:     rgba(255, 255, 255, 0.05);
   --line:           rgba(255, 255, 255, 0.09);
   --line-strong:    rgba(255, 255, 255, 0.18);
-  --fg:             #EDEDEC;
-  --fg-muted:       #A8A8A6;
-  --fg-dim:         #7A7A78;
-  --fg-faint:       #5A5A58;
+  --fg:             #F2F2F1;
+  --fg-muted:       #B9B9B7;
+  --fg-dim:         #9C9C9A;
+  --fg-faint:       #7E7E7C;
   --fg-on-accent:   #FFFFFF;
+  --fg-on-cover:    #FFFFFF;
 }
 /* Body en demo · gradient gris neutro puro. */
 html[data-demo-mode="true"] body[data-cinematic="true"],
