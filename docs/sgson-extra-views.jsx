@@ -5547,3 +5547,228 @@ function RealAnalyticsPanel() {
   );
 }
 window.RealAnalyticsPanel = RealAnalyticsPanel;
+
+/* ============================================================
+   NotesView · "Mis notas" con búsqueda IA
+   · Lista todas las notas del user (agrupadas por pill, ordenadas
+     por timestamp). Click salta al momento exacto del vídeo.
+   · Buscador local (filtro instant). Botón "Preguntar a BeonAI"
+     manda al endpoint la pregunta + notas como contexto.
+   ============================================================ */
+function NotesView({ setView, openPlayer }) {
+  const [allNotes, setAllNotes] = useEV2(() => (window.Notes && window.Notes.listAll && window.Notes.listAll()) || []);
+  const [query, setQuery] = useEV2('');
+  const [aiQuestion, setAiQuestion] = useEV2('');
+  const [aiAnswer, setAiAnswer] = useEV2('');
+  const [aiLoading, setAiLoading] = useEV2(false);
+  const [editingId, setEditingId] = useEV2(null);
+  const [editText, setEditText] = useEV2('');
+
+  useEE2(() => {
+    const r = () => setAllNotes((window.Notes && window.Notes.listAll && window.Notes.listAll()) || []);
+    window.addEventListener('notes-changed', r);
+    return () => window.removeEventListener('notes-changed', r);
+  }, []);
+
+  const _fmtSec = (s) => {
+    const m = Math.floor((s || 0) / 60); const ss = Math.round((s || 0) % 60).toString().padStart(2, '0');
+    return m + ':' + ss;
+  };
+
+  // Filtro local
+  const q = query.trim().toLowerCase();
+  const filtered = q ? allNotes.filter(n =>
+    (n.text || '').toLowerCase().indexOf(q) !== -1 ||
+    (n.pillTitle || '').toLowerCase().indexOf(q) !== -1
+  ) : allNotes;
+
+  // Agrupar por pill
+  const groups = {};
+  filtered.forEach(n => {
+    if (!groups[n.pillId]) groups[n.pillId] = { pillId: n.pillId, pillTitle: n.pillTitle || n.pillId, notes: [] };
+    groups[n.pillId].notes.push(n);
+  });
+  Object.values(groups).forEach(g => g.notes.sort((a, b) => (a.atSeconds || 0) - (b.atSeconds || 0)));
+  const groupList = Object.values(groups).sort((a, b) => (b.notes[0].createdAt || 0) - (a.notes[0].createdAt || 0));
+
+  const openAt = (note) => {
+    const pills = (window.SGS_DATA && window.SGS_DATA.PILLS) || window.PILLS || [];
+    const pill = pills.find(p => p.id === note.pillId);
+    if (!pill) {
+      if (window.Toast) window.Toast.info('La pill ya no está disponible en este workspace.');
+      return;
+    }
+    const item = Object.assign({}, pill, { startAt: note.atSeconds || 0 });
+    if (openPlayer) openPlayer(item);
+    else if (window.__openPlayer) window.__openPlayer(item);
+  };
+
+  const askAI = async () => {
+    const qq = aiQuestion.trim();
+    if (!qq || aiLoading) return;
+    if (!window.callMentorAPI) { setAiAnswer('⚠ BeonAI no está disponible.'); return; }
+    setAiLoading(true); setAiAnswer('');
+    // Construye contexto compacto: hasta 80 notas más recientes con title+sec+text
+    const ctx = allNotes.slice(0, 80).map(n =>
+      '· [' + (n.pillTitle || n.pillId) + ' @ ' + _fmtSec(n.atSeconds) + '] ' + n.text
+    ).join('\n');
+    const sys = 'Eres BeonAI. Responde la pregunta del usuario UTILIZANDO SOLO el contenido de sus notas (abajo). Cuando cites una nota, escribe la cita exacta entre comillas y añade su referencia tal cual aparece entre corchetes [pillTitle @ mm:ss]. Si no hay información en las notas para responder, dilo claramente.';
+    try {
+      const reply = await window.callMentorAPI([
+        { role: 'user', text: sys + '\n\n=== NOTAS DEL USUARIO ===\n' + ctx + '\n\n=== PREGUNTA ===\n' + qq },
+      ]);
+      setAiAnswer(reply || '');
+    } catch (e) {
+      setAiAnswer('⚠ Error al consultar BeonAI · ' + (e.message || ''));
+    } finally { setAiLoading(false); }
+  };
+
+  // Renderiza respuesta con citas clicables [pillTitle @ mm:ss] → salta al vídeo
+  const _renderAnswer = (text) => {
+    if (!text) return null;
+    const parts = String(text).split(/(\[[^\]]+@\s*\d+:\d{2}\])/g);
+    return parts.map((piece, i) => {
+      const m = piece.match(/^\[([^\]]+?)@\s*(\d+):(\d{2})\]$/);
+      if (!m) return <span key={i}>{piece}</span>;
+      const title = m[1].trim();
+      const secs = parseInt(m[2], 10) * 60 + parseInt(m[3], 10);
+      const note = allNotes.find(n => (n.pillTitle || '').trim() === title && Math.abs((n.atSeconds || 0) - secs) < 3);
+      const handleJump = (e) => {
+        e.preventDefault();
+        if (note) openAt(note);
+      };
+      return (
+        <a key={i} href="#" onClick={handleJump} style={{
+          display:'inline-block', padding:'1px 6px', margin:'0 2px',
+          background:'rgba(236,28,36,0.14)', color:'var(--accent)',
+          border:'1px solid rgba(236,28,36,0.30)', borderRadius: 4,
+          fontFamily:'var(--font-mono)', fontSize: 11, textDecoration:'none',
+        }}>{piece}</a>
+      );
+    });
+  };
+
+  return (
+    <PageShell
+      eyebrow="Tus notas con timestamp"
+      title={<>Mis <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>notas</em></>}
+      sub={allNotes.length + (allNotes.length === 1 ? ' nota guardada' : ' notas guardadas')}
+    >
+      {/* Buscador local */}
+      <div style={{ display:'flex', gap: 10, marginBottom: 18, flexWrap:'wrap' }}>
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar en tus notas…"
+          style={{
+            flex: 1, minWidth: 240, padding:'10px 14px',
+            background:'var(--bg-surface)', border:'1px solid var(--line)',
+            borderRadius: 10, color:'var(--fg)', fontSize: 13.5, outline:'none',
+          }}/>
+      </div>
+
+      {/* Buscador IA */}
+      <section style={{
+        marginBottom: 28, padding:'16px 18px',
+        background:'linear-gradient(135deg, rgba(236,28,36,0.08), rgba(236,28,36,0.02))',
+        border:'1px solid rgba(236,28,36,0.25)', borderRadius: 12,
+      }}>
+        <div style={{ display:'flex', gap: 10, alignItems:'center', marginBottom: 10, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)', letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700, marginBottom: 4 }}>✦ Preguntar a BeonAI</div>
+            <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+              BeonAI lee tus notas y te responde con citas que saltan al momento exacto del vídeo.
+            </div>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap: 8 }}>
+          <input value={aiQuestion} onChange={e => setAiQuestion(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') askAI(); }}
+            placeholder="ej · ¿qué dijo sobre el flujo de aprobación?"
+            disabled={aiLoading || allNotes.length === 0}
+            style={{
+              flex: 1, padding:'10px 14px', background:'var(--bg-surface)',
+              border:'1px solid var(--line)', borderRadius: 10, color:'var(--fg)',
+              fontSize: 13.5, outline:'none',
+            }}/>
+          <button onClick={askAI} disabled={aiLoading || !aiQuestion.trim() || allNotes.length === 0} style={{
+            padding:'10px 18px', background: (aiLoading || !aiQuestion.trim() || !allNotes.length) ? 'var(--bg-elevated)' : 'var(--accent)',
+            color: (aiLoading || !aiQuestion.trim() || !allNotes.length) ? 'var(--fg-dim)' : '#fff',
+            border:'none', borderRadius: 10, cursor: (aiLoading || !aiQuestion.trim() || !allNotes.length) ? 'not-allowed' : 'pointer',
+            fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13,
+          }}>{aiLoading ? 'Pensando…' : 'Preguntar'}</button>
+        </div>
+        {aiAnswer && (
+          <div style={{
+            marginTop: 14, padding:'12px 14px', background:'var(--bg-surface)',
+            border:'1px solid var(--line)', borderRadius: 10,
+            fontSize: 13.5, color:'var(--fg)', lineHeight: 1.55, whiteSpace:'pre-wrap',
+          }}>{_renderAnswer(aiAnswer)}</div>
+        )}
+      </section>
+
+      {/* Lista de notas agrupadas por curso */}
+      {groupList.length === 0 ? (
+        <div style={{
+          padding:'60px 32px', textAlign:'center',
+          background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius: 16,
+        }}>
+          <div style={{ fontSize: 42, marginBottom: 14 }}>📝</div>
+          <h3 style={{ margin:'0 0 8px', fontSize: 18, color:'var(--fg)' }}>
+            {q ? 'Sin notas que coincidan' : 'Aún no tienes notas'}
+          </h3>
+          <p style={{ fontSize: 13, color:'var(--fg-muted)', maxWidth: 420, margin:'0 auto' }}>
+            {q ? 'Prueba con otra palabra clave.' : 'Mientras ves un vídeo, pulsa "📝 Nota" arriba a la derecha del player para capturar el momento.'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap: 18 }}>
+          {groupList.map(g => (
+            <section key={g.pillId} style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 14 }}>
+              <header style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 14, gap: 10, flexWrap:'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color:'var(--fg)' }}>{g.pillTitle}</h3>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.08em', textTransform:'uppercase' }}>{g.notes.length} {g.notes.length === 1 ? 'nota' : 'notas'}</span>
+              </header>
+              <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+                {g.notes.map(n => (
+                  <div key={n.id} style={{
+                    display:'flex', gap: 12, padding:'10px 12px',
+                    background:'var(--bg-elevated)', border:'1px solid var(--line-faint)', borderRadius: 10,
+                  }}>
+                    <button onClick={() => openAt(n)} title="Saltar a este momento" style={{
+                      flexShrink: 0, padding:'5px 10px', background:'var(--accent)', color:'#fff',
+                      border:'none', borderRadius: 6, cursor:'pointer',
+                      fontFamily:'var(--font-mono)', fontWeight: 700, fontSize: 11, height: 28,
+                    }}>▶ {_fmtSec(n.atSeconds)}</button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {editingId === n.id ? (
+                        <>
+                          <textarea value={editText} onChange={e => setEditText(e.target.value)}
+                            autoFocus rows={2}
+                            style={{ width:'100%', padding:'6px 8px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, color:'var(--fg)', fontSize: 13, fontFamily:'var(--font-sans)', boxSizing:'border-box', resize:'vertical' }}/>
+                          <div style={{ display:'flex', gap: 6, marginTop: 6 }}>
+                            <button onClick={() => { if (window.Notes && window.Notes.update) window.Notes.update(n.id, { text: editText.trim() }); setEditingId(null); }} style={{ padding:'5px 10px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 5, cursor:'pointer', fontSize: 11.5, fontWeight: 700 }}>Guardar</button>
+                            <button onClick={() => setEditingId(null)} style={{ padding:'5px 10px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 5, cursor:'pointer', fontSize: 11.5 }}>Cancelar</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 13.5, color:'var(--fg)', lineHeight: 1.5, whiteSpace:'pre-wrap' }}>{n.text}</div>
+                          <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</div>
+                        </>
+                      )}
+                    </div>
+                    {editingId !== n.id && (
+                      <div style={{ display:'flex', flexDirection:'column', gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => { setEditingId(n.id); setEditText(n.text || ''); }} title="Editar" style={{ padding:'3px 8px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 5, cursor:'pointer', fontSize: 11 }}>✎</button>
+                        <button onClick={() => { if (confirm('¿Borrar esta nota?')) { if (window.Notes && window.Notes.remove) window.Notes.remove(n.id); } }} title="Borrar" style={{ padding:'3px 8px', background:'transparent', color:'#E63946', border:'1px solid var(--line)', borderRadius: 5, cursor:'pointer', fontSize: 11 }}>×</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </PageShell>
+  );
+}
+window.NotesView = NotesView;
