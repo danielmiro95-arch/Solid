@@ -574,11 +574,14 @@ img { display: block; max-width: 100%; }
 .btn:active { transform: translateY(0); }
 
 .btn-primary {
-  /* Look Apple · tinta sólida sobre crema · texto en el tono del canvas */
+  /* Look Apple · botón claro sólido con texto oscuro sobre tema oscuro */
   background: var(--fg);
   color: var(--bg-canvas);
+  font-weight: 700;
 }
-.btn-primary:hover { background: #000; }
+/* Hover sube a blanco puro (NO a negro · antes #000 dejaba texto oscuro sobre
+   negro = invisible) · ligero lift ya viene de .btn:hover */
+.btn-primary:hover { background: #FFFFFF; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
 
 .btn-secondary {
   background: rgba(255,255,255,0.10);
@@ -2613,3 +2616,54 @@ html[data-demo-mode="true"] .trending-num {
 /* Sidebar (si aparece · legacy desktop) */
 html[data-demo-mode="true"] .sidebar { background: var(--bg-surface); border-right: 1px solid var(--line); }
 html[data-demo-mode="true"] .sidebar a { color: var(--fg); }
+
+/* ============================================================
+   INTERACCIÓN · pulido global (b92) · focus, inputs, scrollbars
+   ============================================================ */
+
+/* Focus visible · anillo de acento accesible en cualquier control interactivo.
+   Solo :focus-visible (teclado), no en click de ratón · no ensucia. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-2);
+}
+
+/* Inputs · estado de foco coherente con acento (los inline-styled lo heredan
+   parcialmente · esto cubre los que usan clases o el reset del navegador). */
+input, select, textarea {
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  outline: none;
+}
+input::placeholder, textarea::placeholder { color: var(--fg-faint); }
+
+/* Selección de texto · tinte de acento (Repsol) en vez del azul del navegador */
+::selection { background: rgba(236, 28, 36, 0.30); color: #fff; }
+
+/* Scrollbars finos estilo plataforma (WebKit + Firefox) */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); background-clip: padding-box; }
+
+/* Botones · cursor + estado disabled coherente en toda la app */
+button:not(:disabled) { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+/* Transición suave por defecto en chips/pills/acciones que cambian de color */
+.chip, .pill-chip, .tag, .filter-chip { transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast); }
