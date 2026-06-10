@@ -2424,6 +2424,65 @@ function _activateSupabaseData() {
     window.dispatchEvent(new Event('bookmarks-changed'));
   };
 
+  // ── Enrollments (cursos inscritos · scoped por workspace) ─────────
+  // Antes solo localStorage → se perdían entre dispositivos. Ahora sync a la
+  // tabla public.enrollments (mismo patrón que bookmarks). Requiere ejecutar
+  // db/enrollments-table.sql en Supabase.
+  let enrollCache = [];
+  async function _loadEnrollments() {
+    const u = _uid(); const w = _wsid(); if (!u) { enrollCache = []; return; }
+    let q = sb.from('enrollments').select('path_id').eq('user_id', u);
+    if (w) q = q.eq('workspace_id', w);
+    const { data, error } = await q;
+    if (error) { console.warn('[supa] enrollments', error.message); return; }
+    enrollCache = (data || []).map(r => r.path_id);
+    window.dispatchEvent(new Event('enrollments-changed'));
+  }
+  Enrollments.get = function() { return enrollCache.slice(); };
+  Enrollments.has = function(id) { return enrollCache.indexOf(id) >= 0; };
+  Enrollments.add = function(id) {
+    const u = _uid(); const w = _wsid(); if (!u || !id) return false;
+    if (enrollCache.indexOf(id) >= 0) return false;
+    enrollCache = [id].concat(enrollCache);
+    sb.from('enrollments').insert({ user_id: u, workspace_id: w, path_id: id })
+      .then(r => {
+        if (!r || !r.error) return;
+        // 23505 = unique (ya existía · carrera) · 42P01 = tabla no creada todavía
+        // (el admin no ha corrido db/enrollments-table.sql) → en ambos casos
+        // mantenemos la inscripción en sesión y no molestamos con error.
+        if (r.error.code === '23505' || r.error.code === '42P01') {
+          if (r.error.code === '42P01') console.warn('[supa] enrollments · tabla no existe · ejecuta db/enrollments-table.sql para persistir');
+          return;
+        }
+        // Error real (RLS, red) → rollback + aviso
+        enrollCache = enrollCache.filter(x => x !== id);
+        window.dispatchEvent(new Event('enrollments-changed'));
+        if (window.Toast) window.Toast.error('No se pudo guardar la inscripción · ' + (r.error.message || ''));
+      });
+    window.dispatchEvent(new Event('enrollments-changed'));
+    return true;
+  };
+  Enrollments.remove = function(id) {
+    const u = _uid(); const w = _wsid(); if (!u || !id) return;
+    enrollCache = enrollCache.filter(x => x !== id);
+    let q = sb.from('enrollments').delete().eq('user_id', u).eq('path_id', id);
+    if (w) q = q.eq('workspace_id', w);
+    q.then(()=>{});
+    window.dispatchEvent(new Event('enrollments-changed'));
+  };
+  Enrollments.toggle = function(id) {
+    if (Enrollments.has(id)) { Enrollments.remove(id); return false; }
+    Enrollments.add(id); return true;
+  };
+  Enrollments.clear = function() {
+    const u = _uid(); const w = _wsid(); if (!u) return;
+    enrollCache = [];
+    let q = sb.from('enrollments').delete().eq('user_id', u);
+    if (w) q = q.eq('workspace_id', w);
+    q.then(()=>{});
+    window.dispatchEvent(new Event('enrollments-changed'));
+  };
+
   // ── RouteExams ────────────────────────────────────────────
   let reCache = {};
   async function _loadRouteExams() {
@@ -3638,6 +3697,7 @@ function _activateSupabaseData() {
       // (y si una fallaba, indefinidamente). Fuga real de datos privados.
       try {
         bmCache = [];
+        enrollCache = [];
         reCache = {};
         inboxCache = { messages: [], notifications: [], releases: [] };
         chatsCache = [];
@@ -3666,7 +3726,7 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadEnrollments(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
       _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations(),
     ]);
   }
@@ -3680,7 +3740,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
+    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
