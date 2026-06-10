@@ -103,6 +103,29 @@ function StarRating({ pillId, size = 28, showCount = true, label = '¿Qué tal e
   );
 }
 
+// Carga la YouTube IFrame API una sola vez (singleton) · resuelve cuando
+// window.YT.Player está disponible. Permite leer getCurrentTime/getDuration
+// del vídeo real para registrar progreso (antes solo el player simulado lo hacía).
+let _ytApiPromise = null;
+function _loadYouTubeAPI() {
+  if (_ytApiPromise) return _ytApiPromise;
+  _ytApiPromise = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function () {
+      if (typeof prev === 'function') { try { prev(); } catch (e) {} }
+      resolve(window.YT);
+    };
+    if (!document.getElementById('yt-iframe-api')) {
+      const s = document.createElement('script');
+      s.id = 'yt-iframe-api';
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  });
+  return _ytApiPromise;
+}
+
 function Player({ back, item }) {
   const startAt = (item && typeof item.startAt === 'number') ? item.startAt : 45;
   const [playing, setPlaying] = useS2(true);
@@ -184,7 +207,33 @@ function Player({ back, item }) {
     if (!it || !it.id) return;
     if (window.Progress && window.Progress.start) window.Progress.start(it.id);
   }, [it && it.id]);
+
+  // ── Tracking de progreso con VÍDEO REAL ──────────────────────────────────
+  // trackProgress recibe el tiempo/duración reales (de <video> mp4 o de la YT
+  // IFrame API) y escribe en window.Progress. Throttle a 5s para no spamear la
+  // DB, salvo el complete (95%) que se registra al instante.
+  const _lastTrackRef = React.useRef(0);
+  const _videoRef = React.useRef(null);
+  const _ytIframeRef = React.useRef(null);
+  const _ytPlayerRef = React.useRef(null);
+  const trackProgress = React.useCallback((cur, dur) => {
+    if (!it || !it.id || !window.Progress || !dur || dur < 1) return;
+    const pct = cur / dur;
+    if (pct >= 0.95) {
+      if (window.Progress.complete) window.Progress.complete(it.id, Math.round(dur));
+      _lastTrackRef.current = Date.now();
+      return;
+    }
+    const now = Date.now();
+    if (now - _lastTrackRef.current < 5000) return; // throttle 5s
+    _lastTrackRef.current = now;
+    if (pct > 0 && window.Progress.update) window.Progress.update(it.id, pct, Math.round(dur));
+  }, [it && it.id]);
+
+  // Tracking del player SIMULADO (sin vídeo) · para vídeo real usamos
+  // trackProgress vía onTimeUpdate (mp4) / polling YT (abajo).
   useE2(() => {
+    if (hasVideo) return; // con vídeo real, el tracking lo lleva trackProgress
     if (!it || !it.id || !window.Progress) return;
     const pct = totalSec > 0 ? currentSec / totalSec : 0;
     if (pct >= 0.95) {
@@ -193,6 +242,37 @@ function Player({ back, item }) {
       window.Progress.update(it.id, pct, pillTotalSec);
     }
   }, [currentSec, it && it.id]);
+
+  // YouTube · adjunta YT.Player al iframe (enablejsapi) y sondea el tiempo real.
+  useE2(() => {
+    if (!it || !it.yt) return;
+    let interval = null;
+    let cancelled = false;
+    _loadYouTubeAPI().then((YT) => {
+      if (cancelled || !_ytIframeRef.current || !YT || !YT.Player) return;
+      try {
+        _ytPlayerRef.current = new YT.Player(_ytIframeRef.current, {
+          events: {
+            onReady: () => {
+              interval = setInterval(() => {
+                const p = _ytPlayerRef.current;
+                if (!p || !p.getCurrentTime || !p.getPlayerState) return;
+                // 1 = playing
+                if (p.getPlayerState() !== 1) return;
+                try { trackProgress(p.getCurrentTime(), p.getDuration()); } catch (e) {}
+              }, 3000);
+            },
+          },
+        });
+      } catch (e) { /* tolerante */ }
+    });
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+      try { if (_ytPlayerRef.current && _ytPlayerRef.current.destroy) _ytPlayerRef.current.destroy(); } catch (e) {}
+      _ytPlayerRef.current = null;
+    };
+  }, [it && it.yt]);
 
   // En demo · player BLOQUEA fast-forward (seek hacia delante). Permite
   // pausar, retroceder, y avanzar hasta donde ya hayas visto. Por spec:
@@ -266,17 +346,20 @@ function Player({ back, item }) {
             {mp4Url ? (
               <video
                 key={it.id}
+                ref={_videoRef}
                 src={mp4Url + '#t=' + Math.floor(startAt)}
                 controls
                 autoPlay
                 playsInline
                 poster={it.poster || undefined}
+                onTimeUpdate={e => trackProgress(e.currentTarget.currentTime, e.currentTarget.duration)}
                 style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1, background:'#000', objectFit:'contain'}}
               />
             ) : (
             <iframe
               key={it.yt}
-              src={`https://www.youtube.com/embed/${it.yt}?autoplay=1&rel=0&modestbranding=1&color=white&start=${Math.floor(startAt)}`}
+              ref={_ytIframeRef}
+              src={`https://www.youtube.com/embed/${it.yt}?enablejsapi=1&autoplay=1&rel=0&modestbranding=1&color=white&start=${Math.floor(startAt)}`}
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               allowFullScreen
               style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
