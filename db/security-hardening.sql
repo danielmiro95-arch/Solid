@@ -51,6 +51,8 @@ $$;
 -- ----------------------------------------------------------------------------
 -- 2 + 3) create_demo_user_for_workspace · guard de admin + password aleatorio
 -- ----------------------------------------------------------------------------
+-- DROP previo por si la firma cambia respecto a la versión anterior.
+drop function if exists public.create_demo_user_for_workspace(text);
 create or replace function public.create_demo_user_for_workspace(p_workspace_slug text)
 returns jsonb
 language plpgsql
@@ -142,6 +144,7 @@ grant execute on function public.create_demo_user_for_workspace(text) to authent
 
 
 -- list_demo_users · solo platform admin (o SQL editor) ve la lista
+drop function if exists public.list_demo_users();
 create or replace function public.list_demo_users()
 returns table (workspace text, email text, created_at timestamptz, last_login_at timestamptz)
 language sql security definer
@@ -159,6 +162,7 @@ grant execute on function public.list_demo_users() to authenticated;
 
 
 -- delete_demo_user_for_workspace · mismo guard de admin
+drop function if exists public.delete_demo_user_for_workspace(text);
 create or replace function public.delete_demo_user_for_workspace(p_workspace_slug text)
 returns jsonb
 language plpgsql security definer
@@ -200,6 +204,7 @@ grant execute on function public.delete_demo_user_for_workspace(text) to authent
 
 
 -- seed_workspace_starter_pack · guard de admin (resto del cuerpo intacto)
+drop function if exists public.seed_workspace_starter_pack(text);
 create or replace function public.seed_workspace_starter_pack(p_workspace_slug text)
 returns jsonb
 language plpgsql security definer
@@ -336,6 +341,9 @@ create trigger trg_prevent_priv_escalation
 drop policy if exists invitations_token_lookup on public.invitations;
 
 -- Lookup por token exacto · solo campos no sensibles · pending y no caducada.
+-- DROP previo · si ya existía con otra firma (versión anterior creada a mano),
+-- create or replace no puede cambiar el return type. Idempotente.
+drop function if exists public.get_invitation_by_token(text);
 create or replace function public.get_invitation_by_token(_token text)
 returns table (token text, workspace_id uuid, workspace_name text, email text, name text, role text, team text, status text)
 language sql security definer stable
@@ -352,6 +360,8 @@ revoke execute on function public.get_invitation_by_token(text) from public;
 grant execute on function public.get_invitation_by_token(text) to anon, authenticated;
 
 -- Aceptar invitación · añade al workspace + marca accepted. Requiere sesión.
+-- DROP previo por si existía con otra firma.
+drop function if exists public.accept_invitation(text);
 create or replace function public.accept_invitation(_token text)
 returns jsonb language plpgsql security definer
 set search_path = public as $$
