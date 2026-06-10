@@ -901,7 +901,17 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
     : undefined;
   const notifyLocked = (e) => {
     e.stopPropagation();
-    if (window.Toast) window.Toast.success('Te avisaremos cuando esté disponible', { icon:'🔔' });
+    // Persiste la petición de aviso (antes era un toast sin efecto). Se guarda
+    // por user en localStorage · base para disparar el aviso al desbloquear.
+    try {
+      const key = 'solid-notify-unlock:' + (window.Auth && window.Auth.currentUserId ? window.Auth.currentUserId() : 'anon');
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      const already = list.includes(pill.id);
+      if (!already) { list.push(pill.id); localStorage.setItem(key, JSON.stringify(list)); }
+      if (window.Toast) window.Toast.success(already ? 'Ya estás en la lista de aviso' : 'Te avisaremos cuando esté disponible', { icon:'🔔' });
+    } catch (err) {
+      if (window.Toast) window.Toast.success('Te avisaremos cuando esté disponible', { icon:'🔔' });
+    }
   };
 
   return (

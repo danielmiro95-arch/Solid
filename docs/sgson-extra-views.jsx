@@ -2486,14 +2486,17 @@ function ProfileDemoContent({ USER }) {
     if (window.UserProfile && window.UserProfile.update) {
       setSavingField(field);
       const patch = {}; patch[field] = value;
-      try {
-        window.UserProfile.update(patch);
-        if (window.Toast) window.Toast.success('Guardado', { icon: '✓' });
-      } catch (e) {
-        if (window.Toast) window.Toast.info('No se pudo guardar', { icon: '!' });
-      } finally {
-        setTimeout(() => setSavingField(null), 600);
-      }
+      // Espera la confirmación REAL del backend antes de decir "Guardado" ·
+      // antes mostraba éxito al instante aunque el guardado fallara (RLS/red).
+      Promise.resolve(window.UserProfile.update(patch)).then((r) => {
+        if (!r || r.ok !== false) {
+          if (window.Toast) window.Toast.success('Guardado', { icon: '✓' });
+        } else {
+          if (window.Toast) window.Toast.error('No se pudo guardar · revisa tu conexión');
+        }
+      }).catch(() => {
+        if (window.Toast) window.Toast.error('No se pudo guardar');
+      }).finally(() => setSavingField(null));
     }
   };
   // Sincroniza locales si USER cambia por evento externo

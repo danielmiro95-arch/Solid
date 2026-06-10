@@ -3935,18 +3935,26 @@ const UserProfile = (function() {
     var optimistic = Object.assign({}, u, clean);
     var optimisticShape = _toShape(optimistic);
     if (result && typeof result.then === 'function') {
-      // Async path · disparamos el shape optimista de inmediato y refrescamos con el real al resolver.
+      // Async path · disparamos el shape optimista de inmediato y refrescamos con
+      // el real al resolver. Devolvemos una Promise que SIEMPRE resuelve a
+      // { ok, profile, error } (nunca rechaza) · así el caller puede esperar y
+      // confirmar el guardado de verdad, y los fire-and-forget no generan
+      // unhandled rejection.
       window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: optimisticShape }));
-      result.then(function(realUpdated){
-        if (realUpdated) {
-          window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: _toShape(realUpdated) }));
-        }
-      }).catch(function(e){ console.warn('[profile] update failed', e); });
-      return optimisticShape;
+      return result.then(function(realUpdated){
+        var shape = realUpdated ? _toShape(realUpdated) : optimisticShape;
+        if (realUpdated) window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: shape }));
+        return { ok: true, profile: shape };
+      }, function(e){
+        console.warn('[profile] update failed', e);
+        // Revierte la UI al estado previo (el optimista no se confirmó)
+        window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: _toShape(u) }));
+        return { ok: false, error: e };
+      });
     }
     var profileShape = _toShape(result || optimistic);
     window.dispatchEvent(new CustomEvent('user-profile-changed', { detail: profileShape }));
-    return profileShape;
+    return { ok: true, profile: profileShape };
   }
   function reset() {/* legacy noop */}
   // Sube avatar a Supabase Storage · bucket workspace-assets, path avatars/{uid}.{ext}.

@@ -140,7 +140,24 @@ function Player({ back, item }) {
     { n: 4, t: 'Casos reales del equipo Repsol',    d: '3:20 · 0:45', tone: 'olive', start: 200, end: 245 },
     { n: 5, t: 'Errores comunes y cómo evitarlos',  d: '4:05 · 0:55', tone: 'warm',  start: 245, end: 300 },
   ];
-  const totalSec = 300; // 5 min
+  // Duración REAL del pill · el reloj simulado, el % de progreso y el trigger
+  // de "completado" se basan en esto (antes era 300s fijo · el % y el complete
+  // al 95% estaban mal para vídeos de otra duración).
+  function _parseDuration(dur) {
+    if (!dur || typeof dur !== 'string') return 300; // fallback 5 min
+    const d = dur.trim().toLowerCase();
+    const ssOnly = d.match(/^:(\d{1,2})$/);
+    if (ssOnly) return parseInt(ssOnly[1], 10);
+    const hm = d.match(/^(\d+)\s*h\s*(\d+)?(\s*m)?$/);
+    if (hm) return parseInt(hm[1], 10) * 3600 + (hm[2] ? parseInt(hm[2], 10) * 60 : 0);
+    const minOnly = d.match(/^(\d+)\s*min$/);
+    if (minOnly) return parseInt(minOnly[1], 10) * 60;
+    const mss = d.match(/^(\d+):(\d{2})$/);
+    if (mss) return parseInt(mss[1], 10) * 60 + parseInt(mss[2], 10);
+    return 300;
+  }
+  const pillTotalSec = _parseDuration(it && it.duration);
+  const totalSec = pillTotalSec; // el reloj/%/complete usan la duración real
   const fmtTime = (s) => Math.floor(s/60) + ':' + (Math.round(s) % 60).toString().padStart(2,'0');
 
   // Reloj simulado (sólo en path SIN YouTube — el iframe de YT no se controla sin la IFrame API)
@@ -162,27 +179,6 @@ function Player({ back, item }) {
   // se ve, update con el % actual + duración del pill para acumular
   // watch_seconds (alimenta métrica time_invested). Al >=95% se marca
   // complete. Si el user es anónimo o no hay workspace, no-op silencioso.
-
-  // Duración del pill en segundos · parsea formatos típicos del catálogo:
-  // "4 min" → 240 · "1h 50m" → 6600 · "3 min" → 180 · ":30" → 30 · "22 min" → 1320
-  function _parseDuration(dur) {
-    if (!dur || typeof dur !== 'string') return totalSec; // fallback al hardcoded 300
-    const d = dur.trim().toLowerCase();
-    // ":30" · ":45" · solo segundos
-    const ssOnly = d.match(/^:(\d{1,2})$/);
-    if (ssOnly) return parseInt(ssOnly[1], 10);
-    // "1h 50m" · "2h" · "1h 50"
-    const hm = d.match(/^(\d+)\s*h\s*(\d+)?(\s*m)?$/);
-    if (hm) return parseInt(hm[1], 10) * 3600 + (hm[2] ? parseInt(hm[2], 10) * 60 : 0);
-    // "22 min" · "4 min" · "45min"
-    const minOnly = d.match(/^(\d+)\s*min$/);
-    if (minOnly) return parseInt(minOnly[1], 10) * 60;
-    // "5:30" · "12:45" · mm:ss
-    const mss = d.match(/^(\d+):(\d{2})$/);
-    if (mss) return parseInt(mss[1], 10) * 60 + parseInt(mss[2], 10);
-    return totalSec;
-  }
-  const pillTotalSec = _parseDuration(it && it.duration);
 
   useE2(() => {
     if (!it || !it.id) return;
