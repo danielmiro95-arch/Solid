@@ -150,16 +150,20 @@ function RutasView({ setView, openPath }) {
   // Búsqueda libre · filtra por title/desc/teacher/badge/brand. Escala mejor
   // que las chips cuando el catálogo crece (50+ cursos).
   const [query, setQuery] = useEV2('');
+  // Hash de contenido (badges + brands) · `paths.length` no detectaba edits
+  // que no cambiaban el count (admin asigna marca a un curso · brand chip
+  // no aparecía hasta recargar; mismo problema al cambiar tenant con igual nº).
+  const _pathsContentKey = paths.map(p => (p.badge || '') + '|' + (p.brand || '')).join('·');
   const categories = React.useMemo(() => {
     const set = new Set();
     paths.forEach(p => { if (p.badge) set.add(p.badge); });
     return ['Todos', ...Array.from(set).sort()];
-  }, [paths.length]);
+  }, [_pathsContentKey]);
   const brands = React.useMemo(() => {
     const set = new Set();
     paths.forEach(p => { if (p.brand) set.add(p.brand); });
     return Array.from(set).sort();
-  }, [paths.length]);
+  }, [_pathsContentKey]);
   const q = query.trim().toLowerCase();
   const _matchQuery = (p) => {
     if (!q) return true;
@@ -4310,8 +4314,9 @@ function WorkspacesPanel() {
                         </datalist>
                         <select value={addRole} onChange={e => setAddRole(e.target.value)}
                           style={{ padding:'7px 8px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 12, color:'var(--fg)' }}>
+                          {/* Workspaces.ROLES = ['owner','admin','member'] · 'manager'
+                              se coercía a 'member' en silencio (bug) · lo quito. */}
                           <option value="member">member</option>
-                          <option value="manager">manager</option>
                           <option value="admin">admin</option>
                           <option value="owner">owner</option>
                         </select>

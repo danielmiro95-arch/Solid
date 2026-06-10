@@ -2639,9 +2639,14 @@ function _activateSupabaseData() {
     const u = _uid(); if (!u) return;
     if (category === 'releases') return;
     (inboxCache[category] || []).forEach(it => it.read = true);
-    // Tabla unificada · filtramos por category
-    const table = 'inbox_messages';
-    sb.from(table).update({ read: true }).eq('user_id', u).then(()=>{});
+    // Filtra por category Y workspace activo · antes era `.eq('user_id', u)`
+    // sin más → marcaba leído TODO (mensajes, notificaciones, todos los
+    // workspaces) silenciando avisos del resto de tenants.
+    let q = sb.from('inbox_messages').update({ read: true })
+      .eq('user_id', u).eq('category', category);
+    const w = _wsid();
+    if (w) q = q.eq('workspace_id', w);
+    q.then(() => {});
     window.dispatchEvent(new Event('inbox-changed'));
   };
   Inbox.addNotification = function(text, opts) {
@@ -3591,7 +3596,36 @@ function _activateSupabaseData() {
 
   // ── Sync inicial cuando hay sesión + en cada cambio de auth ──
   async function _syncAll() {
-    if (!_uid()) return;
+    if (!_uid()) {
+      // LOGOUT · limpia TODAS las cachés en memoria antes de salir. Sin esto,
+      // en un equipo compartido el siguiente usuario veía bookmarks/inbox/
+      // chats/etc del anterior hasta que las queries de _syncAll terminaran
+      // (y si una fallaba, indefinidamente). Fuga real de datos privados.
+      try {
+        bmCache = [];
+        reCache = {};
+        inboxCache = { messages: [], notifications: [], releases: [] };
+        chatsCache = [];
+        subsCache = [];
+        actCache = [];
+        _progressCache = {};
+        _certsCache = [];
+        _invitationsCache = [];
+        wsMembersCache = {};
+        wsCache = [];
+        cachedProfile = null;
+        // Variables globales window.* scopeadas al user/workspace
+        window.PILLS = []; window.LEARNING_PATHS = []; window.SERIES = [];
+        window.REELS = []; window.PODCASTS = [];
+        // Dispatch para que toda la UI re-renderice vacía
+        ['bookmarks-changed','exams-changed','inbox-changed','chats-changed',
+         'subs-changed','activity-changed','progress-changed','certificates-changed',
+         'invitations-changed','members-changed','workspaces-changed',
+         'pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed']
+          .forEach(ev => { try { window.dispatchEvent(new Event(ev)); } catch (e) {} });
+      } catch (e) { console.warn('[supa] logout cache reset', e.message); }
+      return;
+    }
     // Workspaces primero · el resto puede depender del workspace activo
     await _loadWorkspaces();
     const curWs = Workspaces.currentId();
