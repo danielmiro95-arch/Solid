@@ -6758,12 +6758,26 @@ function AdminPanel({ setView }) {
     if (window.Toast) window.Toast.success('Reporte generado · imprimible como PDF', { icon: '📄' });
   };
 
-  // Métricas agregadas: cuentos los completados/chats/bookmarks por usuario
+  // Métricas por usuario · completados/chats/bookmarks.
+  // Las claves correctas son workspace-scoped (`base:userId:wsId`) · antes
+  // leía claves legacy pre-multitenant (`base:userId`) → siempre 0.
+  // Para el usuario ACTUAL (el admin que mira) usamos las cachés vivas, que en
+  // modo Supabase tienen los datos reales aunque no estén en localStorage.
+  const _wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || '_default';
+  const _meId = (window.Auth && window.Auth.currentUserId && window.Auth.currentUserId()) || null;
   const userMetrics = users.map(u => {
     let bookmarks = 0, chats = 0, completed = 0;
-    try { bookmarks = JSON.parse(localStorage.getItem('solid-bookmarks:' + u.id) || '[]').length; } catch(e) {}
-    try { chats = JSON.parse(localStorage.getItem('solid-chats:' + u.id) || '[]').length; } catch(e) {}
-    try { completed = JSON.parse(localStorage.getItem('solid-completed:' + u.id) || '[]').length; } catch(e) {}
+    if (u.id === _meId) {
+      // Usuario actual · cachés vivas (Supabase o local)
+      try { bookmarks = (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get().length) || 0; } catch(e) {}
+      try { chats = (window.ChatHistory && window.ChatHistory.list && window.ChatHistory.list().length) || 0; } catch(e) {}
+      try { completed = (window.Progress && window.Progress.completedCount && window.Progress.completedCount()) || ((window.SGS_DATA && window.SGS_DATA.PILLS) || []).filter(p => p.progress >= 1).length; } catch(e) {}
+    } else {
+      // Otros usuarios · solo disponible en modo localStorage (clave correcta)
+      try { bookmarks = JSON.parse(localStorage.getItem('solid-bookmarks:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
+      try { chats = JSON.parse(localStorage.getItem('solid-chats:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
+      try { completed = JSON.parse(localStorage.getItem('solid-completed-routes:' + u.id + ':' + _wsId) || '[]').length; } catch(e) {}
+    }
     return { ...u, _bookmarks: bookmarks, _chats: chats, _completed: completed };
   });
   const totalCompletions = userMetrics.reduce((s,u) => s + u._completed, 0);
