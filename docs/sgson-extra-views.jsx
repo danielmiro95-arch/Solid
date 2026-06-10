@@ -2504,7 +2504,43 @@ function ProfileDemoContent({ USER }) {
   }, [USER.name, USER.role, USER.team]);
 
   const [lang, setLang]   = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
-  const [pushOn, setPushOn] = useEV2(true);
+  // Estado real de la suscripción push (no un boolean decorativo). Se lee del
+  // servicio al montar y el toggle llama a subscribe/unsubscribe de verdad.
+  const [pushOn, setPushOn] = useEV2(false);
+  const [pushBusy, setPushBusy] = useEV2(false);
+  useEE2(() => {
+    let alive = true;
+    const P = window.PushNotifications;
+    if (P && P.isActive) {
+      Promise.resolve(P.isActive()).then(active => { if (alive) setPushOn(!!active); }).catch(() => {});
+    }
+    return () => { alive = false; };
+  }, []);
+  const togglePush = async () => {
+    const P = window.PushNotifications;
+    if (!P) { if (window.Toast) window.Toast.error('Notificaciones no disponibles en este navegador'); return; }
+    if (!P.isSupported || !P.isSupported()) { if (window.Toast) window.Toast.error('Tu navegador no soporta notificaciones push'); return; }
+    setPushBusy(true);
+    try {
+      if (!pushOn) {
+        const r = await P.subscribe();
+        if (r && r.error) {
+          if (window.Toast) window.Toast.error(r.error === 'denied' ? 'Permiso de notificaciones denegado · actívalo en el navegador' : 'No se pudo activar: ' + r.error);
+        } else {
+          setPushOn(true);
+          if (window.Toast) window.Toast.success('Notificaciones activadas', { icon: '🔔' });
+        }
+      } else {
+        await P.unsubscribe();
+        setPushOn(false);
+        if (window.Toast) window.Toast.info('Notificaciones desactivadas');
+      }
+    } catch (e) {
+      if (window.Toast) window.Toast.error('Error con las notificaciones: ' + (e.message || e));
+    } finally {
+      setPushBusy(false);
+    }
+  };
   const [chState, setChState] = useEV2(() => (window.Channels ? window.Channels.get() : {}));
   useEE2(() => {
     const onChange = (e) => setChState(e.detail || (window.Channels ? window.Channels.get() : {}));
@@ -2676,10 +2712,10 @@ function ProfileDemoContent({ USER }) {
             </select></label>
           <label><div style={labelStyle}>Notificaciones push</div>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0' }}>
-              <button onClick={() => setPushOn(v => !v)} style={{
+              <button onClick={togglePush} disabled={pushBusy} style={{
                 width:48, height:26, borderRadius:13, padding:0,
                 background: pushOn ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
-                border:'none', cursor:'pointer', position:'relative', transition:'background .2s',
+                border:'none', cursor: pushBusy ? 'wait' : 'pointer', position:'relative', transition:'background .2s', opacity: pushBusy ? 0.6 : 1,
               }}>
                 <span style={{
                   position:'absolute', top:3, left: pushOn ? 25 : 3,
@@ -2687,7 +2723,7 @@ function ProfileDemoContent({ USER }) {
                   transition:'left .2s',
                 }}/>
               </button>
-              <span style={{ fontSize:13, color:'var(--fg-muted)' }}>{pushOn ? 'Activadas' : 'Desactivadas'}</span>
+              <span style={{ fontSize:13, color:'var(--fg-muted)' }}>{pushBusy ? 'Procesando…' : (pushOn ? 'Activadas' : 'Desactivadas')}</span>
             </div>
           </label>
         </div>
