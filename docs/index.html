@@ -18,12 +18,12 @@
 <link rel="icon" type="image/png" href="/beonit-logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260602demo-b100">
-<link rel="stylesheet" href="prototype.css?v=20260602demo-b100">
+<link rel="stylesheet" href="styles.css?v=20260602demo-b101">
+<link rel="stylesheet" href="prototype.css?v=20260602demo-b101">
 <!-- Rediseño cinematic · cargado al final · gana especificidad sobre el CSS legacy -->
-<link rel="stylesheet" href="sgson.css?v=20260602demo-b100">
+<link rel="stylesheet" href="sgson.css?v=20260602demo-b101">
 <!-- BeonAI · character + wordmark · paleta cyan→violet -->
-<link rel="stylesheet" href="beonai.css?v=20260602demo-b100">
+<link rel="stylesheet" href="beonai.css?v=20260602demo-b101">
 
 <script>
   // Dark mode forzado en todo el SaaS · se aplica antes que cualquier
@@ -33,7 +33,7 @@
 </script>
 <script>
   (function(){
-    var V = '20260602demo-b100';
+    var V = '20260602demo-b101';
     // Migración por versión: si el storage es de una build anterior, lo reseteamos
     // para evitar que estados antiguos (aiMode collapsed, vista rota, etc) bloqueen al usuario
     var stored = localStorage.getItem('sgson-version');
@@ -123,7 +123,7 @@
 <nav class="shell-tabs">
   <div class="shell-wordmark" style="display:flex;align-items:center;gap:10px;font-style:normal;">
     <!-- Logo del CLIENTE (workspace.logo_url) cuando existe · fallback al beonit -->
-    <img id="shell-ws-logo" src="beonit-logo.png?v=20260602demo-b100" style="height:34px;width:auto;object-fit:contain;max-width:160px" alt="logo"/>
+    <img id="shell-ws-logo" src="beonit-logo.png?v=20260602demo-b101" style="height:34px;width:auto;object-fit:contain;max-width:160px" alt="logo"/>
     <!-- "SOL" + "Stream" discretos junto al branding del cliente -->
     <span style="display:inline-flex;align-items:baseline;gap:2px;font-family:'Inter',sans-serif;letter-spacing:0;color:var(--ink-4)">
       <span style="font-weight:800;font-size:12px;color:var(--ink-3)">SOL</span><span style="font-weight:400;font-size:12px;color:var(--ink-4)">Stream</span>
@@ -145,7 +145,7 @@
         var dotEl  = document.getElementById('ws-tenant-dot');
         var logoEl = document.getElementById('shell-ws-logo');
         if (nameEl) nameEl.textContent = name || 'by BeonIt';
-        if (logoEl) logoEl.src = logo || ('beonit-logo.png?v=20260602demo-b100');
+        if (logoEl) logoEl.src = logo || ('beonit-logo.png?v=20260602demo-b101');
         if (dotEl) {
           var primary = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#6E50EE';
           dotEl.style.background = primary;
@@ -168,7 +168,7 @@
 </nav>
 
 <!-- Indicador visible de versión (abajo izquierda) — verifica con un vistazo si tu navegador carga la build correcta -->
-<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260602demo-b100</div>
+<div id="version-pill" style="position:fixed;bottom:6px;left:8px;z-index:300;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:rgba(13,17,23,0.35);background:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;backdrop-filter:blur(4px);pointer-events:none;user-select:none;">v=20260602demo-b101</div>
 
 <!-- ============================================================
      PANEL DIAGNÓSTICO FLOTANTE · vanilla JS (no necesita React/Babel)
@@ -392,32 +392,32 @@ window.addEventListener('appinstalled', function() {
 </script>
 
 <!-- Redesign · iconos + adapter + views (cargar ANTES de los componentes que los usan) -->
-<script type="text/babel" src="sgson-icons.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="sgson-icons.jsx?v=20260602demo-b101"></script>
 <!-- BeonAI · personaje del asistente IA · componentes React -->
-<script type="text/babel" src="beonai.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="beonai.jsx?v=20260602demo-b101"></script>
 <!-- Prototype components + views -->
-<script type="text/babel" src="components.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="prototype-home.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="prototype-views.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="components.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="prototype-home.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="prototype-views.jsx?v=20260602demo-b101"></script>
 <!-- Redesign adapter · convierte PILLS legacy → SGS_DATA · expone window.SGS_DATA -->
-<script type="text/babel" src="sgson-adapter.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="sgson-adapter.jsx?v=20260602demo-b101"></script>
 <!-- Redesign views · SidebarOverlay + DetailModal + Coach + Analytics -->
-<script type="text/babel" src="sgson-views.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="sgson-views.jsx?v=20260602demo-b101"></script>
 <!-- Redesign extra views · Browse/Rutas/Path/Channels/Profile/Settings/Admin/Inbox/Saved -->
-<script type="text/babel" src="sgson-extra-views.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="sgson-extra-views.jsx?v=20260602demo-b101"></script>
 
 <!-- Analytics SaaS · multi-cliente · datos reales · sustituye al Dashboard() legacy -->
-<link rel="stylesheet" href="solid-analytics.css?v=20260602demo-b100">
-<script type="text/babel" src="an-catalog.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-icons.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-data.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-charts.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-dashboard.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-manager.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-builder.jsx?v=20260602demo-b100"></script>
-<script type="text/babel" src="an-app.jsx?v=20260602demo-b100"></script>
+<link rel="stylesheet" href="solid-analytics.css?v=20260602demo-b101">
+<script type="text/babel" src="an-catalog.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-icons.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-data.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-charts.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-dashboard.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-manager.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-builder.jsx?v=20260602demo-b101"></script>
+<script type="text/babel" src="an-app.jsx?v=20260602demo-b101"></script>
 
-<script type="text/babel" src="prototype-main.jsx?v=20260602demo-b100"></script>
+<script type="text/babel" src="prototype-main.jsx?v=20260602demo-b101"></script>
 
 <!-- Boot -->
 <script type="text/babel">
