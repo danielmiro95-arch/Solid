@@ -113,7 +113,10 @@
     // Si la URL contiene "demo" en cualquier sitio (path, query, hash),
     // ESTAMOS EN DEMO. Punto. Esto resuelve definitivamente el problema
     // de que sgson-adapter cargue antes que prototype-main.
-    const _isDemoURL = /demo/i.test(window.location.href);
+    // Solo workspace de demo · antes `/demo/i.test(href)` activaba el
+    // contexto HdR (incluido el nombre forzado "Julio Turbón") para cualquier
+    // user real que visitara una URL con "demo".
+    const _isDemoURL = !!(window.isDemoWorkspace && window.isDemoWorkspace());
     const _dm = window.DemoMode;
     const _flag = _dm ? _dm.flag : () => undefined;
     const _label = _dm ? _dm.label : (_, f) => f;
