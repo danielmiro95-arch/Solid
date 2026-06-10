@@ -4193,14 +4193,27 @@ function WorkspacesPanel() {
                             if (!sb || !sb.rpc) { alert('Supabase no disponible'); return; }
                             const { data, error } = await sb.rpc('create_demo_user_for_workspace', { p_workspace_slug: w.slug });
                             if (error) { alert('Error: ' + error.message); return; }
+                            const creds = data.email + ' / ' + data.password + '\n' + data.login_url;
+                            // Copia robusta · clipboard tras await falla en algunos
+                            // navegadores (pierde el user-gesture). Fallback a
+                            // execCommand y, si todo falla, prompt para copia manual.
+                            let copied = false;
+                            try { await navigator.clipboard.writeText(creds); copied = true; } catch (e) {}
+                            if (!copied) {
+                              try {
+                                const ta = document.createElement('textarea');
+                                ta.value = creds; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                                document.body.appendChild(ta); ta.select();
+                                copied = document.execCommand('copy');
+                                document.body.removeChild(ta);
+                              } catch (e) {}
+                            }
                             const msg = '✓ Demo user ' + (data.status === 'created' ? 'creado' : 'reseteado') +
                                         '\n\nEmail: ' + data.email +
                                         '\nPassword: ' + data.password +
                                         '\nLogin: ' + data.login_url +
-                                        '\n\nCredenciales copiadas para compartir con cliente.';
-                            try {
-                              await navigator.clipboard.writeText(data.email + ' / ' + data.password + '\n' + data.login_url);
-                            } catch (e) {}
+                                        (copied ? '\n\n✓ Credenciales copiadas al portapapeles.'
+                                                : '\n\n(No se pudieron copiar solas · cópialas de aquí.)');
                             alert(msg);
                           } catch (e) {
                             alert('Error: ' + e.message);
