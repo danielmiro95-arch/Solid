@@ -80,7 +80,9 @@ const Ratings = (function() {
     } catch(e) { return 'guest'; }
   }
 
-  function set(pillId, stars) {
+  function set(pillId, stars, opts) {
+    // opts.silent → omite el toast genérico de "Gracias por tu puntuación".
+    // Los call sites con toast contextual (like/dislike en NxCard) usan silent.
     if (!pillId) return;
     const s = Math.max(0, Math.min(5, Math.round(stars)));
     const all = getAll();
@@ -93,7 +95,7 @@ const Ratings = (function() {
     }
     save(all);
     window.dispatchEvent(new CustomEvent('ratings-changed', { detail: { pillId, stars: s } }));
-    if (window.Toast) {
+    if (window.Toast && !(opts && opts.silent)) {
       if (s === 0) window.Toast.info('Puntuación eliminada');
       else window.Toast.success('¡Gracias por tu puntuación: ' + s + ' estrella' + (s>1?'s':'') + '!', { icon: '★' });
     }
@@ -1142,6 +1144,21 @@ const Workspaces = (function() {
            addMember, removeMember, setMemberRole, membersOf, currentRole, uploadLogo, seedIfEmpty, ROLES };
 })();
 window.Workspaces = Workspaces;
+
+// Helper · ¿estamos en un workspace de DEMO? · usado por sembrado de muestras
+// y hardcodes de presentación HdR. Antes era `/demo/i.test(href)` lo cual hacía
+// match con `?ws=demo` y metía progreso falso a users reales. La regla cierta:
+// el slug del workspace activo es "demo" o termina en "-demo" (alineado con el
+// patrón de db/security-hardening.sql).
+window.isDemoWorkspace = function() {
+  try {
+    var ws = (Workspaces.current && Workspaces.current()) || null;
+    var slug = (ws && (ws.slug || '')).toLowerCase();
+    if (slug === 'demo' || /-demo$/.test(slug)) return true;
+    // Fallback · subdomain demo.* (presentaciones con dominio dedicado)
+    return /(^|\.)demo\./.test(window.location.hostname);
+  } catch (e) { return false; }
+};
 
 // ── DemoMode · helper que lee workspace.settings y expone flags ────────
 // Cualquier componente que quiera saber si está en modo demo (o si tiene
@@ -2346,8 +2363,10 @@ function _activateSupabaseData() {
     // para que la sección Mi Playlist no salga vacía durante la demo.
     // Sembrado en memoria (no se persiste) · transparente para el cliente.
     try {
-      const _isDemoURL = typeof window !== 'undefined' && /demo/i.test(window.location.href);
-      if (_isDemoURL && bmCache.length === 0) {
+      // Solo workspace de demo · antes `/demo/i.test(href)` sembraba bookmarks
+      // falsos a users reales si su URL contenía "demo" en cualquier parte.
+      const _isDemoWs = !!(window.isDemoWorkspace && window.isDemoWorkspace());
+      if (_isDemoWs && bmCache.length === 0) {
         const allPills = (window.PILLS || []).filter(p => p && p.id);
         // Cogemos las 3 primeras Tendencias + las 3 primeras pills de otros
         // cursos para que la lista tenga variedad.
@@ -2368,14 +2387,25 @@ function _activateSupabaseData() {
   Bookmarks.toggle = function(id) {
     const u = _uid(); const w = _wsid(); if (!u || !id) return false;
     const exists = bmCache.indexOf(id) >= 0;
+    // Optimistic update con rollback si la DB falla (RLS, offline) · antes
+    // los errores se tragaban y el bookmark "desaparecía" al recargar.
+    const _onError = (err) => {
+      const msg = (err && err.message) || 'error';
+      // Rollback al estado previo
+      if (exists) bmCache = [id].concat(bmCache);
+      else bmCache = bmCache.filter(x => x !== id);
+      window.dispatchEvent(new Event('bookmarks-changed'));
+      if (window.Toast) window.Toast.error('No se pudo guardar el cambio · ' + msg);
+    };
     if (exists) {
       bmCache = bmCache.filter(x => x !== id);
       let q = sb.from('bookmarks').delete().eq('user_id', u).eq('pill_id', id);
       if (w) q = q.eq('workspace_id', w);
-      q.then(()=>{});
+      q.then(r => { if (r && r.error) _onError(r.error); });
     } else {
       bmCache = [id].concat(bmCache);
-      sb.from('bookmarks').insert({ user_id: u, workspace_id: w, pill_id: id }).then(()=>{});
+      sb.from('bookmarks').insert({ user_id: u, workspace_id: w, pill_id: id })
+        .then(r => { if (r && r.error) _onError(r.error); });
     }
     window.dispatchEvent(new Event('bookmarks-changed'));
     return !exists;
@@ -5173,8 +5203,10 @@ function App() {
   // pathId activo · seteado por RutasView al pulsar una ruta concreta
   const [activePathId, setActivePathId] = useSM(saved.activePathId || null);
   const openPath = (pathId) => {
-    // Abrir un curso = inscribirse · tracking centralizado de "Mi Lista" desde
-    // cualquier origen (home, catálogo, búsqueda). Idempotente.
+    // Delega a __openPath para que el guard de lock + Enrollments viva en un
+    // solo sitio. __openPath se setea en el useEM más abajo · si aún no está
+    // (boot temprano) caemos al comportamiento mínimo.
+    if (window.__openPath) { window.__openPath(pathId); return; }
     if (pathId && window.Enrollments && window.Enrollments.add) window.Enrollments.add(pathId);
     setActivePathId(pathId); setView('path');
   };
@@ -5295,6 +5327,26 @@ function App() {
     window.__openPalette = () => setPaletteOpen(true);
     // Expone openPath para que CommandPalette pueda navegar a una ruta concreta
     window.__openPath = (pathId) => {
+      // Respeta el lock global (paleta/links/notif podían saltárselo · solo
+      // RutasView lo aplicaba antes). Si el path está bloqueado y el user no
+      // es admin, mostramos toast y no navegamos · tampoco inscribimos.
+      const dm = window.DemoMode;
+      const lockEnabled = dm && dm.isActive && dm.isActive() && dm.flag && dm.flag('lock_unassigned_courses') === true;
+      if (lockEnabled && pathId) {
+        const paths = (window.LEARNING_PATHS || []);
+        const idx = paths.findIndex(p => p && p.id === pathId);
+        const p = idx >= 0 ? paths[idx] : null;
+        const unlockedList = (dm && dm.unlocked && dm.unlocked()) || [];
+        const isUnlockedById = unlockedList.indexOf(pathId) !== -1;
+        const seed = parseInt(String(pathId).replace(/\D/g, ''), 10) || idx;
+        const isLocked = p && !(p.progress > 0) && !isUnlockedById && idx > 0 && (seed % 3) !== 0;
+        const profile = (window.UserProfile && window.UserProfile.get && window.UserProfile.get()) || {};
+        const isAdminUser = !!(profile.isAdmin || profile.systemRole === 'admin');
+        if (isLocked && !isAdminUser) {
+          if (window.Toast) window.Toast.info('🔒 Curso bloqueado · disponible próximamente');
+          return;
+        }
+      }
       // Abrir un curso = inscribirse · centraliza el tracking de "Mi Lista"
       // sin importar el origen (home, catálogo, búsqueda, notificación).
       // Idempotente · Enrollments.add ignora duplicados.
@@ -5367,7 +5419,7 @@ function App() {
         {view === 'coach' && <CoachView/>}
         {view === 'dashboard' && <AnalyticsView/>}
         {view === 'rutas' && <RutasView_New openDetail={openDetail} setView={setView} openPath={openPath}/>}
-        {view === 'path' && <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId}/>}
+        {view === 'path' && <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId} openPath={openPath}/>}
         {view === 'profile' && <ProfileView_New setView={setView}/>}
         {view === 'wa' && <ChannelsView_New/>}
         {view === 'saved' && <SavedView_New openDetail={openDetail}/>}
@@ -5782,6 +5834,10 @@ const Inbox = (function() {
   }
 
   function seedIfEmpty() {
+    // Seed de mensajes/notifs SOLO en workspaces de demo · antes inyectaba
+    // mensajes falsos de "Equipo BeonIt" + "BeonAI" a cualquier user real en
+    // modo localStorage (parecían comunicaciones reales del workspace).
+    const _isDemoWs = !!(typeof window !== 'undefined' && window.isDemoWorkspace && window.isDemoWorkspace());
     // Releases globales: solo se siembran una vez en toda la plataforma
     if (_loadReleases().length === 0) {
       const now = Date.now();
@@ -5795,9 +5851,10 @@ const Inbox = (function() {
       ]);
     }
 
-    // Notificaciones por usuario: solo se siembran si está vacío para este usuario
+    // Notificaciones por usuario: solo si workspace de demo · evita mensajes
+    // falsos en tenants reales.
     const u = _loadUser();
-    if (!u.notifications || u.notifications.length === 0) {
+    if (_isDemoWs && (!u.notifications || u.notifications.length === 0)) {
       const now = Date.now();
       const me = window.Auth && window.Auth.currentUser();
       u.notifications = [
@@ -5807,7 +5864,7 @@ const Inbox = (function() {
       ];
     }
 
-    if (!u.messages || u.messages.length === 0) {
+    if (_isDemoWs && (!u.messages || u.messages.length === 0)) {
       const now = Date.now();
       u.messages = [
         { id:'m_1', from:'Equipo BeonIt', subject:'Sesión de bienvenida', body:'Hola, gracias por unirte a la formación. El próximo lunes tenemos el taller introductorio en la sala virtual. Te llegará el link 30 minutos antes. ¡Bienvenido!', createdAt: now - 24*3600000, read:false, fromAdmin:true, fromAvatarColor:'var(--bn-blue)' },

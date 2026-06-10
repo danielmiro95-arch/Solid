@@ -869,7 +869,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
       // Like · 5★. Si ya estaba en 5 → desactiva (0). Si era dislike (1) → cambia a 5.
       const next = curStars === 5 ? 0 : 5;
-      window.Ratings.set(pill.id, next);
+      window.Ratings.set(pill.id, next, { silent: true });
       if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? '👍 Me gusta' : 'Valoración eliminada', { icon: next ? '👍' : '○' });
     }
   };
@@ -879,7 +879,7 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       const cur = window.Ratings.get && window.Ratings.get(pill.id);
       const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
       const next = curStars === 1 ? 0 : 1;
-      window.Ratings.set(pill.id, next);
+      window.Ratings.set(pill.id, next, { silent: true });
       if (window.Toast) window.Toast.info(next ? '👎 No me gusta' : 'Valoración eliminada', { icon: next ? '👎' : '○' });
     }
   };

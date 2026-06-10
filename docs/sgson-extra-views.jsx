@@ -555,7 +555,7 @@ function RutasView({ setView, openPath }) {
 /* ============================================================
    MyPathView · progreso del usuario + próximas pills
    ============================================================ */
-function MyPathView({ openDetail, setView, pathId }) {
+function MyPathView({ openDetail, setView, pathId, openPath }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const [showExam, setShowExam] = useEV2(false);
   // Re-render cuando SGS_DATA o bookmarks cambien (cubre boot async)
@@ -583,8 +583,9 @@ function MyPathView({ openDetail, setView, pathId }) {
   // Si llegamos con un pathId concreto, filtramos las pills de esa ruta. Si no, usamos todas.
   const path = pathId ? PATHS.find(p => p.id === pathId) : null;
   const pathPillIds = path && Array.isArray(path.pillIds) ? path.pillIds : (path && Array.isArray(path.pills) ? path.pills : null);
-  // _isDemo · URL + DemoMode runtime (URL gana siempre)
-  const _isDemoURL = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+  // _isDemo · workspace de demo + DemoMode runtime · antes `/demo/i.test(href)`
+  // hacía match con `?ws=demo` y sembraba progreso falso a users reales.
+  const _isDemoURL = !!(typeof window !== 'undefined' && window.isDemoWorkspace && window.isDemoWorkspace());
   const _isDemo = _isDemoURL || (window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
   // En demo · "Mi Lista" agrega asignados + favoritos + inscritos (per spec).
   // Filtramos a las pills que tienen progreso > 0 (asignadas/en curso) o
@@ -783,9 +784,9 @@ function MyPathView({ openDetail, setView, pathId }) {
         const seen = new Set();
         const dedup = (arr) => arr.filter(x => { if (seen.has(x.id)) return false; seen.add(x.id); return true; });
         let coursesToShow = [...dedup(coursesInProgress), ...dedup(coursesEnrolled), ...dedup(coursesBookmarked)];
-        // Sembrado SOLO en URL demo HdR · para users reales mostramos empty
-        // state honesto en lugar de cursos falsos inscritos.
-        const _seedSample = typeof window !== 'undefined' && /demo/i.test(window.location.href);
+        // Sembrado SOLO en workspace de demo (slug demo o *-demo) · para users
+        // reales mostramos empty state honesto en lugar de cursos falsos inscritos.
+        const _seedSample = !!(typeof window !== 'undefined' && window.isDemoWorkspace && window.isDemoWorkspace());
         if (coursesToShow.length === 0 && _seedSample) {
           coursesToShow = PATHS
             .filter(p => !/tendencias?/i.test(String(p.slug || '')))
@@ -4719,7 +4720,10 @@ function AssignMembersModal({ path, onClose }) {
   const members = ((window.Workspaces && window.Workspaces.membersOf) ? window.Workspaces.membersOf(ws.id) : []) || [];
   // Excluye usuarios sin id válido (defensivo)
   const valid = members.filter(m => m.user_id || m.id);
-  const [selected, setSelected] = useEV2(() => new Set(valid.map(m => m.user_id || m.id)));
+  // Selección vacía por defecto · el admin elige a quién explícitamente.
+  // Antes pre-marcaba a TODOS · un click en "Asignar a N" disparaba broadcast
+  // a todo el workspace sin querer (sin undo). "Seleccionar todos" sigue ahí.
+  const [selected, setSelected] = useEV2(() => new Set());
   const [query, setQuery] = useEV2('');
   const [sending, setSending] = useEV2(false);
 

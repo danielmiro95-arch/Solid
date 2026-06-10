@@ -66,7 +66,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
   };
   const toggleLike = () => {
     if (!window.Ratings) return;
-    window.Ratings.set(pill.id, liked ? 0 : 5);
+    window.Ratings.set(pill.id, liked ? 0 : 5, { silent: true });
     if (window.Toast) window.Toast[liked ? 'info' : 'success'](liked ? 'Sin valoración' : '👍 Me gusta', { icon: liked ? '○' : '👍' });
   };
 
