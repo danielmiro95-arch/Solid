@@ -1340,6 +1340,10 @@ window.OnboardingWizard = OnboardingWizard;
 
 function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
+  // welcomeDismissed como flag manual · DEBE declararse antes de cualquier
+  // return condicional (Rules of Hooks). El estado persistido se lee en
+  // render más abajo (no-hook) y se combina con este flag.
+  const [welcomeDismissedManual, setWelcomeDismissedManual] = useState(false);
   useEffect(() => {
     const refresh = () => force(x => x + 1);
     window.addEventListener('sgs-data-ready', refresh);
@@ -1375,12 +1379,14 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
   const _userName   = (D.USER && D.USER.name) ? String(D.USER.name).split(/\s+/)[0] : null;
   const _wsName     = (_wsObj && _wsObj.name) ? String(_wsObj.name).replace(/\s+demo\s*$/i, '').trim() : null;
   const _dismissKey = 'solid-welcome-dismissed:' + ((D.USER && D.USER.id) || 'anon') + ':' + ((_wsObj && _wsObj.id) || 'no-ws') + ':' + (_welcomeMsg ? _welcomeMsg.length : 0);
-  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+  // Lectura persistida en render (no-hook · seguro tras el return condicional).
+  const _persistedDismissed = (() => {
     try { return !!localStorage.getItem(_dismissKey); } catch (e) { return false; }
-  });
+  })();
+  const welcomeDismissed = welcomeDismissedManual || _persistedDismissed;
   const dismissWelcome = () => {
     try { localStorage.setItem(_dismissKey, '1'); } catch (e) {}
-    setWelcomeDismissed(true);
+    setWelcomeDismissedManual(true);
   };
   const showWelcome = !welcomeDismissed && (_welcomeMsg || demoActive);
   const welcomeText = _welcomeMsg ||
