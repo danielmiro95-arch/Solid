@@ -2492,6 +2492,63 @@ function _activateSupabaseData() {
     window.dispatchEvent(new Event('enrollments-changed'));
   };
 
+  // ── Ratings (me gusta/no me gusta · scoped por workspace) ─────────
+  // Antes solo localStorage (no cross-device, agregados falsos). Ahora sync a
+  // la tabla public.ratings (ya existe en schema · RLS self-write + ws-read).
+  let ratingsOwn = {};   // pill_id → stars (del usuario actual · para get/display)
+  let ratingsAll = [];   // {pill_id, stars} del workspace · para agregados admin
+  async function _loadRatings() {
+    const u = _uid(); const w = _wsid(); if (!u) { ratingsOwn = {}; ratingsAll = []; return; }
+    let qo = sb.from('ratings').select('pill_id, stars').eq('user_id', u);
+    if (w) qo = qo.eq('workspace_id', w);
+    const ro = await qo;
+    if (!ro.error) { ratingsOwn = {}; (ro.data || []).forEach(r => { ratingsOwn[r.pill_id] = r.stars; }); }
+    // Agregados del workspace (RLS ws-read permite leer todas)
+    let qa = sb.from('ratings').select('pill_id, stars');
+    if (w) qa = qa.eq('workspace_id', w);
+    const ra = await qa;
+    if (!ra.error) ratingsAll = ra.data || [];
+    window.dispatchEvent(new Event('ratings-changed'));
+  }
+  Ratings.get = function(pillId) { return ratingsOwn[pillId] || 0; };
+  Ratings.set = function(pillId, stars, opts) {
+    const u = _uid(); const w = _wsid(); if (!u || !pillId) return;
+    const s = Math.max(0, Math.min(5, Math.round(stars)));
+    if (s === 0) {
+      delete ratingsOwn[pillId];
+      let q = sb.from('ratings').delete().eq('user_id', u).eq('pill_id', pillId);
+      if (w) q = q.eq('workspace_id', w);
+      q.then(()=>{});
+    } else {
+      ratingsOwn[pillId] = s;
+      sb.from('ratings').upsert({ user_id: u, workspace_id: w, pill_id: pillId, stars: s, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,workspace_id,pill_id' }).then(()=>{});
+    }
+    window.dispatchEvent(new CustomEvent('ratings-changed', { detail: { pillId, stars: s } }));
+    if (window.Toast && !(opts && opts.silent)) {
+      if (s === 0) window.Toast.info('Puntuación eliminada');
+      else window.Toast.success('¡Gracias por tu puntuación: ' + s + ' estrella' + (s>1?'s':'') + '!', { icon: '★' });
+    }
+  };
+  Ratings.aggregateForPill = function(pillId) {
+    const stars = ratingsAll.filter(r => r.pill_id === pillId && r.stars).map(r => r.stars);
+    if (stars.length === 0) return { avg: 0, count: 0, dist:[0,0,0,0,0] };
+    const sum = stars.reduce((a,b)=>a+b,0); const dist=[0,0,0,0,0];
+    stars.forEach(s => dist[s-1]++);
+    return { avg: +(sum/stars.length).toFixed(2), count: stars.length, dist };
+  };
+  Ratings.globalStats = function() {
+    let total=0, count=0; const dist=[0,0,0,0,0]; const byPill={};
+    ratingsAll.forEach(r => {
+      if (!r.stars) return; total += r.stars; count++; dist[r.stars-1]++;
+      if (!byPill[r.pill_id]) byPill[r.pill_id] = { sum:0, count:0 };
+      byPill[r.pill_id].sum += r.stars; byPill[r.pill_id].count += 1;
+    });
+    const top = Object.keys(byPill).map(pid => ({ pillId: pid, avg: +(byPill[pid].sum/byPill[pid].count).toFixed(2), count: byPill[pid].count })).sort((a,b)=>b.avg-a.avg);
+    return { avg: count>0 ? +(total/count).toFixed(2) : 0, count, dist, top };
+  };
+  Ratings.seedIfEmpty = function() {/* no-op en Supabase · datos reales */};
+
   // ── RouteExams ────────────────────────────────────────────
   let reCache = {};
   async function _loadRouteExams() {
@@ -3707,6 +3764,7 @@ function _activateSupabaseData() {
       try {
         bmCache = [];
         enrollCache = [];
+        ratingsOwn = {}; ratingsAll = [];
         reCache = {};
         inboxCache = { messages: [], notifications: [], releases: [] };
         chatsCache = [];
@@ -3722,7 +3780,7 @@ function _activateSupabaseData() {
         window.PILLS = []; window.LEARNING_PATHS = []; window.SERIES = [];
         window.REELS = []; window.PODCASTS = [];
         // Dispatch para que toda la UI re-renderice vacía
-        ['bookmarks-changed','exams-changed','inbox-changed','chats-changed',
+        ['bookmarks-changed','enrollments-changed','ratings-changed','exams-changed','inbox-changed','chats-changed',
          'subs-changed','activity-changed','progress-changed','certificates-changed',
          'invitations-changed','members-changed','workspaces-changed',
          'pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed']
@@ -3735,7 +3793,7 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadEnrollments(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
       _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations(),
     ]);
   }
@@ -3749,7 +3807,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
+    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
