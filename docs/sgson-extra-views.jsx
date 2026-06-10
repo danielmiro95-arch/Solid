@@ -653,9 +653,9 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
           : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`)}
       actions={path && setView ? (
         <div style={{ display:'flex', gap: 10 }}>
-          {totalProgress >= 70 && window.RouteExamModal && (
-            <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 4px 12px rgba(89,71,255,0.30)' }}>
-              {T('mypath.exam')}
+          {totalProgress >= 70 && (window.AIQuizModal || window.RouteExamModal) && (
+            <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 6px 18px rgba(236,28,36,0.30)' }}>
+              ✦ {T('mypath.exam', 'Examen final')}
             </button>
           )}
           <button onClick={() => setView('rutas')} style={{ padding:'8px 14px', background:'transparent', border:'1px solid var(--line)', color:'var(--fg-muted)', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12.5 }}>{T('mypath.allRoutes')}</button>
@@ -837,8 +837,17 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
         );
       })()}
 
-      {/* Examen final · solo si hay path y el modal global está disponible */}
-      {showExam && path && window.RouteExamModal && (
+      {/* Examen final · prefiere el generado por IA · fallback al hardcoded
+          legacy si AIQuizModal no está cargado todavía. */}
+      {showExam && path && window.AIQuizModal && (
+        <window.AIQuizModal
+          routeId={path.id}
+          routeLabel={pTitle}
+          onClose={() => setShowExam(false)}
+          onPassed={() => { setShowExam(false); if (window.Toast) window.Toast.success('¡Examen aprobado! Certificado generado.', { icon:'🏆' }); }}
+        />
+      )}
+      {showExam && path && !window.AIQuizModal && window.RouteExamModal && (
         <window.RouteExamModal
           routeId={path.id}
           routeLabel={pTitle}
@@ -5772,3 +5781,248 @@ function NotesView({ setView, openPlayer }) {
   );
 }
 window.NotesView = NotesView;
+
+/* ============================================================
+   AIQuizModal · Examen generado por IA · 5 preguntas multi-opción
+   · Pide a Claude (window.callMentorAPI) un quiz del path/curso.
+   · Parsea JSON · si falla, mensaje claro · sin preguntas hardcoded.
+   · Cache localStorage 24h por workspace+route (sin spamear API).
+   · Registra resultado en window.RouteExams.record · al pasar, el
+     listener route-completed existente emite certificado.
+   ============================================================ */
+const AI_QUIZ_TTL_MS = 24 * 60 * 60 * 1000;
+function _aiQuizKey(routeId) {
+  const ws = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || 'noWs';
+  return 'solid-ai-quiz:' + ws + ':' + routeId;
+}
+function _aiQuizReadCache(routeId) {
+  try {
+    const raw = localStorage.getItem(_aiQuizKey(routeId));
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !o.ts || Date.now() - o.ts > AI_QUIZ_TTL_MS) return null;
+    return o.questions || null;
+  } catch (e) { return null; }
+}
+function _aiQuizWriteCache(routeId, questions) {
+  try { localStorage.setItem(_aiQuizKey(routeId), JSON.stringify({ ts: Date.now(), questions })); } catch (e) {}
+}
+
+function AIQuizModal({ routeId, routeLabel, onClose, onPassed }) {
+  const [questions, setQuestions] = useEV2(null);   // [{q, options:[], answer:idx}]
+  const [loading, setLoading] = useEV2(false);
+  const [err, setErr] = useEV2('');
+  const [answers, setAnswers] = useEV2({});
+  const [submitted, setSubmitted] = useEV2(false);
+  const [result, setResult] = useEV2(null);
+
+  const generate = React.useCallback(async (force) => {
+    if (!force) {
+      const cached = _aiQuizReadCache(routeId);
+      if (cached && cached.length) { setQuestions(cached); return; }
+    }
+    if (!window.callMentorAPI) { setErr('BeonAI no está disponible · no se puede generar el examen ahora.'); return; }
+    setLoading(true); setErr('');
+    // Construye contexto: título del curso + pills (títulos + descripciones)
+    const PATHS = (window.SGS_DATA && window.SGS_DATA.LEARNING_PATHS) || window.LEARNING_PATHS || [];
+    const PILLS = (window.SGS_DATA && window.SGS_DATA.PILLS) || window.PILLS || [];
+    const path = PATHS.find(p => p.id === routeId) || PATHS.find(p => p._id === routeId) || {};
+    const pillIds = path.pillIds || path.pills || [];
+    const pills = PILLS.filter(p => pillIds.includes(p.id)).slice(0, 12);
+    const ctx = {
+      course: path.title || path.label || routeLabel || routeId,
+      pills: pills.map(p => ({ title: p.title, summary: p.one || p.desc || '' })),
+    };
+    const sys = 'Genera un test de evaluación con EXACTAMENTE 5 preguntas multi-opción (4 opciones cada una) sobre el contenido del curso siguiente. Devuelve SOLO JSON válido, sin comentarios, sin texto antes ni después, con esta forma exacta: {"questions":[{"q":"...","options":["a","b","c","d"],"answer":0,"explanation":"..."},...]}. Respuesta correcta como índice 0-3. Si no tienes datos suficientes para una pregunta justa, igual genérala con conceptos universales del título del curso.';
+    try {
+      const reply = await window.callMentorAPI([
+        { role: 'user', text: sys + '\n\n=== CURSO ===\n' + JSON.stringify(ctx, null, 2) }
+      ]);
+      let txt = String(reply || '').trim();
+      // Quita posibles bloques code-fence
+      txt = txt.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+      const m = txt.match(/\{[\s\S]*\}/);
+      const json = m ? JSON.parse(m[0]) : null;
+      const qs = json && Array.isArray(json.questions) ? json.questions.filter(q =>
+        q && typeof q.q === 'string' && Array.isArray(q.options) && q.options.length >= 2 &&
+        typeof q.answer === 'number' && q.answer >= 0 && q.answer < q.options.length
+      ).slice(0, 5) : [];
+      if (!qs.length) throw new Error('Respuesta no parseable como quiz');
+      setQuestions(qs);
+      _aiQuizWriteCache(routeId, qs);
+    } catch (e) {
+      setErr('No se pudo generar el examen. Inténtalo de nuevo en un momento. (Detalle: ' + (e.message || e) + ')');
+    } finally { setLoading(false); }
+  }, [routeId, routeLabel]);
+
+  useEE2(() => { generate(false); }, [routeId]);
+
+  const submit = () => {
+    if (!questions) return;
+    let score = 0;
+    questions.forEach((q, i) => { if (answers[i] === q.answer) score++; });
+    const total = questions.length;
+    const passed = score >= Math.ceil(total * 0.7); // ≥70% aprueba
+    setResult({ score, total, passed });
+    setSubmitted(true);
+    if (window.RouteExams && window.RouteExams.record) window.RouteExams.record(routeId, score, total, passed);
+    if (passed) {
+      if (window.Activity) window.Activity.log('pass_exam', { routeId, routeLabel, score, total });
+      if (window.Toast) window.Toast.success('¡Aprobado! ' + score + '/' + total, { icon: '🎉' });
+      if (window.Inbox && window.Inbox.addNotification) window.Inbox.addNotification('Has superado el examen de "' + (routeLabel || routeId) + '"', { kind:'achievement', icon:'🏆' });
+      if (onPassed) onPassed({ score, total });
+    } else {
+      if (window.Toast) window.Toast.error('No has aprobado · ' + score + '/' + total + ' correctas. Repasa y vuelve a intentarlo.');
+    }
+  };
+
+  const retry = () => {
+    setAnswers({}); setSubmitted(false); setResult(null);
+    generate(true); // fuerza regenerar (saltar cache)
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(0,0,0,0.70)',
+      backdropFilter:'blur(6px)', zIndex: 800,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 16,
+        width:'min(640px, 100%)', maxHeight:'88vh', display:'flex', flexDirection:'column',
+        boxShadow:'0 30px 80px rgba(0,0,0,0.55)',
+      }}>
+        <header style={{ padding:'20px 24px 12px', borderBottom:'1px solid var(--line)' }}>
+          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10 }}>
+            <div>
+              <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)', letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700, marginBottom: 4 }}>✦ Examen generado por IA</div>
+              <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color:'var(--fg)' }}>{routeLabel || routeId}</h2>
+            </div>
+            <button onClick={onClose} style={{ background:'transparent', border:'none', color:'var(--fg-muted)', cursor:'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+          </div>
+        </header>
+
+        <div style={{ flex: 1, overflowY:'auto', padding:'18px 24px' }}>
+          {loading && (
+            <div style={{ padding:'40px 0', textAlign:'center' }}>
+              <div style={{ fontSize: 38, marginBottom: 12 }}>✦</div>
+              <div style={{ fontSize: 14, color:'var(--fg)', fontWeight: 600 }}>Generando preguntas con BeonAI…</div>
+              <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 6 }}>Tarda unos segundos.</div>
+            </div>
+          )}
+
+          {!loading && err && (
+            <div style={{ padding:'16px 18px', background:'rgba(252,34,13,0.10)', border:'1px solid rgba(252,34,13,0.35)', borderRadius: 10, color:'var(--fg)', fontSize: 13.5, lineHeight: 1.5 }}>
+              {err}
+            </div>
+          )}
+
+          {!loading && questions && !submitted && (
+            <ol style={{ paddingLeft: 0, listStyle:'none', margin: 0 }}>
+              {questions.map((q, qi) => (
+                <li key={qi} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: qi < questions.length - 1 ? '1px solid var(--line-faint)' : 'none' }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color:'var(--fg)', marginBottom: 10 }}>
+                    <span style={{ color:'var(--accent)', fontFamily:'var(--font-mono)', marginRight: 8 }}>{(qi + 1) + '.'}</span>
+                    {q.q}
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+                    {q.options.map((opt, oi) => {
+                      const sel = answers[qi] === oi;
+                      return (
+                        <label key={oi} style={{
+                          display:'flex', alignItems:'center', gap: 10,
+                          padding:'9px 12px',
+                          background: sel ? 'rgba(236,28,36,0.10)' : 'var(--bg-elevated)',
+                          border: '1px solid ' + (sel ? 'var(--accent)' : 'var(--line-faint)'),
+                          borderRadius: 8, cursor:'pointer', transition:'all .15s',
+                        }}>
+                          <input type="radio" name={'q' + qi} checked={sel}
+                            onChange={() => setAnswers({ ...answers, [qi]: oi })}
+                            style={{ accentColor: 'var(--accent)' }}/>
+                          <span style={{ fontSize: 13.5, color:'var(--fg)', lineHeight: 1.4 }}>{opt}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {!loading && questions && submitted && result && (
+            <div>
+              <div style={{ padding:'24px 18px', textAlign:'center', background: result.passed ? 'rgba(74,222,128,0.10)' : 'rgba(252,34,13,0.10)', border: '1px solid ' + (result.passed ? 'rgba(74,222,128,0.30)' : 'rgba(252,34,13,0.30)'), borderRadius: 12, marginBottom: 16 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>{result.passed ? '🎉' : '📚'}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color:'var(--fg)', letterSpacing:'-0.02em' }}>
+                  {result.score} / {result.total}
+                </div>
+                <div style={{ fontSize: 13, color:'var(--fg-muted)', marginTop: 4 }}>
+                  {result.passed ? '¡Aprobado! Has superado el examen.' : 'No has aprobado · necesitas ' + Math.ceil(result.total * 0.7) + ' aciertos.'}
+                </div>
+              </div>
+              {/* Revisión por pregunta · marca correctas/falladas + explicación */}
+              <ol style={{ paddingLeft: 0, listStyle:'none', margin: 0 }}>
+                {questions.map((q, qi) => {
+                  const userAns = answers[qi];
+                  const ok = userAns === q.answer;
+                  return (
+                    <li key={qi} style={{ marginBottom: 14, padding: 12, background:'var(--bg-elevated)', border:'1px solid var(--line-faint)', borderRadius: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color:'var(--fg)', marginBottom: 6 }}>
+                        <span style={{ marginRight: 8, color: ok ? '#4ADE80' : '#FC220D' }}>{ok ? '✓' : '✗'}</span>
+                        {q.q}
+                      </div>
+                      <div style={{ fontSize: 12.5, color:'var(--fg-muted)', marginBottom: 4 }}>
+                        Tu respuesta: <span style={{ color: ok ? '#4ADE80' : 'var(--fg)' }}>{q.options[userAns] || '— sin contestar —'}</span>
+                      </div>
+                      {!ok && (
+                        <div style={{ fontSize: 12.5, color:'var(--fg-muted)' }}>
+                          Correcta: <span style={{ color:'#4ADE80' }}>{q.options[q.answer]}</span>
+                        </div>
+                      )}
+                      {q.explanation && (
+                        <div style={{ fontSize: 12, color:'var(--fg-dim)', marginTop: 6, fontStyle:'italic', lineHeight: 1.5 }}>{q.explanation}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+        </div>
+
+        <footer style={{ padding:'14px 24px', borderTop:'1px solid var(--line)', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10, flexWrap:'wrap' }}>
+          {!submitted && (
+            <>
+              <div style={{ fontSize: 11.5, color:'var(--fg-dim)', fontFamily:'var(--font-mono)' }}>
+                {questions ? Object.keys(answers).length + '/' + questions.length + ' respondidas · ≥70% para aprobar' : ''}
+              </div>
+              <div style={{ display:'flex', gap: 8 }}>
+                <button onClick={onClose} style={{ padding:'9px 14px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer', fontWeight: 600, fontSize: 13 }}>Cancelar</button>
+                <button onClick={submit} disabled={!questions || Object.keys(answers).length < (questions ? questions.length : 5)} style={{
+                  padding:'9px 18px', background: (questions && Object.keys(answers).length === questions.length) ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: (questions && Object.keys(answers).length === questions.length) ? '#fff' : 'var(--fg-dim)',
+                  border:'none', borderRadius: 8, cursor: (questions && Object.keys(answers).length === questions.length) ? 'pointer' : 'not-allowed',
+                  fontWeight: 700, fontSize: 13,
+                }}>Enviar examen</button>
+              </div>
+            </>
+          )}
+          {submitted && (
+            <>
+              <div style={{ fontSize: 11.5, color:'var(--fg-dim)', fontFamily:'var(--font-mono)' }}>
+                {result && result.passed ? 'Certificado disponible en Mis certificados' : 'Repasa el contenido y vuelve a intentarlo'}
+              </div>
+              <div style={{ display:'flex', gap: 8 }}>
+                {!result.passed && (
+                  <button onClick={retry} style={{ padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontWeight: 700, fontSize: 13 }}>Nuevo examen</button>
+                )}
+                <button onClick={onClose} style={{ padding:'9px 14px', background: result.passed ? 'var(--accent)' : 'transparent', color: result.passed ? '#fff' : 'var(--fg-muted)', border: result.passed ? 'none' : '1px solid var(--line)', borderRadius: 8, cursor:'pointer', fontWeight: 700, fontSize: 13 }}>Cerrar</button>
+              </div>
+            </>
+          )}
+        </footer>
+      </div>
+    </div>
+  );
+}
+window.AIQuizModal = AIQuizModal;
