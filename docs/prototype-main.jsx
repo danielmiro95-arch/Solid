@@ -2512,7 +2512,11 @@ function _activateSupabaseData() {
   }
   Ratings.get = function(pillId) { return ratingsOwn[pillId] || 0; };
   Ratings.set = function(pillId, stars, opts) {
-    const u = _uid(); const w = _wsid(); if (!u || !pillId) return;
+    const u = _uid(); const w = _wsid();
+    // Exigimos workspace · con workspace_id NULL el ON CONFLICT del upsert no
+    // deduplica (NULL ≠ NULL en UNIQUE) → filas de rating duplicadas y agregados
+    // inflados. Sin workspace activo no escribimos.
+    if (!u || !pillId || !w) return;
     const s = Math.max(0, Math.min(5, Math.round(stars)));
     if (s === 0) {
       delete ratingsOwn[pillId];
@@ -2664,13 +2668,19 @@ function _activateSupabaseData() {
     window.dispatchEvent(new Event('chats-changed'));
   };
   ChatHistory.update = function(id, patch) {
-    const idx = chatsCache.findIndex(c => c.id === id);
+    // Resuelve tmp→real (igual que appendMessage) · sin esto, un update con id
+    // temporal apuntaba a una fila inexistente en DB (no-op silencioso).
+    const realId = _convIdRemap[id] || id;
+    let idx = chatsCache.findIndex(c => c.id === realId);
+    if (idx < 0) idx = chatsCache.findIndex(c => c.id === id);
     if (idx < 0) return;
     chatsCache[idx] = Object.assign({}, chatsCache[idx], patch, { updatedAt: Date.now() });
+    const targetId = chatsCache[idx].id;
+    if (String(targetId).startsWith('tmp_')) { window.dispatchEvent(new Event('chats-changed')); return; } // se sincroniza al resolver create
     const dbPatch = {};
     if (patch.title) dbPatch.title = patch.title;
     dbPatch.updated_at = new Date().toISOString();
-    sb.from('conversations').update(dbPatch).eq('id', id).then(()=>{});
+    sb.from('conversations').update(dbPatch).eq('id', targetId).then(()=>{});
     window.dispatchEvent(new Event('chats-changed'));
   };
   ChatHistory.remove = function(id) {
@@ -6679,17 +6689,23 @@ function AdminPanel({ setView }) {
   const [dbMetrics, setDbMetrics] = useSM(null);
   useEM(() => {
     let alive = true;
-    const sb = window.supabaseClient;
-    const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
-    if (!sb || !sb.rpc || !wsId) { setDbMetrics(null); return; }
-    sb.rpc('workspace_user_metrics', { p_workspace_id: wsId }).then(({ data, error }) => {
-      if (!alive) return;
-      if (error) { console.warn('[admin] workspace_user_metrics', error.message); setDbMetrics(null); return; }
-      const map = {};
-      (data || []).forEach(r => { map[r.user_id] = { bookmarks: Number(r.bookmarks)||0, chats: Number(r.chats)||0, completed: Number(r.completed)||0, enrolled: Number(r.enrolled)||0 }; });
-      setDbMetrics(map);
-    });
-    return () => { alive = false; };
+    const fetchMetrics = () => {
+      const sb = window.supabaseClient;
+      const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+      if (!sb || !sb.rpc || !wsId) { if (alive) setDbMetrics(null); return; }
+      sb.rpc('workspace_user_metrics', { p_workspace_id: wsId }).then(({ data, error }) => {
+        if (!alive) return;
+        if (error) { console.warn('[admin] workspace_user_metrics', error.message); setDbMetrics(null); return; }
+        const map = {};
+        (data || []).forEach(r => { map[r.user_id] = { bookmarks: Number(r.bookmarks)||0, chats: Number(r.chats)||0, completed: Number(r.completed)||0, enrolled: Number(r.enrolled)||0 }; });
+        setDbMetrics(map);
+      });
+    };
+    fetchMetrics();
+    // Re-fetch al cambiar de workspace · antes deps [] dejaba métricas del ws
+    // anterior si el admin cambiaba de tenant con el panel abierto.
+    window.addEventListener('workspace-changed', fetchMetrics);
+    return () => { alive = false; window.removeEventListener('workspace-changed', fetchMetrics); };
   }, []);
 
   const filtered = users.filter(u => !filter || (u.name + ' ' + u.email + ' ' + u.role + ' ' + u.team).toLowerCase().includes(filter.toLowerCase()));
@@ -7507,4 +7523,38 @@ window.VideoSubmissionForm = VideoSubmissionForm;
 
 window.LoginScreen = LoginScreen;
 window.AdminPanel = AdminPanel;
-window.PrototypeApp = App;
+
+// ErrorBoundary de nivel superior · si cualquier componente lanza en render,
+// mostramos un fallback con botón de recargar en vez de pantalla en blanco
+// (la app no tenía ninguno · un solo throw la dejaba muerta).
+class AppErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { try { console.error('[SolidStream] render error', error, info); } catch (e) {} }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg-canvas, #1F1F1F)', color:'var(--fg, #F2F2F1)', fontFamily:'Inter, sans-serif', textAlign:'center' }}>
+          <div style={{ maxWidth:440 }}>
+            <div style={{ fontSize:44, marginBottom:14 }}>🛠️</div>
+            <h1 style={{ fontSize:22, fontWeight:800, margin:'0 0 8px' }}>Algo se rompió al pintar esta vista</h1>
+            <p style={{ fontSize:14, color:'var(--fg-muted, #B9B9B7)', lineHeight:1.55, margin:'0 0 22px' }}>
+              No te preocupes, tus datos están a salvo. Recarga para volver. Si pasa de nuevo, avísanos con lo que estabas haciendo.
+            </p>
+            <button onClick={() => { try { window.location.reload(); } catch (e) {} }} style={{
+              padding:'12px 22px', background:'var(--accent, #EC1C24)', color:'#fff', border:'none',
+              borderRadius:10, cursor:'pointer', fontWeight:700, fontSize:14,
+            }}>Recargar la plataforma</button>
+            <div style={{ marginTop:18, fontFamily:'monospace', fontSize:11, color:'var(--fg-dim, #9C9C9A)', wordBreak:'break-word' }}>
+              {String((this.state.error && this.state.error.message) || this.state.error).slice(0, 200)}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+window.PrototypeApp = function PrototypeApp(props) {
+  return <AppErrorBoundary><App {...props}/></AppErrorBoundary>;
+};
