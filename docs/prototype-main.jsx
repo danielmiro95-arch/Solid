@@ -2549,6 +2549,89 @@ function _activateSupabaseData() {
   };
   Ratings.seedIfEmpty = function() {/* no-op en Supabase · datos reales */};
 
+  // ── Notes (timestamped video notes · scoped user+workspace) ─────────
+  // Requiere db/notes-table.sql (tabla public.notes con RLS self).
+  let notesCache = [];
+  async function _loadNotes() {
+    const u = _uid(); const w = _wsid(); if (!u) { notesCache = []; return; }
+    let q = sb.from('notes').select('id, pill_id, pill_title, at_seconds, text, created_at, updated_at')
+      .eq('user_id', u).order('created_at', { ascending: false }).limit(2000);
+    if (w) q = q.eq('workspace_id', w);
+    const { data, error } = await q;
+    if (error) { console.warn('[supa] notes', error.message); return; }
+    notesCache = (data || []).map(r => ({
+      id: r.id, pillId: r.pill_id, pillTitle: r.pill_title || '',
+      atSeconds: r.at_seconds || 0, text: r.text || '',
+      createdAt: new Date(r.created_at).getTime(),
+      updatedAt: new Date(r.updated_at).getTime(),
+    }));
+    window.dispatchEvent(new Event('notes-changed'));
+  }
+  Notes.listAll = function() { return notesCache.slice(); };
+  Notes.listFor = function(pillId) { return notesCache.filter(n => n.pillId === pillId).sort((a, b) => (a.atSeconds || 0) - (b.atSeconds || 0)); };
+  Notes.add = function(pillId, atSeconds, text, pillTitle) {
+    const u = _uid(); const w = _wsid(); if (!u || !pillId || !text || !text.trim()) return null;
+    const localId = 'tmp_' + Date.now().toString(36);
+    const n = {
+      id: localId, pillId, pillTitle: pillTitle || '',
+      atSeconds: Math.max(0, Math.round(atSeconds || 0)),
+      text: text.trim(), createdAt: Date.now(), updatedAt: Date.now(),
+    };
+    notesCache = [n].concat(notesCache);
+    window.dispatchEvent(new Event('notes-changed'));
+    sb.from('notes').insert({
+      user_id: u, workspace_id: w,
+      pill_id: pillId, pill_title: pillTitle || null,
+      at_seconds: n.atSeconds, text: n.text,
+    }).select().single().then(({ data, error }) => {
+      if (error) {
+        if (error.code === '42P01') console.warn('[supa] notes · tabla no existe · ejecuta db/notes-table.sql');
+        else if (window.Toast) window.Toast.error('No se pudo guardar la nota · ' + error.message);
+        notesCache = notesCache.filter(x => x.id !== localId);
+        window.dispatchEvent(new Event('notes-changed'));
+        return;
+      }
+      const i = notesCache.findIndex(x => x.id === localId);
+      if (i >= 0) {
+        notesCache[i] = Object.assign({}, notesCache[i], {
+          id: data.id,
+          createdAt: new Date(data.created_at).getTime(),
+          updatedAt: new Date(data.updated_at).getTime(),
+        });
+        window.dispatchEvent(new Event('notes-changed'));
+      }
+    });
+    return n;
+  };
+  Notes.update = function(id, patch) {
+    const i = notesCache.findIndex(x => x.id === id);
+    if (i < 0) return null;
+    notesCache[i] = Object.assign({}, notesCache[i], patch, { updatedAt: Date.now() });
+    const dbPatch = {};
+    if (patch.text !== undefined) dbPatch.text = patch.text;
+    if (patch.atSeconds !== undefined) dbPatch.at_seconds = patch.atSeconds;
+    if (String(id).startsWith('tmp_')) {
+      window.dispatchEvent(new Event('notes-changed'));
+      return notesCache[i];
+    }
+    sb.from('notes').update(dbPatch).eq('id', id).then(() => {});
+    window.dispatchEvent(new Event('notes-changed'));
+    return notesCache[i];
+  };
+  Notes.remove = function(id) {
+    notesCache = notesCache.filter(x => x.id !== id);
+    if (!String(id).startsWith('tmp_')) sb.from('notes').delete().eq('id', id).then(() => {});
+    window.dispatchEvent(new Event('notes-changed'));
+  };
+  Notes.clear = function() {
+    const u = _uid(); const w = _wsid(); if (!u) return;
+    notesCache = [];
+    let q = sb.from('notes').delete().eq('user_id', u);
+    if (w) q = q.eq('workspace_id', w);
+    q.then(() => {});
+    window.dispatchEvent(new Event('notes-changed'));
+  };
+
   // ── RouteExams ────────────────────────────────────────────
   let reCache = {};
   async function _loadRouteExams() {
@@ -3793,6 +3876,7 @@ function _activateSupabaseData() {
         bmCache = [];
         enrollCache = [];
         ratingsOwn = {}; ratingsAll = [];
+        notesCache = [];
         reCache = {};
         inboxCache = { messages: [], notifications: [], releases: [] };
         chatsCache = [];
@@ -3808,7 +3892,7 @@ function _activateSupabaseData() {
         window.PILLS = []; window.LEARNING_PATHS = []; window.SERIES = [];
         window.REELS = []; window.PODCASTS = [];
         // Dispatch para que toda la UI re-renderice vacía
-        ['bookmarks-changed','enrollments-changed','ratings-changed','exams-changed','inbox-changed','chats-changed',
+        ['bookmarks-changed','enrollments-changed','ratings-changed','notes-changed','exams-changed','inbox-changed','chats-changed',
          'subs-changed','activity-changed','progress-changed','certificates-changed',
          'invitations-changed','members-changed','workspaces-changed',
          'pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed']
@@ -3821,7 +3905,7 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
       _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations(),
     ]);
   }
@@ -3835,7 +3919,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
+    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -3994,6 +4078,41 @@ const Enrollments = (function() {
   return { get, has, add, remove, toggle, clear };
 })();
 window.Enrollments = Enrollments;
+
+// ── Notes (notas con timestamp del vídeo · scoped user+workspace) ─────────
+// Cada nota: { id, pillId, pillTitle, atSeconds, text, createdAt, updatedAt }.
+// Fallback localStorage (modo demo); Supabase override en _activateSupabaseData.
+const Notes = (function() {
+  function _key() { return _userScopedKey('solid-notes'); }
+  function listAll() {
+    try { return JSON.parse(localStorage.getItem(_key()) || '[]'); } catch (e) { return []; }
+  }
+  function _save(arr) { localStorage.setItem(_key(), JSON.stringify(arr)); window.dispatchEvent(new Event('notes-changed')); }
+  function listFor(pillId) { return listAll().filter(n => n.pillId === pillId).sort((a, b) => (a.atSeconds || 0) - (b.atSeconds || 0)); }
+  function add(pillId, atSeconds, text, pillTitle) {
+    if (!pillId || !text || !text.trim()) return null;
+    const all = listAll();
+    const n = {
+      id: 'n_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      pillId, pillTitle: pillTitle || '',
+      atSeconds: Math.max(0, Math.round(atSeconds || 0)),
+      text: text.trim(),
+      createdAt: Date.now(), updatedAt: Date.now(),
+    };
+    all.unshift(n); _save(all); return n;
+  }
+  function update(id, patch) {
+    const all = listAll();
+    const i = all.findIndex(x => x.id === id);
+    if (i < 0) return null;
+    all[i] = Object.assign({}, all[i], patch, { updatedAt: Date.now() });
+    _save(all); return all[i];
+  }
+  function remove(id) { _save(listAll().filter(x => x.id !== id)); }
+  function clear() { _save([]); }
+  return { listAll, listFor, add, update, remove, clear };
+})();
+window.Notes = Notes;
 
 // ── User profile (editable) — derivado del usuario autenticado ────────────
 // Lee del Auth.currentUser() y guarda los cambios en el registro de usuarios.
@@ -5601,6 +5720,10 @@ function App() {
   // openDetail abre MODAL (Netflix-style overlay). Antes navegaba a vista 'detail'.
   const openDetail = (it) => { setDetailItem(it); };
   const openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); };
+  // Expone __openPlayer · permite que vistas que no reciben openPlayer como
+  // prop (p.ej. NotesView desde el menú avatar) puedan saltar al player con
+  // un startAt concreto.
+  useEM(() => { window.__openPlayer = (it) => { if (it) setDetailItem(it); setView('player'); }; return () => { try { delete window.__openPlayer; } catch (e) { window.__openPlayer = null; } }; }, []);
 
   // SIDEBAR NETFLIX-STYLE:
   // - En vistas cinematográficas (home, detail, player, browse, rutas): sidebar
@@ -5677,6 +5800,7 @@ function App() {
         {view === 'settings' && <SettingsView_New setView={setView}/>}
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
         {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
+        {view === 'notes' && window.NotesView && <window.NotesView setView={setView} openPlayer={openPlayer}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (

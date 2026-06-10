@@ -320,6 +320,37 @@ function Player({ back, item }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [hasVideo, _demoPlayer, _maxSeen, currentSec]);
 
+  // ── Notas con timestamp ──────────────────────────────────────────────────
+  // Devuelve el segundo actual real del player (mp4, YouTube o simulado).
+  const _getCurrentSec = React.useCallback(() => {
+    try {
+      if (mp4Url && _videoRef.current && !isNaN(_videoRef.current.currentTime)) return _videoRef.current.currentTime;
+      if (it.yt && _ytPlayerRef.current && _ytPlayerRef.current.getCurrentTime) return _ytPlayerRef.current.getCurrentTime();
+    } catch (e) {}
+    return currentSec;
+  }, [mp4Url, it.yt, currentSec]);
+  const [noteOpen, setNoteOpen] = useS2(false);
+  const [noteSec, setNoteSec] = useS2(0);
+  const [noteText, setNoteText] = useS2('');
+  const openNote = () => {
+    if (!it || !it.id || it._placeholder) return;
+    setNoteSec(Math.max(0, Math.round(_getCurrentSec() || 0)));
+    setNoteText('');
+    setNoteOpen(true);
+    // Pausa el vídeo mp4 mientras escribe (no podemos pausar YT iframe directamente sin la API; si tenemos YT.Player sí)
+    try {
+      if (mp4Url && _videoRef.current && !_videoRef.current.paused) _videoRef.current.pause();
+      if (it.yt && _ytPlayerRef.current && _ytPlayerRef.current.pauseVideo) _ytPlayerRef.current.pauseVideo();
+    } catch (e) {}
+  };
+  const saveNote = () => {
+    const t = noteText.trim();
+    if (!t || !it || !it.id) { setNoteOpen(false); return; }
+    if (window.Notes && window.Notes.add) window.Notes.add(it.id, noteSec, t, it.title || '');
+    if (window.Toast) window.Toast.success('Nota guardada · ' + new Date(noteSec * 1000).toISOString().substr(14, 5), { icon: '📝' });
+    setNoteOpen(false); setNoteText('');
+  };
+
   const seekTo = (sec) => {
     // Demo · sólo permite seek a posiciones ya vistas (no fast-forward)
     if (_demoPlayer && sec > _maxSeen) {
@@ -387,6 +418,9 @@ function Player({ back, item }) {
                 <Icon name="back" size={12}/> Volver al módulo
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
+                <button className="back" onClick={openNote} title="Tomar nota en este momento" style={{background:'rgba(236,28,36,0.15)', border:'1px solid rgba(236,28,36,0.4)'}}>
+                  📝 Nota
+                </button>
                 <button className="back" onClick={() => { const setAIMode = window.__setAIMode; if (setAIMode) setAIMode('hero'); else if (window.Toast) window.Toast.info('Abre BeonAI desde el botón inferior', { icon:'✦' }); }} style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
                   ✦ BeonAI activo
                 </button>
@@ -487,6 +521,53 @@ function Player({ back, item }) {
           </div>
         ))}
       </div>
+
+      {/* Modal de Nota con timestamp · pausa el vídeo, captura el segundo,
+          guarda en window.Notes (Supabase si está, localStorage si no). */}
+      {noteOpen && (
+        <div onClick={() => setNoteOpen(false)} style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.65)',
+          backdropFilter:'blur(4px)', zIndex: 1000,
+          display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 14,
+            width:'min(480px, 100%)', padding:'22px 22px 18px', boxShadow:'0 30px 80px rgba(0,0,0,0.55)',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)', letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700, marginBottom: 2 }}>📝 Nueva nota</div>
+                <div style={{ fontSize: 14, color:'var(--fg)', fontWeight: 600 }}>
+                  Momento · <span style={{ fontFamily:'var(--font-mono)', color:'var(--accent)' }}>{new Date(noteSec * 1000).toISOString().substr(14, 5)}</span>
+                  <span style={{ color:'var(--fg-muted)', fontWeight: 400, marginLeft: 6 }}>de {it.title}</span>
+                </div>
+              </div>
+              <button onClick={() => setNoteOpen(false)} style={{ background:'transparent', border:'none', color:'var(--fg-muted)', cursor:'pointer', fontSize: 20, lineHeight: 1 }}>×</button>
+            </div>
+            <textarea
+              value={noteText} onChange={e => setNoteText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveNote(); } }}
+              placeholder="¿Qué quieres recordar de este momento?" autoFocus rows={4}
+              style={{
+                width:'100%', padding:'10px 12px', background:'var(--bg-elevated)',
+                border:'1px solid var(--line)', borderRadius: 8, color:'var(--fg)',
+                fontFamily:'var(--font-sans)', fontSize: 14, lineHeight: 1.45,
+                outline:'none', resize:'vertical', boxSizing:'border-box',
+              }}/>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: 12, gap: 10 }}>
+              <span style={{ fontSize: 11, color:'var(--fg-dim)', fontFamily:'var(--font-mono)' }}>⌘/Ctrl+Enter para guardar</span>
+              <div style={{ display:'flex', gap: 8 }}>
+                <button onClick={() => setNoteOpen(false)} style={{ padding:'9px 14px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer', fontWeight: 600, fontSize: 13 }}>Cancelar</button>
+                <button onClick={saveNote} disabled={!noteText.trim()} style={{
+                  padding:'9px 16px', background: noteText.trim() ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: noteText.trim() ? '#fff' : 'var(--fg-dim)', border:'none', borderRadius: 8,
+                  cursor: noteText.trim() ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13,
+                }}>Guardar nota</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
