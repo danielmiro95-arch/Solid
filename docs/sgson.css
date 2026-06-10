@@ -4,25 +4,25 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (gris oscuro neutro · tipo plataforma streaming) ── */
-  --bg-deep:        #1A1A1D;
-  --bg-canvas:      #232327;                       /* fondo de página · gris medio-oscuro */
-  --bg-surface:     #2D2D32;                       /* cards/modales · un escalón más claro */
-  --bg-elevated:    #38383E;                       /* hover, dropdowns */
-  --bg-glass:       rgba(35, 35, 39, 0.78);
-  --bg-glass-strong:rgba(35, 35, 39, 0.94);
-  --scrim:          rgba(26, 26, 29, 0.85);
+  /* ── Color · Surfaces (gris NEUTRO puro · tipo plataforma streaming) ── */
+  --bg-deep:        #1A1A1A;
+  --bg-canvas:      #1F1F1F;                       /* fondo de página · gris medio-oscuro neutro */
+  --bg-surface:     #2A2A2A;                       /* cards/modales · un escalón más claro */
+  --bg-elevated:    #353535;                       /* hover, dropdowns */
+  --bg-glass:       rgba(31, 31, 31, 0.78);
+  --bg-glass-strong:rgba(31, 31, 31, 0.94);
+  --scrim:          rgba(26, 26, 26, 0.85);
 
-  /* ── Color · Lines & dividers (blanco translúcido sobre gris oscuro) ── */
+  /* ── Color · Lines & dividers (blanco translúcido neutro) ── */
   --line-faint:     rgba(255, 255, 255, 0.05);
   --line:           rgba(255, 255, 255, 0.09);
   --line-strong:    rgba(255, 255, 255, 0.18);
 
-  /* ── Color · Text (blanco cálido sobre gris oscuro) ── */
-  --fg:             #EDEDEF;
-  --fg-muted:       #A8A8B0;
-  --fg-dim:         #7A7A82;
-  --fg-faint:       #5A5A60;
+  /* ── Color · Text (blanco cálido sobre gris neutro · sin tinte azul) ── */
+  --fg:             #EDEDEC;
+  --fg-muted:       #A8A8A6;
+  --fg-dim:         #7A7A78;
+  --fg-faint:       #5A5A58;
   --fg-on-accent:   #FFFFFF;
 
   /* ── Color · Accent (Repsol rojo) ── */
@@ -96,9 +96,9 @@ html[data-theme="light"] body[data-cinematic="true"] {
 /* Body en cinematic: fondo crema con gradient muy sutil. */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, #2D2D33 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #28282E 0%, transparent 50%),
-    linear-gradient(180deg, #232327 0%, #1F1F23 60%, #1B1B1F 100%);
+    radial-gradient(ellipse at 0% 0%, #2A2A2A 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #252525 0%, transparent 50%),
+    linear-gradient(180deg, #1F1F1F 0%, #1B1B1B 60%, #181818 100%);
   background-attachment: fixed;
 }
 
@@ -2466,29 +2466,29 @@ html[data-demo-mode="true"] {
  * #EC1C24 en :root) · solo aseguramos surfaces/scrim coherentes. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #1A1A1D;
-  --bg-canvas:      #232327;
-  --bg-surface:     #2D2D32;
-  --bg-elevated:    #38383E;
-  --bg-glass:       rgba(35, 35, 39, 0.78);
-  --bg-glass-strong:rgba(35, 35, 39, 0.94);
-  --scrim:          rgba(26, 26, 29, 0.85);
+  --bg-deep:        #1A1A1A;
+  --bg-canvas:      #1F1F1F;
+  --bg-surface:     #2A2A2A;
+  --bg-elevated:    #353535;
+  --bg-glass:       rgba(31, 31, 31, 0.78);
+  --bg-glass-strong:rgba(31, 31, 31, 0.94);
+  --scrim:          rgba(26, 26, 26, 0.85);
   --line-faint:     rgba(255, 255, 255, 0.05);
   --line:           rgba(255, 255, 255, 0.09);
   --line-strong:    rgba(255, 255, 255, 0.18);
-  --fg:             #EDEDEF;
-  --fg-muted:       #A8A8B0;
-  --fg-dim:         #7A7A82;
-  --fg-faint:       #5A5A60;
+  --fg:             #EDEDEC;
+  --fg-muted:       #A8A8A6;
+  --fg-dim:         #7A7A78;
+  --fg-faint:       #5A5A58;
   --fg-on-accent:   #FFFFFF;
 }
-/* Body en demo · gradient gris oscuro neutro. */
+/* Body en demo · gradient gris neutro puro. */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #2D2D33 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #28282E 0%, transparent 50%),
-    linear-gradient(180deg, #232327 0%, #1F1F23 60%, #1B1B1F 100%) !important;
+    radial-gradient(ellipse at 0% 0%, #2A2A2A 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #252525 0%, transparent 50%),
+    linear-gradient(180deg, #1F1F1F 0%, #1B1B1B 60%, #181818 100%) !important;
   background-attachment: fixed;
 }
 
