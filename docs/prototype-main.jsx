@@ -5287,6 +5287,60 @@ function App() {
     document.documentElement.style.setProperty('--accent-glow', accent);
   }, [view, prevView, aiMode, shape, accent, activePathId]);
 
+  // ── Browser history ↔ vista · el botón ATRÁS del navegador navega entre
+  // vistas en vez de sacarte de la plataforma. Antes la navegación era solo
+  // estado React (setView) sin tocar el historial, así que "atrás" abandonaba
+  // la SPA. Ahora cada cambio de vista hace pushState y popstate restaura.
+  const _historyInited = React.useRef(false);
+  const _restoringFromHistory = React.useRef(false);
+  // Refs con el contexto actual (activePathId / detailItem) para guardarlo en
+  // el state del historial sin meterlos en las deps del efecto de push.
+  const _pathIdRef = React.useRef(activePathId);
+  const _detailRef = React.useRef(detailItem);
+  React.useEffect(() => { _pathIdRef.current = activePathId; }, [activePathId]);
+  React.useEffect(() => { _detailRef.current = detailItem; }, [detailItem]);
+
+  useEM(() => {
+    // Si este cambio de vista viene de un popstate (restauración), no empujamos
+    // otra entrada · solo bajamos la bandera.
+    if (_restoringFromHistory.current) { _restoringFromHistory.current = false; return; }
+    try {
+      const st = {
+        __solidView: view,
+        __pathId: _pathIdRef.current || null,
+        __detailId: (_detailRef.current && _detailRef.current.id) || null,
+      };
+      if (!_historyInited.current) {
+        // Primera entrada · reemplaza la actual (no añade) para que el primer
+        // "atrás" desde aquí salga de forma natural, como en cualquier web.
+        window.history.replaceState(st, '');
+        _historyInited.current = true;
+      } else {
+        window.history.pushState(st, '');
+      }
+    } catch (e) {}
+  }, [view]);
+
+  useEM(() => {
+    const onPop = (e) => {
+      const st = e && e.state;
+      if (!st || !st.__solidView) return; // entrada previa a la app → salir natural
+      _restoringFromHistory.current = true;
+      // Restaura contexto antes de la vista para que 'path'/'player' tengan datos.
+      if (st.__pathId) setActivePathId(st.__pathId);
+      if (st.__detailId) {
+        const p = (window.PILLS || []).find(x => x.id === st.__detailId);
+        if (p) setDetailItem(p);
+      }
+      _setView(st.__solidView);
+      // Reset defensivo · si la vista restaurada es igual a la actual el efecto
+      // de push no corre y no bajaría la bandera. El timeout lo garantiza.
+      setTimeout(() => { _restoringFromHistory.current = false; }, 0);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   // Home/Player/Onboarding son cinematic · SIEMPRE dark independientemente del tema.
   // El CSS lee data-cinematic en body y fuerza tokens dark.
   useEM(() => {
