@@ -681,9 +681,20 @@ async function callMentorAPI(messages, onDelta) {
     stream: !!onDelta,
   };
 
+  // Token de sesión · el endpoint valida quién eres y que perteneces al
+  // workspace antes de leer su config/KB (sin esto, /api/chat confiaba en el
+  // workspaceId del cliente y filtraba la base de conocimiento de cualquier tenant).
+  let _token = '';
+  try {
+    if (window.supabaseClient && window.supabaseClient.auth) {
+      const { data } = await window.supabaseClient.auth.getSession();
+      _token = (data && data.session && data.session.access_token) || '';
+    }
+  } catch (e) {}
+
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(_token ? { Authorization: 'Bearer ' + _token } : {}) },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {

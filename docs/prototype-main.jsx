@@ -1584,8 +1584,15 @@ const PushNotifications = (function() {
     const sub = await getSubscription();
     if (!sub) return { error:'no-subscription' };
     try {
+      let _t = '';
+      try {
+        if (window.supabaseClient && window.supabaseClient.auth) {
+          const { data } = await window.supabaseClient.auth.getSession();
+          _t = (data && data.session && data.session.access_token) || '';
+        }
+      } catch (e) {}
       const r = await fetch('/api/push-send', {
-        method:'POST', headers:{ 'Content-Type':'application/json' },
+        method:'POST', headers:{ 'Content-Type':'application/json', ...(_t ? { Authorization: 'Bearer ' + _t } : {}) },
         body: JSON.stringify({
           subscription: sub.toJSON(),
           payload: { title:'SolidStream · Test', body:'Push del servidor recibido ✓', url:'/' },
@@ -1876,10 +1883,17 @@ function InviteUsersModal({ onClose }) {
     if (!inv) return;
     const me = window.Auth && window.Auth.currentUser();
     const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    let _t = '';
+    try {
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data } = await window.supabaseClient.auth.getSession();
+        _t = (data && data.session && data.session.access_token) || '';
+      }
+    } catch (e) {}
     try {
       const r = await fetch('/api/send-invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(_t ? { Authorization: 'Bearer ' + _t } : {}) },
         body: JSON.stringify({
           email: inv.email,
           name: inv.name,
@@ -6640,9 +6654,16 @@ function PendingInvitationsBlock({ invitations }) {
   const sendEmail = async (inv) => {
     const me = window.Auth && window.Auth.currentUser();
     const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    let _t = '';
+    try {
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data } = await window.supabaseClient.auth.getSession();
+        _t = (data && data.session && data.session.access_token) || '';
+      }
+    } catch (e) {}
     try {
       const r = await fetch('/api/send-invite', {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json', ...(_t ? { Authorization: 'Bearer ' + _t } : {})},
         body: JSON.stringify({
           email: inv.email, name: inv.name, token: inv.token,
           role: inv.role, team: inv.team,

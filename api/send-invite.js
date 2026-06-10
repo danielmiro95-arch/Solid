@@ -10,6 +10,14 @@
 //                       workspaceName?, workspaceColor? }
 // El template es genérico · sin marca de cliente · usa workspaceName si llega.
 
+import { createClient } from '@supabase/supabase-js';
+
+const _supa = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
@@ -28,6 +36,24 @@ export default async function handler(req, res) {
   }
   const { email, name, token, role, team, fromName, workspaceName, workspaceColor } = body || {};
   if (!email || !token) { res.status(400).json({ error: 'Faltan email o token' }); return; }
+
+  // Auth · si Supabase está activo, exige JWT y que el que invita sea admin del
+  // workspace de ESA invitación (el token debe existir en la tabla). Sin esto
+  // cualquiera mandaba emails desde tu dominio verificado (phishing/spam).
+  if (_supa) {
+    const h = req.headers.authorization || req.headers.Authorization || '';
+    const jwt = h.startsWith('Bearer ') ? h.slice(7) : null;
+    if (!jwt) { res.status(401).json({ error: 'unauthorized' }); return; }
+    const { data: u, error: uErr } = await _supa.auth.getUser(jwt);
+    if (uErr || !u || !u.user) { res.status(401).json({ error: 'unauthorized' }); return; }
+    const { data: inv } = await _supa.from('invitations').select('workspace_id').eq('token', token).maybeSingle();
+    if (!inv) { res.status(404).json({ error: 'invitation not found' }); return; }
+    const { data: mem } = await _supa.from('workspace_members')
+      .select('role').eq('user_id', u.user.id).eq('workspace_id', inv.workspace_id).maybeSingle();
+    const { data: prof } = await _supa.from('profiles').select('system_role').eq('id', u.user.id).maybeSingle();
+    const isAdmin = (prof && prof.system_role === 'admin') || (mem && ['owner','admin'].includes(mem.role));
+    if (!isAdmin) { res.status(403).json({ error: 'forbidden: solo admins del workspace pueden invitar' }); return; }
+  }
 
   const baseUrl = process.env.PUBLIC_BASE_URL || 'https://' + (req.headers.host || 'localhost');
   const inviteLink = baseUrl.replace(/\/$/, '') + '/?invite=' + encodeURIComponent(token);
