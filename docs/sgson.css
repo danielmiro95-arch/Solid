@@ -4,25 +4,25 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (claro · crema cálido un punto más profundo) ── */
-  --bg-deep:        #E7DDC9;                       /* base del gradient, tras el hero */
-  --bg-canvas:      #EEE5D2;                       /* fondo de página · crema más tostado */
+  /* ── Color · Surfaces (claro · gris plateado neutro) ── */
+  --bg-deep:        #D8D8DA;                       /* base del gradient, tras el hero */
+  --bg-canvas:      #DFDFE1;                       /* fondo de página · gris plateado */
   --bg-surface:     #FFFFFF;                       /* cards/modales · blanco para que destaquen sobre el canvas */
-  --bg-elevated:    #E5DCC4;                       /* hover, elementos elevados, dropdowns */
-  --bg-glass:       rgba(238, 229, 210, 0.78);     /* nav translúcida */
-  --bg-glass-strong:rgba(238, 229, 210, 0.94);     /* nav scrolled / sidebar */
-  --scrim:          rgba(231, 221, 201, 0.85);     /* fades de carrusel/nav (= bg-deep) */
+  --bg-elevated:    #D5D5D7;                       /* hover, elementos elevados, dropdowns */
+  --bg-glass:       rgba(223, 223, 225, 0.78);     /* nav translúcida */
+  --bg-glass-strong:rgba(223, 223, 225, 0.94);     /* nav scrolled / sidebar */
+  --scrim:          rgba(216, 216, 218, 0.85);     /* fades de carrusel/nav (= bg-deep) */
 
-  /* ── Color · Lines & dividers (tinta translúcida sobre claro) ── */
-  --line-faint:     rgba(20, 18, 15, 0.06);
-  --line:           rgba(20, 18, 15, 0.10);
-  --line-strong:    rgba(20, 18, 15, 0.18);
+  /* ── Color · Lines & dividers (tinta neutra sobre gris) ── */
+  --line-faint:     rgba(20, 20, 22, 0.06);
+  --line:           rgba(20, 20, 22, 0.10);
+  --line-strong:    rgba(20, 20, 22, 0.18);
 
-  /* ── Color · Text ── */
-  --fg:             #1A1714;                       /* casi negro cálido */
-  --fg-muted:       #67635B;
-  --fg-dim:         #9A958C;
-  --fg-faint:       #C3BEB3;
+  /* ── Color · Text (neutros, alineados con gris plateado) ── */
+  --fg:             #18181C;                       /* casi negro neutro */
+  --fg-muted:       #62626A;
+  --fg-dim:         #95959B;
+  --fg-faint:       #C0C0C5;
   --fg-on-accent:   #FFFFFF;
 
   /* ── Color · Accent (Repsol rojo) ── */
@@ -57,10 +57,10 @@
   --r-0: 0;     --r-1: 2px;  --r-2: 4px;   --r-3: 6px;
   --r-4: 10px;  --r-5: 14px; --r-pill: 999px;
 
-  /* ── Shadows (suaves, cálidas) ── */
-  --shadow-card:   0 6px 20px rgba(64, 48, 30, 0.12);
-  --shadow-pop:    0 24px 70px rgba(64, 48, 30, 0.20), 0 8px 24px rgba(64, 48, 30, 0.12);
-  --shadow-glow:   0 0 0 1px var(--line-strong), 0 30px 60px rgba(64, 48, 30, 0.20);
+  /* ── Shadows (suaves, neutras) ── */
+  --shadow-card:   0 6px 20px rgba(30, 30, 38, 0.10);
+  --shadow-pop:    0 24px 70px rgba(30, 30, 38, 0.18), 0 8px 24px rgba(30, 30, 38, 0.10);
+  --shadow-glow:   0 0 0 1px var(--line-strong), 0 30px 60px rgba(30, 30, 38, 0.18);
 
   /* ── Motion ── */
   --ease-out:      cubic-bezier(.2, .7, .2, 1);
@@ -84,7 +84,7 @@
    ============================================================ */
 .card,
 .modal {
-  box-shadow: 0 1px 3px rgba(64, 48, 30, 0.05);
+  box-shadow: 0 1px 3px rgba(30, 30, 38, 0.05);
 }
 
 /* CINEMATIC · Home/Player/Onboarding · ahora en CLARO también (toda la app
@@ -96,9 +96,9 @@ html[data-theme="light"] body[data-cinematic="true"] {
 /* Body en cinematic: fondo crema con gradient muy sutil. */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, #F6EDD8 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #ECE2CB 0%, transparent 50%),
-    linear-gradient(180deg, #EEE5D2 0%, #E8DEC8 60%, #E2D8BF 100%);
+    radial-gradient(ellipse at 0% 0%, #EAEAEC 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #DCDCDE 0%, transparent 50%),
+    linear-gradient(180deg, #DFDFE1 0%, #D8D8DA 60%, #D2D2D5 100%);
   background-attachment: fixed;
 }
 
@@ -1049,7 +1049,7 @@ img { display: block; max-width: 100%; }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(40, 34, 26, 0.46);
+  background: rgba(30, 30, 38, 0.46);
   backdrop-filter: blur(6px);
   z-index: 90;
   display: flex;
@@ -1225,7 +1225,7 @@ img { display: block; max-width: 100%; }
 .sb-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(40, 34, 26, 0.38);
+  background: rgba(30, 30, 38, 0.38);
   backdrop-filter: blur(4px);
   z-index: 70;
 }
@@ -2239,7 +2239,7 @@ body.sgs-redesign .onboarding-progress > i { background: var(--accent); }
 /* ============================================================
    COMMAND PALETTE · si lo abren con ⌘K
    ============================================================ */
-body.sgs-redesign .palette-backdrop { background: rgba(40,34,26,0.46); backdrop-filter: blur(8px); }
+body.sgs-redesign .palette-backdrop { background: rgba(30,30,38,0.46); backdrop-filter: blur(8px); }
 body.sgs-redesign .palette-modal {
   background: var(--bg-surface);
   border: 1px solid var(--line);
@@ -2468,29 +2468,29 @@ html[data-demo-mode="true"] {
  * #EC1C24 en :root) · solo aseguramos surfaces/scrim coherentes. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #E7DDC9;
-  --bg-canvas:      #EEE5D2;
+  --bg-deep:        #D8D8DA;
+  --bg-canvas:      #DFDFE1;
   --bg-surface:     #FFFFFF;
-  --bg-elevated:    #E5DCC4;
-  --bg-glass:       rgba(238, 229, 210, 0.78);
-  --bg-glass-strong:rgba(238, 229, 210, 0.94);
-  --scrim:          rgba(231, 221, 201, 0.85);
-  --line-faint:     rgba(20, 18, 15, 0.06);
-  --line:           rgba(20, 18, 15, 0.10);
-  --line-strong:    rgba(20, 18, 15, 0.18);
-  --fg:             #1A1714;
-  --fg-muted:       #67635B;
-  --fg-dim:         #9A958C;
-  --fg-faint:       #C3BEB3;
+  --bg-elevated:    #D5D5D7;
+  --bg-glass:       rgba(223, 223, 225, 0.78);
+  --bg-glass-strong:rgba(223, 223, 225, 0.94);
+  --scrim:          rgba(216, 216, 218, 0.85);
+  --line-faint:     rgba(20, 20, 22, 0.06);
+  --line:           rgba(20, 20, 22, 0.10);
+  --line-strong:    rgba(20, 20, 22, 0.18);
+  --fg:             #18181C;
+  --fg-muted:       #62626A;
+  --fg-dim:         #95959B;
+  --fg-faint:       #C0C0C5;
   --fg-on-accent:   #FFFFFF;
 }
-/* Body en demo · gradient crema sutil. */
+/* Body en demo · gradient gris plateado sutil. */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #F6EDD8 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #ECE2CB 0%, transparent 50%),
-    linear-gradient(180deg, #EEE5D2 0%, #E8DEC8 60%, #E2D8BF 100%) !important;
+    radial-gradient(ellipse at 0% 0%, #EAEAEC 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #DCDCDE 0%, transparent 50%),
+    linear-gradient(180deg, #DFDFE1 0%, #D8D8DA 60%, #D2D2D5 100%) !important;
   background-attachment: fixed;
 }
 
