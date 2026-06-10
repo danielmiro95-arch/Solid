@@ -457,7 +457,7 @@ function CoachView() {
           </div>
           <div className="header-actions">
             <button className="icon-btn" aria-label="Limpiar conversación" title="Limpiar conversación" onClick={reset}><Ico name="sliders" size={16}/></button>
-            <button className="icon-btn" aria-label="Más opciones" title="Más opciones" onClick={() => window.Toast && window.Toast.info('Configuración del asistente próximamente', { icon:'⚙️' })}><Ico name="dots" size={16}/></button>
+            {/* Botón "Más opciones" oculto · era un stub "próximamente" sin función real */}
           </div>
         </header>
 
@@ -529,7 +529,7 @@ function CoachView() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                 placeholder={T('coach.placeholder')}
               />
-              <button className="icon-btn" aria-label="Adjuntar archivo" title="Adjuntar archivo" onClick={() => window.Toast && window.Toast.info('Adjuntar archivos · próximamente', { icon:'📎' })}><Ico name="attach" size={16}/></button>
+              {/* Botón adjuntar oculto · era stub "próximamente" sin selector de archivo */}
               <button className="coach-send" aria-label="Enviar" onClick={() => send()} disabled={!input.trim() || loading}><Ico name="send" size={14}/></button>
             </div>
           </div>

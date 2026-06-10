@@ -723,11 +723,14 @@ async function callMentorAPI(messages, onDelta) {
     for (const line of lines) {
       const m = line.match(/^data:\s*(.+)$/);
       if (!m) continue;
+      let evt = null;
       try {
-        const evt = JSON.parse(m[1]);
-        if (evt.delta) { full += evt.delta; onDelta(evt.delta, full); }
-        if (evt.error) throw new Error(evt.error);
-      } catch (e) { /* ignore parse errors on partial lines */ }
+        evt = JSON.parse(m[1]);
+      } catch (e) { /* línea SSE parcial · ignorar SOLO el parse */ continue; }
+      if (evt.delta) { full += evt.delta; onDelta(evt.delta, full); }
+      // El error del backend NO debe tragarse · antes el throw caía en el
+      // mismo catch del JSON.parse y el usuario veía respuesta vacía sin aviso.
+      if (evt.error) throw new Error(evt.error);
     }
   }
   return full;

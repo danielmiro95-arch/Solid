@@ -304,11 +304,16 @@ const Channels = (function() {
   function connect(channelId, account) {
     const def = CATALOG.find(c => c.id === channelId);
     if (!def) return null;
+    // Deriva la cuenta del PERFIL del usuario actual · antes había literales
+    // de Repsol (amaia.ruiz@repsol.com) hardcodeados que se filtraban a
+    // CUALQUIER workspace/usuario. Si no hay dato, queda genérico.
+    const prof = (window.UserProfile && window.UserProfile.get && window.UserProfile.get()) || {};
+    const email = prof.email || '';
     const accs = {
-      whatsapp: '+34 6XX XXX 234',
-      teams:    'amaia.ruiz@repsol.com',
-      email:    'amaia.ruiz@repsol.com',
-      slack:    'amaia@repsol.slack.com',
+      whatsapp: prof.phone || 'Tu número de WhatsApp',
+      teams:    email || 'Tu cuenta de Teams',
+      email:    email || 'Tu correo',
+      slack:    email || 'Tu cuenta de Slack',
       push:     (navigator.userAgent || 'Web push').split(' ')[0],
     };
     const next = get();

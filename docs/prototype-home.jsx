@@ -963,7 +963,12 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
         ) : (
           <button className="card-action primary" aria-label="Inscribirse" title="Inscribirse" onClick={(e) => {
             e.stopPropagation();
-            if (window.Toast) window.Toast.success('Te has inscrito al curso');
+            // Inscripción REAL · registra en Enrollments (antes solo toasteaba
+            // "te has inscrito" sin guardar nada → no aparecía en Mi Lista).
+            const id = pill.pathId || pill.id;
+            let added = false;
+            if (window.Enrollments && window.Enrollments.add) added = window.Enrollments.add(id);
+            if (window.Toast) window.Toast.success(added ? 'Te has inscrito al curso' : 'Ya estabas inscrito', { icon: '✓' });
             onOpen(pill);
           }}>
             <Ico name="plus" size={12}/>
