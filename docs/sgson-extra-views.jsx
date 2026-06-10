@@ -2926,6 +2926,9 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
 
+      {/* Theme preview · 5 opciones de Niebla fría + actual · solo admins */}
+      <ThemePreviewPanel/>
+
       {/* Pills · catálogo del workspace activo (multi-tenant content) */}
       <PillsPanel/>
 
@@ -2944,6 +2947,321 @@ function AdminView({ setView, openLegacyAdmin }) {
     </PageShell>
   );
 }
+
+/* ============================================================
+   ThemePreviewPanel · visualización solo para admins
+   ============================================================
+   · 5 niveles de "Niebla fría" + actual (Gris neutro b86) como comparativa.
+   · Click sobre una opción inyecta sus tokens vía <style id="theme-preview-override">
+     dentro de <head> · preview INSTANTÁNEO sobre la propia plataforma.
+   · "Aplicar permanente" persiste la elección en localStorage (clave global
+     solid-theme-override) · al recargar se reinyecta automáticamente.
+   · "Revertir" elimina el override y vuelve al :root del CSS.
+   · Visible solo dentro de AdminView (que ya hace el check de admin.viewPanel).
+   ============================================================ */
+const THEME_PREVIEW_OPTIONS = [
+  {
+    id: 'neutro',
+    label: 'Gris neutro (actual)',
+    note: 'b86 · gris plataforma neutro puro',
+    tokens: {
+      '--bg-deep':        '#1A1A1A',
+      '--bg-canvas':      '#1F1F1F',
+      '--bg-surface':     '#2A2A2A',
+      '--bg-elevated':    '#353535',
+      '--bg-glass':       'rgba(31, 31, 31, 0.78)',
+      '--bg-glass-strong':'rgba(31, 31, 31, 0.94)',
+      '--scrim':          'rgba(26, 26, 26, 0.85)',
+      '--line-faint':     'rgba(255, 255, 255, 0.05)',
+      '--line':           'rgba(255, 255, 255, 0.09)',
+      '--line-strong':    'rgba(255, 255, 255, 0.18)',
+      '--fg':             '#EDEDEC',
+      '--fg-muted':       '#A8A8A6',
+      '--fg-dim':         '#7A7A78',
+      '--fg-faint':       '#5A5A58',
+    },
+  },
+  {
+    id: 'niebla-01',
+    label: 'Niebla 01 · claro original',
+    note: 'gris muy claro, fresco',
+    tokens: {
+      '--bg-deep':        '#E4E8EE',
+      '--bg-canvas':      '#EEF1F4',
+      '--bg-surface':     '#FFFFFF',
+      '--bg-elevated':    '#E9EDF2',
+      '--bg-glass':       'rgba(238, 241, 244, 0.78)',
+      '--bg-glass-strong':'rgba(238, 241, 244, 0.94)',
+      '--scrim':          'rgba(228, 232, 238, 0.85)',
+      '--line-faint':     'rgba(15, 20, 28, 0.08)',
+      '--line':           'rgba(15, 20, 28, 0.12)',
+      '--line-strong':    'rgba(15, 20, 28, 0.20)',
+      '--fg':             '#15171C',
+      '--fg-muted':       '#5C6068',
+      '--fg-dim':         '#8E939B',
+      '--fg-faint':       '#B5B9C0',
+    },
+  },
+  {
+    id: 'niebla-02',
+    label: 'Niebla 02',
+    note: 'un punto más apagado',
+    tokens: {
+      '--bg-deep':        '#D6DBE4',
+      '--bg-canvas':      '#E0E5EC',
+      '--bg-surface':     '#F4F6F9',
+      '--bg-elevated':    '#E2E6EC',
+      '--bg-glass':       'rgba(224, 229, 236, 0.78)',
+      '--bg-glass-strong':'rgba(224, 229, 236, 0.94)',
+      '--scrim':          'rgba(214, 219, 228, 0.85)',
+      '--line-faint':     'rgba(15, 20, 28, 0.10)',
+      '--line':           'rgba(15, 20, 28, 0.14)',
+      '--line-strong':    'rgba(15, 20, 28, 0.22)',
+      '--fg':             '#13161D',
+      '--fg-muted':       '#565B65',
+      '--fg-dim':         '#868C97',
+      '--fg-faint':       '#ADB2BC',
+    },
+  },
+  {
+    id: 'niebla-03',
+    label: 'Niebla 03 · recomendado',
+    note: 'slate claro con cuerpo',
+    tokens: {
+      '--bg-deep':        '#C7CDD8',
+      '--bg-canvas':      '#D2D8E1',
+      '--bg-surface':     '#EBEEF3',
+      '--bg-elevated':    '#DFE3EA',
+      '--bg-glass':       'rgba(210, 216, 225, 0.78)',
+      '--bg-glass-strong':'rgba(210, 216, 225, 0.94)',
+      '--scrim':          'rgba(199, 205, 216, 0.85)',
+      '--line-faint':     'rgba(12, 18, 28, 0.12)',
+      '--line':           'rgba(12, 18, 28, 0.16)',
+      '--line-strong':    'rgba(12, 18, 28, 0.24)',
+      '--fg':             '#11141C',
+      '--fg-muted':       '#4F5460',
+      '--fg-dim':         '#7E8492',
+      '--fg-faint':       '#A5AAB6',
+    },
+  },
+  {
+    id: 'niebla-04',
+    label: 'Niebla 04',
+    note: 'slate medio · más marcado',
+    tokens: {
+      '--bg-deep':        '#B7BFCC',
+      '--bg-canvas':      '#C2C9D5',
+      '--bg-surface':     '#DCE1E9',
+      '--bg-elevated':    '#D0D6DF',
+      '--bg-glass':       'rgba(194, 201, 213, 0.78)',
+      '--bg-glass-strong':'rgba(194, 201, 213, 0.94)',
+      '--scrim':          'rgba(183, 191, 204, 0.85)',
+      '--line-faint':     'rgba(12, 18, 28, 0.14)',
+      '--line':           'rgba(12, 18, 28, 0.18)',
+      '--line-strong':    'rgba(12, 18, 28, 0.26)',
+      '--fg':             '#0F121A',
+      '--fg-muted':       '#474C59',
+      '--fg-dim':         '#737A89',
+      '--fg-faint':       '#9DA3AF',
+    },
+  },
+  {
+    id: 'niebla-05',
+    label: 'Niebla 05 · más oscuro',
+    note: 'slate frío profundo (texto sigue oscuro)',
+    tokens: {
+      '--bg-deep':        '#A3ADBD',
+      '--bg-canvas':      '#AFB8C7',
+      '--bg-surface':     '#CBD2DD',
+      '--bg-elevated':    '#BFC7D3',
+      '--bg-glass':       'rgba(175, 184, 199, 0.78)',
+      '--bg-glass-strong':'rgba(175, 184, 199, 0.94)',
+      '--scrim':          'rgba(163, 173, 189, 0.85)',
+      '--line-faint':     'rgba(10, 16, 26, 0.16)',
+      '--line':           'rgba(10, 16, 26, 0.20)',
+      '--line-strong':    'rgba(10, 16, 26, 0.28)',
+      '--fg':             '#0D1018',
+      '--fg-muted':       '#3F4452',
+      '--fg-dim':         '#6A7281',
+      '--fg-faint':       '#959BA8',
+    },
+  },
+];
+
+const THEME_OVERRIDE_KEY = 'solid-theme-override';
+const THEME_OVERRIDE_STYLE_ID = 'theme-preview-override';
+
+function _applyThemeTokens(tokens) {
+  let style = document.getElementById(THEME_OVERRIDE_STYLE_ID);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = THEME_OVERRIDE_STYLE_ID;
+    document.head.appendChild(style);
+  }
+  // Aplica a :root Y a los dos overrides existentes (light + demo-mode) para
+  // que gane independientemente del data-attribute activo.
+  const lines = Object.entries(tokens).map(([k, v]) => `  ${k}: ${v} !important;`).join('\n');
+  style.textContent = [
+    ':root {\n' + lines + '\n}',
+    'html[data-theme="light"] {\n' + lines + '\n}',
+    'html[data-demo-mode="true"] {\n' + lines + '\n}',
+  ].join('\n');
+}
+
+function _clearThemeTokens() {
+  const style = document.getElementById(THEME_OVERRIDE_STYLE_ID);
+  if (style) style.remove();
+}
+
+// Restaura al arrancar la app si hay una elección persistida. Espera a que
+// document.head exista (este archivo puede compilarse antes de tener head).
+function _restorePersistedTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_OVERRIDE_KEY);
+    if (!saved) return;
+    const opt = THEME_PREVIEW_OPTIONS.find(o => o.id === saved);
+    if (!opt) return;
+    if (document.head) {
+      _applyThemeTokens(opt.tokens);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => _applyThemeTokens(opt.tokens), { once: true });
+    }
+  } catch (e) {}
+}
+_restorePersistedTheme();
+
+function ThemePreviewPanel() {
+  const [activeId, setActiveId] = useEV2(() => {
+    try { return localStorage.getItem(THEME_OVERRIDE_KEY) || null; } catch (e) { return null; }
+  });
+  const [persistedId, setPersistedId] = useEV2(() => {
+    try { return localStorage.getItem(THEME_OVERRIDE_KEY) || null; } catch (e) { return null; }
+  });
+
+  const preview = (opt) => {
+    setActiveId(opt.id);
+    _applyThemeTokens(opt.tokens);
+  };
+  const apply = () => {
+    if (!activeId) return;
+    try { localStorage.setItem(THEME_OVERRIDE_KEY, activeId); } catch (e) {}
+    setPersistedId(activeId);
+    if (window.Toast) window.Toast.success('Tema aplicado para toda la plataforma · refresca para ver el efecto completo', { icon: '🎨' });
+  };
+  const revert = () => {
+    try { localStorage.removeItem(THEME_OVERRIDE_KEY); } catch (e) {}
+    _clearThemeTokens();
+    setActiveId(null);
+    setPersistedId(null);
+    if (window.Toast) window.Toast.info('Tema revertido al base', { icon: '↩' });
+  };
+
+  return (
+    <section style={{
+      marginTop: 32, padding: 24, background:'var(--bg-surface)',
+      border:'1px solid var(--line)', borderRadius:'var(--r-2)',
+    }}>
+      <header style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', flexWrap:'wrap', gap: 12, marginBottom: 6 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', margin: 0 }}>🎨 Tema · visualización</h2>
+          <p style={{ fontSize: 13, color:'var(--fg-muted)', marginTop: 6, marginBottom: 0 }}>
+            Solo admins. Pulsa una opción para PREVIEW instantáneo · "Aplicar"
+            la deja persistida para toda la plataforma · "Revertir" vuelve al tema base.
+          </p>
+        </div>
+        <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
+            Persistido: <strong style={{ color:'var(--fg)' }}>{persistedId || 'base'}</strong>
+          </span>
+          <button onClick={apply} disabled={!activeId || activeId === persistedId} style={{
+            padding:'8px 14px', background: (!activeId || activeId === persistedId) ? 'var(--bg-elevated)' : 'var(--accent)',
+            color: (!activeId || activeId === persistedId) ? 'var(--fg-muted)' : '#fff',
+            border:'none', borderRadius: 6, cursor: (!activeId || activeId === persistedId) ? 'not-allowed' : 'pointer',
+            fontWeight: 700, fontSize: 12.5,
+          }}>Aplicar a toda la plataforma</button>
+          <button onClick={revert} disabled={!persistedId && !activeId} style={{
+            padding:'8px 14px', background:'transparent', color:'var(--fg-muted)',
+            border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontWeight: 600, fontSize: 12.5,
+          }}>Revertir</button>
+        </div>
+      </header>
+
+      {/* Grid de opciones */}
+      <div style={{
+        marginTop: 18, display:'grid',
+        gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap: 12,
+      }}>
+        {THEME_PREVIEW_OPTIONS.map(opt => {
+          const active = opt.id === activeId;
+          const persisted = opt.id === persistedId;
+          return (
+            <button key={opt.id} onClick={() => preview(opt)} style={{
+              padding: 0, background:'transparent', border:'none', cursor:'pointer',
+              textAlign:'left', position:'relative',
+            }}>
+              <div style={{
+                padding: 14, borderRadius: 10,
+                background: opt.tokens['--bg-canvas'],
+                border: '2px solid ' + (active ? 'var(--accent)' : 'rgba(127,127,127,0.18)'),
+                boxShadow: active ? '0 0 0 4px ' + (opt.tokens['--bg-canvas']) + ', 0 0 0 6px var(--accent)' : 'none',
+                transition: 'box-shadow .2s, border-color .2s',
+              }}>
+                {/* Mini-mockup · 3 chips simulando surfaces */}
+                <div style={{ display:'flex', gap: 5, marginBottom: 10 }}>
+                  <div style={{ flex: 1, height: 18, borderRadius: 4, background: opt.tokens['--bg-surface'], border: '1px solid ' + opt.tokens['--line'] }}/>
+                  <div style={{ flex: 1, height: 18, borderRadius: 4, background: opt.tokens['--bg-elevated'] }}/>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, background:'#EC1C24' }}/>
+                </div>
+                {/* Label + nombre */}
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: opt.tokens['--fg'], marginBottom: 4 }}>
+                  {opt.label}
+                  {persisted && <span style={{ marginLeft: 6, fontFamily:'var(--font-mono)', fontSize: 8.5, padding:'1px 5px', background:'rgba(0,0,0,0.18)', color: opt.tokens['--fg'], borderRadius: 3, letterSpacing:'0.06em' }}>ACTIVO</span>}
+                </div>
+                <div style={{ fontSize: 10.5, color: opt.tokens['--fg-muted'], lineHeight: 1.4, marginBottom: 8 }}>{opt.note}</div>
+                {/* Tokens hex en monospace */}
+                <div style={{ fontFamily:'var(--font-mono)', fontSize: 9.5, color: opt.tokens['--fg-dim'], lineHeight: 1.55 }}>
+                  <div>canvas {opt.tokens['--bg-canvas']}</div>
+                  <div>surface {opt.tokens['--bg-surface']}</div>
+                  <div>fg {opt.tokens['--fg']}</div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tabla de tokens completos */}
+      <details style={{ marginTop: 18 }}>
+        <summary style={{ cursor:'pointer', fontSize: 12.5, color:'var(--fg-muted)', fontWeight: 600 }}>
+          Ver tabla comparativa completa de tokens
+        </summary>
+        <div style={{ marginTop: 12, overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize: 11.5, fontFamily:'var(--font-mono)' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid var(--line)', color:'var(--fg-dim)' }}>Token</th>
+                {THEME_PREVIEW_OPTIONS.map(o => (
+                  <th key={o.id} style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid var(--line)', color:'var(--fg-dim)', whiteSpace:'nowrap' }}>{o.label.split(' · ')[0]}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {['--bg-canvas','--bg-surface','--bg-elevated','--bg-deep','--fg','--fg-muted','--fg-dim','--line'].map(tk => (
+                <tr key={tk}>
+                  <td style={{ padding:'6px 10px', borderBottom:'1px solid var(--line-faint)', color:'var(--fg-muted)' }}>{tk}</td>
+                  {THEME_PREVIEW_OPTIONS.map(o => (
+                    <td key={o.id} style={{ padding:'6px 10px', borderBottom:'1px solid var(--line-faint)', color:'var(--fg)', whiteSpace:'nowrap' }}>{o.tokens[tk] || '—'}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  );
+}
+window.ThemePreviewPanel = ThemePreviewPanel;
 
 window.BrowseView_New = BrowseView;
 window.RutasView_New = RutasView;
