@@ -510,11 +510,14 @@ img { display: block; max-width: 100%; }
 
 .hero-title {
   font-family: var(--font-sans);
-  font-size: 60px;
+  font-size: 64px;
   font-weight: 800;
-  line-height: 0.96;
-  letter-spacing: -0.035em;
-  color: var(--fg);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  /* Blanco + sombra · va sobre vídeo/imagen · presencia y legibilidad
+     independiente del frame del trailer. */
+  color: #FFFFFF;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.6);
   margin: 0 0 14px 0;
   text-wrap: balance;
 }
@@ -526,7 +529,8 @@ img { display: block; max-width: 100%; }
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: -0.01em;
-  color: var(--fg-muted);
+  color: rgba(255,255,255,0.88);
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
   margin: 0 0 22px 0;
   max-width: 520px;
 }
@@ -662,12 +666,12 @@ img { display: block; max-width: 100%; }
 
 .row {
   position: relative;
-  margin-bottom: var(--s-10);
+  margin-bottom: 52px;
 }
 
 .row-header {
   padding: 0 var(--row-pad);
-  margin-bottom: var(--s-4);
+  margin-bottom: var(--s-5);
   display: flex;
   align-items: baseline;
   gap: var(--s-3);
@@ -677,11 +681,22 @@ img { display: block; max-width: 100%; }
 
 .row-title {
   font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--fg);
   margin: 0;
+  /* Marcador de acento rojo (identidad plataforma) · barra fina antes del título */
+  position: relative;
+  padding-left: 16px;
+}
+.row-title::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 0.92em;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 .row-sub {
@@ -762,14 +777,18 @@ img { display: block; max-width: 100%; }
   overflow: hidden;
   scroll-snap-align: start;
   transition: transform var(--t-base) var(--ease-out),
-              box-shadow var(--t-base) var(--ease-out);
+              box-shadow var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out);
   cursor: pointer;
-  border: 1px solid var(--line-faint);
+  border: 1px solid var(--line);
+  /* Profundidad en reposo · sombra + hairline highlight superior · sin esto
+     las cards se veían planas pegadas al fondo. */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .card:hover {
-  transform: translateY(-4px) scale(1.04);
-  box-shadow: var(--shadow-card);
+  transform: translateY(-6px) scale(1.045);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07);
   border-color: var(--line-strong);
   z-index: 5;
 }
