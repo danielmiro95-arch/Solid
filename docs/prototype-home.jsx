@@ -1259,14 +1259,15 @@ function OnboardingWizard({ setView }) {
       title: 'Catálogo',
       body: 'Aquí encuentras todos los cursos disponibles para ti. Filtra por marca, categoría o busca por nombre.',
       cta: 'Siguiente',
-      action: () => setView && setView('rutas'),
+      /* Sin action · navegar al catálogo desmontaba Home (cond. mount en App)
+         y con él el wizard, perdiendo el estado de paso. El tour solo describe
+         las secciones; el último paso es el único que navega de verdad. */
     },
     {
       icon: '✓',
       title: 'Mi Lista',
       body: 'Tus cursos inscritos, en progreso y favoritos viven aquí. Es tu zona personal de aprendizaje.',
       cta: 'Siguiente',
-      action: () => setView && setView('path'),
     },
     autoUrl ? {
       icon: '🧭',
@@ -1286,9 +1287,17 @@ function OnboardingWizard({ setView }) {
   const s = steps[step];
   const isLast = step === steps.length - 1;
   const next = () => {
-    if (s.action) s.action();
-    if (isLast) dismiss();
-    else setStep(step + 1);
+    // Persistimos el cierre ANTES de ejecutar acciones que puedan desmontar
+    // el componente (setView cambia view → App deja de renderizar Home y el
+    // wizard) · así el flag de "onboarded" queda escrito siempre que el user
+    // llegue al último paso, aunque la acción navegue fuera.
+    if (isLast) {
+      dismiss();
+      if (s.action) s.action();
+    } else {
+      if (s.action) s.action();
+      setStep(step + 1);
+    }
   };
 
   return (
