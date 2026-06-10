@@ -2985,6 +2985,9 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Theme preview · 5 opciones de Niebla fría + actual · solo admins */}
       <ThemePreviewPanel/>
 
+      {/* Analytics REAL del workspace · KPIs + rankings + serie 30d desde Supabase */}
+      <RealAnalyticsPanel/>
+
       {/* Pills · catálogo del workspace activo (multi-tenant content) */}
       <PillsPanel/>
 
@@ -5355,3 +5358,192 @@ function ManagerView({ setView }) {
 }
 
 window.ManagerView_New = ManagerView;
+
+/* ============================================================
+   RealAnalyticsPanel · KPIs y rankings REALES del workspace
+   · llama al RPC workspace_analytics(p_workspace_id) (db/workspace-analytics.sql)
+   · re-fetch en workspace-changed
+   · degrada con gracia si Supabase o RPC no disponible
+   ============================================================ */
+function RealAnalyticsPanel() {
+  const [data, setData] = useEV2(null);
+  const [err, setErr]   = useEV2(null);
+  const [loading, setLoading] = useEV2(true);
+  const _wsId = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || null;
+
+  useEE2(() => {
+    let alive = true;
+    const fetchIt = () => {
+      const sb = window.supabaseClient;
+      const ws = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+      if (!sb || !sb.rpc || !ws) { if (alive) { setLoading(false); setData(null); setErr(sb ? 'no-workspace' : 'no-supabase'); } return; }
+      setLoading(true);
+      sb.rpc('workspace_analytics', { p_workspace_id: ws }).then(({ data, error }) => {
+        if (!alive) return;
+        setLoading(false);
+        if (error) { setErr(error.message); setData(null); return; }
+        setErr(null); setData(data);
+      });
+    };
+    fetchIt();
+    window.addEventListener('workspace-changed', fetchIt);
+    return () => { alive = false; window.removeEventListener('workspace-changed', fetchIt); };
+  }, []);
+
+  const cardSx = { padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' };
+  const labelSx = { fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom: 6 };
+  const bigNumSx = { fontSize: 30, fontWeight: 800, color:'var(--fg)', letterSpacing:'-0.02em', fontFamily:'var(--font-sans)' };
+
+  const pillTitleFor = (pillId) => {
+    const list = (window.SGS_DATA && window.SGS_DATA.PILLS) || window.PILLS || [];
+    const p = list.find(x => x.id === pillId);
+    return p ? p.title : pillId;
+  };
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, ...cardSx }}>
+      <header style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', flexWrap:'wrap', gap: 12, marginBottom: 18 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', margin: 0 }}>📊 Analytics del workspace</h2>
+          <p style={{ fontSize: 13, color:'var(--fg-muted)', marginTop: 6, marginBottom: 0 }}>
+            Datos REALES desde Supabase · agregados por workspace · solo admins.
+          </p>
+        </div>
+        {data && <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.08em' }}>actualizado al cargar</span>}
+      </header>
+
+      {loading && <div style={{ padding:'24px 0', color:'var(--fg-muted)', fontSize: 13 }}>Cargando datos…</div>}
+
+      {!loading && err && (
+        <div style={{ padding:'16px 18px', background:'rgba(243,183,64,0.10)', border:'1px solid rgba(243,183,64,0.30)', borderRadius: 10, color:'var(--fg-muted)', fontSize: 13 }}>
+          No se pueden cargar analytics ahora.{' '}
+          {err === 'no-supabase'    ? 'Supabase no está configurado.' :
+           err === 'no-workspace'    ? 'Sin workspace activo.' :
+           err.indexOf('forbidden') >= 0 ? 'No tienes permisos de admin en este workspace.' :
+           err.indexOf('function')  >= 0 || err.indexOf('does not exist') >= 0
+             ? 'La función SQL no existe · ejecuta db/workspace-analytics.sql en Supabase.'
+             : 'Detalle: ' + err}
+        </div>
+      )}
+
+      {!loading && data && data.kpis && (
+        <>
+          {/* KPIs */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
+            {[
+              { lbl: 'Miembros',      val: data.kpis.members,       icon:'👥' },
+              { lbl: 'Inscripciones', val: data.kpis.enrollments,   icon:'✓' },
+              { lbl: 'Completados',   val: data.kpis.completed,     icon:'🎯' },
+              { lbl: 'Horas vistas',  val: data.kpis.watch_hours + 'h', icon:'⏱' },
+              { lbl: 'Certificados',  val: data.kpis.certificates,  icon:'🏆' },
+              { lbl: 'Valoración media', val: data.kpis.ratings_count ? (data.kpis.avg_rating + ' ★') : '—', sub: data.kpis.ratings_count + ' votos', icon:'★' },
+              { lbl: 'Chats BeonAI',  val: data.kpis.conversations, icon:'✦' },
+            ].map((k, i) => (
+              <div key={i} style={cardSx}>
+                <div style={{ fontSize: 18, marginBottom: 6 }}>{k.icon}</div>
+                <div style={labelSx}>{k.lbl}</div>
+                <div style={bigNumSx}>{k.val}</div>
+                {k.sub && <div style={{ fontSize: 11, color:'var(--fg-muted)', marginTop: 4 }}>{k.sub}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Serie 30 días · sparkline de completados */}
+          {Array.isArray(data.series_30d) && data.series_30d.length > 0 && (() => {
+            const max = Math.max(1, ...data.series_30d.map(d => d.completed));
+            const total30 = data.series_30d.reduce((s, d) => s + d.completed, 0);
+            return (
+              <div style={{ ...cardSx, marginBottom: 28 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 10 }}>
+                  <div>
+                    <div style={labelSx}>Completados · últimos 30 días</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color:'var(--fg)', fontFamily:'var(--font-sans)' }}>{total30} <span style={{ fontSize: 12, color:'var(--fg-muted)', fontWeight: 500 }}>pills</span></div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'flex-end', gap: 3, height: 90 }}>
+                  {data.series_30d.map((d, i) => {
+                    const h = Math.max(2, Math.round((d.completed / max) * 84));
+                    return (
+                      <div key={i} title={d.day + ' · ' + d.completed + ' pill(s)'}
+                        style={{ flex: 1, height: h, background:'var(--accent)', opacity: d.completed ? 1 : 0.18, borderRadius: '3px 3px 0 0', transition:'opacity .15s' }}/>
+                    );
+                  })}
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--font-mono)', fontSize: 9.5, color:'var(--fg-dim)', marginTop: 6 }}>
+                  <span>hace 30d</span><span>hoy</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Rankings · 3 columnas */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+            {/* Top pills vistas */}
+            <div style={cardSx}>
+              <div style={labelSx}>Top 10 · pills más vistas</div>
+              {Array.isArray(data.top_pills_views) && data.top_pills_views.length ? (
+                <ol style={{ margin:'10px 0 0', padding:0, listStyle:'none' }}>
+                  {data.top_pills_views.map((p, i) => (
+                    <li key={i} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--line-faint)', fontSize: 13 }}>
+                      <span style={{ flex: 1, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginRight: 10 }}>
+                        <span style={{ color:'var(--fg-dim)', fontFamily:'var(--font-mono)', fontSize: 11, marginRight: 6 }}>{i+1}.</span>
+                        {pillTitleFor(p.pill_id)}
+                      </span>
+                      <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--accent)', fontWeight: 700 }}>{p.views}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div style={{ fontSize: 12, color:'var(--fg-muted)', fontStyle:'italic', padding:'10px 0' }}>Sin datos todavía.</div>
+              )}
+            </div>
+
+            {/* Top pills mejor valoradas */}
+            <div style={cardSx}>
+              <div style={labelSx}>Top 10 · mejor valoradas</div>
+              {Array.isArray(data.top_pills_rated) && data.top_pills_rated.length ? (
+                <ol style={{ margin:'10px 0 0', padding:0, listStyle:'none' }}>
+                  {data.top_pills_rated.map((p, i) => (
+                    <li key={i} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--line-faint)', fontSize: 13 }}>
+                      <span style={{ flex: 1, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginRight: 10 }}>
+                        <span style={{ color:'var(--fg-dim)', fontFamily:'var(--font-mono)', fontSize: 11, marginRight: 6 }}>{i+1}.</span>
+                        {pillTitleFor(p.pill_id)}
+                      </span>
+                      <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg)' }}>
+                        <span style={{ color:'#F3B740' }}>★ {p.avg}</span>
+                        <span style={{ color:'var(--fg-dim)', marginLeft: 6 }}>({p.votes})</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div style={{ fontSize: 12, color:'var(--fg-muted)', fontStyle:'italic', padding:'10px 0' }}>Hacen falta más valoraciones (≥2 por pill).</div>
+              )}
+            </div>
+
+            {/* Top usuarios por completados */}
+            <div style={cardSx}>
+              <div style={labelSx}>Top 10 · usuarios más activos</div>
+              {Array.isArray(data.top_users) && data.top_users.length ? (
+                <ol style={{ margin:'10px 0 0', padding:0, listStyle:'none' }}>
+                  {data.top_users.map((u, i) => (
+                    <li key={i} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--line-faint)', fontSize: 13 }}>
+                      <span style={{ flex: 1, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginRight: 10 }}>
+                        <span style={{ color:'var(--fg-dim)', fontFamily:'var(--font-mono)', fontSize: 11, marginRight: 6 }}>{i+1}.</span>
+                        {u.name || (u.email ? u.email.split('@')[0] : '—')}
+                      </span>
+                      <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--accent)', fontWeight: 700 }}>{u.completed}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div style={{ fontSize: 12, color:'var(--fg-muted)', fontStyle:'italic', padding:'10px 0' }}>Sin completados todavía.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+window.RealAnalyticsPanel = RealAnalyticsPanel;
