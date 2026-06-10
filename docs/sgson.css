@@ -4,25 +4,25 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (claro · gris plateado neutro) ── */
-  --bg-deep:        #D8D8DA;                       /* base del gradient, tras el hero */
-  --bg-canvas:      #DFDFE1;                       /* fondo de página · gris plateado */
-  --bg-surface:     #FFFFFF;                       /* cards/modales · blanco para que destaquen sobre el canvas */
-  --bg-elevated:    #D5D5D7;                       /* hover, elementos elevados, dropdowns */
-  --bg-glass:       rgba(223, 223, 225, 0.78);     /* nav translúcida */
-  --bg-glass-strong:rgba(223, 223, 225, 0.94);     /* nav scrolled / sidebar */
-  --scrim:          rgba(216, 216, 218, 0.85);     /* fades de carrusel/nav (= bg-deep) */
+  /* ── Color · Surfaces (gris oscuro neutro · tipo plataforma streaming) ── */
+  --bg-deep:        #1A1A1D;
+  --bg-canvas:      #232327;                       /* fondo de página · gris medio-oscuro */
+  --bg-surface:     #2D2D32;                       /* cards/modales · un escalón más claro */
+  --bg-elevated:    #38383E;                       /* hover, dropdowns */
+  --bg-glass:       rgba(35, 35, 39, 0.78);
+  --bg-glass-strong:rgba(35, 35, 39, 0.94);
+  --scrim:          rgba(26, 26, 29, 0.85);
 
-  /* ── Color · Lines & dividers (tinta neutra sobre gris) ── */
-  --line-faint:     rgba(20, 20, 22, 0.06);
-  --line:           rgba(20, 20, 22, 0.10);
-  --line-strong:    rgba(20, 20, 22, 0.18);
+  /* ── Color · Lines & dividers (blanco translúcido sobre gris oscuro) ── */
+  --line-faint:     rgba(255, 255, 255, 0.05);
+  --line:           rgba(255, 255, 255, 0.09);
+  --line-strong:    rgba(255, 255, 255, 0.18);
 
-  /* ── Color · Text (neutros, alineados con gris plateado) ── */
-  --fg:             #18181C;                       /* casi negro neutro */
-  --fg-muted:       #62626A;
-  --fg-dim:         #95959B;
-  --fg-faint:       #C0C0C5;
+  /* ── Color · Text (blanco cálido sobre gris oscuro) ── */
+  --fg:             #EDEDEF;
+  --fg-muted:       #A8A8B0;
+  --fg-dim:         #7A7A82;
+  --fg-faint:       #5A5A60;
   --fg-on-accent:   #FFFFFF;
 
   /* ── Color · Accent (Repsol rojo) ── */
@@ -57,10 +57,10 @@
   --r-0: 0;     --r-1: 2px;  --r-2: 4px;   --r-3: 6px;
   --r-4: 10px;  --r-5: 14px; --r-pill: 999px;
 
-  /* ── Shadows (suaves, neutras) ── */
-  --shadow-card:   0 6px 20px rgba(30, 30, 38, 0.10);
-  --shadow-pop:    0 24px 70px rgba(30, 30, 38, 0.18), 0 8px 24px rgba(30, 30, 38, 0.10);
-  --shadow-glow:   0 0 0 1px var(--line-strong), 0 30px 60px rgba(30, 30, 38, 0.18);
+  /* ── Shadows (profundas sobre gris oscuro) ── */
+  --shadow-card:   0 6px 24px rgba(0, 0, 0, 0.40);
+  --shadow-pop:    0 24px 80px rgba(0, 0, 0, 0.60), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-glow:   0 0 0 1px var(--line-strong), 0 30px 60px rgba(0, 0, 0, 0.70);
 
   /* ── Motion ── */
   --ease-out:      cubic-bezier(.2, .7, .2, 1);
@@ -84,7 +84,7 @@
    ============================================================ */
 .card,
 .modal {
-  box-shadow: 0 1px 3px rgba(30, 30, 38, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 /* CINEMATIC · Home/Player/Onboarding · ahora en CLARO también (toda la app
@@ -96,9 +96,9 @@ html[data-theme="light"] body[data-cinematic="true"] {
 /* Body en cinematic: fondo crema con gradient muy sutil. */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, #EAEAEC 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #DCDCDE 0%, transparent 50%),
-    linear-gradient(180deg, #DFDFE1 0%, #D8D8DA 60%, #D2D2D5 100%);
+    radial-gradient(ellipse at 0% 0%, #2D2D33 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #28282E 0%, transparent 50%),
+    linear-gradient(180deg, #232327 0%, #1F1F23 60%, #1B1B1F 100%);
   background-attachment: fixed;
 }
 
@@ -489,12 +489,10 @@ img { display: block; max-width: 100%; }
 .hero-overlay {
   position: absolute;
   inset: 0;
-  /* El fade inferior usa --scrim (derivado del canvas) en vez de rgba(8,8,11)
-     fijo · antes, con el fondo claro nuevo, había una banda dura donde el
-     casi-negro chocaba con el canvas claro. Ahora mezcla con el propio fondo. */
-  background:
-    linear-gradient(90deg, var(--scrim, rgba(8,8,11,0.95)) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0.08) 65%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, transparent 55%, var(--scrim, rgba(8,8,11,0.85)) 90%, var(--bg-canvas) 100%);
+  /* Sin difuminado lateral ni oscurecimiento · solo un fade corto al fondo
+   * para fundir el vídeo con el canvas (evita corte duro). El título sobre
+   * el vídeo lleva su propio text-shadow en la card-title para legibilidad. */
+  background: linear-gradient(180deg, transparent 0%, transparent 82%, var(--scrim) 96%, var(--bg-canvas) 100%);
   pointer-events: none;
 }
 
@@ -1049,7 +1047,7 @@ img { display: block; max-width: 100%; }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(30, 30, 38, 0.46);
+  background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(6px);
   z-index: 90;
   display: flex;
@@ -1225,7 +1223,7 @@ img { display: block; max-width: 100%; }
 .sb-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(30, 30, 38, 0.38);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
   z-index: 70;
 }
@@ -2239,7 +2237,7 @@ body.sgs-redesign .onboarding-progress > i { background: var(--accent); }
 /* ============================================================
    COMMAND PALETTE · si lo abren con ⌘K
    ============================================================ */
-body.sgs-redesign .palette-backdrop { background: rgba(30,30,38,0.46); backdrop-filter: blur(8px); }
+body.sgs-redesign .palette-backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
 body.sgs-redesign .palette-modal {
   background: var(--bg-surface);
   border: 1px solid var(--line);
@@ -2468,29 +2466,29 @@ html[data-demo-mode="true"] {
  * #EC1C24 en :root) · solo aseguramos surfaces/scrim coherentes. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #D8D8DA;
-  --bg-canvas:      #DFDFE1;
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #D5D5D7;
-  --bg-glass:       rgba(223, 223, 225, 0.78);
-  --bg-glass-strong:rgba(223, 223, 225, 0.94);
-  --scrim:          rgba(216, 216, 218, 0.85);
-  --line-faint:     rgba(20, 20, 22, 0.06);
-  --line:           rgba(20, 20, 22, 0.10);
-  --line-strong:    rgba(20, 20, 22, 0.18);
-  --fg:             #18181C;
-  --fg-muted:       #62626A;
-  --fg-dim:         #95959B;
-  --fg-faint:       #C0C0C5;
+  --bg-deep:        #1A1A1D;
+  --bg-canvas:      #232327;
+  --bg-surface:     #2D2D32;
+  --bg-elevated:    #38383E;
+  --bg-glass:       rgba(35, 35, 39, 0.78);
+  --bg-glass-strong:rgba(35, 35, 39, 0.94);
+  --scrim:          rgba(26, 26, 29, 0.85);
+  --line-faint:     rgba(255, 255, 255, 0.05);
+  --line:           rgba(255, 255, 255, 0.09);
+  --line-strong:    rgba(255, 255, 255, 0.18);
+  --fg:             #EDEDEF;
+  --fg-muted:       #A8A8B0;
+  --fg-dim:         #7A7A82;
+  --fg-faint:       #5A5A60;
   --fg-on-accent:   #FFFFFF;
 }
-/* Body en demo · gradient gris plateado sutil. */
+/* Body en demo · gradient gris oscuro neutro. */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #EAEAEC 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #DCDCDE 0%, transparent 50%),
-    linear-gradient(180deg, #DFDFE1 0%, #D8D8DA 60%, #D2D2D5 100%) !important;
+    radial-gradient(ellipse at 0% 0%, #2D2D33 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #28282E 0%, transparent 50%),
+    linear-gradient(180deg, #232327 0%, #1F1F23 60%, #1B1B1F 100%) !important;
   background-attachment: fixed;
 }
 
@@ -2553,12 +2551,10 @@ html[data-demo-mode="true"] .hero-badge {
   border: 1px solid var(--line);
 }
 
-/* Hero overlay · oscurece el video lo justo y se funde al canvas crema en
- * el remate inferior (ya no a negro). */
+/* Hero overlay en demo · sin difuminado. Solo fade corto al canvas para fundir
+ * el vídeo con el resto de la página. */
 html[data-demo-mode="true"] .hero-overlay {
-  background:
-    linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.05) 100%),
-    linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.20) 50%, var(--scrim) 88%, var(--bg-canvas) 100%);
+  background: linear-gradient(180deg, transparent 0%, transparent 82%, var(--scrim) 96%, var(--bg-canvas) 100%);
 }
 
 /* En demo · shell-tabs ahora muestra el LOGO DEL CLIENTE (workspace.logo_url)
