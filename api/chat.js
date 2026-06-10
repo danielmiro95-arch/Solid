@@ -35,6 +35,30 @@ function loadKBFile() {
   return KB_FILE_CACHE;
 }
 
+// ── Auth · verifica el JWT de Supabase y la membership del workspace ────────
+// Sin esto, cualquiera podía POSTear con un workspaceId arbitrario y leer la
+// config/KB de cualquier tenant + quemar la API key de Anthropic.
+async function authenticate(req) {
+  if (!supa) return { skip: true }; // sin backend Supabase → modo dev/local
+  const h = req.headers.authorization || req.headers.Authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+  if (!token) return { error: 'missing token' };
+  const { data, error } = await supa.auth.getUser(token);
+  if (error || !data || !data.user) return { error: 'invalid token' };
+  return { userId: data.user.id };
+}
+
+async function isWorkspaceMember(userId, workspaceId) {
+  if (!workspaceId) return true; // sin scoping de workspace · nada que proteger
+  const { data, error } = await supa
+    .from('workspace_members')
+    .select('user_id')
+    .eq('user_id', userId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+  return !error && !!data;
+}
+
 async function loadConfig(workspaceId) {
   if (!supa || !workspaceId) return null;
   const cached = CONFIG_CACHE.get(workspaceId);
@@ -107,9 +131,21 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { setCors(res); return res.status(200).end(); }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  setCors(res);
+
   const { messages, userProfile, workspaceId, stream } = req.body || {};
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array required' });
+  }
+
+  // Auth · si Supabase está activo, exige JWT válido y membership del workspace
+  // pedido. En modo local (sin supa) se permite (no hay datos de tenant).
+  const auth = await authenticate(req);
+  if (!auth.skip) {
+    if (auth.error) return res.status(401).json({ error: 'unauthorized' });
+    if (workspaceId && !(await isWorkspaceMember(auth.userId, workspaceId))) {
+      return res.status(403).json({ error: 'forbidden: not a member of this workspace' });
+    }
   }
 
   const anthropicMessages = messages
@@ -133,7 +169,9 @@ export default async function handler(req, res) {
   // Si hay client tools, hacemos loop con tool_use. Si sólo hay tools server-side
   // (web_search nativo) o ninguna, podemos seguir con streaming directo.
   if (hasClientTools) {
-    const ctx = { supa, userId: userProfile?.id, workspaceId };
+    // userId VERIFICADO del JWT (no el del body) · evita leer el progreso de
+    // un usuario arbitrario. Fallback a userProfile.id solo en modo dev (sin supa).
+    const ctx = { supa, userId: (auth && auth.userId) || userProfile?.id, workspaceId };
     const conversation = [...anthropicMessages];
     let finalText = '';
     let lastUsage = null;
