@@ -214,15 +214,24 @@ function Player({ back, item }) {
   // IFrame API) y escribe en window.Progress. Throttle a 5s para no spamear la
   // DB, salvo el complete (95%) que se registra al instante.
   const _lastTrackRef = React.useRef(0);
+  const _completedRef = React.useRef(false);   // evita reentrar al complete (flood)
   const _videoRef = React.useRef(null);
-  const _ytIframeRef = React.useRef(null);
+  const _ytContainerRef = React.useRef(null);  // <div> donde YT.Player inyecta su iframe
   const _ytPlayerRef = React.useRef(null);
+  // Reset del guard de completado al cambiar de pill.
+  React.useEffect(() => { _completedRef.current = false; _lastTrackRef.current = 0; }, [it && it.id]);
   const trackProgress = React.useCallback((cur, dur) => {
     if (!it || !it.id || !window.Progress || !dur || dur < 1) return;
     const pct = cur / dur;
     if (pct >= 0.95) {
+      // Guard client-side · onTimeUpdate (mp4) dispara ~4 veces/seg y
+      // Progress.complete marca la cache DESPUÉS del await → sin esto, decenas
+      // de llamadas pasaban la guarda → avalancha de toasts + certificados/
+      // upserts duplicados. Completamos UNA vez por sesión de pill.
+      if (_completedRef.current) return;
+      if (window.Progress.isCompleted && window.Progress.isCompleted(it.id)) { _completedRef.current = true; return; }
+      _completedRef.current = true;
       if (window.Progress.complete) window.Progress.complete(it.id, Math.round(dur));
-      _lastTrackRef.current = Date.now();
       return;
     }
     const now = Date.now();
@@ -244,15 +253,19 @@ function Player({ back, item }) {
     }
   }, [currentSec, it && it.id]);
 
-  // YouTube · adjunta YT.Player al iframe (enablejsapi) y sondea el tiempo real.
+  // YouTube · YT.Player crea su PROPIO iframe dentro de un <div> que controlamos.
+  // NO se pasa un iframe de React a YT.Player (eso causaba removeChild
+  // NotFoundError al desmontar, porque React y YT peleaban por el mismo nodo).
   useE2(() => {
     if (!it || !it.yt) return;
     let interval = null;
     let cancelled = false;
     _loadYouTubeAPI().then((YT) => {
-      if (cancelled || !_ytIframeRef.current || !YT || !YT.Player) return;
+      if (cancelled || !_ytContainerRef.current || !YT || !YT.Player) return;
       try {
-        _ytPlayerRef.current = new YT.Player(_ytIframeRef.current, {
+        _ytPlayerRef.current = new YT.Player(_ytContainerRef.current, {
+          videoId: it.yt,
+          playerVars: { autoplay: 1, rel: 0, modestbranding: 1, color: 'white', start: Math.floor(startAt), playsinline: 1 },
           events: {
             onReady: () => {
               interval = setInterval(() => {
@@ -361,13 +374,12 @@ function Player({ back, item }) {
                 style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1, background:'#000', objectFit:'contain'}}
               />
             ) : (
-            <iframe
+            // YT.Player inyecta su iframe dentro de este div · React solo posee
+            // el div (lo monta/desmonta limpio · sin conflicto removeChild).
+            <div
               key={it.yt}
-              ref={_ytIframeRef}
-              src={`https://www.youtube.com/embed/${it.yt}?enablejsapi=1&autoplay=1&rel=0&modestbranding=1&color=white&start=${Math.floor(startAt)}`}
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-              allowFullScreen
-              style={{position:'absolute', inset:0, width:'100%', height:'100%', border:'none', zIndex:1}}
+              ref={_ytContainerRef}
+              style={{position:'absolute', inset:0, width:'100%', height:'100%', zIndex:1}}
             />
             )}
             <div className="player-overlay-top" style={{zIndex:2, pointerEvents:'none'}}>
