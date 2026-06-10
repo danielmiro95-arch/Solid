@@ -1370,24 +1370,20 @@ function applyWorkspaceBranding() {
   try {
     var ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     var b = _normalizeWorkspaceBranding(ws);
-    var root = document.documentElement;
     if (b) {
-      // Setea las 4 variantes del accent a partir del primaryColor del
-      // workspace · antes solo --accent cambiaba, lo que dejaba hovers y
-      // glows con el violeta de plataforma. Ahora un workspace rojo se ve
-      // rojo en buttons, hover-states, sombras, todo.
-      var primary = b.primaryColor;
-      root.style.setProperty('--accent',       primary);
-      root.style.setProperty('--accent-hover', _shadeHex(primary, +0.08));
-      root.style.setProperty('--accent-deep',  _shadeHex(primary, -0.12));
-      root.style.setProperty('--accent-glow',  _hexToRgba(primary, 0.40));
+      // Spec del cliente · TODOS los workspaces usan el MISMO color de
+      // plataforma (rojo Repsol del :root). Antes cada tenant sobrescribía
+      // --accent con su primaryColor → app con color distinto por workspace.
+      // Ahora el color del workspace queda solo para el "dot" del topnav
+      // (identificador visual sutil) · accent global no se toca.
       window.WORKSPACE_LOGO_URL = b.logoUrl || null;
       window.WORKSPACE_NAME = b.name;
+      window.WORKSPACE_DOT_COLOR = b.primaryColor || null;
     } else {
-      // Sin workspace activo (login screen) · vuelve al default de plataforma
-      ['--accent','--accent-hover','--accent-deep','--accent-glow'].forEach(function(v){ root.style.removeProperty(v); });
+      // Sin workspace activo (login screen) · todos los valores limpios
       window.WORKSPACE_LOGO_URL = null;
       window.WORKSPACE_NAME = '';
+      window.WORKSPACE_DOT_COLOR = null;
     }
     window.dispatchEvent(new Event('workspace-branding-changed'));
   } catch(e) { /* ignore */ }
