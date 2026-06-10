@@ -775,8 +775,10 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
         </section>
       )}
 
-      {/* Cursos inscritos (sección 3/3 en demo) · enrolled + en progreso + bookmarked */}
-      {_isDemo && !path && (() => {
+      {/* Cursos a los que estás inscrito · enrolled + en progreso + bookmarked.
+          Se muestra a TODOS los usuarios (antes gateado por _isDemo → los users
+          reales nunca veían sus cursos inscritos pese a persistir en Supabase). */}
+      {!path && (() => {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
         const coursesEnrolled   = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id));
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
