@@ -1362,6 +1362,184 @@ function OnboardingWizard({ setView }) {
 }
 window.OnboardingWizard = OnboardingWizard;
 
+// ── NextStepIA · banner personalizado con Claude en el Home ───────────────
+// Recomienda el "siguiente paso" del user basado en su progreso real
+// (inscripciones, cursos en curso, ratings) + KB del workspace. Llama
+// /api/chat con un sistema breve y devuelve { rec, action } parseado.
+// Cache localStorage 6h para no spamear la API en cada montaje.
+const _NEXT_STEP_TTL_MS = 6 * 60 * 60 * 1000;
+function _nextStepCacheKey() {
+  const uid = (window.Auth && window.Auth.currentUserId && window.Auth.currentUserId()) || 'anon';
+  const ws = (window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId()) || 'noWs';
+  return 'solid-next-step:' + uid + ':' + ws;
+}
+function _nextStepReadCache() {
+  try {
+    const raw = localStorage.getItem(_nextStepCacheKey());
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !o.ts || Date.now() - o.ts > _NEXT_STEP_TTL_MS) return null;
+    return o;
+  } catch (e) { return null; }
+}
+function _nextStepWriteCache(payload) {
+  try { localStorage.setItem(_nextStepCacheKey(), JSON.stringify({ ts: Date.now(), ...payload })); } catch (e) {}
+}
+
+function NextStepIA({ setView, openPath, openDetail }) {
+  const D = window.SGS_DATA || {};
+  const USER = D.USER || {};
+  const PATHS = D.LEARNING_PATHS || [];
+  const PILLS = D.PILLS || [];
+  const [state, setState] = useState(() => _nextStepReadCache() || { loading: false, rec: '', actionType: '', actionId: '', actionLabel: '' });
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem('solid-next-step-dismissed:' + (USER.id || 'anon')) === '1'; } catch (e) { return false; }
+  });
+
+  // Heurística de fallback · curso con más progreso, o primer inscrito, o el primero.
+  const _heuristicNext = React.useCallback(() => {
+    const inProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1).sort((a, b) => (b.progress || 0) - (a.progress || 0));
+    if (inProgress.length) {
+      const p = inProgress[0];
+      return { rec: 'Sigue formándote · te queda menos en ' + p.title, actionType: 'path', actionId: p.id, actionLabel: 'Continuar' };
+    }
+    const enrolled = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id));
+    if (enrolled.length) {
+      const p = enrolled[0];
+      return { rec: 'Empieza por ' + p.title + ' · está en tu lista', actionType: 'path', actionId: p.id, actionLabel: 'Empezar' };
+    }
+    if (PATHS.length) {
+      const p = PATHS[0];
+      return { rec: 'Te sugerimos empezar por ' + p.title, actionType: 'path', actionId: p.id, actionLabel: 'Ver' };
+    }
+    return { rec: 'Explora el catálogo y elige tu primer curso', actionType: 'view', actionId: 'rutas', actionLabel: 'Ir al catálogo' };
+  }, [PATHS.length]);
+
+  const refresh = React.useCallback(async (force) => {
+    if (state.loading) return;
+    if (!force) {
+      const cached = _nextStepReadCache();
+      if (cached) { setState({ ...cached, loading: false }); return; }
+    }
+    setState(s => ({ ...s, loading: true }));
+    // Contexto compacto para Claude · solo títulos y % · sin PII innecesaria.
+    const ctx = {
+      role: USER.role || '',
+      team: USER.team || '',
+      enrolled: PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id)).map(p => ({ id: p.id, title: p.title, pct: Math.round((p.progress || 0) * 100) })).slice(0, 6),
+      inProgress: PATHS.filter(p => p.progress > 0 && p.progress < 1).map(p => ({ id: p.id, title: p.title, pct: Math.round(p.progress * 100) })).slice(0, 4),
+      available: PATHS.filter(p => !p.progress).map(p => ({ id: p.id, title: p.title })).slice(0, 8),
+    };
+    const sysHint = 'Eres BeonAI · recomendador de aprendizaje. Devuelve UN ÚNICO mensaje breve (máx 22 palabras, en español, sin saludo) sugiriendo el SIGUIENTE PASO al usuario. Termina con `[ACTION:path:<id>]` (o `[ACTION:view:rutas]` si nada concreto). El id debe ser uno de los ofrecidos. NO inventes.';
+    const messages = [
+      { role: 'user', text: sysHint + '\n\nUsuario:\n' + JSON.stringify(ctx, null, 2) + '\n\nDame UN SOLO siguiente paso, breve y accionable.' },
+    ];
+    try {
+      const cm = window.callMentorAPI || window.callMentorAPI;
+      // callMentorAPI vive en prototype-views.jsx · expuesta en window
+      const reply = await (window.callMentorAPI ? window.callMentorAPI(messages) : Promise.reject(new Error('no callMentorAPI')));
+      const txt = String(reply || '').trim();
+      // Parse [ACTION:type:id]
+      const m = txt.match(/\[ACTION:([a-z]+):([^\]\s]+)\]/i);
+      let actionType = '', actionId = '', actionLabel = 'Continuar';
+      if (m) {
+        actionType = m[1].toLowerCase();
+        actionId = m[2];
+        if (actionType === 'view') actionLabel = 'Ir';
+      } else {
+        // Fallback · si Claude no devolvió ACTION, usamos heurística
+        const h = _heuristicNext();
+        actionType = h.actionType; actionId = h.actionId; actionLabel = h.actionLabel;
+      }
+      const cleanRec = txt.replace(/\s*\[ACTION:[^\]]+\]\s*$/i, '').trim() || _heuristicNext().rec;
+      const next = { rec: cleanRec, actionType, actionId, actionLabel, loading: false };
+      setState(next);
+      _nextStepWriteCache({ rec: next.rec, actionType: next.actionType, actionId: next.actionId, actionLabel: next.actionLabel });
+    } catch (err) {
+      // Si IA no disponible, caemos a la heurística silenciosamente (sin error)
+      const h = _heuristicNext();
+      setState({ ...h, loading: false });
+      _nextStepWriteCache(h);
+    }
+  }, [USER.role, USER.team, PATHS.length, state.loading, _heuristicNext]);
+
+  React.useEffect(() => {
+    if (!state.rec && !state.loading) refresh(false);
+    // refresh se omite a propósito · refresh ya estabiliza con sus deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [USER.id]);
+
+  const handleAction = () => {
+    if (state.actionType === 'path' && state.actionId) {
+      if (window.__openPath) window.__openPath(state.actionId);
+      else if (openPath) openPath(state.actionId);
+      else setView && setView('rutas');
+      return;
+    }
+    if (state.actionType === 'pill' && state.actionId) {
+      const p = (PILLS || []).find(x => x.id === state.actionId);
+      if (p && openDetail) openDetail(p);
+      return;
+    }
+    setView && setView(state.actionId || 'rutas');
+  };
+  const handleDismiss = () => {
+    try { localStorage.setItem('solid-next-step-dismissed:' + (USER.id || 'anon'), '1'); } catch (e) {}
+    setDismissed(true);
+  };
+  const handleRefresh = () => { _nextStepWriteCache({}); refresh(true); };
+
+  if (dismissed) return null;
+
+  return (
+    <section style={{
+      margin:'-44px var(--row-pad, 60px) 32px',
+      padding:'18px 22px',
+      background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.04))',
+      border:'1px solid rgba(236,28,36,0.28)',
+      borderRadius: 14,
+      position:'relative', zIndex: 4,
+      display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap',
+      boxShadow:'0 8px 24px rgba(0,0,0,0.30)',
+    }}>
+      <div style={{
+        width: 38, height: 38, borderRadius:'50%',
+        background:'var(--accent)', color:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        flexShrink: 0, fontSize: 18, boxShadow:'0 0 0 4px rgba(236,28,36,0.18)',
+      }}>✦</div>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{
+          fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)',
+          letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700, marginBottom: 4,
+        }}>Tu próximo paso · BeonAI</div>
+        <div style={{ fontSize: 15.5, fontWeight: 600, color:'var(--fg)', lineHeight: 1.45 }}>
+          {state.loading ? 'Analizando tu progreso…' : (state.rec || 'Elige cómo seguir.')}
+        </div>
+      </div>
+      <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+        {!state.loading && state.actionId && (
+          <button onClick={handleAction} style={{
+            padding:'10px 18px', background:'var(--accent)', color:'#fff',
+            border:'none', borderRadius: 8, cursor:'pointer',
+            fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 13.5,
+          }}>{state.actionLabel || 'Continuar'} →</button>
+        )}
+        <button onClick={handleRefresh} disabled={state.loading} title="Volver a pedir recomendación" style={{
+          padding:'9px 12px', background:'transparent', color:'var(--fg-muted)',
+          border:'1px solid var(--line)', borderRadius: 8, cursor: state.loading ? 'wait' : 'pointer',
+          fontFamily:'var(--font-sans)', fontWeight: 600, fontSize: 12,
+        }}>↻</button>
+        <button onClick={handleDismiss} title="Ocultar" style={{
+          padding:'9px 12px', background:'transparent', color:'var(--fg-dim)',
+          border:'none', cursor:'pointer', fontSize: 18, lineHeight: 1,
+        }}>×</button>
+      </div>
+    </section>
+  );
+}
+window.NextStepIA = NextStepIA;
+
 function Home({ openDetail, openPlayer, setView, openPath }) {
   const [, force] = useState(0);
   // welcomeDismissed como flag manual · DEBE declararse antes de cualquier
@@ -1449,6 +1627,8 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
             }}>Entendido</button>
           </section>
         )}
+        {/* "Tu próximo paso" · banner IA personalizado · va ENCIMA de las rows */}
+        <NextStepIA setView={setView} openPath={openPath} openDetail={openDetail}/>
         {D.ROWS.map(row => (
           <NxRow key={row.key} row={row} onOpen={openDetail} onOpenPath={onOpenPath} onSeeAll={onSeeAll}/>
         ))}
