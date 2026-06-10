@@ -1015,6 +1015,15 @@ const Workspaces = (function() {
     if (currentId() === id) localStorage.removeItem(ACTIVE_KEY);
     window.dispatchEvent(new Event('workspaces-changed'));
   }
+  // archive · marca archived_at (modo demo) · el override Supabase lo persiste
+  // en DB. Sin esto el botón "Archivar" lanzaba 'archive is not a function' en
+  // modo localStorage.
+  function archive(id) {
+    const all = list();
+    const w = all.find(x => x.id === id);
+    if (w) { w.archived_at = Date.now(); _save(all); window.dispatchEvent(new Event('workspaces-changed')); }
+    return w || null;
+  }
 
   function addMember(workspaceId, userId, role) {
     if (ROLES.indexOf(role) < 0) role = 'member';
@@ -1145,7 +1154,7 @@ const Workspaces = (function() {
     return dataUrl;
   }
 
-  return { list, listMine, get, current, currentId, setCurrent, create, update, remove,
+  return { list, listMine, get, current, currentId, setCurrent, create, update, remove, archive,
            addMember, removeMember, setMemberRole, membersOf, currentRole, uploadLogo, seedIfEmpty, ROLES };
 })();
 window.Workspaces = Workspaces;
@@ -3798,7 +3807,7 @@ function _activateSupabaseData() {
     // inbox_messages cubre messages + notifications + releases (filtrado por category)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => _loadInbox())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { if (window.Auth && window.Auth.reloadUsers) window.Auth.reloadUsers(); })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => _loadActivity())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' }, () => _loadActivity())
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') console.log('[SolidStream] Realtime ✓ canal abierto');
       if (status === 'CHANNEL_ERROR') console.warn('[SolidStream] Realtime · error de canal');
@@ -5354,6 +5363,26 @@ function App() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Aceptar invitación tras login por SSO · cuando el usuario vuelve del redirect
+  // de Microsoft a /?invite=token YA está autenticado (LoginScreen no se muestra),
+  // así que la rama de signup nunca llamaba accept_invitation → quedaba logueado
+  // pero fuera del workspace. Aquí lo aceptamos en cuanto hay sesión + token.
+  useEM(() => {
+    if (!authUser) return;
+    const params = new URLSearchParams(window.location.search);
+    const inviteTok = params.get('invite');
+    if (!inviteTok || !window.Invitations || !window.Invitations.markAccepted) return;
+    Promise.resolve(window.Invitations.markAccepted(inviteTok)).then((r) => {
+      if (r && (r.status === 'accepted' || r.workspace_id)) {
+        if (window.Workspaces && window.Workspaces.setCurrent && r.workspace_id) window.Workspaces.setCurrent(r.workspace_id);
+        if (window.Toast) window.Toast.success('Te has unido al workspace', { icon: '🎫' });
+      }
+    }).catch(() => {}).finally(() => {
+      // Limpia el token de la URL para no reintentar en cada render/recarga
+      try { window.history.replaceState({}, '', window.location.pathname); } catch (e) {}
+    });
+  }, [authUser && authUser.id]);
 
   useEM(() => {
     localStorage.setItem('solid-proto', JSON.stringify({ view, prevView, aiMode, shape, accent, activePathId }));
