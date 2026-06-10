@@ -137,12 +137,13 @@ function Player({ back, item }) {
   // de window.PILLS, si no la primera pill, si no null. Cubre el caso del
   // boot con view='player' restaurado de localStorage sin item asociado.
   const _allPills = (typeof window !== 'undefined' && window.PILLS) || [];
-  const it = item || _allPills.find(p => p && p.yt) || _allPills.find(p => p && p.mp4) || _allPills[0];
-  if (!it) {
-    // Sin pill que mostrar · vuelve al home en vez de petar
-    React.useEffect(() => { if (back) back(); }, []);
-    return null;
-  }
+  const _realIt = item || _allPills.find(p => p && p.yt) || _allPills.find(p => p && p.mp4) || _allPills[0] || null;
+  // Placeholder en vez de `return null` temprano · así TODOS los hooks de abajo
+  // corren siempre (Rules of Hooks). El render-null se hace al final, tras los
+  // hooks. Sin esto, si `it` pasaba de null→pill (boot con view='player'
+  // restaurado antes de cargar PILLS) el nº de hooks cambiaba → crash.
+  const it = _realIt || { id: null, title: '', duration: '', level: '', _placeholder: true };
+  React.useEffect(() => { if (it._placeholder && back) back(); }, [it._placeholder]);
   const mp4Url = (it && it.mp4 && window.pillVideoUrl) ? window.pillVideoUrl(it.mp4) : null;
   const hasVideo = !!(it.yt || mp4Url);
 
@@ -332,6 +333,10 @@ function Player({ back, item }) {
       (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
     }
   };
+
+  // Render-null TRAS todos los hooks · si no hay pill real, no pintamos el
+  // player (el efecto de arriba ya disparó back()).
+  if (it._placeholder) return null;
 
   return (
     <div className="player-root">
