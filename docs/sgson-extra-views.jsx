@@ -2991,6 +2991,9 @@ function AdminView({ setView, openLegacyAdmin }) {
       {/* Workspaces · multi-tenant management */}
       <WorkspacesPanel/>
 
+      {/* Bulk invite usuarios desde CSV · roll-out para clientes grandes */}
+      <BulkInvitePanel/>
+
       {/* Theme preview · 5 opciones de Niebla fría + actual · solo admins */}
       <ThemePreviewPanel/>
 
@@ -3271,6 +3274,317 @@ window.SavedView_New = SavedView;
 window.ProfileView_New = ProfileView;
 window.SettingsView_New = SettingsView;
 window.AdminView_New = AdminView;
+
+/* ============================================================
+   BulkInvitePanel · invitar usuarios desde CSV
+   ============================================================
+   Para roll-outs grandes (Repsol, BBVA · cientos de users a la vez)
+   invitar uno a uno es inviable. Este panel acepta un CSV con
+   columnas email,name,role,team · valida · muestra preview ·
+   envía vía Invitations.create + /api/send-invite si Resend está
+   activo · da feedback en vivo.
+
+   Formato CSV soportado:
+     · separador coma o punto y coma
+     · primera fila opcionalmente cabecera (email,name,role,team)
+     · BOM UTF-8 al inicio se descarta
+     · líneas vacías ignoradas
+     · email obligatorio, resto opcional
+   ============================================================ */
+function BulkInvitePanel() {
+  const [rows, setRows] = useEV2([]);          // [{ email, name, role, team, status, error }]
+  const [parsing, setParsing] = useEV2(false);
+  const [sending, setSending] = useEV2(false);
+  const [progress, setProgress] = useEV2({ done:0, total:0, ok:0, fail:0 });
+  const [sendEmail, setSendEmail] = useEV2(true);
+  const [dragOver, setDragOver] = useEV2(false);
+
+  const fileInputRef = React.useRef(null);
+
+  function parseCSV(text) {
+    // Strip BOM y normaliza line endings.
+    text = String(text || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return [];
+
+    // Detect separator (coma o punto y coma · el segundo es estándar Excel ES)
+    const sep = (lines[0].split(';').length > lines[0].split(',').length) ? ';' : ',';
+
+    // Detect header · si la primera fila tiene "email" como token, la salta.
+    const first = lines[0].toLowerCase();
+    const hasHeader = /(^|[;,])email([;,]|$)/.test(first);
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    // Mapeo de columnas: por defecto email,name,role,team. Si hay header,
+    // detectamos posiciones reales para soportar reordenamiento.
+    let idxEmail = 0, idxName = 1, idxRole = 2, idxTeam = 3;
+    if (hasHeader) {
+      const cols = lines[0].split(sep).map(c => c.trim().toLowerCase().replace(/^"|"$/g, ''));
+      const find = (names) => cols.findIndex(c => names.includes(c));
+      const eEmail = find(['email','correo','e-mail']);
+      const eName  = find(['name','nombre','full_name','fullname']);
+      const eRole  = find(['role','rol','puesto','position']);
+      const eTeam  = find(['team','equipo','department','depto','departamento']);
+      if (eEmail >= 0) idxEmail = eEmail;
+      if (eName  >= 0) idxName  = eName;
+      if (eRole  >= 0) idxRole  = eRole;
+      if (eTeam  >= 0) idxTeam  = eTeam;
+    }
+
+    // Existing emails para detectar duplicados (invitations + workspace_members).
+    const existingInv = ((window.Invitations && window.Invitations.list && window.Invitations.list()) || [])
+      .map(i => (i.email || '').toLowerCase());
+    const existingUsers = ((window.Auth && window.Auth.listUsers && window.Auth.listUsers()) || [])
+      .map(u => (u.email || '').toLowerCase());
+    const existing = new Set(existingInv.concat(existingUsers));
+
+    const seenInCsv = new Set();
+    const out = [];
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    dataLines.forEach(line => {
+      const cells = line.split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+      const email = (cells[idxEmail] || '').toLowerCase();
+      const name  = cells[idxName]  || '';
+      const role  = (cells[idxRole] || '').toLowerCase();
+      const team  = cells[idxTeam]  || '';
+
+      let status = 'new', error = '';
+      if (!email) { status = 'invalid'; error = 'sin email'; }
+      else if (!EMAIL_RE.test(email)) { status = 'invalid'; error = 'email inválido'; }
+      else if (seenInCsv.has(email))  { status = 'duplicate'; error = 'duplicado en CSV'; }
+      else if (existing.has(email))   { status = 'duplicate'; error = 'ya invitado o registrado'; }
+      else seenInCsv.add(email);
+
+      out.push({ email, name, role, team, status, error });
+    });
+
+    return out;
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    if (!/\.(csv|txt)$/i.test(file.name)) {
+      alert('Solo .csv o .txt');
+      return;
+    }
+    setParsing(true);
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = parseCSV(String(r.result || ''));
+        setRows(parsed);
+      } catch(e) {
+        alert('Error procesando CSV: ' + (e && e.message));
+      } finally {
+        setParsing(false);
+      }
+    };
+    r.onerror = () => { setParsing(false); alert('No se pudo leer el archivo'); };
+    r.readAsText(file, 'utf-8');
+  }
+
+  async function sendAll() {
+    const sendable = rows.filter(r => r.status === 'new');
+    if (sendable.length === 0) return;
+    if (!window.Invitations || !window.Invitations.create) {
+      alert('Invitations no disponible · ¿Supabase configurado?');
+      return;
+    }
+    setSending(true);
+    setProgress({ done:0, total: sendable.length, ok:0, fail:0 });
+
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    const wsName  = (ws && ws.name) || 'la plataforma';
+    const wsColor = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
+    const fromName = (window.Auth && window.Auth.currentUser && window.Auth.currentUser() && (window.Auth.currentUser().name || window.Auth.currentUser().email)) || 'El equipo';
+    const session = (window.supabaseClient && await window.supabaseClient.auth.getSession());
+    const jwt = session && session.data && session.data.session && session.data.session.access_token;
+
+    let ok = 0, fail = 0;
+    const next = [...rows];
+
+    for (let i = 0; i < sendable.length; i++) {
+      const row = sendable[i];
+      const idxInRows = next.indexOf(row);
+      try {
+        const created = await window.Invitations.create({
+          email: row.email, name: row.name, role: row.role || null,
+        });
+        if (created && created.duplicate) {
+          next[idxInRows] = { ...row, status:'duplicate', error:'ya existía' };
+          fail++;
+        } else if (created && created.token) {
+          // Email opcional · solo si hay Resend en /api y user lo marca.
+          if (sendEmail && jwt) {
+            try {
+              await fetch('/api/send-invite', {
+                method:'POST',
+                headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+jwt },
+                body: JSON.stringify({
+                  email: row.email, name: row.name, token: created.token,
+                  role: row.role || '', team: row.team || '',
+                  fromName, workspaceName: wsName, workspaceColor: wsColor,
+                }),
+              });
+            } catch(e) { /* el cert se crea igualmente · email es best-effort */ }
+          }
+          next[idxInRows] = { ...row, status:'sent' };
+          ok++;
+        } else {
+          next[idxInRows] = { ...row, status:'fail', error:'sin respuesta' };
+          fail++;
+        }
+      } catch(e) {
+        next[idxInRows] = { ...row, status:'fail', error: (e && e.message) || 'error' };
+        fail++;
+      }
+      setProgress({ done: i + 1, total: sendable.length, ok, fail });
+      // Pequeña pausa para no saturar · permite al UI re-renderizar.
+      if ((i + 1) % 5 === 0) await new Promise(r => setTimeout(r, 80));
+    }
+
+    setRows(next);
+    setSending(false);
+  }
+
+  const counts = rows.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
+  const newCount = counts.new || 0;
+  const sentCount = counts.sent || 0;
+
+  function downloadTemplate() {
+    const sample = 'email,name,role,team\njane.doe@empresa.com,Jane Doe,member,Operaciones\njohn.smith@empresa.com,John Smith,manager,Marketing\n';
+    const blob = new Blob([sample], { type:'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'plantilla-invitaciones.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+
+  return (
+    <section style={{ marginTop: 32, padding: 24, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 6, flexWrap:'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>✉️ Invitar usuarios desde CSV</h2>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 4 }}>
+            Sube un .csv con <code style={{fontFamily:'var(--font-mono)',background:'rgba(255,255,255,0.06)',padding:'1px 6px',borderRadius:4}}>email,name,role,team</code> y los invitamos en bloque.
+          </div>
+        </div>
+        <button onClick={downloadTemplate} style={{
+          padding:'8px 14px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer',
+          fontFamily:'var(--font-sans)', fontSize: 12, fontWeight: 700,
+        }}>↓ Descargar plantilla</button>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => {
+          e.preventDefault(); setDragOver(false);
+          const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if (f) handleFile(f);
+        }}
+        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+        style={{
+          marginTop: 14, padding:'28px 20px', borderRadius: 12,
+          border:'2px dashed ' + (dragOver ? 'var(--accent)' : 'var(--line)'),
+          background: dragOver ? 'rgba(110,80,238,0.08)' : 'var(--paper)',
+          textAlign:'center', cursor:'pointer', transition:'all .15s',
+        }}>
+        <div style={{ fontSize: 32, marginBottom: 6 }}>📄</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color:'var(--fg)' }}>
+          {parsing ? 'Procesando…' : 'Arrastra el CSV aquí o haz clic'}
+        </div>
+        <div style={{ fontSize: 11.5, color:'var(--fg-muted)', marginTop: 4 }}>
+          Acepta separador coma o punto y coma · UTF-8
+        </div>
+        <input ref={fileInputRef} type="file" accept=".csv,.txt" style={{ display:'none' }}
+               onChange={e => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); e.target.value = ''; }}/>
+      </div>
+
+      {/* Preview + actions */}
+      {rows.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display:'flex', gap: 10, flexWrap:'wrap', alignItems:'center', marginBottom: 12 }}>
+            <span style={{ padding:'4px 10px', background:'rgba(16,185,129,0.15)', color:'#10B981', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>
+              {newCount} nuevas
+            </span>
+            {counts.duplicate ? <span style={{ padding:'4px 10px', background:'rgba(245,158,11,0.15)', color:'#F59E0B', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>{counts.duplicate} duplicadas</span> : null}
+            {counts.invalid ? <span style={{ padding:'4px 10px', background:'rgba(239,68,68,0.15)', color:'#EF4444', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>{counts.invalid} inválidas</span> : null}
+            {sentCount ? <span style={{ padding:'4px 10px', background:'rgba(34,197,94,0.18)', color:'#22C55E', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>✓ {sentCount} enviadas</span> : null}
+            {counts.fail ? <span style={{ padding:'4px 10px', background:'rgba(239,68,68,0.18)', color:'#EF4444', borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>✗ {counts.fail} fallos</span> : null}
+
+            <label style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap: 6, fontSize: 12, color:'var(--fg-muted)', cursor:'pointer' }}>
+              <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)} disabled={sending}/>
+              Enviar email vía Resend
+            </label>
+            <button onClick={sendAll} disabled={sending || newCount === 0} style={{
+              padding:'9px 18px', background: newCount === 0 ? 'rgba(255,255,255,0.08)' : 'var(--accent)',
+              color:'#fff', border:'none', borderRadius: 8,
+              cursor: (sending || newCount === 0) ? 'not-allowed' : 'pointer',
+              fontFamily:'var(--font-sans)', fontSize: 13, fontWeight: 700,
+              opacity: (sending || newCount === 0) ? 0.7 : 1,
+            }}>
+              {sending ? `Enviando ${progress.done}/${progress.total}…` : `Invitar a ${newCount}`}
+            </button>
+            <button onClick={() => setRows([])} disabled={sending} style={{
+              padding:'9px 14px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 8,
+              cursor: sending ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)', fontSize: 12, fontWeight: 600,
+            }}>Limpiar</button>
+          </div>
+
+          {sending && (
+            <div style={{ height: 6, background:'rgba(255,255,255,0.06)', borderRadius: 3, overflow:'hidden', marginBottom: 14 }}>
+              <div style={{ height:'100%', width: (progress.total ? Math.round(progress.done / progress.total * 100) : 0) + '%', background:'var(--accent)', transition:'width .2s' }}/>
+            </div>
+          )}
+
+          <div style={{ maxHeight: 380, overflow:'auto', border:'1px solid var(--line-2)', borderRadius: 8 }}>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize: 12 }}>
+              <thead style={{ position:'sticky', top: 0, background:'var(--bg-surface)', zIndex: 1 }}>
+                <tr>
+                  <th style={{ textAlign:'left', padding:'10px 12px', borderBottom:'1px solid var(--line-2)', fontWeight: 700, color:'var(--fg-muted)', fontSize: 11, letterSpacing:'0.04em', textTransform:'uppercase' }}>Email</th>
+                  <th style={{ textAlign:'left', padding:'10px 12px', borderBottom:'1px solid var(--line-2)', fontWeight: 700, color:'var(--fg-muted)', fontSize: 11, letterSpacing:'0.04em', textTransform:'uppercase' }}>Nombre</th>
+                  <th style={{ textAlign:'left', padding:'10px 12px', borderBottom:'1px solid var(--line-2)', fontWeight: 700, color:'var(--fg-muted)', fontSize: 11, letterSpacing:'0.04em', textTransform:'uppercase' }}>Rol</th>
+                  <th style={{ textAlign:'left', padding:'10px 12px', borderBottom:'1px solid var(--line-2)', fontWeight: 700, color:'var(--fg-muted)', fontSize: 11, letterSpacing:'0.04em', textTransform:'uppercase' }}>Equipo</th>
+                  <th style={{ textAlign:'left', padding:'10px 12px', borderBottom:'1px solid var(--line-2)', fontWeight: 700, color:'var(--fg-muted)', fontSize: 11, letterSpacing:'0.04em', textTransform:'uppercase' }}>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const color = r.status === 'sent' ? '#22C55E'
+                    : r.status === 'new' ? '#10B981'
+                    : r.status === 'duplicate' ? '#F59E0B'
+                    : r.status === 'invalid' ? '#EF4444'
+                    : r.status === 'fail' ? '#EF4444'
+                    : 'var(--fg-muted)';
+                  const label = r.status === 'sent' ? '✓ enviada'
+                    : r.status === 'new' ? 'lista'
+                    : r.status === 'duplicate' ? '⚠ ' + (r.error || 'duplicada')
+                    : r.status === 'invalid' ? '✗ ' + (r.error || 'inválida')
+                    : r.status === 'fail' ? '✗ ' + (r.error || 'fallo')
+                    : r.status;
+                  return (
+                    <tr key={i} style={{ borderBottom:'1px solid var(--line-2)' }}>
+                      <td style={{ padding:'8px 12px', color:'var(--fg)', fontFamily:'var(--font-mono)', fontSize: 12 }}>{r.email || <em style={{color:'var(--fg-faint)'}}>—</em>}</td>
+                      <td style={{ padding:'8px 12px', color:'var(--fg)' }}>{r.name || <em style={{color:'var(--fg-faint)'}}>—</em>}</td>
+                      <td style={{ padding:'8px 12px', color:'var(--fg-muted)' }}>{r.role || '—'}</td>
+                      <td style={{ padding:'8px 12px', color:'var(--fg-muted)' }}>{r.team || '—'}</td>
+                      <td style={{ padding:'8px 12px', color, fontWeight: 600, fontSize: 11.5 }}>{label}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+window.BulkInvitePanel = BulkInvitePanel;
 
 /* ============================================================
    CertificatesView · sección dentro del popup avatar (demo)
