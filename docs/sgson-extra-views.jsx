@@ -5104,17 +5104,21 @@ function PillsPanel() {
   };
   // Backfill batch · recorre las pills sin poster y les pone un fallback:
   // YT thumb si tienen yt, SVG generado si no. Idempotente: ignora las que
-  // ya tienen poster. Lo dispara el admin desde el botón de la cabecera.
+  // ya tienen poster *uploaded* (URL real), pero SÍ regenera las que tienen
+  // un SVG inline antiguo (data:image/svg+xml) · así un cambio de paleta se
+  // propaga sin tocar imágenes subidas a mano.
   const [backfilling, setBackfilling] = useEV2(false);
+  const _isStoredSvg = (p) => typeof p === 'string' && p.indexOf('data:image/svg+xml') === 0;
   const backfillMissingPosters = async () => {
-    const missing = pills.filter(p => !p.poster || !String(p.poster).trim());
-    if (missing.length === 0) { if (window.Toast) window.Toast.info('Todas las pills ya tienen poster'); return; }
-    if (!confirm('Vas a rellenar el poster en ' + missing.length + ' pill' + (missing.length === 1 ? '' : 's') + ' (YT thumb o SVG con el título). ¿Seguimos?')) return;
+    const targets = pills.filter(p => !p.poster || !String(p.poster).trim() || _isStoredSvg(p.poster));
+    if (targets.length === 0) { if (window.Toast) window.Toast.info('Todas las pills ya tienen poster real'); return; }
+    const labelAction = targets.length + ' pill' + (targets.length === 1 ? '' : 's') + ' (YT thumb si hay yt · SVG nuevo con el título si no)';
+    if (!confirm('Vas a rellenar/regenerar el poster en ' + labelAction + '. Las imágenes subidas a mano no se tocan. ¿Seguimos?')) return;
     const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
     setBackfilling(true);
     let ok = 0, fail = 0;
-    for (const p of missing) {
+    for (const p of targets) {
       try {
         const poster = p.yt
           ? ('https://i.ytimg.com/vi/' + p.yt + '/hqdefault.jpg')
@@ -5212,14 +5216,20 @@ function PillsPanel() {
             Catálogo de <strong>{wsName}</strong> · {pills.length} pills
             {(() => {
               const missing = pills.filter(p => !p.poster || !String(p.poster).trim()).length;
-              return missing > 0 ? <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span> : null;
+              const oldSvg = pills.filter(p => _isStoredSvg(p.poster)).length;
+              return (
+                <>
+                  {missing > 0 && <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span>}
+                  {oldSvg > 0 && <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(110,80,238,0.18)', color:'var(--accent)', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{oldSvg} con SVG antiguo</span>}
+                </>
+              );
             })()}
           </div>
         </div>
         <div style={{ display:'flex', gap: 8 }}>
-          {pills.some(p => !p.poster || !String(p.poster).trim()) && (
+          {pills.some(p => !p.poster || !String(p.poster).trim() || _isStoredSvg(p.poster)) && (
             <button onClick={backfillMissingPosters} disabled={backfilling} style={{ padding:'10px 14px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:'var(--r-1)', cursor: backfilling ? 'wait' : 'pointer', fontWeight: 700, fontSize: 12 }}>
-              {backfilling ? 'Procesando…' : '✨ Generar posters faltantes'}
+              {backfilling ? 'Procesando…' : '✨ Generar / regenerar posters'}
             </button>
           )}
           {openId !== 'new' && (
@@ -5391,19 +5401,34 @@ function ContentPanel({ kind, label, icon }) {
             {(() => {
               if (kind !== 'path') return null;
               const missing = items.filter(it => !(it._meta && it._meta.poster_url)).length;
-              return missing > 0 ? <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span> : null;
+              const oldSvg = items.filter(it => {
+                const p = it._meta && it._meta.poster_url;
+                return typeof p === 'string' && p.indexOf('data:image/svg+xml') === 0;
+              }).length;
+              return (
+                <>
+                  {missing > 0 && <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span>}
+                  {oldSvg > 0 && <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(110,80,238,0.18)', color:'var(--accent)', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{oldSvg} con SVG antiguo</span>}
+                </>
+              );
             })()}
           </div>
         </div>
         <div style={{ display:'flex', gap: 8 }}>
-          {kind === 'path' && items.some(it => !(it._meta && it._meta.poster_url)) && (
+          {kind === 'path' && items.some(it => {
+            const p = it._meta && it._meta.poster_url;
+            return !p || (typeof p === 'string' && p.indexOf('data:image/svg+xml') === 0);
+          }) && (
             <button onClick={async () => {
-              const missing = items.filter(it => !(it._meta && it._meta.poster_url));
-              if (!confirm('Vas a rellenar el poster en ' + missing.length + ' curso' + (missing.length === 1 ? '' : 's') + ' con un SVG generado del título. ¿Seguimos?')) return;
+              const targets = items.filter(it => {
+                const p = it._meta && it._meta.poster_url;
+                return !p || (typeof p === 'string' && p.indexOf('data:image/svg+xml') === 0);
+              });
+              if (!confirm('Vas a rellenar/regenerar el poster en ' + targets.length + ' curso' + (targets.length === 1 ? '' : 's') + ' con un SVG nuevo. Las imágenes subidas a mano no se tocan. ¿Seguimos?')) return;
               const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
               const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
               let ok = 0, fail = 0;
-              for (const it of missing) {
+              for (const it of targets) {
                 try {
                   const poster = window.coursePosterSVG ? window.coursePosterSVG(it.title || 'Curso', accent, it.level || '') : null;
                   if (!poster) { fail++; continue; }
@@ -5413,7 +5438,7 @@ function ContentPanel({ kind, label, icon }) {
               }
               if (window.Toast) window.Toast[fail === 0 ? 'success' : 'info']('Posters: ' + ok + ' rellenados' + (fail ? ' · ' + fail + ' errores' : ''));
             }} style={{ padding:'8px 12px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer', fontWeight: 700, fontSize: 11.5 }}>
-              ✨ Generar posters faltantes
+              ✨ Generar / regenerar posters
             </button>
           )}
           <button onClick={startNew} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nuevo</button>
