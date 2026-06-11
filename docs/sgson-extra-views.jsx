@@ -3371,7 +3371,8 @@ function CertificatesView({ setView }) {
                   <button onClick={() => {
                     const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
                     if (window.certificateSVG) {
-                      const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, 'CERT-2026-' + String((p.id || '').replace(/\D/g,'')).padStart(4,'0'), new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'}));
+                      // Preview · sin verifyUrl porque aún no hay cert emitido.
+                      const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, 'CERT-2026-' + String((p.id || '').replace(/\D/g,'')).padStart(4,'0'), new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'}), null);
                       setPreviewSrc(dataUrl);  /* abre modal inline · no popup */
                     }
                   }} style={{
@@ -3390,31 +3391,46 @@ function CertificatesView({ setView }) {
                       ? ((cert.cert_number || '—') + ' · ' + fmtDate(cert.completed_at))
                       : 'Completado · genera tu certificado'}
                   </div>
-                  {/* Descarga · prioridad: certUrl (design en Storage) →
-                      SVG generado inline con el accent + título + nombre
-                      del user → Certificates.download legacy como último
-                      recurso. El SVG se descarga como .svg y se ve perfecto
-                      al abrir/imprimir desde cualquier visor. */}
-                  <button onClick={() => {
-                    if (p.certUrl) {
-                      window.open(p.certUrl, '_blank', 'noopener');
-                      return;
-                    }
-                    if (window.certificateSVG) {
-                      const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
-                      const dataUrl = window.certificateSVG(p.title, userObj.name, p.accentHex, cert && cert.cert_number, cert && cert.completed_at);
-                      const a = document.createElement('a');
-                      a.href = dataUrl;
-                      a.download = 'certificado-' + (p.id || 'curso') + '.svg';
-                      document.body.appendChild(a); a.click(); a.remove();
-                      return;
-                    }
-                    if (window.Certificates && window.Certificates.download) window.Certificates.download(cert);
-                  }} style={{
-                    padding:'9px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
-                    cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
-                    boxShadow:'0 4px 12px rgba(0,114,190,0.30)',
-                  }}>↓ Descargar certificado</button>
+                  {/* Dos botones · PDF (print dialog, recomendado: contiene QR
+                      de verificación) y SVG (vector portable, también con QR). */}
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={() => {
+                      if (cert && window.Certificates && window.Certificates.openPrintDialog) {
+                        window.Certificates.openPrintDialog(cert);
+                      } else if (p.certUrl) {
+                        window.open(p.certUrl, '_blank', 'noopener');
+                      }
+                    }} style={{
+                      flex:1, padding:'9px 12px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8,
+                      cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:700, fontSize:13,
+                      boxShadow:'0 4px 12px rgba(0,114,190,0.30)',
+                    }}>↓ PDF</button>
+                    <button onClick={() => {
+                      if (window.certificateSVG) {
+                        const userObj = (window.SGS_DATA && window.SGS_DATA.USER) || {};
+                        const vUrl = cert && window.Certificates && window.Certificates.verifyUrl(cert);
+                        const dataUrl = window.certificateSVG(
+                          p.title, userObj.name, p.accentHex,
+                          cert && cert.cert_number, cert && cert.completed_at, vUrl,
+                        );
+                        const a = document.createElement('a');
+                        a.href = dataUrl;
+                        a.download = 'certificado-' + (p.id || 'curso') + '.svg';
+                        document.body.appendChild(a); a.click(); a.remove();
+                      }
+                    }} style={{
+                      padding:'9px 12px', background:'transparent', color:'var(--fg)',
+                      border:'1px solid var(--line)', borderRadius:8, cursor:'pointer',
+                      fontFamily:'var(--font-sans)', fontWeight:600, fontSize:13,
+                    }}>SVG</button>
+                  </div>
+                  {cert && window.Certificates && window.Certificates.verifyUrl(cert) && (
+                    <a href={window.Certificates.verifyUrl(cert)} target="_blank" rel="noopener" style={{
+                      fontSize:10.5, color:'var(--fg-muted)', textDecoration:'none',
+                      fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.04em',
+                      textAlign:'center', marginTop:2,
+                    }}>🔗 Página pública de verificación</a>
+                  )}
                 </div>
               )}
             </article>

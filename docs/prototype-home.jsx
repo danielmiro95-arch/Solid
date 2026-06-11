@@ -77,7 +77,7 @@ function _pillPosterSVG(title, accentHex) {
 }
 if (typeof window !== 'undefined') window.pillPosterSVG = _pillPosterSVG;
 
-function _certificateSVG(title, userName, accentHex, certNumber, dateStr) {
+function _certificateSVG(title, userName, accentHex, certNumber, dateStr, verifyUrl) {
   var t = _svgEscape(title || 'Curso');
   var u = _svgEscape(userName || 'Alumno');
   var a = accentHex || '#0072BE';
@@ -85,6 +85,24 @@ function _certificateSVG(title, userName, accentHex, certNumber, dateStr) {
   var d = _svgEscape(dateStr || new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }));
   var ff = 'Avenir Next, Helvetica, Arial, sans-serif';
   var serif = 'Georgia, serif';
+
+  // QR de verificación · si la URL viene y qrcode-generator cargó, embebemos
+  // los <rect>s como un grupo escalado. Si no hay verifyUrl o falla la CDN,
+  // el cert se renderiza sin QR (no rompe).
+  var qrBlock = '';
+  if (verifyUrl && typeof window !== 'undefined' && window.generateQRRects) {
+    var rects = window.generateQRRects(verifyUrl, 140);   // 140px en coords nativas del QR
+    if (rects) {
+      // Lo posicionamos abajo-derecha · 140x140 px en una caja blanca con
+      // borde fino del accent. Coordenadas dentro del viewBox 1240x900:
+      //   esquina top-left del QR: (1020, 640) · espacio bajo el círculo sello.
+      qrBlock =
+        '<rect x="1014" y="634" width="152" height="152" fill="#FFFFFF" stroke="' + a + '" stroke-width="1.5"/>' +
+        '<g transform="translate(1020 640)">' + rects + '</g>' +
+        '<text x="1090" y="804" text-anchor="middle" fill="#6F6F6F" font-family="' + ff + '" font-size="9" letter-spacing="1.5">VERIFICA EN L&#205;NEA</text>';
+    }
+  }
+
   var svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900">' +
       '<rect width="1240" height="900" fill="#FFFFFF"/>' +
@@ -99,8 +117,9 @@ function _certificateSVG(title, userName, accentHex, certNumber, dateStr) {
       '<line x1="160" y1="700" x2="500" y2="700" stroke="#0A0A0A" stroke-width="1"/>' +
       '<text x="160" y="730" fill="#3D3D3D" font-family="' + ff + '" font-size="12" font-weight="700" letter-spacing="2">JULIO TURB&#211;N</text>' +
       '<text x="160" y="748" fill="#6F6F6F" font-family="' + ff + '" font-size="11" letter-spacing="1">Direcci&#243;n de Formaci&#243;n &#183; Hijos de Rivera</text>' +
-      '<text x="1080" y="730" text-anchor="end" fill="#3D3D3D" font-family="' + ff + '" font-size="11" letter-spacing="2">' + n + '</text>' +
-      '<text x="1080" y="748" text-anchor="end" fill="#6F6F6F" font-family="' + ff + '" font-size="11" letter-spacing="1">' + d + '</text>' +
+      '<text x="160" y="772" fill="#3D3D3D" font-family="' + ff + '" font-size="11" letter-spacing="2">' + n + '</text>' +
+      '<text x="160" y="790" fill="#6F6F6F" font-family="' + ff + '" font-size="11" letter-spacing="1">' + d + '</text>' +
+      qrBlock +
       '<text x="160" y="830" fill="#9A9A9A" font-family="' + ff + '" font-size="10" font-weight="600" letter-spacing="3">BEONIT &#215; HIJOS DE RIVERA</text>' +
     '</svg>';
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);

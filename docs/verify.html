@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verificar certificado · SolidStream</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#f8fafc 0%,#eef2f7 100%);
+    color:#0D1117;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .card{
+    max-width:560px;width:100%;background:#fff;border-radius:16px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.08);overflow:hidden;
+  }
+  .head{padding:32px 36px 24px;border-bottom:1px solid #f1f5f9}
+  .brand{
+    font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;
+    letter-spacing:0.15em;color:#94A3B8;text-transform:uppercase;font-weight:700;
+  }
+  h1{font-size:22px;margin:6px 0 0;font-weight:800;letter-spacing:-0.02em;color:#0D1117}
+  .body{padding:28px 36px 32px}
+  .state{
+    display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:10px;
+    font-size:14px;font-weight:600;margin-bottom:22px;
+  }
+  .state .icon{font-size:20px;line-height:1}
+  .state.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+  .state.err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+  .state.loading{background:#F1F5F9;color:#475569;border:1px solid #E2E8F0}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:14px 20px}
+  dt{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#94A3B8;font-weight:700;align-self:start;padding-top:2px}
+  dd{margin:0;font-size:14.5px;color:#0D1117;font-weight:600;word-break:break-word}
+  dd.muted{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#475569;font-weight:500;letter-spacing:0.04em}
+  .name{font-size:28px;font-weight:800;letter-spacing:-0.02em;line-height:1.15}
+  .footer{padding:18px 36px;background:#F8FAFC;border-top:1px solid #f1f5f9;font-size:11px;color:#64748B;text-align:center;line-height:1.5}
+  .footer a{color:#0072BE;text-decoration:none;font-weight:600}
+  .seal{
+    width:64px;height:64px;border-radius:50%;
+    background:linear-gradient(135deg,#10B981,#059669);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:800;margin:0 auto 14px;
+    box-shadow:0 8px 24px rgba(16,185,129,0.3);
+  }
+  .seal.err{background:linear-gradient(135deg,#EF4444,#B91C1C);box-shadow:0 8px 24px rgba(239,68,68,0.3)}
+  .center{text-align:center;margin-bottom:24px}
+  .cert-pill{
+    display:inline-block;padding:4px 10px;border-radius:999px;
+    background:#F1F5F9;color:#475569;font-family:'JetBrains Mono',ui-monospace,monospace;
+    font-size:11px;letter-spacing:0.08em;font-weight:600;
+  }
+  @media(max-width:480px){
+    .head,.body{padding-left:22px;padding-right:22px}
+    dl{grid-template-columns:1fr;gap:4px 0}
+    dt{padding-top:10px}
+    dd{padding-bottom:6px}
+    .name{font-size:22px}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head">
+    <div class="brand">SolidStream · Verificación oficial</div>
+    <h1>Validación de certificado</h1>
+  </div>
+  <div class="body" id="content">
+    <div class="state loading" id="loading">
+      <span class="icon">⏳</span>
+      <span>Consultando registro…</span>
+    </div>
+  </div>
+  <div class="footer">
+    Este servicio confirma la autenticidad de certificados emitidos por SolidStream ·
+    BeonIt. Si tienes dudas, escribe a <a href="mailto:formacion@beonit.com">formacion@beonit.com</a>.
+  </div>
+</div>
+
+<script>
+(function(){
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[<>&"]/g, function(c){
+      return { '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c];
+    });
+  }
+  function fmtDate(iso){
+    try { return new Date(iso).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' }); }
+    catch(e){ return iso || ''; }
+  }
+  function renderError(msg){
+    document.getElementById('content').innerHTML =
+      '<div class="center"><div class="seal err">✕</div></div>' +
+      '<div class="state err"><span class="icon">⚠️</span><span>' + esc(msg) + '</span></div>' +
+      '<p style="font-size:13px;color:#64748B;line-height:1.6;margin:8px 0 0;">' +
+        'No hemos podido validar este certificado. Comprueba que el enlace o el QR ' +
+        'sean correctos. Si llegaste aquí desde un PDF impreso, contacta con quien te lo entregó.' +
+      '</p>';
+  }
+  function renderOk(c){
+    document.getElementById('content').innerHTML =
+      '<div class="center">' +
+        '<div class="seal">✓</div>' +
+        '<div class="cert-pill">' + esc(c.cert_number || '—') + '</div>' +
+      '</div>' +
+      '<div class="state ok"><span class="icon">✅</span><span>Certificado verificado · auténtico</span></div>' +
+      '<dl>' +
+        '<dt>Otorgado a</dt><dd class="name">' + esc(c.user_name) + '</dd>' +
+        '<dt>Curso</dt><dd>' + esc(c.route_title) + '</dd>' +
+        '<dt>Workspace</dt><dd>' + esc(c.workspace_name) + '</dd>' +
+        '<dt>Fecha de emisión</dt><dd class="muted">' + esc(fmtDate(c.completed_at)) + '</dd>' +
+      '</dl>';
+  }
+
+  var params = new URLSearchParams(location.search);
+  var id = params.get('cert') || params.get('id') || '';
+  if (!id) { renderError('Falta el identificador del certificado en la URL.'); return; }
+
+  fetch('/api/verify-cert?id=' + encodeURIComponent(id), { method:'GET' })
+    .then(function(r){ return r.json().then(function(j){ return { status:r.status, body:j }; }); })
+    .then(function(res){
+      if (res.status === 200 && res.body && res.body.ok) {
+        renderOk(res.body.certificate);
+      } else if (res.status === 404) {
+        renderError('Certificado no encontrado en el registro.');
+      } else if (res.status === 400) {
+        renderError('Identificador de certificado inválido.');
+      } else {
+        renderError('No se pudo completar la verificación. Inténtalo más tarde.');
+      }
+    })
+    .catch(function(){ renderError('Error de red. Revisa tu conexión.'); });
+})();
+</script>
+</body>
+</html>
