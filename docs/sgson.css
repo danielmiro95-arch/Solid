@@ -4,47 +4,59 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (gris NEUTRO puro · tipo plataforma streaming) ── */
-  --bg-deep:        #1A1A1A;
-  --bg-canvas:      #1F1F1F;                       /* fondo de página · gris medio-oscuro neutro */
-  --bg-surface:     #2A2A2A;                       /* cards/modales · un escalón más claro */
-  --bg-elevated:    #353535;                       /* hover, dropdowns */
-  --bg-glass:       rgba(31, 31, 31, 0.78);
-  --bg-glass-strong:rgba(31, 31, 31, 0.94);
-  --scrim:          rgba(26, 26, 26, 0.85);
+  /* ── Color · Surfaces (Udacity-inspired · navy hierarchy) ──
+     Aplicado por defecto en TODOS los workspaces · sin overrides per-tenant.
+     Inspirado en el hero / catálogo de Udacity (navy profundo → cobalt) para
+     dar un look editorial premium consistente. */
+  --bg-deep:        #06112E;                       /* deepest navy · footer/scrim base */
+  --bg-canvas:      #0A1A40;                       /* fondo de página · Udacity hero navy */
+  --bg-surface:     #102659;                       /* cards/modales · navy un poco más claro */
+  --bg-elevated:    #1A3473;                       /* hover, dropdowns */
+  --bg-glass:       rgba(10, 26, 64, 0.78);
+  --bg-glass-strong:rgba(10, 26, 64, 0.94);
+  --scrim:          rgba(6, 17, 46, 0.85);
 
-  /* ── Color · Lines & dividers (blanco translúcido neutro) ── */
+  /* ── Color · Lines & dividers (blanco translúcido) ── */
   --line-faint:     rgba(255, 255, 255, 0.05);
-  --line:           rgba(255, 255, 255, 0.09);
-  --line-strong:    rgba(255, 255, 255, 0.18);
+  --line:           rgba(255, 255, 255, 0.10);
+  --line-strong:    rgba(255, 255, 255, 0.20);
 
-  /* ── Color · Text (blanco neutro · contraste WCAG sobre gris oscuro) ── */
-  --fg:             #F2F2F1;  /* títulos / texto principal · ~13:1 */
-  --fg-muted:       #B9B9B7;  /* texto secundario · ~7:1 (subido de #A8A8A6) */
-  --fg-dim:         #9C9C9A;  /* texto terciario · ~4.7:1 · pasa body (era #7A7A78 = 3.3:1) */
-  --fg-faint:       #7E7E7C;  /* separadores / placeholders · ~3.2:1 (era #5A5A58 = 2:1, ilegible) */
+  /* ── Color · Text (bluish-white sobre navy · contraste WCAG) ── */
+  --fg:             #F4F7FB;  /* títulos / texto principal · ~16:1 sobre canvas */
+  --fg-muted:       #C5D2E8;  /* texto secundario · bluish slate */
+  --fg-dim:         #8C9CBA;  /* texto terciario */
+  --fg-faint:       #6B7B9A;  /* separadores / placeholders */
   --fg-on-accent:   #FFFFFF;
   /* Texto blanco sobre covers/gradientes oscuros de las cards (siempre claro,
      independiente del tema). Tokeniza los #fff hardcodeados de las cards. */
   --fg-on-cover:    #FFFFFF;
 
-  /* ── Color · Accent (Repsol rojo) ── */
-  --accent:         #EC1C24;
-  --accent-hover:   #FF3037;
-  --accent-deep:    #B30A11;
-  --accent-glow:    rgba(236, 28, 36, 0.35);
+  /* ── Color · Accent (cobalt blue · Udacity-style links / CTAs) ──
+     Reemplaza el rojo Repsol como accent por defecto · cada workspace puede
+     seguir definiendo su primary_color para badges puntuales, pero la UI
+     base es cobalt en todos los tenants. */
+  --accent:         #2E7CFF;
+  --accent-hover:   #5B95FF;
+  --accent-deep:    #0F4FCC;
+  --accent-glow:    rgba(46, 124, 255, 0.35);
 
-  /* ── Color · Category tints (sin cambios) ── */
-  --cat-publish:    #D97A2B;
-  --cat-care:       #2DB58F;
-  --cat-analytics:  #5B8DEF;
-  --cat-content:    #C969E8;
-  --cat-manage:     #E8C455;
+  /* ── Color · Cream highlight (Udacity "Maestrías en IA" peach) ──
+     Para featured / premium / títulos editoriales. Crea contraste cálido
+     sobre el navy frío. */
+  --cream:          #F4D1A8;
+  --cream-soft:     #FBE3B5;
+
+  /* ── Color · Category tints (subidos en saturación para vivir sobre navy) ── */
+  --cat-publish:    #FFB347;
+  --cat-care:       #4ECDC4;
+  --cat-analytics:  #5BC8FF;
+  --cat-content:    #C471F5;
+  --cat-manage:     #F4D1A8;
 
   /* ── Color · Status ── */
   --ok:             #4ADE80;
   --warn:           #F4B740;
-  --info:           #5B8DEF;
+  --info:           #5BC8FF;
 
   /* ── Typography ── */
   --font-sans:      'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;

@@ -30,18 +30,20 @@ function _svgEscape(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// 8 duotonos editoriales · pensados para portadas en dark theme. Cada uno
-// trae un color "a" (lighter, top-left del gradiente), "b" (deeper,
-// bottom-right) y un acento opcional para chips/decoración.
+// 8 duotonos editoriales · paleta Udacity-inspired (navy + cobalt + cream)
+// Cada poster recibe un color "a" (top-left del gradiente, más vibrante)
+// y "b" (bottom-right, deeper) + un ink cálido para chips/decoración. La
+// idea: el catálogo respira en armonía con el resto de la plataforma
+// (navy + cobalt) pero cada pill se distingue por familia de color.
 var _POSTER_PALETTES = [
-  { a:'#FF6B6B', b:'#5A0D1F', ink:'#FFE6E6' },  // coral · cardinal
-  { a:'#1FDED4', b:'#0E4F4D', ink:'#E6FFFD' },  // teal · pine
-  { a:'#FFB347', b:'#6B2906', ink:'#FFF1DC' },  // amber · rust
-  { a:'#A8E063', b:'#2F5F1F', ink:'#F1FFDC' },  // mint · forest
-  { a:'#C471F5', b:'#321055', ink:'#F7E6FF' },  // plum · violet
-  { a:'#4FC3F7', b:'#0D3A6B', ink:'#E0F4FF' },  // cobalt · midnight
-  { a:'#FF6CAB', b:'#5E1233', ink:'#FFE0EE' },  // pink · wine
-  { a:'#F9CA24', b:'#5C4400', ink:'#FFF6CC' },  // gold · ochre
+  { a:'#5B95FF', b:'#0A1A40', ink:'#F4D1A8' },  // cobalt · navy (signature)
+  { a:'#5BC8FF', b:'#0F3CA8', ink:'#FBE3B5' },  // sky · royal
+  { a:'#1FDED4', b:'#0E2657', ink:'#F4D1A8' },  // teal · navy
+  { a:'#F4D1A8', b:'#3A1A40', ink:'#FBE3B5' },  // cream · plum (premium feel)
+  { a:'#C471F5', b:'#1A1255', ink:'#F4D1A8' },  // plum · midnight
+  { a:'#FFB347', b:'#1B3A8A', ink:'#FBE3B5' },  // amber · cobalt deep
+  { a:'#A8E063', b:'#0A2A2F', ink:'#F4F7FB' },  // mint · forest navy
+  { a:'#FF6CAB', b:'#1A1455', ink:'#F4D1A8' },  // rose · navy
 ];
 function _hashIdx(s, mod) {
   s = String(s || '');

@@ -1371,14 +1371,14 @@ function applyWorkspaceBranding() {
     var ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
     var b = _normalizeWorkspaceBranding(ws);
     if (b) {
-      // Spec del cliente · TODOS los workspaces usan el MISMO color de
-      // plataforma (rojo Repsol del :root). Antes cada tenant sobrescribía
-      // --accent con su primaryColor → app con color distinto por workspace.
-      // Ahora el color del workspace queda solo para el "dot" del topnav
-      // (identificador visual sutil) · accent global no se toca.
+      // Spec del cliente (b115+) · TODOS los workspaces usan exactamente
+      // los mismos colores de plataforma (paleta Udacity navy + cobalt +
+      // cream del :root). El primaryColor del workspace ya NO se aplica
+      // ni siquiera al "dot" del topnav · el dot usa var(--accent) global.
+      // Solo el logo y el nombre del workspace varían por tenant.
       window.WORKSPACE_LOGO_URL = b.logoUrl || null;
       window.WORKSPACE_NAME = b.name;
-      window.WORKSPACE_DOT_COLOR = b.primaryColor || null;
+      window.WORKSPACE_DOT_COLOR = null;
     } else {
       // Sin workspace activo (login screen) · todos los valores limpios
       window.WORKSPACE_LOGO_URL = null;
