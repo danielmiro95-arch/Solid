@@ -18,9 +18,10 @@ if (typeof window !== 'undefined') window.pillVideoUrl = pillVideoUrl;
 
 // ── SVG placeholder generator ────────────────────────────────────────────
 // Mientras design no haya subido los assets reales a Storage, generamos
-// portadas inline en SVG que respetan el acento corporativo del curso y
-// el manual beonit (Avenir Next, geometría limpia, badge "BEONIT"). Salen
-// como data: URLs y van directas al <img src=...>, sin tocar la red.
+// portadas inline en SVG con paleta editorial variada (8 duotonos curados)
+// + patrón de puntos + decoración geométrica. Cada pill/curso recibe un
+// color determinista (hash del título → índice de paleta) así que dos
+// pills distintas se ven distintas pero la misma pill siempre igual.
 //
 // Strings construidos con concat (no template literals anidados) para
 // evitar problemas con babel-standalone en el navegador.
@@ -28,29 +29,76 @@ function _svgEscape(s) {
   s = String(s == null ? '' : s);
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// 8 duotonos editoriales · pensados para portadas en dark theme. Cada uno
+// trae un color "a" (lighter, top-left del gradiente), "b" (deeper,
+// bottom-right) y un acento opcional para chips/decoración.
+var _POSTER_PALETTES = [
+  { a:'#FF6B6B', b:'#5A0D1F', ink:'#FFE6E6' },  // coral · cardinal
+  { a:'#1FDED4', b:'#0E4F4D', ink:'#E6FFFD' },  // teal · pine
+  { a:'#FFB347', b:'#6B2906', ink:'#FFF1DC' },  // amber · rust
+  { a:'#A8E063', b:'#2F5F1F', ink:'#F1FFDC' },  // mint · forest
+  { a:'#C471F5', b:'#321055', ink:'#F7E6FF' },  // plum · violet
+  { a:'#4FC3F7', b:'#0D3A6B', ink:'#E0F4FF' },  // cobalt · midnight
+  { a:'#FF6CAB', b:'#5E1233', ink:'#FFE0EE' },  // pink · wine
+  { a:'#F9CA24', b:'#5C4400', ink:'#FFF6CC' },  // gold · ochre
+];
+function _hashIdx(s, mod) {
+  s = String(s || '');
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % mod;
+}
+
+// Workspace name dinámico para el footer · evita "BEONIT × HIJOS DE RIVERA"
+// hardcoded que era incorrecto en cualquier otro tenant.
+function _wsLabel() {
+  if (typeof window === 'undefined') return 'SOLIDSTREAM';
+  var n = (window.WORKSPACE_NAME || '').toString().trim();
+  return (n ? n : 'SolidStream').toUpperCase();
+}
+
 function _coursePosterSVG(title, accentHex, level) {
   var t = _svgEscape(title || 'Curso');
-  var a = accentHex || '#0072BE';
   var lvl = _svgEscape(String(level || '').toUpperCase());
+  var pal = _POSTER_PALETTES[_hashIdx(title, _POSTER_PALETTES.length)];
+  var a = pal.a, b = pal.b, ink = pal.ink;
   var ff = 'Avenir Next, Helvetica, Arial, sans-serif';
+  // Title wrap · hasta 22 chars/línea, máx 2 líneas
   var line1 = t.length > 22 ? t.slice(0, 22) : t;
   var line2 = t.length > 22 ? t.slice(22, 44) : '';
   var titleEls =
-    '<tspan x="40" dy="0">' + line1 + '</tspan>' +
-    (line2 ? '<tspan x="40" dy="52">' + line2 + '</tspan>' : '');
+    '<tspan x="48" dy="0">' + line1 + '</tspan>' +
+    (line2 ? '<tspan x="48" dy="58">' + line2 + '</tspan>' : '');
+  var ws = _svgEscape(_wsLabel());
   var svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">' +
       '<defs>' +
         '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
           '<stop offset="0%" stop-color="' + a + '" stop-opacity="1"/>' +
-          '<stop offset="60%" stop-color="' + a + '" stop-opacity="0.65"/>' +
-          '<stop offset="100%" stop-color="#0A0A0A" stop-opacity="0.95"/>' +
+          '<stop offset="100%" stop-color="' + b + '" stop-opacity="1"/>' +
         '</linearGradient>' +
+        '<pattern id="dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">' +
+          '<circle cx="16" cy="16" r="1.6" fill="#FFFFFF" fill-opacity="0.10"/>' +
+        '</pattern>' +
       '</defs>' +
       '<rect width="600" height="800" fill="url(#g)"/>' +
-      '<text x="40" y="64" fill="#FFFFFF" font-family="' + ff + '" font-size="11" font-weight="700" letter-spacing="3" opacity="0.85">' + lvl + '</text>' +
-      '<text x="40" y="660" fill="#FFFFFF" font-family="' + ff + '" font-size="44" font-weight="800" letter-spacing="-1">' + titleEls + '</text>' +
-      '<text x="40" y="760" fill="#FFFFFF" font-family="' + ff + '" font-size="10" font-weight="600" letter-spacing="3" opacity="0.75">BEONIT &#215; HIJOS DE RIVERA</text>' +
+      '<rect width="600" height="800" fill="url(#dots)"/>' +
+      // Decoración geométrica · círculo grande top-right, levemente fuera
+      '<circle cx="540" cy="160" r="180" fill="#FFFFFF" fill-opacity="0.06"/>' +
+      '<circle cx="540" cy="160" r="110" fill="#FFFFFF" fill-opacity="0.05"/>' +
+      '<circle cx="540" cy="160" r="50"  fill="' + ink + '" fill-opacity="0.85"/>' +
+      // Level chip top-left
+      (lvl ? '<rect x="40" y="48" width="' + Math.max(80, lvl.length * 9 + 24) + '" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.15"/>' +
+             '<text x="' + (40 + (Math.max(80, lvl.length * 9 + 24) / 2)) + '" y="66" text-anchor="middle" fill="#FFFFFF" font-family="' + ff + '" font-size="11" font-weight="800" letter-spacing="2.5">' + lvl + '</text>' : '') +
+      // Tagline pequeño · CURSO
+      '<text x="48" y="556" fill="' + ink + '" fill-opacity="0.85" font-family="' + ff + '" font-size="11" font-weight="800" letter-spacing="4">CURSO</text>' +
+      // Title bottom
+      '<text x="48" y="610" fill="#FFFFFF" font-family="' + ff + '" font-size="48" font-weight="800" letter-spacing="-1.2">' + titleEls + '</text>' +
+      // Línea decorativa
+      '<rect x="48" y="' + (line2 ? 700 : 642) + '" width="64" height="3" fill="' + ink + '" fill-opacity="0.9"/>' +
+      // Footer · workspace dinámico
+      '<text x="48" y="760" fill="#FFFFFF" font-family="' + ff + '" font-size="10" font-weight="700" letter-spacing="3" opacity="0.65">' + ws + '</text>' +
     '</svg>';
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
@@ -58,20 +106,41 @@ if (typeof window !== 'undefined') window.coursePosterSVG = _coursePosterSVG;
 
 function _pillPosterSVG(title, accentHex) {
   var t = _svgEscape(title || 'Pill');
-  var a = accentHex || '#0072BE';
+  var pal = _POSTER_PALETTES[_hashIdx(title, _POSTER_PALETTES.length)];
+  var a = pal.a, b = pal.b, ink = pal.ink;
   var ff = 'Avenir Next, Helvetica, Arial, sans-serif';
-  var line = t.length > 32 ? t.slice(0, 32) + '…' : t;
+  // Title wrap para pills: 16:9 → hasta 28 chars/línea, máx 2 líneas
+  var line1 = t.length > 28 ? t.slice(0, 28) : t;
+  var line2 = t.length > 28 ? t.slice(28, 56) : '';
+  var titleEls =
+    '<tspan x="32" dy="0">' + line1 + '</tspan>' +
+    (line2 ? '<tspan x="32" dy="36">' + line2 + '</tspan>' : '');
+  var ws = _svgEscape(_wsLabel());
   var svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 338">' +
       '<defs>' +
         '<linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">' +
-          '<stop offset="0%" stop-color="' + a + '" stop-opacity="0.95"/>' +
-          '<stop offset="100%" stop-color="#0A0A0A" stop-opacity="0.92"/>' +
+          '<stop offset="0%" stop-color="' + a + '" stop-opacity="1"/>' +
+          '<stop offset="100%" stop-color="' + b + '" stop-opacity="1"/>' +
         '</linearGradient>' +
+        '<pattern id="dots2" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">' +
+          '<circle cx="14" cy="14" r="1.4" fill="#FFFFFF" fill-opacity="0.10"/>' +
+        '</pattern>' +
       '</defs>' +
       '<rect width="600" height="338" fill="url(#g2)"/>' +
-      '<text x="32" y="288" fill="#FFFFFF" font-family="' + ff + '" font-size="26" font-weight="800" letter-spacing="-0.5">' + line + '</text>' +
-      '<text x="32" y="320" fill="#FFFFFF" font-family="' + ff + '" font-size="9" font-weight="600" letter-spacing="3" opacity="0.65">BEONIT</text>' +
+      '<rect width="600" height="338" fill="url(#dots2)"/>' +
+      // Decoración · círculos top-right
+      '<circle cx="520" cy="60"  r="110" fill="#FFFFFF" fill-opacity="0.06"/>' +
+      '<circle cx="520" cy="60"  r="70"  fill="#FFFFFF" fill-opacity="0.05"/>' +
+      '<circle cx="520" cy="60"  r="32"  fill="' + ink + '" fill-opacity="0.85"/>' +
+      // Tagline
+      '<text x="32" y="200" fill="' + ink + '" fill-opacity="0.85" font-family="' + ff + '" font-size="10" font-weight="800" letter-spacing="3.5">PILL</text>' +
+      // Title bottom
+      '<text x="32" y="240" fill="#FFFFFF" font-family="' + ff + '" font-size="30" font-weight="800" letter-spacing="-0.6">' + titleEls + '</text>' +
+      // Línea decorativa
+      '<rect x="32" y="' + (line2 ? 290 : 262) + '" width="46" height="2.5" fill="' + ink + '" fill-opacity="0.9"/>' +
+      // Footer
+      '<text x="32" y="320" fill="#FFFFFF" font-family="' + ff + '" font-size="9" font-weight="700" letter-spacing="3" opacity="0.65">' + ws + '</text>' +
     '</svg>';
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
