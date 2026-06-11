@@ -31,12 +31,12 @@
   --bn-yellow:    #FCCB00;
   --bn-turquoise: #66C7C2;
 
-  /* ── Alias semánticos ────────────────────────── */
-  --accent-glow:  #005996;            /* BeonIt primary blue */
-  --accent-primary: var(--bn-blue);   /* acciones principales */
+  /* ── Alias semánticos (alineados con paleta Udacity light · b116+) ── */
+  --accent-glow:  #2E7CFF;            /* cobalt blue Udacity-style */
+  --accent-primary: #2E7CFF;          /* acciones principales */
   --accent-success: var(--bn-lime);   /* progreso / completado */
 
-  /* ── BeonAI brand · accent principal (era Repsol red) ── */
+  /* ── BeonAI brand · accent principal ── */
   --repsol-red:      #6E50EE;
   --repsol-red-dark: #4E36C5;
 
@@ -46,11 +46,11 @@
   --beonit-lime:    var(--bn-lime);
   --beonit-blue:    var(--bn-blue);
   --beonit-purple:  var(--bn-purple);
-  --accent:         var(--bn-blue);
+  --accent:         #2E7CFF;          /* cobalt · era var(--bn-blue) #0072BE */
   --dark:           #0D1117;
   --dark-2:         #1C2433;
   --dark-3:         #2D3748;
-  --cream:          #F8FAFC;
+  --cream:          #F4D1A8;          /* peach Udacity (era #F8FAFC casi blanco) */
   --highlight:      #FFF8E1;
 
   /* ── Sombras ─────────────────────────────────── */
