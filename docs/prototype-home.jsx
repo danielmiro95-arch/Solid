@@ -372,17 +372,19 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const menuItems = isSimplified ? [
     { k:'profile',      label: T('nav.profile'),               icon:'user' },
     { k:'plan',         label: 'Mi plan IA',                   icon:'sparkle' },
+    { k:'leaderboard',  label: 'Ranking del equipo',           icon:'award' },
     { k:'notes',        label: 'Mis notas',                    icon:'book' },
     { k:'wa',           label: T('nav.wa', 'Channels'),        icon:'broadcast' },
     { k:'certificates', label: 'Certificados',                 icon:'award' },
   ] : [
-    { k:'profile',  label:T('nav.profile'),  icon:'user' },
-    { k:'plan',     label:'Mi plan IA',      icon:'sparkle' },
-    { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },
-    { k:'notes',    label:'Mis notas',       icon:'book' },
-    { k:'wa',       label:T('nav.wa'),       icon:'broadcast' },
-    { k:'inbox',    label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
-    { k:'settings', label:T('nav.settings'), icon:'gear' },
+    { k:'profile',     label:T('nav.profile'),  icon:'user' },
+    { k:'plan',        label:'Mi plan IA',      icon:'sparkle' },
+    { k:'leaderboard', label:'Ranking',         icon:'award' },
+    { k:'saved',       label:T('nav.saved'),    icon:'bookmark' },
+    { k:'notes',       label:'Mis notas',       icon:'book' },
+    { k:'wa',          label:T('nav.wa'),       icon:'broadcast' },
+    { k:'inbox',       label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
+    { k:'settings',    label:T('nav.settings'), icon:'gear' },
   ];
   if (!isSimplified && canManager) menuItems.push({ k:'manager', label: T('nav.manager','Mi equipo'), icon:'users' });
   if (!isSimplified && canAdmin)   menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });

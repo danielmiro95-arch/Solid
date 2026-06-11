@@ -5883,6 +5883,7 @@ function App() {
         {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
         {view === 'notes' && window.NotesView && <window.NotesView setView={setView} openPlayer={openPlayer}/>}
         {view === 'plan' && window.MyPlanView && <window.MyPlanView setView={setView} openPath={openPath} openDetail={openDetail}/>}
+        {view === 'leaderboard' && window.LeaderboardView && <window.LeaderboardView setView={setView}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (
