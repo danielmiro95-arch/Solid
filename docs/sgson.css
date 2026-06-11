@@ -4,59 +4,62 @@
    ============================================================ */
 
 :root {
-  /* ── Color · Surfaces (Udacity-inspired · navy hierarchy) ──
+  /* ── Color · Surfaces (Udacity-inspired LIGHT · blanco plateado + cards) ──
      Aplicado por defecto en TODOS los workspaces · sin overrides per-tenant.
-     Inspirado en el hero / catálogo de Udacity (navy profundo → cobalt) para
-     dar un look editorial premium consistente. */
-  --bg-deep:        #06112E;                       /* deepest navy · footer/scrim base */
-  --bg-canvas:      #0A1A40;                       /* fondo de página · Udacity hero navy */
-  --bg-surface:     #102659;                       /* cards/modales · navy un poco más claro */
-  --bg-elevated:    #1A3473;                       /* hover, dropdowns */
-  --bg-glass:       rgba(10, 26, 64, 0.78);
-  --bg-glass-strong:rgba(10, 26, 64, 0.94);
-  --scrim:          rgba(6, 17, 46, 0.85);
+     Pivote a LIGHT (b116): el catálogo de Udacity vive sobre blanco plateado
+     y las cards son blancas con cover navy DENTRO · no al revés. El navy
+     se queda solo en el cover de pill/curso (la imagen) + opcional top shell. */
+  --bg-deep:        #E8ECF1;                       /* gris frío base · scrim · borde inferior */
+  --bg-canvas:      #F3F4F6;                       /* fondo de página · blanco plateado Udacity */
+  --bg-surface:     #FFFFFF;                       /* cards/modales · blanco puro */
+  --bg-elevated:    #FFFFFF;                       /* dropdowns · con sombra */
+  --bg-glass:       rgba(255, 255, 255, 0.85);
+  --bg-glass-strong:rgba(255, 255, 255, 0.96);
+  --scrim:          rgba(232, 236, 241, 0.85);
 
-  /* ── Color · Lines & dividers (blanco translúcido) ── */
-  --line-faint:     rgba(255, 255, 255, 0.05);
-  --line:           rgba(255, 255, 255, 0.10);
-  --line-strong:    rgba(255, 255, 255, 0.20);
+  /* Zona "cream" · áreas editoriales destacadas (Maestrías, hero CTA). */
+  --bg-cream:       #FAF6EC;
+  /* Cover oscuro · color del area de imagen DENTRO de las cards (poster bg). */
+  --card-cover-bg:  #0A1A40;
 
-  /* ── Color · Text (bluish-white sobre navy · contraste WCAG) ── */
-  --fg:             #F4F7FB;  /* títulos / texto principal · ~16:1 sobre canvas */
-  --fg-muted:       #C5D2E8;  /* texto secundario · bluish slate */
-  --fg-dim:         #8C9CBA;  /* texto terciario */
-  --fg-faint:       #6B7B9A;  /* separadores / placeholders */
+  /* ── Color · Lines & dividers (negro translúcido · sobre fondo claro) ── */
+  --line-faint:     rgba(13, 17, 23, 0.04);
+  --line:           rgba(13, 17, 23, 0.08);
+  --line-strong:    rgba(13, 17, 23, 0.16);
+
+  /* ── Color · Text (oscuro sobre claro · WCAG) ── */
+  --fg:             #0D1117;  /* títulos / texto principal */
+  --fg-muted:       #4A5568;  /* texto secundario · slate medio */
+  --fg-dim:         #6B7280;  /* texto terciario */
+  --fg-faint:       #94A3B8;  /* separadores / placeholders */
   --fg-on-accent:   #FFFFFF;
-  /* Texto blanco sobre covers/gradientes oscuros de las cards (siempre claro,
-     independiente del tema). Tokeniza los #fff hardcodeados de las cards. */
+  /* Texto blanco sobre covers/gradientes oscuros DENTRO de las cards.
+     Mantiene los #fff hardcodeados sobre el poster navy del pill/curso. */
   --fg-on-cover:    #FFFFFF;
 
-  /* ── Color · Accent (cobalt blue · Udacity-style links / CTAs) ──
-     Reemplaza el rojo Repsol como accent por defecto · cada workspace puede
-     seguir definiendo su primary_color para badges puntuales, pero la UI
-     base es cobalt en todos los tenants. */
+  /* ── Color · Accent (cobalt blue · Udacity links / CTAs / títulos) ──
+     Aplica a links, CTAs y a los títulos de pill/curso (en Udacity los
+     títulos están en este azul cobalt brillante). */
   --accent:         #2E7CFF;
   --accent-hover:   #5B95FF;
   --accent-deep:    #0F4FCC;
-  --accent-glow:    rgba(46, 124, 255, 0.35);
+  --accent-glow:    rgba(46, 124, 255, 0.20);
 
-  /* ── Color · Cream highlight (Udacity "Maestrías en IA" peach) ──
-     Para featured / premium / títulos editoriales. Crea contraste cálido
-     sobre el navy frío. */
+  /* ── Color · Cream highlight (peach) · banner promo, badges premium ── */
   --cream:          #F4D1A8;
   --cream-soft:     #FBE3B5;
 
-  /* ── Color · Category tints (subidos en saturación para vivir sobre navy) ── */
-  --cat-publish:    #FFB347;
-  --cat-care:       #4ECDC4;
-  --cat-analytics:  #5BC8FF;
-  --cat-content:    #C471F5;
-  --cat-manage:     #F4D1A8;
+  /* ── Color · Category tints (vivos sobre blanco) ── */
+  --cat-publish:    #D97A2B;
+  --cat-care:       #0F8A6E;
+  --cat-analytics:  #1E5FCC;
+  --cat-content:    #9A3FB8;
+  --cat-manage:     #B57E1A;
 
-  /* ── Color · Status ── */
-  --ok:             #4ADE80;
-  --warn:           #F4B740;
-  --info:           #5BC8FF;
+  /* ── Color · Status (saturados para light) ── */
+  --ok:             #16A34A;
+  --warn:           #EA580C;
+  --info:           #0EA5E9;
 
   /* ── Typography ── */
   --font-sans:      'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -72,10 +75,10 @@
   --r-0: 0;     --r-1: 2px;  --r-2: 4px;   --r-3: 6px;
   --r-4: 10px;  --r-5: 14px; --r-pill: 999px;
 
-  /* ── Shadows (profundas sobre gris oscuro) ── */
-  --shadow-card:   0 6px 24px rgba(0, 0, 0, 0.40);
-  --shadow-pop:    0 24px 80px rgba(0, 0, 0, 0.60), 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-glow:   0 0 0 1px var(--line-strong), 0 30px 60px rgba(0, 0, 0, 0.70);
+  /* ── Shadows (sutiles · light theme · b116+) ── */
+  --shadow-card:   0 1px 3px rgba(13, 17, 23, 0.06), 0 4px 12px rgba(13, 17, 23, 0.06);
+  --shadow-pop:    0 24px 64px rgba(13, 17, 23, 0.14), 0 8px 20px rgba(13, 17, 23, 0.10);
+  --shadow-glow:   0 0 0 1px var(--line-strong), 0 20px 50px rgba(13, 17, 23, 0.18);
 
   /* ── Motion ── */
   --ease-out:      cubic-bezier(.2, .7, .2, 1);
