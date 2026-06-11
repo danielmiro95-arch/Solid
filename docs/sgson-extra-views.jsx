@@ -5031,10 +5031,28 @@ function PillsPanel() {
   const cancel = () => { setOpenId(null); setDraft({}); };
   const save = async () => {
     if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
+    // Poster obligatorio · si no hay, mostramos el error y enfocamos al
+    // botón "Generar" como atajo rápido. Decisión de diseño: ninguna pill
+    // entra al catálogo sin imagen preview.
+    if (!draft.poster || !String(draft.poster).trim()) {
+      if (window.Toast) window.Toast.error('Falta el poster · usa "Generar" o sube una imagen');
+      return;
+    }
     if (openId === 'new') {
-      await window.Pills.create(draft);
+      // Si el poster es un blob: (file pendiente) lo creamos sin poster
+      // primero · tras el insert subimos el File con el pill_number real.
+      const isBlobPoster = String(draft.poster || '').startsWith('blob:');
+      const pendingFile = draft._pendingPosterFile;
+      const payload = isBlobPoster ? Object.assign({}, draft, { poster: null }) : draft;
+      delete payload._pendingPosterFile;
+      const created = await window.Pills.create(payload);
+      if (created && isBlobPoster && pendingFile && typeof draft.pill === 'number') {
+        await window.Pills.uploadPoster(draft.pill, pendingFile);
+      }
     } else {
-      await window.Pills.update(openId, draft);
+      const patch = Object.assign({}, draft);
+      delete patch._pendingPosterFile;
+      await window.Pills.update(openId, patch);
       if (window.Toast) window.Toast.success('Pill actualizada');
     }
     cancel();
@@ -5053,12 +5071,61 @@ function PillsPanel() {
     } finally { setUploadingVideo(false); e.target.value = ''; }
   };
   const onPosterFile = async (e) => {
-    const f = e.target.files && e.target.files[0]; if (!f || openId === 'new' || openId == null) return;
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    // En pill nueva no tenemos pill_number todavía · diferimos el upload:
+    // mostramos preview con blob URL y guardamos el File en el draft. El
+    // save() real lo subirá tras Pills.create con el pill_number asignado.
+    if (openId === 'new' || openId == null) {
+      const blobUrl = URL.createObjectURL(f);
+      setDraft(d => Object.assign({}, d, { poster: blobUrl, _pendingPosterFile: f }));
+      e.target.value = '';
+      return;
+    }
     setUploadingPoster(true);
     try {
       const url = await window.Pills.uploadPoster(openId, f);
-      if (url) setDraft(d => ({ ...d, poster: url }));
+      if (url) setDraft(d => Object.assign({}, d, { poster: url, _pendingPosterFile: null }));
     } finally { setUploadingPoster(false); e.target.value = ''; }
+  };
+  // Atajos rápidos para rellenar el poster sin subir archivo.
+  const useYoutubeThumb = () => {
+    if (!draft.yt) { if (window.Toast) window.Toast.error('Pon primero el YouTube ID'); return; }
+    setDraft(d => Object.assign({}, d, {
+      poster: 'https://i.ytimg.com/vi/' + d.yt + '/hqdefault.jpg',
+      _pendingPosterFile: null,
+    }));
+  };
+  const generatePoster = () => {
+    if (!window.pillPosterSVG) { if (window.Toast) window.Toast.error('Generador SVG no disponible'); return; }
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
+    const dataUrl = window.pillPosterSVG(draft.title || 'Nueva pill', accent);
+    setDraft(d => Object.assign({}, d, { poster: dataUrl, _pendingPosterFile: null }));
+  };
+  // Backfill batch · recorre las pills sin poster y les pone un fallback:
+  // YT thumb si tienen yt, SVG generado si no. Idempotente: ignora las que
+  // ya tienen poster. Lo dispara el admin desde el botón de la cabecera.
+  const [backfilling, setBackfilling] = useEV2(false);
+  const backfillMissingPosters = async () => {
+    const missing = pills.filter(p => !p.poster || !String(p.poster).trim());
+    if (missing.length === 0) { if (window.Toast) window.Toast.info('Todas las pills ya tienen poster'); return; }
+    if (!confirm('Vas a rellenar el poster en ' + missing.length + ' pill' + (missing.length === 1 ? '' : 's') + ' (YT thumb o SVG con el título). ¿Seguimos?')) return;
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
+    setBackfilling(true);
+    let ok = 0, fail = 0;
+    for (const p of missing) {
+      try {
+        const poster = p.yt
+          ? ('https://i.ytimg.com/vi/' + p.yt + '/hqdefault.jpg')
+          : (window.pillPosterSVG ? window.pillPosterSVG(p.title || 'Pill', accent) : null);
+        if (!poster) { fail++; continue; }
+        await window.Pills.update(p.pill, { poster });
+        ok++;
+      } catch (e) { fail++; }
+    }
+    setBackfilling(false);
+    if (window.Toast) window.Toast[fail === 0 ? 'success' : 'info']('Posters: ' + ok + ' rellenadas' + (fail ? ' · ' + fail + ' errores' : ''));
   };
 
   const editForm = (
@@ -5095,16 +5162,30 @@ function PillsPanel() {
             </label>
           )}
         </div>
-        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Poster</label>
-        <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
-          {draft.poster && <img src={draft.poster} alt="" style={{ width: 56, height: 32, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4 }} onError={e => { e.currentTarget.style.display='none'; }}/>}
-          <input value={draft.poster || ''} onChange={e => setDraft({ ...draft, poster: e.target.value })} placeholder="URL imagen o sube archivo →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
-          {openId !== 'new' && (
+        <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>Poster <span style={{ color:'#EF4444' }}>*</span></label>
+        <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+          <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+            {draft.poster && <img src={draft.poster} alt="" style={{ width: 56, height: 32, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4 }} onError={e => { e.currentTarget.style.display='none'; }}/>}
+            <input value={draft.poster || ''} onChange={e => setDraft({ ...draft, poster: e.target.value, _pendingPosterFile: null })} placeholder="URL imagen o usa atajos →" style={{ flex: 1, minWidth: 200, padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}/>
             <label style={{ padding:'7px 14px', background: uploadingPoster ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingPoster ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingPoster ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
-              {uploadingPoster ? 'Subiendo…' : 'Subir imagen'}
+              {uploadingPoster ? 'Subiendo…' : '↑ Subir imagen'}
               <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onPosterFile} disabled={uploadingPoster} style={{ display:'none' }}/>
             </label>
-          )}
+          </div>
+          {/* Atajos · YT thumb si hay yt · SVG con título si no hay nada */}
+          <div style={{ display:'flex', gap: 8, flexWrap:'wrap', fontSize: 11 }}>
+            {draft.yt && (
+              <button type="button" onClick={useYoutubeThumb} style={{ padding:'5px 10px', background:'rgba(255,0,0,0.08)', color:'#E53935', border:'1px solid rgba(229,57,53,0.3)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 700 }}>
+                ▶ Usar miniatura de YouTube
+              </button>
+            )}
+            <button type="button" onClick={generatePoster} style={{ padding:'5px 10px', background:'rgba(110,80,238,0.10)', color:'var(--accent)', border:'1px solid rgba(110,80,238,0.3)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 700 }}>
+              ✨ Generar con el título
+            </button>
+            <span style={{ fontSize: 10.5, color:'var(--fg-muted)', alignSelf:'center' }}>
+              Obligatorio · ninguna pill puede salir sin imagen preview.
+            </span>
+          </div>
         </div>
         <span/>
         <div style={{ display:'flex', gap: 14, fontSize: 12, color:'var(--fg)', alignItems:'center' }}>
@@ -5112,11 +5193,6 @@ function PillsPanel() {
           <label style={{ display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer' }}><input type="checkbox" checked={!!draft.newBadge} onChange={e => setDraft({ ...draft, newBadge: e.target.checked })}/> Badge "Nuevo"</label>
         </div>
       </div>
-      {openId === 'new' && (
-        <div style={{ fontSize: 11, color:'var(--fg-muted)', fontStyle:'italic' }}>
-          Crea la pill primero (botón Guardar). Después podrás editarla para subir el vídeo y el poster.
-        </div>
-      )}
       <div style={{ display:'flex', gap: 8 }}>
         <button onClick={save} disabled={uploadingVideo || uploadingPoster}
           style={{ padding:'8px 18px', background:'var(--ok)', color:'#fff', border:'none', borderRadius: 6, cursor: (uploadingVideo||uploadingPoster) ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
@@ -5132,11 +5208,24 @@ function PillsPanel() {
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 14, gap: 12, flexWrap:'wrap' }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', marginTop: 0, marginBottom: 4 }}>📚 Pills del workspace</h2>
-          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>Catálogo de <strong>{wsName}</strong> · {pills.length} pills</div>
+          <div style={{ fontSize: 13, color:'var(--fg-muted)' }}>
+            Catálogo de <strong>{wsName}</strong> · {pills.length} pills
+            {(() => {
+              const missing = pills.filter(p => !p.poster || !String(p.poster).trim()).length;
+              return missing > 0 ? <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span> : null;
+            })()}
+          </div>
         </div>
-        {openId !== 'new' && (
-          <button onClick={startNew} style={{ padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)', cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nueva pill</button>
-        )}
+        <div style={{ display:'flex', gap: 8 }}>
+          {pills.some(p => !p.poster || !String(p.poster).trim()) && (
+            <button onClick={backfillMissingPosters} disabled={backfilling} style={{ padding:'10px 14px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius:'var(--r-1)', cursor: backfilling ? 'wait' : 'pointer', fontWeight: 700, fontSize: 12 }}>
+              {backfilling ? 'Procesando…' : '✨ Generar posters faltantes'}
+            </button>
+          )}
+          {openId !== 'new' && (
+            <button onClick={startNew} style={{ padding:'10px 16px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:'var(--r-1)', cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nueva pill</button>
+          )}
+        </div>
       </div>
 
       {openId === 'new' && editForm}
@@ -5151,6 +5240,11 @@ function PillsPanel() {
             <div key={p.id || p.pill} style={{ padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 8 }}>
               <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
                 <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, fontWeight: 700, color:'var(--fg-muted)', minWidth: 28, textAlign:'right' }}>{String(p.pill).padStart(2, '0')}</span>
+                {p.poster ? (
+                  <img src={p.poster} alt="" style={{ width: 56, height: 32, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4, flexShrink: 0 }} onError={e => { e.currentTarget.style.display='none'; }}/>
+                ) : (
+                  <div title="Sin poster" style={{ width: 56, height: 32, background:'rgba(245,158,11,0.12)', border:'1px dashed rgba(245,158,11,0.4)', borderRadius: 4, display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, color:'#F59E0B', flexShrink: 0 }}>⚠</div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color:'var(--fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {p.featured ? <span title="Featured" style={{ marginRight: 6 }}>⭐</span> : null}
@@ -5206,22 +5300,47 @@ function ContentPanel({ kind, label, icon }) {
   const wsName = ws ? ws.name : '—';
   const items = window.Content.list(kind);
 
-  const startEdit = (it) => { setOpenId(it._id); setDraft({ ...it, brand: (it._meta && it._meta.brand) || '' }); };
-  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0, brand: '' }); };
+  const [uploadingPoster, setUploadingPoster] = useEV2(false);
+
+  const startEdit = (it) => {
+    const meta = it._meta || {};
+    setOpenId(it._id);
+    setDraft(Object.assign({}, it, {
+      brand: meta.brand || '',
+      poster_url: meta.poster_url || '',
+    }));
+  };
+  const startNew = () => { setOpenId('new'); setDraft({ title: '', teacher: '', duration: '', tone: 'teal', category: '', level: '', rating: 4.7, enrolled: 0, brand: '', poster_url: '' }); };
   const cancel = () => { setOpenId(null); setDraft({}); };
 
   const save = async () => {
     if (!draft.title || !draft.title.trim()) { if (window.Toast) window.Toast.error('Falta el título'); return; }
-    // Brand vive en metadata.brand · lo extraemos del draft plano y lo
-    // pasamos como patch.metadata para que content.update haga merge.
-    const { brand, ...rest } = draft;
-    const payload = brand !== undefined && kind === 'path'
-      ? Object.assign({}, rest, { metadata: { brand: brand.trim() || null } })
-      : rest;
+    // Poster obligatorio para paths (los cursos). El resto de kinds (series,
+    // reel, podcast) lo recomiendan pero no lo bloquean. Decisión del cliente:
+    // ningún curso entra al catálogo sin imagen preview.
+    if (kind === 'path' && (!draft.poster_url || !String(draft.poster_url).trim())) {
+      if (window.Toast) window.Toast.error('Falta el poster · usa "Generar" o sube una imagen');
+      return;
+    }
+    // Brand + poster_url viven en metadata. Construimos el merge sin pisar
+    // otras keys de metadata existentes (Content.update ya hace merge).
+    const { brand, poster_url, _pendingPosterFile, ...rest } = draft;
+    const isBlobPoster = String(poster_url || '').startsWith('blob:');
+    const metadata = {};
+    if (kind === 'path') metadata.brand = (brand || '').trim() || null;
+    if (poster_url && !isBlobPoster) metadata.poster_url = poster_url;
+    const payload = Object.keys(metadata).length ? Object.assign({}, rest, { metadata }) : rest;
+
     if (openId === 'new') {
-      await window.Content.create(kind, payload);
+      const created = await window.Content.create(kind, payload);
+      if (created && _pendingPosterFile && created.id && window.Content.uploadPoster) {
+        await window.Content.uploadPoster(kind, created.id, _pendingPosterFile);
+      }
     } else {
       await window.Content.update(kind, openId, payload);
+      if (_pendingPosterFile && window.Content.uploadPoster) {
+        await window.Content.uploadPoster(kind, openId, _pendingPosterFile);
+      }
       if (window.Toast) window.Toast.success('Actualizado');
     }
     setOpenId(null); setDraft({});
@@ -5229,6 +5348,32 @@ function ContentPanel({ kind, label, icon }) {
   const remove = async (id, title) => {
     if (!confirm('¿Eliminar "' + title + '"?')) return;
     await window.Content.remove(kind, id);
+  };
+
+  // Atajos rápidos para el poster · igual que en pills, sin YT thumb porque
+  // los cursos/series no tienen yt en este modelo.
+  const onContentPosterFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    if (openId === 'new' || openId == null) {
+      const blobUrl = URL.createObjectURL(f);
+      setDraft(d => Object.assign({}, d, { poster_url: blobUrl, _pendingPosterFile: f }));
+      e.target.value = '';
+      return;
+    }
+    setUploadingPoster(true);
+    try {
+      const url = window.Content.uploadPoster ? await window.Content.uploadPoster(kind, openId, f) : null;
+      if (url) setDraft(d => Object.assign({}, d, { poster_url: url, _pendingPosterFile: null }));
+    } finally { setUploadingPoster(false); e.target.value = ''; }
+  };
+  const generateContentPoster = () => {
+    const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+    const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
+    const gen = (kind === 'path' && window.coursePosterSVG)
+      ? window.coursePosterSVG(draft.title || 'Nuevo curso', accent, draft.level || '')
+      : (window.pillPosterSVG ? window.pillPosterSVG(draft.title || 'Nuevo', accent) : null);
+    if (!gen) { if (window.Toast) window.Toast.error('Generador SVG no disponible'); return; }
+    setDraft(d => Object.assign({}, d, { poster_url: gen, _pendingPosterFile: null }));
   };
 
   const showLevel    = kind !== 'reel';
@@ -5241,9 +5386,38 @@ function ContentPanel({ kind, label, icon }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8, flexWrap:'wrap', gap: 8 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{icon} {label} · {wsName}</h2>
-          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 2 }}>{items.length} {items.length === 1 ? 'elemento' : 'elementos'} · scopeado al workspace activo</div>
+          <div style={{ fontSize: 12, color:'var(--fg-muted)', marginTop: 2 }}>
+            {items.length} {items.length === 1 ? 'elemento' : 'elementos'} · scopeado al workspace activo
+            {(() => {
+              if (kind !== 'path') return null;
+              const missing = items.filter(it => !(it._meta && it._meta.poster_url)).length;
+              return missing > 0 ? <span style={{ marginLeft: 8, padding:'2px 8px', background:'rgba(245,158,11,0.18)', color:'#F59E0B', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{missing} sin poster</span> : null;
+            })()}
+          </div>
         </div>
-        <button onClick={startNew} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nuevo</button>
+        <div style={{ display:'flex', gap: 8 }}>
+          {kind === 'path' && items.some(it => !(it._meta && it._meta.poster_url)) && (
+            <button onClick={async () => {
+              const missing = items.filter(it => !(it._meta && it._meta.poster_url));
+              if (!confirm('Vas a rellenar el poster en ' + missing.length + ' curso' + (missing.length === 1 ? '' : 's') + ' con un SVG generado del título. ¿Seguimos?')) return;
+              const ws = window.Workspaces && window.Workspaces.current && window.Workspaces.current();
+              const accent = (ws && (ws.primaryColor || ws.primary_color)) || '#6E50EE';
+              let ok = 0, fail = 0;
+              for (const it of missing) {
+                try {
+                  const poster = window.coursePosterSVG ? window.coursePosterSVG(it.title || 'Curso', accent, it.level || '') : null;
+                  if (!poster) { fail++; continue; }
+                  await window.Content.update(kind, it._id, { metadata: { poster_url: poster } });
+                  ok++;
+                } catch(e) { fail++; }
+              }
+              if (window.Toast) window.Toast[fail === 0 ? 'success' : 'info']('Posters: ' + ok + ' rellenados' + (fail ? ' · ' + fail + ' errores' : ''));
+            }} style={{ padding:'8px 12px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)', borderRadius: 8, cursor:'pointer', fontWeight: 700, fontSize: 11.5 }}>
+              ✨ Generar posters faltantes
+            </button>
+          )}
+          <button onClick={startNew} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight: 700, fontSize: 12.5 }}>+ Nuevo</button>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -5252,8 +5426,15 @@ function ContentPanel({ kind, label, icon }) {
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
-          {items.map(it => (
+          {items.map(it => {
+            const posterUrl = it._meta && it._meta.poster_url;
+            return (
             <div key={it._id} style={{ padding:'12px 14px', background:'var(--paper)', border:'1px solid var(--line-2)', borderRadius: 8, display:'flex', alignItems:'center', gap: 12 }}>
+              {posterUrl ? (
+                <img src={posterUrl} alt="" style={{ width: 40, height: 52, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4, flexShrink: 0 }} onError={e => { e.currentTarget.style.display='none'; }}/>
+              ) : (
+                <div title={kind === 'path' ? 'Curso sin poster · edítalo para añadir uno' : 'Sin poster'} style={{ width: 40, height: 52, background:'rgba(245,158,11,0.12)', border:'1px dashed rgba(245,158,11,0.4)', borderRadius: 4, display:'flex', alignItems:'center', justifyContent:'center', fontSize: 16, color:'#F59E0B', flexShrink: 0 }}>⚠</div>
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 13.5, color:'var(--fg)', display:'flex', alignItems:'center', gap: 8 }}>
                   {it.title}
@@ -5274,7 +5455,8 @@ function ContentPanel({ kind, label, icon }) {
               <button onClick={() => startEdit(it)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'var(--fg)' }}>Editar</button>
               <button onClick={() => remove(it._id, it.title)} style={{ padding:'5px 12px', background:'transparent', border:'1px solid var(--line)', borderRadius: 6, cursor:'pointer', fontSize: 11.5, color:'#E63946' }}>Eliminar</button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -5285,6 +5467,26 @@ function ContentPanel({ kind, label, icon }) {
             <label style={{ gridColumn:'1 / -1' }}>
               <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Título *</div>
               <input value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} autoFocus style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--line)', borderRadius: 6, background:'var(--bg-surface)', color:'var(--fg)', fontSize: 13, boxSizing:'border-box' }}/>
+            </label>
+            {/* Poster · obligatorio para paths · recomendado para series/reel/podcast */}
+            <label style={{ gridColumn:'1 / -1' }}>
+              <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>
+                Poster {kind === 'path' && <span style={{ color:'#EF4444' }}>*</span>}
+              </div>
+              <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+                {draft.poster_url && <img src={draft.poster_url} alt="" style={{ width: 56, height: 70, objectFit:'cover', border:'1px solid var(--line)', borderRadius: 4 }} onError={e => { e.currentTarget.style.display='none'; }}/>}
+                <input value={draft.poster_url || ''} onChange={e => setDraft({ ...draft, poster_url: e.target.value, _pendingPosterFile: null })} placeholder="URL imagen o usa atajos →" style={{ flex: 1, minWidth: 180, padding:'8px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)', boxSizing:'border-box' }}/>
+                <label style={{ padding:'7px 14px', background: uploadingPoster ? 'var(--bg-elevated)' : 'var(--accent)', color: uploadingPoster ? 'var(--fg-muted)' : '#fff', borderRadius: 6, cursor: uploadingPoster ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700 }}>
+                  {uploadingPoster ? 'Subiendo…' : '↑ Subir imagen'}
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onContentPosterFile} disabled={uploadingPoster} style={{ display:'none' }}/>
+                </label>
+                <button type="button" onClick={generateContentPoster} style={{ padding:'7px 12px', background:'rgba(110,80,238,0.10)', color:'var(--accent)', border:'1px solid rgba(110,80,238,0.3)', borderRadius: 5, cursor:'pointer', fontSize: 11, fontWeight: 700 }}>
+                  ✨ Generar con el título
+                </button>
+              </div>
+              <span style={{ fontSize: 10.5, color:'var(--fg-muted)', marginTop: 4, display:'block' }}>
+                {kind === 'path' ? 'Obligatorio · ningún curso entra al catálogo sin imagen preview.' : 'Recomendado · si no lo pones se usa un SVG generado automáticamente al renderizar.'}
+              </span>
             </label>
             <label>
               <div style={{ fontSize: 10, color:'var(--fg-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 4 }}>Autor / instructor</div>

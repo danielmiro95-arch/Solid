@@ -3469,6 +3469,22 @@ function _activateSupabaseData() {
       if (window.Toast) window.Toast.info('Eliminado');
       return true;
     },
+    // Sube una imagen de poster para un curso/serie/reel/podcast y persiste
+    // la URL pública en metadata.poster_url. Usa el bucket workspace-assets,
+    // path content-posters/{kind}-{id}.{ext}.
+    uploadPoster: async function(kind, id, file) {
+      const wsId = _wsid(); if (!wsId || !file) return null;
+      const ext = (file.name && file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = wsId + '/content-posters/' + kind + '-' + id + '.' + ext;
+      const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
+        upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '3600',
+      });
+      if (upErr) { console.warn('[supa] upload content poster', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el poster: ' + upErr.message); return null; }
+      const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
+      const url = (pub && pub.publicUrl) + '?v=' + Date.now();
+      await window.Content.update(kind, id, { metadata: { poster_url: url } });
+      return url;
+    },
   };
 
   // ── Progress · tracking de pills completadas por user ────────────────
