@@ -3666,8 +3666,16 @@ function _activateSupabaseData() {
       window.dispatchEvent(new Event('certificates-changed'));
       return data;
     },
+    /* URL pública de verificación · QR del PDF apunta aquí. Cualquier persona
+     * (RRHH externo, recruiter) puede escanear y validar autenticidad. */
+    verifyUrl: function(cert) {
+      if (!cert || !cert.id) return null;
+      const origin = (typeof location !== 'undefined') ? location.origin : 'https://solid-stream.vercel.app';
+      return origin.replace(/\/$/, '') + '/verify.html?cert=' + encodeURIComponent(cert.id);
+    },
     /* Genera el HTML del certificado · ABRE como blob en pestaña nueva
-     * o fuerza descarga · el user lo imprime a PDF desde el navegador. */
+     * o fuerza descarga · el user lo imprime a PDF desde el navegador.
+     * Incluye QR de verificación pública abajo-derecha. */
     generateHTML: function(cert) {
       const profile = (window.Auth && window.Auth.currentUser()) || {};
       const wsName = window.WORKSPACE_NAME || (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && window.Workspaces.current().name) || 'Plataforma';
@@ -3679,18 +3687,32 @@ function _activateSupabaseData() {
       const userTeam = profile.team || wsName;
       const wsColor = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() && (window.Workspaces.current().primaryColor || window.Workspaces.current().primary_color)) || '#005996';
       const esc = s => (s||'').toString().replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c]));
+      const vUrl = window.Certificates.verifyUrl(cert);
+      const qrSvg = (vUrl && window.generateQRSvg) ? window.generateQRSvg(vUrl, 160) : '';
+      const qrDataUrl = qrSvg ? ('data:image/svg+xml;utf8,' + encodeURIComponent(qrSvg)) : '';
+      const qrBlock = qrDataUrl
+        ? ('<div class="qr-box"><img src="' + qrDataUrl + '" alt="QR de verificación"/>'
+           + '<div class="qr-cap">Verifica en línea</div>'
+           + '<div class="qr-url">' + esc((vUrl || '').replace(/^https?:\/\//, '')) + '</div></div>')
+        : '';
       return '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + esc(userName) + '</title>'
         + '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}'
-        + '.frame{border:6px double ' + wsColor + ';padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}'
+        + '.frame{border:6px double ' + wsColor + ';padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff;position:relative}'
         + '.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}'
         + 'h1{font-size:38px;margin:0 0 20px;color:#0D1117}'
         + '.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}'
         + '.name{font-style:italic;font-weight:700;font-size:58px;color:' + wsColor + ';margin:0 0 8px;letter-spacing:-.025em}'
         + '.role{font-size:16px;color:#0D1117;margin-bottom:28px}'
         + '.cert-line{height:2px;background:linear-gradient(90deg,' + wsColor + ',#BCD630,#8A3992,' + wsColor + ');margin:24px 0}'
-        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}'
+        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568;gap:24px}'
+        + '.foot > div{min-width:0}'
         + '.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}'
         + '.cert-num{font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.1em}'
+        + '.qr-box{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid ' + wsColor + ';padding:8px;background:#fff}'
+        + '.qr-box img{width:120px;height:120px;display:block}'
+        + '.qr-cap{font-family:JetBrains Mono,monospace;font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:#475569;font-weight:700;margin-top:4px}'
+        + '.qr-url{font-family:JetBrains Mono,monospace;font-size:7.5px;color:#94A3B8;max-width:130px;text-align:center;word-break:break-all;line-height:1.3}'
+        + '@media print{body{background:#fff}.frame{border-color:' + wsColor + '}}'
         + '</style></head><body>'
         + '<div class="frame">'
         +   '<div class="kicker">SolidStream · ' + esc(wsName) + ' · Certificación oficial</div>'
@@ -3700,9 +3722,9 @@ function _activateSupabaseData() {
         +   (userRole || userTeam ? '<div class="role">' + esc([userRole, userTeam].filter(Boolean).join(' · ')) + '</div>' : '')
         +   '<div class="cert-line"></div>'
         +   '<div class="foot">'
-        +     '<div><strong>Fecha</strong><br/>' + esc(today) + '</div>'
-        +     '<div><strong>Nº de certificado</strong><br/><span class="cert-num">' + esc(cert.cert_number || '—') + '</span></div>'
+        +     '<div><strong>Fecha</strong><br/>' + esc(today) + '<div class="cert-num" style="margin-top:8px">' + esc(cert.cert_number || '—') + '</div></div>'
         +     '<div><div class="sig">' + esc(wsName) + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div>'
+        +     qrBlock
         +   '</div>'
         + '</div></body></html>';
     },
@@ -3719,6 +3741,25 @@ function _activateSupabaseData() {
       a.download = 'Certificado-' + safe(cert.route_title || cert.route_id) + '-' + safe(profile.name || profile.email || 'alumno') + '.html';
       document.body.appendChild(a); a.click();
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    },
+    /* Abre el cert en una pestaña nueva y dispara el print dialog. El user
+     * elige "Guardar como PDF" del propio navegador · funciona en Chrome,
+     * Safari, Firefox y Edge sin libs externas. Si el popup queda bloqueado,
+     * cae a download() automáticamente. */
+    openPrintDialog: function(cert) {
+      const html = window.Certificates.generateHTML(cert);
+      // Adjuntamos un <script> que auto-llama print() · el user solo elige.
+      const printable = html.replace('</body>', '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script></body>');
+      const blob = new Blob([printable], { type:'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank', 'noopener,width=1100,height=780');
+      if (!win) {
+        // Popup blocked · fallback a descarga directa.
+        URL.revokeObjectURL(url);
+        return window.Certificates.download(cert);
+      }
+      // Revoke después de un rato para no filtrar memoria.
+      setTimeout(() => { try { URL.revokeObjectURL(url); } catch(e){} }, 60000);
     },
   };
   // Listener · al completar una ruta, crear cert (idempotente vía constraint
