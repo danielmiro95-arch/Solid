@@ -6269,3 +6269,190 @@ function MyPlanView({ setView, openPath, openDetail }) {
   );
 }
 window.MyPlanView = MyPlanView;
+
+/* ============================================================
+   LeaderboardView · Ranking del equipo + retos semanales
+   · Llama al RPC workspace_leaderboard(workspace_id) (db/workspace-leaderboard.sql)
+   · Puntos calculados en SQL: completados*10 + exámenes*50 + inscripciones*5 + certs*30
+   · Retos semanales: derivados de week_completed / week_passed / week_ratings
+     del propio user (no necesitan tabla aparte)
+   ============================================================ */
+const WEEKLY_CHALLENGES = [
+  { id:'wk_pills',   label:'Completa 3 pills',   icon:'🎯', goal: 3, metric:'week_completed' },
+  { id:'wk_exam',    label:'Aprueba 1 examen',   icon:'🏆', goal: 1, metric:'week_passed' },
+  { id:'wk_rate',    label:'Valora 5 pills',     icon:'★',  goal: 5, metric:'week_ratings' },
+];
+
+function LeaderboardView({ setView }) {
+  const D = window.SGS_DATA || {};
+  const USER = D.USER || {};
+  const [rows, setRows] = useEV2([]);
+  const [loading, setLoading] = useEV2(true);
+  const [err, setErr] = useEV2('');
+
+  useEE2(() => {
+    let alive = true;
+    const fetchIt = () => {
+      const sb = window.supabaseClient;
+      const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+      if (!sb || !sb.rpc || !wsId) {
+        if (alive) { setLoading(false); setRows([]); setErr(sb ? 'no-workspace' : 'no-supabase'); }
+        return;
+      }
+      setLoading(true);
+      sb.rpc('workspace_leaderboard', { p_workspace_id: wsId, p_limit: 50 }).then(({ data, error }) => {
+        if (!alive) return;
+        setLoading(false);
+        if (error) {
+          setErr(error.message); setRows([]); return;
+        }
+        setErr(''); setRows(data || []);
+      });
+    };
+    fetchIt();
+    window.addEventListener('workspace-changed', fetchIt);
+    return () => { alive = false; window.removeEventListener('workspace-changed', fetchIt); };
+  }, []);
+
+  const meRow = rows.find(r => r.user_id === (USER.id || '')) || null;
+  const myRank = meRow ? (rows.findIndex(r => r.user_id === meRow.user_id) + 1) : null;
+
+  const _initials = (name, email) => (name || (email ? email.split('@')[0] : '?')).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+  return (
+    <PageShell
+      eyebrow="Ranking del equipo y retos"
+      title={<>Tu <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>liga</em></>}
+      sub={myRank ? ('Estás en la posición #' + myRank + ' · ' + (meRow ? meRow.points : 0) + ' puntos') : (rows.length ? rows.length + ' personas en este workspace' : '')}
+    >
+      {loading && <div style={{ padding:'24px 0', color:'var(--fg-muted)', fontSize: 13 }}>Cargando ranking…</div>}
+
+      {!loading && err && (
+        <div style={{ padding:'16px 18px', background:'rgba(243,183,64,0.10)', border:'1px solid rgba(243,183,64,0.30)', borderRadius: 10, color:'var(--fg-muted)', fontSize: 13 }}>
+          {err === 'no-supabase' ? 'Supabase no está configurado.' :
+           err === 'no-workspace' ? 'Sin workspace activo.' :
+           err.indexOf('function') >= 0 || err.indexOf('does not exist') >= 0
+             ? 'La función SQL no existe · ejecuta db/workspace-leaderboard.sql en Supabase.'
+             : 'Detalle: ' + err}
+        </div>
+      )}
+
+      {!loading && !err && rows.length === 0 && (
+        <div style={{ padding:'60px 32px', textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius: 16 }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🏁</div>
+          <h3 style={{ margin:'0 0 6px', color:'var(--fg)' }}>Aún no hay actividad</h3>
+          <p style={{ fontSize: 13, color:'var(--fg-muted)' }}>Cuando los miembros del workspace completen cursos, su ranking aparecerá aquí.</p>
+        </div>
+      )}
+
+      {!loading && !err && rows.length > 0 && (
+        <>
+          {/* Retos semanales (para el user actual) */}
+          {meRow && (
+            <section style={{ marginBottom: 28 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color:'var(--fg)', margin:'0 0 12px', display:'flex', alignItems:'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>⚡</span> Retos de esta semana
+              </h2>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+                {WEEKLY_CHALLENGES.map(ch => {
+                  const cur = Number(meRow[ch.metric] || 0);
+                  const pct = Math.min(100, Math.round((cur / ch.goal) * 100));
+                  const done = cur >= ch.goal;
+                  return (
+                    <div key={ch.id} style={{
+                      padding: 16, borderRadius: 12,
+                      background: done ? 'linear-gradient(135deg, rgba(74,222,128,0.14), rgba(74,222,128,0.04))' : 'var(--bg-surface)',
+                      border: '1px solid ' + (done ? 'rgba(74,222,128,0.40)' : 'var(--line)'),
+                    }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 8 }}>
+                        <span style={{ fontSize: 22 }}>{ch.icon}</span>
+                        <span style={{ fontFamily:'var(--font-mono)', fontSize: 11, color: done ? '#4ADE80' : 'var(--fg-muted)', fontWeight: 700 }}>
+                          {cur}/{ch.goal} {done && '✓'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color:'var(--fg)', marginBottom: 8 }}>{ch.label}</div>
+                      <div style={{ height: 5, background:'var(--bg-elevated)', borderRadius: 3, overflow:'hidden' }}>
+                        <div style={{ width: pct + '%', height:'100%', background: done ? '#4ADE80' : 'var(--accent)', transition:'width .3s' }}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Tu tarjeta destacada · solo si está fuera del top 5 */}
+          {meRow && myRank > 5 && (
+            <div style={{
+              padding:'14px 18px', marginBottom: 18,
+              background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.02))',
+              border:'1px solid rgba(236,28,36,0.30)', borderRadius: 12,
+              display:'flex', alignItems:'center', gap: 14,
+            }}>
+              <div style={{ width: 28, textAlign:'center', fontFamily:'var(--font-mono)', fontWeight: 800, color:'var(--accent)', fontSize: 13 }}>#{myRank}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color:'var(--fg)' }}>Tú · {meRow.name || (USER.email || '').split('@')[0]}</div>
+                <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>{meRow.points} puntos · {meRow.completed} pills · {meRow.passed_exams} exámenes</div>
+              </div>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)', letterSpacing:'0.1em', textTransform:'uppercase', fontWeight: 700 }}>Tu posición</span>
+            </div>
+          )}
+
+          {/* Top ranking · tabla compacta */}
+          <section style={{ background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 14, overflow:'hidden' }}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--line)', display:'flex', justifyContent:'space-between', alignItems:'baseline', gap: 10, flexWrap:'wrap' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color:'var(--fg)', margin: 0, display:'flex', alignItems:'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>🏆</span> Top {Math.min(rows.length, 50)} · {window.WORKSPACE_NAME || 'tu workspace'}
+              </h2>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
+                10 pts/pill · 50 pts/examen · 30 pts/cert · 5 pts/inscripción
+              </span>
+            </div>
+            <ol style={{ listStyle:'none', margin: 0, padding: 0 }}>
+              {rows.map((r, i) => {
+                const isMe = USER.id && r.user_id === USER.id;
+                const rank = i + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+                return (
+                  <li key={r.user_id} style={{
+                    display:'flex', alignItems:'center', gap: 14,
+                    padding:'12px 18px',
+                    borderTop: i ? '1px solid var(--line-faint)' : 'none',
+                    background: isMe ? 'rgba(236,28,36,0.06)' : 'transparent',
+                  }}>
+                    <div style={{ width: 36, textAlign:'center', fontFamily:'var(--font-mono)', fontWeight: 800, fontSize: medal ? 18 : 13, color: rank <= 3 ? 'var(--accent)' : 'var(--fg-dim)' }}>
+                      {medal || '#' + rank}
+                    </div>
+                    <div style={{
+                      width: 36, height: 36, borderRadius:'50%', flexShrink: 0,
+                      background: r.avatar_color || 'var(--accent)', color:'#fff',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize: 12.5, fontWeight: 800,
+                    }}>{_initials(r.name)}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color:'var(--fg)', display:'flex', alignItems:'center', gap: 8 }}>
+                        {r.name || '—'}
+                        {isMe && <span style={{ fontFamily:'var(--font-mono)', fontSize: 8.5, padding:'1px 5px', background:'var(--accent)', color:'#fff', borderRadius: 3, letterSpacing:'0.06em' }}>TÚ</span>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color:'var(--fg-muted)' }}>
+                        {(r.role || '—') + (r.team ? ' · ' + r.team : '')}
+                      </div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: rank <= 3 ? 'var(--accent)' : 'var(--fg)', fontFamily:'var(--font-sans)' }}>{Number(r.points || 0).toLocaleString('es-ES')}</div>
+                      <div style={{ fontSize: 10, color:'var(--fg-dim)', fontFamily:'var(--font-mono)', letterSpacing:'0.06em' }}>PUNTOS</div>
+                    </div>
+                    <div style={{ display:'none', textAlign:'right', flexShrink: 0, minWidth: 100 }} className="lb-detail">
+                      <div style={{ fontSize: 11, color:'var(--fg-muted)' }}>{r.completed} pills · {r.passed_exams} exámenes</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        </>
+      )}
+    </PageShell>
+  );
+}
+window.LeaderboardView = LeaderboardView;
