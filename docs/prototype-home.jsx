@@ -371,11 +371,13 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const isSimplified = window.DemoMode && window.DemoMode.flag('simplified_avatar_menu') === true;
   const menuItems = isSimplified ? [
     { k:'profile',      label: T('nav.profile'),               icon:'user' },
+    { k:'plan',         label: 'Mi plan IA',                   icon:'sparkle' },
     { k:'notes',        label: 'Mis notas',                    icon:'book' },
     { k:'wa',           label: T('nav.wa', 'Channels'),        icon:'broadcast' },
     { k:'certificates', label: 'Certificados',                 icon:'award' },
   ] : [
     { k:'profile',  label:T('nav.profile'),  icon:'user' },
+    { k:'plan',     label:'Mi plan IA',      icon:'sparkle' },
     { k:'saved',    label:T('nav.saved'),    icon:'bookmark' },
     { k:'notes',    label:'Mis notas',       icon:'book' },
     { k:'wa',       label:T('nav.wa'),       icon:'broadcast' },

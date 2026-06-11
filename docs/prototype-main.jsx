@@ -2632,6 +2632,61 @@ function _activateSupabaseData() {
     window.dispatchEvent(new Event('notes-changed'));
   };
 
+  // ── LearningPlans (plan IA · 1 por user+workspace) ─────────
+  // Requiere db/learning-plans-table.sql (tabla public.learning_plans).
+  let planCache = null;
+  async function _loadLearningPlan() {
+    const u = _uid(); const w = _wsid(); if (!u || !w) { planCache = null; return; }
+    const { data, error } = await sb.from('learning_plans')
+      .select('id, title, weeks, generated_at, updated_at')
+      .eq('user_id', u).eq('workspace_id', w).maybeSingle();
+    if (error) { console.warn('[supa] learning_plans', error.message); return; }
+    planCache = data ? {
+      id: data.id, title: data.title, weeks: data.weeks || [],
+      generatedAt: new Date(data.generated_at).getTime(),
+      updatedAt: new Date(data.updated_at).getTime(),
+    } : null;
+    window.dispatchEvent(new Event('learning-plan-changed'));
+  }
+  LearningPlans.get = function() { return planCache; };
+  LearningPlans.set = function(plan) {
+    const u = _uid(); const w = _wsid(); if (!u || !w) return null;
+    const now = Date.now();
+    const p = Object.assign({}, plan, { generatedAt: plan.generatedAt || now, updatedAt: now });
+    planCache = p;
+    window.dispatchEvent(new Event('learning-plan-changed'));
+    // upsert por (user_id, workspace_id)
+    sb.from('learning_plans').upsert({
+      user_id: u, workspace_id: w,
+      title: p.title || 'Mi plan de aprendizaje',
+      weeks: p.weeks || [],
+      generated_at: new Date(p.generatedAt).toISOString(),
+      updated_at: new Date(p.updatedAt).toISOString(),
+    }, { onConflict: 'user_id,workspace_id' }).then(({ error }) => {
+      if (error) {
+        if (error.code === '42P01') console.warn('[supa] learning_plans · tabla no existe · ejecuta db/learning-plans-table.sql');
+        else if (window.Toast) window.Toast.error('No se pudo guardar el plan · ' + error.message);
+      }
+    });
+    return p;
+  };
+  LearningPlans.toggleItem = function(weekIdx, itemIdx) {
+    if (!planCache || !planCache.weeks || !planCache.weeks[weekIdx]) return null;
+    const w = planCache.weeks[weekIdx];
+    if (!w.items || !w.items[itemIdx]) return null;
+    w.items[itemIdx].done = !w.items[itemIdx].done;
+    planCache.updatedAt = Date.now();
+    window.dispatchEvent(new Event('learning-plan-changed'));
+    LearningPlans.set(planCache);
+    return planCache;
+  };
+  LearningPlans.clear = function() {
+    const u = _uid(); const w = _wsid(); if (!u || !w) return;
+    planCache = null;
+    window.dispatchEvent(new Event('learning-plan-changed'));
+    sb.from('learning_plans').delete().eq('user_id', u).eq('workspace_id', w).then(() => {});
+  };
+
   // ── RouteExams ────────────────────────────────────────────
   let reCache = {};
   async function _loadRouteExams() {
@@ -3877,6 +3932,7 @@ function _activateSupabaseData() {
         enrollCache = [];
         ratingsOwn = {}; ratingsAll = [];
         notesCache = [];
+        planCache = null;
         reCache = {};
         inboxCache = { messages: [], notifications: [], releases: [] };
         chatsCache = [];
@@ -3892,7 +3948,7 @@ function _activateSupabaseData() {
         window.PILLS = []; window.LEARNING_PATHS = []; window.SERIES = [];
         window.REELS = []; window.PODCASTS = [];
         // Dispatch para que toda la UI re-renderice vacía
-        ['bookmarks-changed','enrollments-changed','ratings-changed','notes-changed','exams-changed','inbox-changed','chats-changed',
+        ['bookmarks-changed','enrollments-changed','ratings-changed','notes-changed','learning-plan-changed','exams-changed','inbox-changed','chats-changed',
          'subs-changed','activity-changed','progress-changed','certificates-changed',
          'invitations-changed','members-changed','workspaces-changed',
          'pills-changed','paths-changed','series-changed','reels-changed','podcasts-changed']
@@ -3905,7 +3961,7 @@ function _activateSupabaseData() {
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
     await Promise.all([
-      _loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
+      _loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadLearningPlan(), _loadRouteExams(), _loadChats(), _loadSubmissions(), _loadInbox(), _loadActivity(),
       _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations(),
     ]);
   }
@@ -3919,7 +3975,7 @@ function _activateSupabaseData() {
     if (!_uid()) return;
     const curWs = Workspaces.currentId();
     if (curWs) await _loadMembers(curWs);
-    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
+    await Promise.all([_loadBookmarks(), _loadEnrollments(), _loadRatings(), _loadNotes(), _loadLearningPlan(), _loadInbox(), _loadPills(), _loadAllContent(), _loadProgress(), _loadCertificates(), _loadInvitations()]);
   });
 
   // ── Activity log persistente en tabla 'events' ──────────────────────────
@@ -4113,6 +4169,31 @@ const Notes = (function() {
   return { listAll, listFor, add, update, remove, clear };
 })();
 window.Notes = Notes;
+
+// ── LearningPlans (plan personalizado IA · scoped user+workspace · 1 por par) ───
+// Estructura: { id, title, weeks:[{label,focus,items:[{kind,id,title,done}]}], generatedAt, updatedAt }
+// Fallback localStorage; Supabase override en _activateSupabaseData.
+const LearningPlans = (function() {
+  function _key() { return _userScopedKey('solid-learning-plan'); }
+  function get() {
+    try { return JSON.parse(localStorage.getItem(_key()) || 'null'); } catch (e) { return null; }
+  }
+  function save(plan) { localStorage.setItem(_key(), JSON.stringify(plan)); window.dispatchEvent(new Event('learning-plan-changed')); }
+  function set(plan) {
+    const now = Date.now();
+    const p = Object.assign({}, plan, { generatedAt: plan.generatedAt || now, updatedAt: now });
+    save(p); return p;
+  }
+  function toggleItem(weekIdx, itemIdx) {
+    const p = get(); if (!p || !p.weeks || !p.weeks[weekIdx] || !p.weeks[weekIdx].items[itemIdx]) return null;
+    p.weeks[weekIdx].items[itemIdx].done = !p.weeks[weekIdx].items[itemIdx].done;
+    p.updatedAt = Date.now();
+    save(p); return p;
+  }
+  function clear() { localStorage.removeItem(_key()); window.dispatchEvent(new Event('learning-plan-changed')); }
+  return { get, set, toggleItem, clear };
+})();
+window.LearningPlans = LearningPlans;
 
 // ── User profile (editable) — derivado del usuario autenticado ────────────
 // Lee del Auth.currentUser() y guarda los cambios en el registro de usuarios.
@@ -5801,6 +5882,7 @@ function App() {
         {view === 'browse' && <BrowseView_New openDetail={openDetail}/>}
         {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
         {view === 'notes' && window.NotesView && <window.NotesView setView={setView} openPlayer={openPlayer}/>}
+        {view === 'plan' && window.MyPlanView && <window.MyPlanView setView={setView} openPath={openPath} openDetail={openDetail}/>}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (

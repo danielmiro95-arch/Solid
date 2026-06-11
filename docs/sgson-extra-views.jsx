@@ -6026,3 +6026,246 @@ function AIQuizModal({ routeId, routeLabel, onClose, onPassed }) {
   );
 }
 window.AIQuizModal = AIQuizModal;
+
+/* ============================================================
+   MyPlanView · Plan de aprendizaje personalizado IA · 4 semanas
+   · Genera con Claude usando: rol, equipo, autotest focus, catálogo.
+   · Persiste en window.LearningPlans (Supabase o localStorage).
+   · Cada semana = focus + 3-5 items (path o pill). Checkbox done.
+   · Items hacen click → abren el curso/pill correspondiente.
+   ============================================================ */
+function MyPlanView({ setView, openPath, openDetail }) {
+  const D = window.SGS_DATA || {};
+  const USER = D.USER || {};
+  const PATHS = D.LEARNING_PATHS || [];
+  const PILLS = D.PILLS || [];
+
+  const [plan, setPlan] = useEV2(() => (window.LearningPlans && window.LearningPlans.get && window.LearningPlans.get()) || null);
+  const [loading, setLoading] = useEV2(false);
+  const [err, setErr] = useEV2('');
+
+  useEE2(() => {
+    const r = () => setPlan((window.LearningPlans && window.LearningPlans.get && window.LearningPlans.get()) || null);
+    window.addEventListener('learning-plan-changed', r);
+    return () => window.removeEventListener('learning-plan-changed', r);
+  }, []);
+
+  const generate = async () => {
+    if (loading) return;
+    if (!window.callMentorAPI) { setErr('BeonAI no está disponible · no se puede generar el plan ahora.'); return; }
+    setLoading(true); setErr('');
+    // Contexto: rol + equipo + autotest focus + catálogo (paths + pills)
+    let focus = '';
+    try { focus = localStorage.getItem('solid-autotest-focus:' + (USER.id || 'anon')) || ''; } catch (e) {}
+    const ctx = {
+      role: USER.role || '',
+      team: USER.team || '',
+      autotest_focus: focus || '(no declarado)',
+      paths_available: PATHS.slice(0, 18).map(p => ({ id: p.id, title: p.title, badge: p.badge || '' })),
+      pills_available: PILLS.slice(0, 30).map(p => ({ id: p.id, title: p.title, category: p.category || '' })),
+    };
+    const sys = 'Genera un plan de aprendizaje de EXACTAMENTE 4 semanas para el usuario. Devuelve SOLO JSON válido (sin markdown ni texto extra) con esta forma exacta:\n' +
+      '{"title":"...","weeks":[{"label":"Semana 1","focus":"...","items":[{"kind":"path|pill","id":"<id del catálogo>","title":"<título>"}]},{"label":"Semana 2",...},{"label":"Semana 3",...},{"label":"Semana 4",...}]}\n' +
+      'Reglas: 3-5 items por semana · usa ÚNICAMENTE ids del catálogo (no inventes) · prioriza paths para semanas 1-2 y combina con pills en 3-4 · respeta el rol y el autotest_focus del usuario.';
+    try {
+      const reply = await window.callMentorAPI([
+        { role: 'user', text: sys + '\n\n=== USUARIO ===\n' + JSON.stringify(ctx, null, 2) }
+      ]);
+      let txt = String(reply || '').trim();
+      txt = txt.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+      const m = txt.match(/\{[\s\S]*\}/);
+      const json = m ? JSON.parse(m[0]) : null;
+      const validKinds = { path: true, pill: true };
+      const validPathIds = new Set(PATHS.map(p => p.id));
+      const validPillIds = new Set(PILLS.map(p => p.id));
+      // Sanea: solo items con kind+id válidos
+      const weeks = json && Array.isArray(json.weeks) ? json.weeks.slice(0, 4).map((w, wi) => ({
+        label: w.label || ('Semana ' + (wi + 1)),
+        focus: w.focus || '',
+        items: (Array.isArray(w.items) ? w.items : []).filter(it =>
+          it && validKinds[it.kind] && (it.kind === 'path' ? validPathIds : validPillIds).has(it.id)
+        ).map(it => ({ kind: it.kind, id: it.id, title: it.title || '', done: false })).slice(0, 6),
+      })).filter(w => w.items.length > 0) : [];
+      if (weeks.length === 0) throw new Error('Respuesta sin items válidos');
+      const newPlan = window.LearningPlans.set({
+        title: json.title || 'Mi plan de aprendizaje',
+        weeks,
+      });
+      setPlan(newPlan);
+      if (window.Toast) window.Toast.success('Plan generado · ' + weeks.length + ' semanas', { icon: '✓' });
+    } catch (e) {
+      setErr('No se pudo generar el plan. Inténtalo de nuevo. (Detalle: ' + (e.message || e) + ')');
+    } finally { setLoading(false); }
+  };
+
+  const regenerate = () => {
+    if (!confirm('¿Generar un nuevo plan? Se perderá el progreso del actual.')) return;
+    generate();
+  };
+  const clearPlan = () => {
+    if (!confirm('¿Borrar tu plan?')) return;
+    if (window.LearningPlans && window.LearningPlans.clear) window.LearningPlans.clear();
+    setPlan(null);
+  };
+
+  const handleItemClick = (it) => {
+    if (it.kind === 'path') {
+      if (window.__openPath) window.__openPath(it.id);
+      else if (openPath) openPath(it.id);
+    } else if (it.kind === 'pill') {
+      const pill = PILLS.find(p => p.id === it.id);
+      if (pill && openDetail) openDetail(pill);
+      else if (pill && window.__openPlayer) window.__openPlayer(pill);
+    }
+  };
+
+  const handleToggle = (wi, ii) => {
+    if (window.LearningPlans && window.LearningPlans.toggleItem) {
+      const updated = window.LearningPlans.toggleItem(wi, ii);
+      if (updated) setPlan(Object.assign({}, updated));
+    }
+  };
+
+  // Métricas globales (% del plan + % por semana)
+  const stats = React.useMemo(() => {
+    if (!plan || !plan.weeks) return { pct: 0, doneT: 0, totalT: 0 };
+    let done = 0, total = 0;
+    plan.weeks.forEach(w => (w.items || []).forEach(it => { total++; if (it.done) done++; }));
+    return { pct: total > 0 ? Math.round((done / total) * 100) : 0, doneT: done, totalT: total };
+  }, [plan]);
+
+  return (
+    <PageShell
+      eyebrow="Tu programa personalizado por BeonAI"
+      title={<>Mi <em style={{ fontFamily:'var(--font-serif)', fontStyle:'italic', fontWeight:400, color:'var(--accent)' }}>plan</em></>}
+      sub={plan ? (stats.doneT + '/' + stats.totalT + ' completados · ' + stats.pct + '%') : 'aún sin generar'}
+      actions={plan ? (
+        <div style={{ display:'flex', gap: 8 }}>
+          <button onClick={regenerate} disabled={loading} style={{
+            padding:'10px 16px', background:'transparent', color:'var(--fg)', border:'1px solid var(--line)',
+            borderRadius: 8, cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: 12.5,
+          }}>↻ Regenerar</button>
+          <button onClick={clearPlan} style={{
+            padding:'10px 14px', background:'transparent', color:'var(--fg-muted)', border:'1px solid var(--line)',
+            borderRadius: 8, cursor:'pointer', fontWeight: 600, fontSize: 12.5,
+          }}>Borrar</button>
+        </div>
+      ) : null}
+    >
+      {err && (
+        <div style={{ marginBottom: 18, padding:'14px 18px', background:'rgba(252,34,13,0.10)', border:'1px solid rgba(252,34,13,0.30)', borderRadius: 10, color:'var(--fg)', fontSize: 13.5 }}>
+          {err}
+        </div>
+      )}
+
+      {!plan && !loading && (
+        <div style={{
+          padding:'60px 32px', textAlign:'center',
+          background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.03))',
+          border:'1px solid rgba(236,28,36,0.25)', borderRadius: 16,
+        }}>
+          <div style={{ fontSize: 56, marginBottom: 18 }}>✦</div>
+          <h2 style={{ margin:'0 0 10px', fontSize: 22, fontWeight: 800, color:'var(--fg)', letterSpacing:'-0.01em' }}>
+            BeonAI te diseña tu programa
+          </h2>
+          <p style={{ margin:'0 auto 24px', maxWidth: 480, fontSize: 14, color:'var(--fg-muted)', lineHeight: 1.55 }}>
+            4 semanas con cursos y pills del catálogo, ordenados por dificultad y orientados a tu rol y a tus áreas de mejora.
+            Lo puedes regenerar cuando quieras.
+          </p>
+          <button onClick={generate} style={{
+            padding:'14px 26px', background:'var(--accent)', color:'#fff', border:'none',
+            borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 14,
+            boxShadow:'0 8px 24px rgba(236,28,36,0.35)',
+          }}>Generar mi plan ahora</button>
+          <div style={{ marginTop: 18, fontSize: 11.5, color:'var(--fg-dim)' }}>
+            Tarda ~10 segundos · el plan queda guardado en tu cuenta.
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding:'60px 0', textAlign:'center' }}>
+          <div style={{ fontSize: 42, marginBottom: 14 }}>✦</div>
+          <div style={{ fontSize: 15, color:'var(--fg)', fontWeight: 600 }}>BeonAI está diseñando tu programa…</div>
+          <div style={{ fontSize: 12.5, color:'var(--fg-muted)', marginTop: 6 }}>Cargando rol, áreas de mejora y catálogo.</div>
+        </div>
+      )}
+
+      {plan && !loading && (
+        <>
+          {/* Barra global de progreso */}
+          <div style={{ marginBottom: 24, padding: 18, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 8, gap: 10, flexWrap:'wrap' }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--fg-dim)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Progreso del plan</span>
+              <span style={{ fontFamily:'var(--font-sans)', fontSize: 26, fontWeight: 800, color:'var(--accent)' }}>{stats.pct}%</span>
+            </div>
+            <div style={{ height: 8, background:'var(--bg-elevated)', borderRadius: 4, overflow:'hidden' }}>
+              <div style={{ width: stats.pct + '%', height:'100%', background:'linear-gradient(90deg, var(--accent), var(--accent-hover, var(--accent)))', transition:'width .3s' }}/>
+            </div>
+          </div>
+
+          {/* 4 semanas */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {plan.weeks.map((wk, wi) => {
+              const done = wk.items.filter(i => i.done).length;
+              const wpct = wk.items.length ? Math.round((done / wk.items.length) * 100) : 0;
+              return (
+                <section key={wi} style={{
+                  padding: 18, background:'var(--bg-surface)', border:'1px solid var(--line)',
+                  borderRadius: 14, display:'flex', flexDirection:'column', gap: 14,
+                }}>
+                  <header>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 6 }}>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize: 10, color:'var(--accent)', letterSpacing:'0.14em', textTransform:'uppercase', fontWeight: 700 }}>{wk.label}</div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize: 11, color:'var(--fg-muted)', fontWeight: 700 }}>{done}/{wk.items.length}</div>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color:'var(--fg)', lineHeight: 1.35 }}>{wk.focus || '—'}</h3>
+                    <div style={{ height: 4, background:'var(--bg-elevated)', borderRadius: 2, overflow:'hidden', marginTop: 8 }}>
+                      <div style={{ width: wpct + '%', height:'100%', background:'var(--accent)' }}/>
+                    </div>
+                  </header>
+                  <ul style={{ listStyle:'none', padding: 0, margin: 0, display:'flex', flexDirection:'column', gap: 6 }}>
+                    {wk.items.map((it, ii) => (
+                      <li key={ii} style={{
+                        display:'flex', alignItems:'center', gap: 10,
+                        padding:'10px 12px',
+                        background: it.done ? 'rgba(74,222,128,0.10)' : 'var(--bg-elevated)',
+                        border: '1px solid ' + (it.done ? 'rgba(74,222,128,0.30)' : 'var(--line-faint)'),
+                        borderRadius: 8,
+                      }}>
+                        <button onClick={() => handleToggle(wi, ii)} title={it.done ? 'Marcar pendiente' : 'Marcar hecho'} style={{
+                          width: 20, height: 20, padding: 0, flexShrink: 0,
+                          background: it.done ? '#4ADE80' : 'transparent',
+                          border: '1.5px solid ' + (it.done ? '#4ADE80' : 'var(--line-strong)'),
+                          borderRadius: 5, cursor:'pointer',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          color:'#fff', fontSize: 12, lineHeight: 1,
+                        }}>{it.done ? '✓' : ''}</button>
+                        <button onClick={() => handleItemClick(it)} style={{
+                          flex: 1, minWidth: 0, padding: 0,
+                          background:'transparent', border:'none', textAlign:'left', cursor:'pointer',
+                          color: it.done ? 'var(--fg-muted)' : 'var(--fg)',
+                          fontSize: 13, fontFamily:'var(--font-sans)',
+                          textDecoration: it.done ? 'line-through' : 'none',
+                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        }}>
+                          {it.title || it.id}
+                        </button>
+                        <span style={{ fontFamily:'var(--font-mono)', fontSize: 8.5, color:'var(--fg-dim)', letterSpacing:'0.06em', textTransform:'uppercase', flexShrink: 0 }}>{it.kind}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 28, fontSize: 11.5, color:'var(--fg-dim)', textAlign:'center', fontFamily:'var(--font-mono)' }}>
+            Plan generado por BeonAI · {plan.generatedAt ? new Date(plan.generatedAt).toLocaleDateString('es-ES') : ''}
+          </div>
+        </>
+      )}
+    </PageShell>
+  );
+}
+window.MyPlanView = MyPlanView;
