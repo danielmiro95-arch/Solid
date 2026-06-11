@@ -3036,9 +3036,22 @@ function AdminView({ setView, openLegacyAdmin }) {
 // el panel ofrece tonos/temperaturas de gris oscuro, no claros.
 const THEME_PREVIEW_OPTIONS = [
   {
+    id: 'navy',
+    label: 'Navy Udacity (actual)',
+    note: 'navy + cobalt + cream · paleta editorial premium',
+    tokens: {
+      '--bg-deep':        '#06112E', '--bg-canvas': '#0A1A40', '--bg-surface': '#102659', '--bg-elevated': '#1A3473',
+      '--bg-glass':'rgba(10,26,64,0.78)', '--bg-glass-strong':'rgba(10,26,64,0.94)', '--scrim':'rgba(6,17,46,0.85)',
+      '--line-faint':'rgba(255,255,255,0.05)', '--line':'rgba(255,255,255,0.10)', '--line-strong':'rgba(255,255,255,0.20)',
+      '--fg':'#F4F7FB', '--fg-muted':'#C5D2E8', '--fg-dim':'#8C9CBA', '--fg-faint':'#6B7B9A',
+      '--accent':'#2E7CFF', '--accent-hover':'#5B95FF', '--accent-deep':'#0F4FCC', '--accent-glow':'rgba(46,124,255,0.35)',
+      '--cream':'#F4D1A8',
+    },
+  },
+  {
     id: 'neutro',
-    label: 'Gris neutro (actual)',
-    note: 'gris plataforma neutro',
+    label: 'Gris neutro (legacy)',
+    note: 'gris plataforma · era el default antes de b115',
     tokens: {
       '--bg-deep':        '#1A1A1A', '--bg-canvas': '#1F1F1F', '--bg-surface': '#2A2A2A', '--bg-elevated': '#353535',
       '--bg-glass':'rgba(31,31,31,0.78)', '--bg-glass-strong':'rgba(31,31,31,0.94)', '--scrim':'rgba(26,26,26,0.85)',

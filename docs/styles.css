@@ -252,62 +252,64 @@ body.scroll-top .shell-tabs.nav-cinematic {
 
 /* ============================================================
  * DARK THEME · activado por data-theme="dark" en <html>
+ * Paleta Udacity-inspired · navy + cobalt + cream (b115+)
  * ============================================================ */
 html[data-theme="dark"] {
-  --paper:   #0D1117;
-  --paper-2: #161B22;
-  --paper-3: #1F2630;
+  --paper:   #0A1A40;     /* match --bg-canvas de sgson.css */
+  --paper-2: #102659;     /* match --bg-surface */
+  --paper-3: #1A3473;     /* match --bg-elevated */
 
-  --ink:   #E5EAF1;
-  --ink-2: #C9D3DF;
-  --ink-3: #94A3B8;
-  --ink-4: #6B7689;
+  --ink:   #F4F7FB;
+  --ink-2: #C5D2E8;
+  --ink-3: #8C9CBA;
+  --ink-4: #6B7B9A;
 
-  --line:   rgba(255, 255, 255, 0.08);
-  --line-2: rgba(255, 255, 255, 0.04);
+  --line:   rgba(255, 255, 255, 0.10);
+  --line-2: rgba(255, 255, 255, 0.05);
 
-  --bn-blue-dark: #4D9FE0;
-  --accent-glow:  #4D9FE0;
+  --bn-blue-dark: #5B95FF;
+  --accent-glow:  #2E7CFF;
+  --cream:        #F4D1A8;
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
   --shadow-lg: 0 20px 48px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4);
-  --shadow-blue: 0 8px 32px rgba(77,159,224,0.25), 0 2px 8px rgba(77,159,224,0.15);
+  --shadow-blue: 0 8px 32px rgba(46,124,255,0.30), 0 2px 8px rgba(46,124,255,0.18);
 }
 
-/* Sidebar elevada en dark · ya no usa el gradient claro */
+/* Sidebar elevada en dark · navy gradient */
 html[data-theme="dark"] .sb {
-  background: linear-gradient(180deg, #131A24 0%, #0D1117 100%);
+  background: linear-gradient(180deg, #102659 0%, #06112E 100%);
   box-shadow:
-    inset -1px 0 0 rgba(255,255,255,0.05),
+    inset -1px 0 0 rgba(255,255,255,0.06),
     4px 0 16px rgba(0, 0, 0, 0.4),
-    1px 0 0 rgba(77, 159, 224, 0.08);
+    1px 0 0 rgba(46, 124, 255, 0.10);
 }
 html[data-theme="dark"] .sb-item:hover { background: rgba(255,255,255,0.06); }
 html[data-theme="dark"] .sb-item.active { background: var(--paper-3); color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
 html[data-theme="dark"] .sb-search,
 html[data-theme="dark"] .sb-org,
 html[data-theme="dark"] .sb-path,
-html[data-theme="dark"] .sb-user { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+html[data-theme="dark"] .sb-user { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.10); }
 html[data-theme="dark"] .sb-search:hover,
 html[data-theme="dark"] .sb-path:hover,
-html[data-theme="dark"] .sb-user:hover { background: rgba(255,255,255,0.08); }
+html[data-theme="dark"] .sb-user:hover { background: rgba(255,255,255,0.10); }
 
-/* Top shell en dark */
+/* Top shell en dark · gradient con touches cobalt + cream */
 html[data-theme="dark"] .shell-tabs {
   background:
-    linear-gradient(90deg, rgba(77,159,224,0.06) 0%, rgba(13,17,23,0) 35%, rgba(13,17,23,0) 65%, rgba(188,214,48,0.05) 100%),
-    linear-gradient(180deg, #161B22 0%, #0D1117 100%);
-  border-bottom-color: rgba(77,159,224,0.18);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 2px 8px rgba(0,0,0,0.3);
+    linear-gradient(90deg, rgba(46,124,255,0.08) 0%, rgba(10,26,64,0) 35%, rgba(10,26,64,0) 65%, rgba(244,209,168,0.06) 100%),
+    linear-gradient(180deg, #102659 0%, #06112E 100%);
+  border-bottom-color: rgba(46,124,255,0.20);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 8px rgba(0,0,0,0.3);
 }
 
-/* Cards en dark con bordes apenas perceptibles */
+/* Cards en dark · borde cobalt apenas perceptible · hover sube el cobalt */
 html[data-theme="dark"] .card {
   background: var(--paper-2);
-  border-color: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.07);
 }
-html[data-theme="dark"] .card:hover { border-color: rgba(77,159,224,0.3); }
+html[data-theme="dark"] .card:hover { border-color: rgba(46,124,255,0.40); }
 
 /* Inputs, selects, textareas */
 html[data-theme="dark"] input,
