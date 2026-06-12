@@ -263,20 +263,21 @@ body.scroll-top .shell-tabs.nav-cinematic {
  * Paleta Udacity-inspired · navy + cobalt + cream (b115+)
  * ============================================================ */
 html[data-theme="dark"] {
-  --paper:   #0A1A40;     /* match --bg-canvas de sgson.css */
-  --paper-2: #102659;     /* match --bg-surface */
-  --paper-3: #1A3473;     /* match --bg-elevated */
+  --paper:   #0A1428;     /* match --bg-canvas de sgson.css (b120) */
+  --paper-2: #111E3C;     /* match --bg-surface */
+  --paper-3: #1A2A52;     /* match --bg-elevated */
 
   --ink:   #F4F7FB;
   --ink-2: #C5D2E8;
   --ink-3: #8C9CBA;
   --ink-4: #6B7B9A;
 
-  --line:   rgba(255, 255, 255, 0.10);
-  --line-2: rgba(255, 255, 255, 0.05);
+  --line:   rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.04);
 
   --bn-blue-dark: #5B95FF;
   --accent-glow:  #2E7CFF;
+  --accent:       #2E7CFF;
   --cream:        #F4D1A8;
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);

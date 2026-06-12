@@ -96,6 +96,109 @@
 }
 
 /* ============================================================
+   DARK THEME · misma paleta Udacity (cobalt + cream IDÉNTICOS) ·
+   solo cambian las SUPERFICIES a navy oscuro (b120). El accent, el cream
+   y los acentos de marca NO cambian entre claro y oscuro · solo el lienzo.
+   `html[data-theme="dark"]` (especificidad 0,1,1) gana a `:root` (0,1,0).
+   ============================================================ */
+html[data-theme="dark"] {
+  /* Superficies · navy profundo (no negro puro · azul carbón Udacity-dark) */
+  --bg-deep:        #050D1E;
+  --bg-canvas:      #0A1428;                       /* fondo de página · navy carbón */
+  --bg-surface:     #111E3C;                       /* cards/modales · navy un escalón */
+  --bg-elevated:    #1A2A52;                       /* hover, dropdowns */
+  --bg-glass:       rgba(10, 20, 40, 0.78);
+  --bg-glass-strong:rgba(10, 20, 40, 0.94);
+  --scrim:          rgba(5, 13, 30, 0.85);
+
+  /* Zona cream en dark · navy templado (no peach plano · da calidez sutil) */
+  --bg-cream:       #1C2238;
+  /* Cover dentro de cards · se mantiene el mismo navy que en claro */
+  --card-cover-bg:  #0A1A40;
+
+  /* Líneas · blanco translúcido sobre navy */
+  --line-faint:     rgba(255, 255, 255, 0.04);
+  --line:           rgba(255, 255, 255, 0.09);
+  --line-strong:    rgba(255, 255, 255, 0.18);
+
+  /* Texto · bluish-white sobre navy */
+  --fg:             #F4F7FB;
+  --fg-muted:       #AEBCD6;
+  --fg-dim:         #8294B5;
+  --fg-faint:       #5E6E8E;
+  --fg-on-accent:   #FFFFFF;
+  --fg-on-cover:    #FFFFFF;
+
+  /* Accent + cream · IDÉNTICOS al tema claro (no cambian con el toggle). */
+  --accent:         #2E7CFF;
+  --accent-hover:   #5B95FF;
+  --accent-deep:    #0F4FCC;
+  --accent-glow:    rgba(46, 124, 255, 0.30);
+  --cream:          #F4D1A8;
+  --cream-soft:     #FBE3B5;
+
+  /* Category tints · versiones más brillantes para vivir sobre navy. */
+  --cat-publish:    #FFB347;
+  --cat-care:       #2FE0B5;
+  --cat-analytics:  #5BC8FF;
+  --cat-content:    #C471F5;
+  --cat-manage:     #F4D1A8;
+
+  /* Status · brillantes sobre navy. */
+  --ok:             #4ADE80;
+  --warn:           #FBA94C;
+  --info:           #5BC8FF;
+
+  /* Sombras · profundas sobre navy. */
+  --shadow-card:   0 2px 6px rgba(0, 0, 0, 0.40), 0 12px 28px rgba(0, 0, 0, 0.35);
+  --shadow-pop:    0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.45);
+  --shadow-glow:   0 0 0 1px var(--line-strong), 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+/* En dark, las cards bajan el halo y suben la sombra oscura. */
+html[data-theme="dark"] .card {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.40), 0 14px 30px rgba(0,0,0,0.30);
+}
+html[data-theme="dark"] .card:hover {
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.40),
+    0 22px 40px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(46,124,255,0.35);
+  border-color: rgba(46,124,255,0.55);
+}
+/* En dark, los botones secondary/ghost viven sobre navy · ajusta superficies. */
+html[data-theme="dark"] .btn-secondary { background: var(--bg-surface); border-color: var(--line); color: var(--fg); }
+html[data-theme="dark"] .btn-secondary:hover { background: var(--bg-elevated); border-color: var(--line-strong); }
+
+/* En dark, las superficies navy (hero band, topnav, sidebar) están MUY cerca
+   del canvas oscuro · añadimos un filo cobalt + brillo superior para que se
+   despeguen y no se fundan en una mancha. En light no hace falta (contraste
+   navy-sobre-claro ya es alto). */
+html[data-theme="dark"] .ssg-hero {
+  border-bottom: 1px solid rgba(46,124,255,0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 40px rgba(0,0,0,0.30);
+}
+html[data-theme="dark"] .topnav {
+  box-shadow: 0 1px 0 rgba(46,124,255,0.18), 0 4px 18px rgba(0,0,0,0.35);
+}
+html[data-theme="dark"] .sb {
+  box-shadow: inset -1px 0 0 rgba(46,124,255,0.16), 4px 0 18px rgba(0,0,0,0.35);
+}
+
+/* Fondo del body en dark · navy carbón degradado (las reglas html,body y
+   body[data-cinematic] de más abajo son claras y sin condicionar · aquí las
+   pisamos para el lienzo oscuro). Mismas familias de radiales cobalt/cream. */
+html[data-theme="dark"] body,
+html[data-theme="dark"] body[data-cinematic="true"] {
+  background:
+    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(46,124,255,0.14), transparent 60%),
+    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(15,60,168,0.16), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(244,209,168,0.06), transparent 60%),
+    linear-gradient(180deg, #0A1428 0%, #081021 50%, #060C1A 100%) !important;
+  background-attachment: fixed;
+}
+
+/* ============================================================
    LIGHT THEME · :root YA es claro (todo el SaaS en crema). Mantengo este
    selector vacío por si en el futuro queremos un light "extra" diferente.
    Las sombras suaves de cards/modal aplican a toda la app, ya no condicionales.

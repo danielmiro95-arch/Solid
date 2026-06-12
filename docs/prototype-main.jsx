@@ -5251,29 +5251,52 @@ window.useI18n = function() {
   return { t: I18n.t, lang };
 };
 
-// ── Theme controller · dark forzado en todo el SaaS ─────────────────────
-// La página de Analytics (AnalyticsView, view='dashboard') se autoaplica
-// data-theme="light" via useEffect propio · el resto siempre dark.
-// Settings.theme se ignora · queda en el storage pero no afecta al render.
+// ── Theme controller · respeta Settings.theme (b120) ────────────────────
+// Toggle claro/oscuro de verdad. La preferencia vive en Settings.theme
+// ('light' | 'dark' | 'auto'). Default = 'light' (look catálogo Udacity).
+//   · 'auto' sigue prefers-color-scheme del SO.
+//   · La paleta de ACENTOS (cobalt + cream) es idéntica en ambos · solo
+//     cambian las superficies (ver html[data-theme="dark"] en sgson.css).
 //
-// EXCEPCIÓN · demo mode · si el workspace activo tiene settings.demo_mode=true
-// la plataforma entera (incluyendo Home/Player) usa data-theme="light"
-// per acuerdo de reunión. Tras nueva iteración (batch 28+) el demo es
-// Netflix DARK con paleta beonit · data-theme='dark' + data-demo-mode='true'.
-// El CSS de [data-demo-mode='true'] pisa los tokens dark genéricos con
-// fondo Netflix #0A0A0A + accents beonit.
+// EXCEPCIONES que ignoran la preferencia:
+//   · Analytics (data-analytics-light='1') · se autoaplica light.
+//   · Demo mode · data-theme='dark' + data-demo-mode='true' (Netflix demo
+//     con paleta beonit · el CSS de [data-demo-mode] pisa los tokens).
+//
+// El tema resuelto se espeja en localStorage['solid-theme'] para que el
+// boot script de index.html lo aplique antes del primer paint (sin flash).
 (function _initThemeController(){
+  function resolvePref() {
+    var pref = 'light';
+    try {
+      if (window.Settings && window.Settings.get) pref = window.Settings.get().theme || 'light';
+    } catch(e) {}
+    if (pref === 'auto') {
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return prefersDark ? 'dark' : 'light';
+    }
+    return (pref === 'dark') ? 'dark' : 'light';
+  }
   function applyTheme() {
     if (document.documentElement.getAttribute('data-analytics-light') === '1') return;
     const dm = window.DemoMode;
     const demoActive = dm && dm.isActive && dm.isActive();
     if (demoActive) {
+      // Demo · siempre dark Netflix con paleta beonit (acuerdo cliente).
       document.documentElement.setAttribute('data-theme', 'dark');
       document.documentElement.setAttribute('data-demo-mode', 'true');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.removeAttribute('data-demo-mode');
+      try { localStorage.setItem('solid-theme', 'dark'); } catch(e) {}
+      return;
     }
+    document.documentElement.removeAttribute('data-demo-mode');
+    var resolved = resolvePref();
+    document.documentElement.setAttribute('data-theme', resolved);
+    try { localStorage.setItem('solid-theme', resolved); } catch(e) {}
+  }
+  // Reacciona también a cambios de preferencia del SO cuando theme='auto'.
+  if (window.matchMedia) {
+    try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); }
+    catch(e) { /* Safari viejo · ignore */ }
   }
   window.addEventListener('settings-changed', applyTheme);
   window.addEventListener('auth-changed', applyTheme);
