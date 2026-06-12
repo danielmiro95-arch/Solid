@@ -2337,11 +2337,24 @@ body.sgs-redesign .admin-table th { color: var(--fg-muted); }
 
 /* BROWSE / catálogo · cards y filtros */
 body.sgs-redesign .browse-root,
-body.sgs-redesign .catalog-section { background: var(--bg-canvas); color: var(--fg); }
-body.sgs-redesign .cat-bar { background: rgba(255,255,255,0.04); border-color: var(--line); }
-body.sgs-redesign .cat-bar button { color: var(--fg-muted); }
-body.sgs-redesign .cat-bar button:hover { color: var(--fg); background: rgba(255,255,255,0.08); }
-body.sgs-redesign .cat-bar button.active { background: var(--fg); color: var(--bg-canvas); }
+body.sgs-redesign .catalog-section { background: transparent; color: var(--fg); }
+body.sgs-redesign .cat-bar { background: transparent; border-color: transparent; gap: 8px; }
+body.sgs-redesign .cat-bar button {
+  color: var(--fg-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  transition: all .15s;
+}
+body.sgs-redesign .cat-bar button:hover { color: var(--fg); border-color: var(--accent); }
+body.sgs-redesign .cat-bar button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(46,124,255,0.28);
+}
 
 /* RUTAS · path cards */
 body.sgs-redesign .rutas-root,

@@ -87,19 +87,23 @@ function BrowseView({ openDetail }) {
       eyebrow={T('browse.eyebrow')}
       title={<>{T('browse.title')}</>}
       sub={`${pills.length} ${T('browse.sub')}`}>
-      {/* Filtro categoría */}
+      {/* Filtro categoría · chips estilo Udacity · activo cobalt */}
       <div style={{
-        display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 32,
-        padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--line)',
-        borderRadius: 'var(--r-2)', width: 'fit-content',
+        display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32,
       }}>
-        {allCats.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{
-            padding: '8px 16px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-            background: c === cat ? 'var(--fg)' : 'transparent', color: c === cat ? 'var(--bg-canvas)' : 'var(--fg-muted)',
-            border: 'none', borderRadius: 'var(--r-1)', cursor: 'pointer', transition: 'all .15s',
-          }}>{c}</button>
-        ))}
+        {allCats.map(c => {
+          const on = c === cat;
+          return (
+            <button key={c} onClick={() => setCat(c)} style={{
+              padding: '9px 18px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+              background: on ? 'var(--accent)' : 'var(--bg-surface)',
+              color: on ? '#fff' : 'var(--fg-muted)',
+              border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line)'),
+              borderRadius: 999, cursor: 'pointer', transition: 'all .15s',
+              boxShadow: on ? '0 4px 12px rgba(46,124,255,0.28)' : 'none',
+            }}>{c}</button>
+          );
+        })}
       </div>
 
       {/* Grid */}
@@ -284,11 +288,12 @@ function RutasView({ setView, openPath }) {
               : byCatNoBrand.filter(x => x.brand === b).length;
             return (
               <button key={b} onClick={() => setActiveBrand(b)} style={{
-                padding:'6px 12px', fontFamily:'var(--font-sans)', fontSize:12, fontWeight:700,
-                background: active ? 'var(--fg)' : 'transparent',
-                color:      active ? 'var(--bg-canvas)' : 'var(--fg-muted)',
-                border:'1px solid', borderColor: active ? 'var(--fg)' : 'var(--line)',
+                padding:'6px 14px', fontFamily:'var(--font-sans)', fontSize:12, fontWeight:700,
+                background: active ? 'var(--accent)' : 'var(--bg-surface)',
+                color:      active ? '#fff' : 'var(--fg-muted)',
+                border:'1px solid', borderColor: active ? 'var(--accent)' : 'var(--line)',
                 borderRadius:999, cursor:'pointer', transition:'all .15s',
+                boxShadow: active ? '0 4px 12px rgba(46,124,255,0.28)' : 'none',
               }}>
                 {b} <span style={{ opacity: 0.55, marginLeft: 4, fontWeight: 500 }}>· {count}</span>
               </button>
