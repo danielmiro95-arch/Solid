@@ -6702,33 +6702,34 @@ function LoginScreen() {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:1000, display:'flex',
-      background:'radial-gradient(circle at 20% 30%, rgba(46,124,255,0.10), transparent 50%), radial-gradient(circle at 80% 70%, rgba(244,209,168,0.20), transparent 50%), linear-gradient(135deg, #F6F7F9 0%, #F3F4F6 50%, #EDF0F5 100%)',
+      background:'#F3F4F6',
       overflow:'auto', color:'#0D1117',
     }}>
-      {/* Lado visual izquierdo */}
-      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#0D1117', minWidth:0}}>
+      {/* Lado visual izquierdo · hero navy degradado estilo Udacity */}
+      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#FFFFFF', minWidth:0,
+        background:'radial-gradient(circle at 85% 15%, rgba(46,124,255,0.35), transparent 50%), radial-gradient(circle at 10% 90%, rgba(15,60,168,0.45), transparent 55%), linear-gradient(135deg, #06112E 0%, #0A1A40 45%, #0F3CA8 130%)'}}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="BeonIt" style={{height:42, width:'auto', flexShrink:0}}/>
-          <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#0D1117'}}>
+          <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#FFFFFF'}}>
             Solid<span style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400}}>Stream</span>
           </span>
         </div>
         <div>
-          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)', marginBottom:24}}>{T('login.eyebrow')}</div>
-          <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#0D1117'}}>
-            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#2E7CFF'}}>{T('login.title.expert')}</em>.
+          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.60)', marginBottom:24}}>{T('login.eyebrow')}</div>
+          <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#FFFFFF'}}>
+            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#F4D1A8'}}>{T('login.title.expert')}</em>.
           </h1>
-          <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(13,17,23,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
+          <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(255,255,255,0.78)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
             {T('login.subtitle')}
           </p>
           <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
             {[T('login.chip.pills'), T('login.chip.workshops'), T('login.chip.beonai'), T('login.chip.cert')].map(t => (
-              <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(13,17,23,0.14)', borderRadius:999, color:'rgba(13,17,23,0.75)', background:'rgba(13,17,23,0.03)'}}>{t}</span>
+              <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.22)', borderRadius:999, color:'rgba(255,255,255,0.85)', background:'rgba(255,255,255,0.08)'}}>{t}</span>
             ))}
           </div>
           {/* Selector de idioma inline · sin sesión todavía */}
           <div style={{marginTop:18, display:'flex', alignItems:'center', gap:8}}>
-            <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)'}}>🌍</span>
+            <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.60)'}}>🌍</span>
             {['es','en','pt'].map(lng => {
               const cur = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
               const active = cur === lng;
@@ -6745,16 +6746,16 @@ function LoginScreen() {
                     window.dispatchEvent(new Event('settings-changed'));
                   }
                 }}
-                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2E7CFF' : 'transparent', color: active ? '#fff' : 'rgba(13,17,23,0.6)', border:'1px solid '+(active ? '#2E7CFF' : 'rgba(13,17,23,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
+                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2E7CFF' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,0.70)', border:'1px solid '+(active ? '#2E7CFF' : 'rgba(255,255,255,0.22)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
         </div>
-        <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(13,17,23,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
+        <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(255,255,255,0.50)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
           <span>by BeonIt</span>
-          <span style={{width:3, height:3, background:'rgba(13,17,23,0.4)', borderRadius:'50%'}}/>
+          <span style={{width:3, height:3, background:'rgba(255,255,255,0.50)', borderRadius:'50%'}}/>
           <span>Powered by Claude</span>
-          <span style={{width:3, height:3, background:'rgba(13,17,23,0.4)', borderRadius:'50%'}}/>
+          <span style={{width:3, height:3, background:'rgba(255,255,255,0.50)', borderRadius:'50%'}}/>
           <span>v 2.0</span>
         </div>
       </div>

@@ -1374,7 +1374,11 @@ body.cinematic-mode { background: #0D1117 !important; }
 /* ===== AI CTA banner ===== */
 .ai-cta-banner {
   border-radius: 16px; overflow: hidden;
-  background: var(--ink); color: var(--paper);
+  /* Navy degradado Udacity-promo (b118) · banner oscuro sobre body claro. */
+  background:
+    radial-gradient(ellipse at 85% 15%, rgba(46,124,255,0.35), transparent 55%),
+    linear-gradient(120deg, #06112E 0%, #0A1A40 55%, #0F2D6B 120%);
+  color: #F4F7FB;
   display: grid; grid-template-columns: 1fr 1fr;
   position: relative; margin-bottom: 0;
 }

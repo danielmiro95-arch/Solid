@@ -110,9 +110,10 @@
  * light Udacity, también las vistas cinematic). */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(46,124,255,0.06) 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, rgba(244,209,168,0.12) 0%, transparent 50%),
-    linear-gradient(180deg, #F6F7F9 0%, #F3F4F6 60%, #EEF0F4 100%);
+    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(46,124,255,0.12), transparent 60%),
+    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(15,60,168,0.07), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(244,209,168,0.14), transparent 60%),
+    linear-gradient(180deg, #F0F3F8 0%, #F3F4F6 40%, #EEF1F6 100%);
   background-attachment: fixed;
 }
 
@@ -139,6 +140,10 @@ body[data-cinematic="true"] {
 .modal-hero-body .h { color: var(--fg-on-cover) !important; }
 .modal-hero-body .q { color: rgba(255,255,255,0.85) !important; }
 
+/* PageShell header · banda navy (b118) · em/acentos en cream sobre navy ·
+   !important para ganar a los inline styles var(--accent) de los callers. */
+.ssg-page header h1 em { color: #F4D1A8 !important; }
+
 /* Avatar dropdown (menú arriba-derecha) · panel oscuro · texto claro. */
 .avatar-menu,
 .avatar-menu * { color: var(--fg); }
@@ -158,7 +163,14 @@ body[data-cinematic="true"] {
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg-canvas);
+  /* Blanco plateado con lavado degradado azul/cream (b118) · evita el
+     "todo plano blanco" · los radiales dan profundidad sin oscurecer. */
+  background:
+    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(46,124,255,0.10), transparent 60%),
+    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(15,60,168,0.06), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(244,209,168,0.14), transparent 60%),
+    linear-gradient(180deg, #F0F3F8 0%, #F3F4F6 40%, #EEF1F6 100%);
+  background-attachment: fixed;
   color: var(--fg);
   font-family: var(--font-sans);
   font-feature-settings: 'ss01', 'cv11';
@@ -247,16 +259,36 @@ img { display: block; max-width: 100%; }
   transition: background var(--t-base) var(--ease-out),
               backdrop-filter var(--t-base) var(--ease-out),
               border-color var(--t-base) var(--ease-out);
-  background: linear-gradient(180deg, var(--scrim, rgba(8,8,11,0.85)) 0%, transparent 100%);
-  border-bottom: 1px solid transparent;
+  /* Navy degradado Udacity · banda oscura sobre el body claro (b118) */
+  background:
+    radial-gradient(ellipse at 90% 0%, rgba(46,124,255,0.30), transparent 55%),
+    linear-gradient(90deg, #06112E 0%, #0A1A40 60%, #0F2D6B 100%);
+  border-bottom: 1px solid rgba(46,124,255,0.25);
 }
 
 .topnav.scrolled {
-  background: var(--bg-glass-strong);
+  background:
+    radial-gradient(ellipse at 90% 0%, rgba(46,124,255,0.30), transparent 55%),
+    linear-gradient(90deg, #06112Eee 0%, #0A1A40ee 60%, #0F2D6Bee 100%);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-bottom-color: var(--line-faint);
+  border-bottom-color: rgba(46,124,255,0.35);
 }
+
+/* Texto/iconos del topnav SIEMPRE claros · va sobre navy degradado.
+   Los hijos usan var(--fg)/var(--fg-muted) que ahora son tinta oscura ·
+   los pisamos scoped al topnav. */
+.topnav, .topnav .wordmark, .topnav .wordmark.v1 .on { color: #F4F7FB; }
+.topnav .topnav-burger { color: #F4F7FB; }
+.topnav .topnav-burger:hover { background: rgba(255,255,255,0.12); }
+.topnav .nav-item { color: rgba(244,247,251,0.72); }
+.topnav .nav-item:hover { color: #FFFFFF; background: rgba(255,255,255,0.08); }
+.topnav .nav-item.active { color: #FFFFFF; }
+.topnav .nav-item.active::after { background: #5B95FF; height: 2px; }
+.topnav .icon-btn { color: rgba(244,247,251,0.75); }
+.topnav .icon-btn:hover { color: #FFFFFF; background: rgba(255,255,255,0.12); }
+.topnav .topnav-search-kbd { border-color: rgba(255,255,255,0.25); color: rgba(244,247,251,0.6); }
+.topnav .icon-btn.topnav-search:hover .topnav-search-kbd { border-color: #5B95FF; color: #FFFFFF; }
 
 .topnav-left {
   display: flex; align-items: center; gap: var(--s-8);
@@ -2497,9 +2529,10 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(46,124,255,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, rgba(244,209,168,0.10) 0%, transparent 50%),
-    linear-gradient(180deg, #F6F7F9 0%, #F3F4F6 60%, #EEF0F4 100%) !important;
+    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(46,124,255,0.12), transparent 60%),
+    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(15,60,168,0.07), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(244,209,168,0.14), transparent 60%),
+    linear-gradient(180deg, #F0F3F8 0%, #F3F4F6 40%, #EEF1F6 100%) !important;
   background-attachment: fixed;
 }
 
@@ -2574,23 +2607,23 @@ html[data-demo-mode="true"] .hero-overlay {
  * "Incluir de forma discreta las referencias SOL y Stream junto al branding".
  * La lógica de qué logo cargar vive en el script de index.html (sync). */
 html[data-demo-mode="true"] .shell-tabs {
-  background: var(--bg-glass-strong);
-  border-bottom: 1px solid var(--line);
+  /* Mismo navy degradado que el resto de tenants (b118) · no glass claro. */
+  background:
+    radial-gradient(ellipse at 90% 0%, rgba(46,124,255,0.28), transparent 55%),
+    linear-gradient(90deg, #06112E 0%, #0A1A40 60%, #0F2D6B 100%);
+  border-bottom: 1px solid rgba(46,124,255,0.25);
 }
 html[data-demo-mode="true"] .shell-tabs .shell-wordmark span,
 html[data-demo-mode="true"] #ws-tenant-name {
-  color: var(--fg-muted) !important;
+  color: rgba(244,247,251,0.75) !important;
 }
 
-/* PageShell headers · tinta sobre crema */
-html[data-demo-mode="true"] .ssg-page,
-html[data-demo-mode="true"] .ssg-page * { color: inherit; }
-html[data-demo-mode="true"] .ssg-page h1,
+/* PageShell · el header es banda navy con texto claro (inline styles del
+   componente) · NO forzar tinta oscura ahí. El body de la página hereda
+   los tokens light normales. */
 html[data-demo-mode="true"] .ssg-page h2 { color: var(--fg); }
-html[data-demo-mode="true"] .ssg-page p,
-html[data-demo-mode="true"] .ssg-page span:not(.card *) { color: var(--fg); }
-html[data-demo-mode="true"] .ssg-page .eyebrow { color: var(--accent); font-weight: 800; letter-spacing: 0.06em; }
-html[data-demo-mode="true"] .ssg-page em { color: var(--accent) !important; }
+html[data-demo-mode="true"] .ssg-page header h1 { color: #FFFFFF !important; }
+html[data-demo-mode="true"] .ssg-page header em { color: #F4D1A8 !important; }
 
 /* Inputs claros */
 html[data-demo-mode="true"] input,

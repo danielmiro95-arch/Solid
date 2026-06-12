@@ -105,19 +105,27 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 28px;
   height: 60px;
+  /* Navy degradado Udacity (b118) · banda oscura sobre el body claro. */
   background:
-    linear-gradient(90deg, rgba(0,114,190,0.04) 0%, rgba(255,255,255,0) 35%, rgba(255,255,255,0) 65%, rgba(188,214,48,0.05) 100%),
-    linear-gradient(180deg, #f8fafd 0%, #eef2f7 100%);
-  border-bottom: 1px solid rgba(0,114,190,0.12);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(0,89,150,0.04);
+    radial-gradient(ellipse at 90% 0%, rgba(46,124,255,0.28), transparent 55%),
+    linear-gradient(90deg, #06112E 0%, #0A1A40 60%, #0F2D6B 100%);
+  border-bottom: 1px solid rgba(46,124,255,0.25);
+  box-shadow: 0 2px 14px rgba(6,17,46,0.25);
   backdrop-filter: blur(8px);
   transition: background .3s, border-color .3s, box-shadow .3s, color .3s;
+  color: #F4F7FB;
 }
+/* Hijos del shell-tabs · claros sobre navy (los inline styles usan var(--ink-*)
+   que ahora son oscuros · los pisamos). */
+.shell-tabs .shell-wordmark,
+.shell-tabs .shell-wordmark span { color: rgba(244,247,251,0.85) !important; }
+.shell-tabs #ws-tenant-name { color: rgba(244,247,251,0.70) !important; }
+.shell-tabs .shell-wordmark > div[style*="background:var(--line)"] { background: rgba(255,255,255,0.22) !important; }
 /* Top nav Netflix-style · dark glass al activar .nav-cinematic (en vistas cinematográficas) */
 .shell-tabs.nav-cinematic {
-  background: linear-gradient(180deg, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.78) 100%);
-  border-bottom-color: rgba(255,255,255,0.08);
-  box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+  background: linear-gradient(180deg, rgba(6,17,46,0.94) 0%, rgba(10,26,64,0.82) 100%);
+  border-bottom-color: rgba(46,124,255,0.20);
+  box-shadow: 0 2px 24px rgba(6,17,46,0.35);
   color: #fff;
 }
 .shell-tabs.nav-cinematic .shell-meta,
