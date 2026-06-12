@@ -743,6 +743,14 @@ img { display: block; max-width: 100%; }
   background: rgba(255,255,255,0.08);
 }
 .hero-actions .btn-ghost:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.42); }
+/* Botones de icono del hero (favorito / mute) · cuadrados 46px con icono más
+   grande · antes quedaban pequeños y perdidos junto a los CTAs. */
+.hero-actions .btn-icon {
+  width: 46px; height: 46px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.hero-actions .btn-icon svg { width: 19px; height: 19px; }
 
 .btn {
   display: inline-flex; align-items: center; gap: var(--s-2);
@@ -1220,17 +1228,25 @@ img { display: block; max-width: 100%; }
   bottom: -32px;
   font-family: var(--font-serif);
   font-style: normal;
-  font-weight: 400;
+  font-weight: 700;
   font-size: 220px;
   line-height: 0.85;
   letter-spacing: -0.06em;
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(110,80,238,0.85);
-  text-stroke: 1.5px rgba(110,80,238,0.85);
+  /* Número fantasma cobalt · relleno suave + filo definido · legible tanto
+     sobre el silver claro como sobre el navy oscuro (b122). */
+  color: rgba(46,124,255,0.16);
+  -webkit-text-stroke: 2px rgba(46,124,255,0.45);
+  text-stroke: 2px rgba(46,124,255,0.45);
   user-select: none;
   pointer-events: none;
   z-index: 0;
   white-space: nowrap;
+}
+/* En dark, el navy oscuro pide un filo cobalt un poco más brillante. */
+html[data-theme="dark"] .trending-num {
+  color: rgba(91,149,255,0.18);
+  -webkit-text-stroke: 2px rgba(91,149,255,0.55);
+  text-stroke: 2px rgba(91,149,255,0.55);
 }
 
 .trending-cell .card {
@@ -2858,9 +2874,12 @@ html[data-demo-mode="true"] .card-badge {
 
 /* Trending num (01, 02, 03 gigantes) · stroke rojo Repsol con glow */
 html[data-demo-mode="true"] .trending-num {
-  color: rgba(255,255,255,0.4);
-  -webkit-text-stroke: 2px var(--accent);
-  text-shadow: 0 0 24px var(--accent-glow);
+  /* Demo renderiza superficies claras · número fantasma cobalt (no blanco,
+     que era invisible sobre el silver). */
+  color: rgba(46,124,255,0.16);
+  -webkit-text-stroke: 2px rgba(46,124,255,0.45);
+  text-stroke: 2px rgba(46,124,255,0.45);
+  text-shadow: none;
 }
 
 /* Sidebar (si aparece · legacy desktop) */
