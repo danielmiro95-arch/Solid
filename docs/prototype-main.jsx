@@ -6702,33 +6702,33 @@ function LoginScreen() {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:1000, display:'flex',
-      background:'radial-gradient(circle at 20% 30%, rgba(110,80,238,0.18), transparent 50%), radial-gradient(circle at 80% 70%, rgba(91,141,239,0.15), transparent 50%), linear-gradient(135deg, #08080B 0%, #0E0E12 50%, #16161C 100%)',
-      overflow:'auto', color:'#F5F4F1',
+      background:'radial-gradient(circle at 20% 30%, rgba(46,124,255,0.10), transparent 50%), radial-gradient(circle at 80% 70%, rgba(244,209,168,0.20), transparent 50%), linear-gradient(135deg, #F6F7F9 0%, #F3F4F6 50%, #EDF0F5 100%)',
+      overflow:'auto', color:'#0D1117',
     }}>
       {/* Lado visual izquierdo */}
-      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#F5F4F1', minWidth:0}}>
+      <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#0D1117', minWidth:0}}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="BeonIt" style={{height:42, width:'auto', flexShrink:0}}/>
-          <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#F5F4F1'}}>
+          <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#0D1117'}}>
             Solid<span style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400}}>Stream</span>
           </span>
         </div>
         <div>
-          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:24}}>{T('login.eyebrow')}</div>
-          <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#F5F4F1'}}>
-            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#6E50EE'}}>{T('login.title.expert')}</em>.
+          <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)', marginBottom:24}}>{T('login.eyebrow')}</div>
+          <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#0D1117'}}>
+            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#2E7CFF'}}>{T('login.title.expert')}</em>.
           </h1>
-          <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(245,244,241,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
+          <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(13,17,23,0.7)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
             {T('login.subtitle')}
           </p>
           <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
             {[T('login.chip.pills'), T('login.chip.workshops'), T('login.chip.beonai'), T('login.chip.cert')].map(t => (
-              <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.14)', borderRadius:999, color:'rgba(245,244,241,0.75)', background:'rgba(255,255,255,0.03)'}}>{t}</span>
+              <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(13,17,23,0.14)', borderRadius:999, color:'rgba(13,17,23,0.75)', background:'rgba(13,17,23,0.03)'}}>{t}</span>
             ))}
           </div>
           {/* Selector de idioma inline · sin sesión todavía */}
           <div style={{marginTop:18, display:'flex', alignItems:'center', gap:8}}>
-            <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)'}}>🌍</span>
+            <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)'}}>🌍</span>
             {['es','en','pt'].map(lng => {
               const cur = (window.I18n && window.I18n.currentLang && window.I18n.currentLang()) || 'es';
               const active = cur === lng;
@@ -6745,16 +6745,16 @@ function LoginScreen() {
                     window.dispatchEvent(new Event('settings-changed'));
                   }
                 }}
-                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#6E50EE' : 'transparent', color: active ? '#fff' : 'rgba(245,244,241,0.6)', border:'1px solid '+(active ? '#6E50EE' : 'rgba(255,255,255,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
+                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2E7CFF' : 'transparent', color: active ? '#fff' : 'rgba(13,17,23,0.6)', border:'1px solid '+(active ? '#2E7CFF' : 'rgba(13,17,23,0.14)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
         </div>
-        <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(245,244,241,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
+        <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, color:'rgba(13,17,23,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:10}}>
           <span>by BeonIt</span>
-          <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
+          <span style={{width:3, height:3, background:'rgba(13,17,23,0.4)', borderRadius:'50%'}}/>
           <span>Powered by Claude</span>
-          <span style={{width:3, height:3, background:'rgba(245,244,241,0.4)', borderRadius:'50%'}}/>
+          <span style={{width:3, height:3, background:'rgba(13,17,23,0.4)', borderRadius:'50%'}}/>
           <span>v 2.0</span>
         </div>
       </div>
@@ -6762,116 +6762,116 @@ function LoginScreen() {
       {/* Form lado derecho · dark glass */}
       <div style={{
         flex:'0 0 480px', maxWidth:'100%',
-        background:'rgba(14,14,18,0.85)', backdropFilter:'blur(24px) saturate(140%)', WebkitBackdropFilter:'blur(24px) saturate(140%)',
-        borderLeft:'1px solid rgba(255,255,255,0.08)',
+        background:'rgba(255,255,255,0.90)', backdropFilter:'blur(24px) saturate(140%)', WebkitBackdropFilter:'blur(24px) saturate(140%)',
+        borderLeft:'1px solid rgba(13,17,23,0.08)',
         padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'
       }}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
-            <div style={{padding:'16px 18px', background:'rgba(110,80,238,0.08)', border:'1px solid rgba(110,80,238,0.3)', borderRadius:10, marginBottom:24}}>
-              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#6E50EE', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
-              <div style={{fontSize:13.5, color:'#F5F4F1', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
+            <div style={{padding:'16px 18px', background:'rgba(46,124,255,0.08)', border:'1px solid rgba(46,124,255,0.3)', borderRadius:10, marginBottom:24}}>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#2E7CFF', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
+              <div style={{fontSize:13.5, color:'#0D1117', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
           {/* Tabs login/signup · solo se ven cuando llega un ?invite=token ·
               cuentas nuevas se crean por invitación del admin del workspace,
               no por signup organic desde la landing. */}
           {invitation && (
-            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, width:'fit-content'}}>
+            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(13,17,23,0.04)', border:'1px solid rgba(13,17,23,0.08)', borderRadius:10, width:'fit-content'}}>
               <button onClick={() => { setMode('login'); setError(''); }}
                 style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                  background: mode==='login' ? '#F5F4F1' : 'transparent', color: mode==='login' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  background: mode==='login' ? '#0D1117' : 'transparent', color: mode==='login' ? '#FFFFFF' : 'rgba(13,17,23,0.6)',
                   transition:'all .12s'}}>{T('login.mode.login')}</button>
               <button onClick={() => { setMode('signup'); setError(''); }}
                 style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                  background: mode==='signup' ? '#F5F4F1' : 'transparent', color: mode==='signup' ? '#0E0E12' : 'rgba(245,244,241,0.6)',
+                  background: mode==='signup' ? '#0D1117' : 'transparent', color: mode==='signup' ? '#FFFFFF' : 'rgba(13,17,23,0.6)',
                   transition:'all .12s'}}>{T('login.mode.signup')}</button>
             </div>
           )}
-          <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#F5F4F1', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
-          <p style={{fontSize:14, color:'rgba(245,244,241,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
+          <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#0D1117', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
+          <p style={{fontSize:14, color:'rgba(13,17,23,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
           <form onSubmit={submit}>
             <label style={{display:'block', marginBottom:14}}>
-              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
+              <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" autoFocus
-                style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1', transition:'border-color .15s'}}
-                onFocus={e => e.target.style.borderColor='#6E50EE'}
-                onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
+                style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117', transition:'border-color .15s'}}
+                onFocus={e => e.target.style.borderColor='#2E7CFF'}
+                onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
             </label>
             {isSupabase && (
               <label style={{display:'block', marginBottom:14}}>
-                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
+                <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
-                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                  onFocus={e => e.target.style.borderColor='#6E50EE'}
-                  onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117'}}
+                  onFocus={e => e.target.style.borderColor='#2E7CFF'}
+                  onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
               </label>
             )}
             {mode === 'signup' && (
               <label style={{display:'block', marginBottom:14}}>
-                <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
+                <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
                 <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre completo"
-                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(255,255,255,0.04)', color:'#F5F4F1'}}
-                  onFocus={e => e.target.style.borderColor='#6E50EE'}
-                  onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.12)'}/>
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117'}}
+                  onFocus={e => e.target.style.borderColor='#2E7CFF'}
+                  onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
               </label>
             )}
             {/* Role y team los asigna el admin del workspace cuando crea/invita
                 al usuario · NO se piden en el signup público · ver InviteUsersModal */}
             {error && (
-              <div style={{padding:'10px 14px', background:'rgba(110,80,238,0.1)', border:'1px solid rgba(110,80,238,0.35)', borderRadius:8, color:'#FF6B73', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
+              <div style={{padding:'10px 14px', background:'rgba(46,124,255,0.1)', border:'1px solid rgba(46,124,255,0.35)', borderRadius:8, color:'#D93843', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
               </div>
             )}
             <button type="submit" disabled={submitting}
-              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(110,80,238,0.5)' : '#6E50EE', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
-              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#8467FF'; }}
-              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#6E50EE'; }}>
+              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(46,124,255,0.5)' : '#2E7CFF', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
+              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#5B95FF'; }}
+              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#2E7CFF'; }}>
               {submitting ? T('login.submitting') : (mode === 'login' ? T('login.submit.login') + ' →' : T('login.submit.signup') + ' →')}
             </button>
           </form>
 
           {isSupabase && (
             <>
-              <div style={{display:'flex', alignItems:'center', gap:10, margin:'20px 0', color:'rgba(245,244,241,0.4)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase'}}>
-                <div style={{flex:1, height:1, background:'rgba(255,255,255,0.1)'}}/>
+              <div style={{display:'flex', alignItems:'center', gap:10, margin:'20px 0', color:'rgba(13,17,23,0.4)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase'}}>
+                <div style={{flex:1, height:1, background:'rgba(13,17,23,0.1)'}}/>
                 <span>o</span>
-                <div style={{flex:1, height:1, background:'rgba(255,255,255,0.1)'}}/>
+                <div style={{flex:1, height:1, background:'rgba(13,17,23,0.1)'}}/>
               </div>
               <button type="button" onClick={ssoLogin} disabled={submitting}
-                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 16px', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, background:'rgba(255,255,255,0.04)', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:600, color:'#F5F4F1', transition:'all .15s'}}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'; }}>
+                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 16px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, background:'rgba(13,17,23,0.04)', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:600, color:'#0D1117', transition:'all .15s'}}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.08)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.04)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.12)'; }}>
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
                 {T('login.sso')}
               </button>
-              <div style={{marginTop:8, fontSize:11, color:'rgba(245,244,241,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
+              <div style={{marginTop:8, fontSize:11, color:'rgba(13,17,23,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
             </>
           )}
 
-          <div style={{marginTop:20, fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', display:'flex', alignItems:'center', gap:8}}>
+          <div style={{marginTop:20, fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)', display:'flex', alignItems:'center', gap:8}}>
             <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? '#4ADE80' : '#F4B740', display:'inline-block', boxShadow:`0 0 8px ${isSupabase ? '#4ADE80' : '#F4B740'}`}}/>
             Backend · {isSupabase ? 'Supabase · Conectado' : 'Demo · LocalStorage'}
           </div>
 
           {!isSupabase && users.length > 0 && mode === 'login' && (
-            <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(255,255,255,0.08)'}}>
-              <div style={{fontSize:10, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>{T('login.quickDemo')}</div>
+            <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(13,17,23,0.08)'}}>
+              <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>{T('login.quickDemo')}</div>
               <div style={{display:'flex', flexDirection:'column', gap:8}}>
                 {users.slice(0, 4).map(u => (
                   <button key={u.id} onClick={() => quickLogin(u.email)} type="button"
-                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, background:'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; }}>
-                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#6E50EE', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(13,17,23,0.08)', borderRadius:8, background:'rgba(13,17,23,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.08)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.03)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.08)'; }}>
+                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#2E7CFF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
                       {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:13.5, fontWeight:600, color:'#F5F4F1', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
-                      <div style={{fontSize:10.5, color:'rgba(245,244,241,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
+                      <div style={{fontSize:13.5, fontWeight:600, color:'#0D1117', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
+                      <div style={{fontSize:10.5, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
                     </div>
-                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#6E50EE', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
+                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#2E7CFF', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
                   </button>
                 ))}
               </div>

@@ -105,12 +105,14 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-/* Body en cinematic (Home/Player/Onboarding) · fondo gris oscuro con gradient sutil. */
+/* Body en cinematic (Home/Player/Onboarding) · blanco plateado con radiales
+ * sutiles cobalt/cream (b116 · antes era gris oscuro · ahora TODA la app es
+ * light Udacity, también las vistas cinematic). */
 body[data-cinematic="true"] {
   background:
-    radial-gradient(ellipse at 0% 0%, #2A2A2A 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #252525 0%, transparent 50%),
-    linear-gradient(180deg, #1F1F1F 0%, #1B1B1B 60%, #181818 100%);
+    radial-gradient(ellipse at 0% 0%, rgba(46,124,255,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, rgba(244,209,168,0.12) 0%, transparent 50%),
+    linear-gradient(180deg, #F6F7F9 0%, #F3F4F6 60%, #EEF0F4 100%);
   background-attachment: fixed;
 }
 
@@ -423,7 +425,7 @@ img { display: block; max-width: 100%; }
   background:
     radial-gradient(ellipse at 70% 40%, rgba(110,80,238,0.25), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(91,141,239,0.18), transparent 55%),
-    linear-gradient(135deg, #1a0c10 0%, #0E0E12 60%);
+    linear-gradient(135deg, #1a0c10 0%, #0A1A40 60%);
   filter: saturate(110%);
 }
 
@@ -431,32 +433,32 @@ img { display: block; max-width: 100%; }
   background:
     radial-gradient(ellipse at 70% 40%, rgba(217,122,43,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.18), transparent 55%),
-    linear-gradient(135deg, #2c1605 0%, #0E0E12 60%);
+    linear-gradient(135deg, #2c1605 0%, #0A1A40 60%);
 }
 .hero-media-placeholder.cover-care {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(45,181,143,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(91,141,239,0.18), transparent 55%),
-    linear-gradient(135deg, #062418 0%, #0E0E12 60%);
+    linear-gradient(135deg, #062418 0%, #0A1A40 60%);
 }
 .hero-media-placeholder.cover-analytics {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(91,141,239,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.16), transparent 55%),
-    linear-gradient(135deg, #061a32 0%, #0E0E12 60%);
+    linear-gradient(135deg, #061a32 0%, #0A1A40 60%);
 }
 .hero-media-placeholder.cover-content {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(201,105,232,0.28), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.16), transparent 55%),
-    linear-gradient(135deg, #1e0c27 0%, #0E0E12 60%);
+    linear-gradient(135deg, #1e0c27 0%, #0A1A40 60%);
 }
 
-.modal-media-inner.cover-publish    { background: radial-gradient(ellipse at 60% 40%, rgba(217,122,43,0.30), transparent 60%), linear-gradient(135deg, #2c1605, #0E0E12); }
-.modal-media-inner.cover-care       { background: radial-gradient(ellipse at 60% 40%, rgba(45,181,143,0.30),  transparent 60%), linear-gradient(135deg, #062418, #0E0E12); }
-.modal-media-inner.cover-analytics  { background: radial-gradient(ellipse at 60% 40%, rgba(91,141,239,0.30),  transparent 60%), linear-gradient(135deg, #061a32, #0E0E12); }
-.modal-media-inner.cover-content    { background: radial-gradient(ellipse at 60% 40%, rgba(201,105,232,0.28), transparent 60%), linear-gradient(135deg, #1e0c27, #0E0E12); }
-.modal-media-inner.cover-manage     { background: radial-gradient(ellipse at 60% 40%, rgba(232,196,85,0.28),  transparent 60%), linear-gradient(135deg, #221b08, #0E0E12); }
+.modal-media-inner.cover-publish    { background: radial-gradient(ellipse at 60% 40%, rgba(217,122,43,0.30), transparent 60%), linear-gradient(135deg, #2c1605, #0A1A40); }
+.modal-media-inner.cover-care       { background: radial-gradient(ellipse at 60% 40%, rgba(45,181,143,0.30),  transparent 60%), linear-gradient(135deg, #062418, #0A1A40); }
+.modal-media-inner.cover-analytics  { background: radial-gradient(ellipse at 60% 40%, rgba(91,141,239,0.30),  transparent 60%), linear-gradient(135deg, #061a32, #0A1A40); }
+.modal-media-inner.cover-content    { background: radial-gradient(ellipse at 60% 40%, rgba(201,105,232,0.28), transparent 60%), linear-gradient(135deg, #1e0c27, #0A1A40); }
+.modal-media-inner.cover-manage     { background: radial-gradient(ellipse at 60% 40%, rgba(232,196,85,0.28),  transparent 60%), linear-gradient(135deg, #221b08, #0A1A40); }
 
 .hero-media-placeholder::after {
   content: '';
@@ -1108,7 +1110,7 @@ img { display: block; max-width: 100%; }
   inset: 0;
   background:
     radial-gradient(ellipse at 60% 40%, rgba(110,80,238,0.22), transparent 60%),
-    linear-gradient(135deg, #1a0c10, #0E0E12);
+    linear-gradient(135deg, #1a0c10, #0A1A40);
 }
 
 .modal-hero-body {
@@ -1949,17 +1951,17 @@ img { display: block; max-width: 100%; }
 .hero-media-placeholder.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, var(--bg-deep)); }
 
 /* Modal media · misma paleta */
-.modal-media-inner.cover-fundamentos    { background: radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.30),  transparent 60%), linear-gradient(135deg, #061a2e, #0E0E12); }
-.modal-media-inner.cover-estructura     { background: radial-gradient(ellipse at 60% 40%, rgba(30,64,175,0.30),  transparent 60%), linear-gradient(135deg, #04122a, #0E0E12); }
-.modal-media-inner.cover-gobernanza     { background: radial-gradient(ellipse at 60% 40%, rgba(99,102,241,0.30), transparent 60%), linear-gradient(135deg, #0c0a27, #0E0E12); }
-.modal-media-inner.cover-social-publish { background: radial-gradient(ellipse at 60% 40%, rgba(220,38,38,0.32),  transparent 60%), linear-gradient(135deg, #21070a, #0E0E12); }
-.modal-media-inner.cover-activos        { background: radial-gradient(ellipse at 60% 40%, rgba(5,150,105,0.30),  transparent 60%), linear-gradient(135deg, #041810, #0E0E12); }
-.modal-media-inner.cover-aprobaciones   { background: radial-gradient(ellipse at 60% 40%, rgba(168,85,247,0.30), transparent 60%), linear-gradient(135deg, #170724, #0E0E12); }
-.modal-media-inner.cover-compliance     { background: radial-gradient(ellipse at 60% 40%, rgba(100,116,139,0.30),transparent 60%), linear-gradient(135deg, #0a0d12, #0E0E12); }
-.modal-media-inner.cover-calendario     { background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.30), transparent 60%), linear-gradient(135deg, #07182c, #0E0E12); }
-.modal-media-inner.cover-analytics-real { background: radial-gradient(ellipse at 60% 40%, rgba(8,145,178,0.30),  transparent 60%), linear-gradient(135deg, #04161e, #0E0E12); }
-.modal-media-inner.cover-care-real      { background: radial-gradient(ellipse at 60% 40%, rgba(225,29,72,0.32),  transparent 60%), linear-gradient(135deg, #1c0306, #0E0E12); }
-.modal-media-inner.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, #0E0E12); }
+.modal-media-inner.cover-fundamentos    { background: radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.30),  transparent 60%), linear-gradient(135deg, #061a2e, #0A1A40); }
+.modal-media-inner.cover-estructura     { background: radial-gradient(ellipse at 60% 40%, rgba(30,64,175,0.30),  transparent 60%), linear-gradient(135deg, #04122a, #0A1A40); }
+.modal-media-inner.cover-gobernanza     { background: radial-gradient(ellipse at 60% 40%, rgba(99,102,241,0.30), transparent 60%), linear-gradient(135deg, #0c0a27, #0A1A40); }
+.modal-media-inner.cover-social-publish { background: radial-gradient(ellipse at 60% 40%, rgba(220,38,38,0.32),  transparent 60%), linear-gradient(135deg, #21070a, #0A1A40); }
+.modal-media-inner.cover-activos        { background: radial-gradient(ellipse at 60% 40%, rgba(5,150,105,0.30),  transparent 60%), linear-gradient(135deg, #041810, #0A1A40); }
+.modal-media-inner.cover-aprobaciones   { background: radial-gradient(ellipse at 60% 40%, rgba(168,85,247,0.30), transparent 60%), linear-gradient(135deg, #170724, #0A1A40); }
+.modal-media-inner.cover-compliance     { background: radial-gradient(ellipse at 60% 40%, rgba(100,116,139,0.30),transparent 60%), linear-gradient(135deg, #0a0d12, #0A1A40); }
+.modal-media-inner.cover-calendario     { background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.30), transparent 60%), linear-gradient(135deg, #07182c, #0A1A40); }
+.modal-media-inner.cover-analytics-real { background: radial-gradient(ellipse at 60% 40%, rgba(8,145,178,0.30),  transparent 60%), linear-gradient(135deg, #04161e, #0A1A40); }
+.modal-media-inner.cover-care-real      { background: radial-gradient(ellipse at 60% 40%, rgba(225,29,72,0.32),  transparent 60%), linear-gradient(135deg, #1c0306, #0A1A40); }
+.modal-media-inner.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, #0A1A40); }
 
 /* Cuando el rediseño está activo, el shell-tabs legacy se oculta */
 body.sgs-redesign nav.shell-tabs { display: none !important; }
@@ -2468,35 +2470,36 @@ html[data-demo-mode="true"] {
   --err:           #FC220D;        /* beon Retail · rojo */
 }
 
-/* DEMO BEONIT · ahora también en CLARO (toda la app repintada en crema).
- * Mantenemos el selector para conservar el accent rojo Repsol (--accent ya es
- * #EC1C24 en :root) · solo aseguramos surfaces/scrim coherentes. */
+/* DEMO BEONIT · alineado con la paleta light Udacity (b116+).
+ * Los workspaces demo (URL contiene "demo") usan EXACTAMENTE los mismos
+ * tokens que :root · sin desvíos. Mantenemos el selector solo para ganar
+ * especificidad sobre overrides legacy. */
 html[data-demo-mode="true"],
 html[data-demo-mode="true"] body[data-cinematic="true"] {
-  --bg-deep:        #1A1A1A;
-  --bg-canvas:      #1F1F1F;
-  --bg-surface:     #2A2A2A;
-  --bg-elevated:    #353535;
-  --bg-glass:       rgba(31, 31, 31, 0.78);
-  --bg-glass-strong:rgba(31, 31, 31, 0.94);
-  --scrim:          rgba(26, 26, 26, 0.85);
-  --line-faint:     rgba(255, 255, 255, 0.05);
-  --line:           rgba(255, 255, 255, 0.09);
-  --line-strong:    rgba(255, 255, 255, 0.18);
-  --fg:             #F2F2F1;
-  --fg-muted:       #B9B9B7;
-  --fg-dim:         #9C9C9A;
-  --fg-faint:       #7E7E7C;
+  --bg-deep:        #E8ECF1;
+  --bg-canvas:      #F3F4F6;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #FFFFFF;
+  --bg-glass:       rgba(255, 255, 255, 0.85);
+  --bg-glass-strong:rgba(255, 255, 255, 0.96);
+  --scrim:          rgba(232, 236, 241, 0.85);
+  --line-faint:     rgba(13, 17, 23, 0.04);
+  --line:           rgba(13, 17, 23, 0.08);
+  --line-strong:    rgba(13, 17, 23, 0.16);
+  --fg:             #0D1117;
+  --fg-muted:       #4A5568;
+  --fg-dim:         #6B7280;
+  --fg-faint:       #94A3B8;
   --fg-on-accent:   #FFFFFF;
   --fg-on-cover:    #FFFFFF;
 }
-/* Body en demo · gradient gris neutro puro. */
+/* Body en demo · blanco plateado con sutiles radiales cream/cobalt. */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
   background:
-    radial-gradient(ellipse at 0% 0%, #2A2A2A 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, #252525 0%, transparent 50%),
-    linear-gradient(180deg, #1F1F1F 0%, #1B1B1B 60%, #181818 100%) !important;
+    radial-gradient(ellipse at 0% 0%, rgba(46,124,255,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, rgba(244,209,168,0.10) 0%, transparent 50%),
+    linear-gradient(180deg, #F6F7F9 0%, #F3F4F6 60%, #EEF0F4 100%) !important;
   background-attachment: fixed;
 }
 
