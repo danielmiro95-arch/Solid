@@ -398,6 +398,15 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   useEffect(() => { setMobileNavOpen(false); }, [view]);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Tema · light/dark/auto · toggle visible en el menú del avatar (b124).
+  const [theme, setThemeState] = useState(() => (window.Settings && window.Settings.get && window.Settings.get().theme) || 'light');
+  const setTheme = (t) => { setThemeState(t); if (window.Settings && window.Settings.update) window.Settings.update({ theme: t }); };
+  // Sync si el tema cambia desde otro sitio (Ajustes) · evita activo desfasado.
+  useEffect(() => {
+    const r = () => { try { setThemeState((window.Settings.get().theme) || 'light'); } catch(e) {} };
+    window.addEventListener('settings-changed', r);
+    return () => window.removeEventListener('settings-changed', r);
+  }, []);
   const [inboxCount, setInboxCount] = useState(() => (window.Inbox && window.Inbox.unreadCount && window.Inbox.unreadCount()) || 0);
   const menuRef = React.useRef(null);
   useEffect(() => {
@@ -593,6 +602,37 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 
             {/* Separador */}
             <div style={{height:1, background:'rgba(255,255,255,0.08)', margin:'6px 6px'}}/>
+
+            {/* Toggle de tema · claro / oscuro / auto · oculto en demo (que
+                fuerza su propio tema). Visible y a un clic · antes solo estaba
+                enterrado en Ajustes. */}
+            {!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
+              <div style={{ padding:'8px 14px 10px' }}>
+                <div style={{ fontSize:10, fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(245,244,241,0.5)', marginBottom:8 }}>Apariencia</div>
+                <div style={{ display:'flex', gap:4, padding:4, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:9 }}>
+                  {[
+                    { id:'light', label:'Claro', icon:'☀' },
+                    { id:'dark',  label:'Oscuro', icon:'☾' },
+                    { id:'auto',  label:'Auto', icon:'◐' },
+                  ].map(opt => {
+                    const on = theme === opt.id;
+                    return (
+                      <button key={opt.id} onClick={() => setTheme(opt.id)} style={{
+                        flex:1, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5,
+                        padding:'7px 6px', borderRadius:6, border:'none', cursor:'pointer',
+                        fontFamily:'var(--font-sans, Inter)', fontSize:11.5, fontWeight:600,
+                        background: on ? 'var(--accent, #2E7CFF)' : 'transparent',
+                        color: on ? '#fff' : 'rgba(245,244,241,0.65)',
+                        boxShadow: on ? '0 2px 8px rgba(46,124,255,0.30)' : 'none',
+                        transition:'all .15s',
+                      }}>
+                        <span style={{ fontSize:13 }}>{opt.icon}</span>{opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Logout */}
             <button data-logout="true" onClick={() => { setMenuOpen(false); onLogout && onLogout(); }}
