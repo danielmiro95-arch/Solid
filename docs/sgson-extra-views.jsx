@@ -22,38 +22,49 @@ const _slug = (s) => {
 function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
   return (
     <div style={{
-      padding: '90px 64px 80px',
-      maxWidth: narrow ? 1080 : 1400,
-      margin: '0 auto',
+      padding: '0 0 80px',
       color: 'var(--fg)',
-      background: 'var(--bg-canvas)',
       minHeight: '100vh',
     }} className="ssg-page">
-      <header style={{ marginBottom: 32, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-        <div>
-          {eyebrow && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
-              letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--fg-dim)',
-              marginBottom: 12,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
-              {eyebrow}
-            </div>
-          )}
-          <h1 style={{
-            fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'clamp(34px, 4vw, 48px)',
-            letterSpacing: '-0.025em', lineHeight: 1.05, margin: 0, color: 'var(--fg)',
-          }}>{title}</h1>
-          {sub && <p style={{
-            fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 18,
-            color: 'var(--fg-muted)', marginTop: 8, marginBottom: 0,
-          }}>{sub}</p>}
+      {/* Banda hero navy degradada · estilo hero Udacity (b118). Full-bleed
+          y arranca en top:0 · el topnav fixed (mismo navy) se funde con ella.
+          El contenido interior respeta el maxWidth de la página. */}
+      <header style={{
+        background:
+          'radial-gradient(ellipse at 85% 10%, rgba(46,124,255,0.35), transparent 55%), ' +
+          'radial-gradient(ellipse at 8% 95%, rgba(15,60,168,0.40), transparent 55%), ' +
+          'linear-gradient(120deg, #06112E 0%, #0A1A40 50%, #0F2D6B 115%)',
+        padding: '118px 64px 46px',
+        marginBottom: 36,
+      }}>
+        <div style={{ maxWidth: narrow ? 1080 : 1400, margin: '0 auto', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+          <div>
+            {eyebrow && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(244,247,251,0.65)',
+                marginBottom: 12,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5B95FF' }}/>
+                {eyebrow}
+              </div>
+            )}
+            <h1 style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'clamp(34px, 4vw, 48px)',
+              letterSpacing: '-0.025em', lineHeight: 1.05, margin: 0, color: '#FFFFFF',
+            }}>{title}</h1>
+            {sub && <p style={{
+              fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 18,
+              color: 'rgba(244,209,168,0.95)', marginTop: 8, marginBottom: 0,
+            }}>{sub}</p>}
+          </div>
+          {actions && <div style={{ display: 'flex', gap: 10 }}>{actions}</div>}
         </div>
-        {actions && <div style={{ display: 'flex', gap: 10 }}>{actions}</div>}
       </header>
-      {children}
+      <div style={{ maxWidth: narrow ? 1080 : 1400, margin: '0 auto', padding: '0 64px' }}>
+        {children}
+      </div>
     </div>
   );
 }
