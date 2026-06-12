@@ -28,8 +28,9 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
     }} className="ssg-page">
       {/* Banda hero navy degradada · estilo hero Udacity (b118). Full-bleed
           y arranca en top:0 · el topnav fixed (mismo navy) se funde con ella.
-          El contenido interior respeta el maxWidth de la página. */}
-      <header style={{
+          El contenido interior respeta el maxWidth de la página. La clase
+          ssg-hero permite separar la banda del canvas en dark mode. */}
+      <header className="ssg-hero" style={{
         background:
           'radial-gradient(ellipse at 85% 10%, rgba(46,124,255,0.35), transparent 55%), ' +
           'radial-gradient(ellipse at 8% 95%, rgba(15,60,168,0.40), transparent 55%), ' +
@@ -2856,9 +2857,9 @@ window.MyCertificatesSection = MyCertificatesSection;
    SettingsView · preferencias
    ============================================================ */
 function SettingsView({ setView }) {
-  // SaaS forzado en dark · sin selector de tema (ver theme-controller en
-  // prototype-main.jsx). Solo conservamos preferencia de idioma.
   const [lang, setLang] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().language) || 'es');
+  // Tema · light/dark/auto (b120) · el theme-controller aplica y persiste.
+  const [theme, setTheme] = useEV2(() => (window.Settings && window.Settings.get && window.Settings.get().theme) || 'light');
 
   // Color de acento neutro para los paneles dentro de Settings
   // IMPORTANTE: usar hex directo (no CSS var) porque varios panels hacen
@@ -2882,10 +2883,33 @@ function SettingsView({ setView }) {
         <h2 style={{ fontFamily:'var(--font-sans)', fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>{T('settings.general')}</h2>
         <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>{T('settings.general.sub')}</div>
 
-        {/* SaaS en dark mode forzado · selector de tema retirado. Analytics
-            tiene su propio switch a light (ver AnalyticsView). Solo dejamos
-            idioma como preferencia de usuario. */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr', gap: 14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+          {/* Tema · light / dark / auto · segmented control */}
+          <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
+            <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.theme.title','Apariencia')}</h3>
+            <p style={{ fontSize: 12, color:'var(--fg-muted)', margin:'0 0 12px' }}>{T('settings.theme.desc','Claro u oscuro · los colores de marca no cambian, solo el fondo.')}</p>
+            <div style={{ display:'flex', gap: 4, padding: 4, background:'var(--bg-elevated)', border:'1px solid var(--line)', borderRadius: 10, width:'fit-content' }}>
+              {[
+                { id:'light', label: T('settings.theme.light','Claro'), icon:'☀' },
+                { id:'dark',  label: T('settings.theme.dark','Oscuro'), icon:'☾' },
+                { id:'auto',  label: T('settings.theme.auto','Auto'),   icon:'◐' },
+              ].map(opt => {
+                const active = theme === opt.id;
+                return (
+                  <button key={opt.id} onClick={() => { setTheme(opt.id); save('theme', opt.id); }} style={{
+                    display:'inline-flex', alignItems:'center', gap: 7, padding:'8px 16px', borderRadius: 7,
+                    border:'none', cursor:'pointer', fontFamily:'var(--font-sans)', fontSize: 12.5, fontWeight: 600,
+                    background: active ? 'var(--accent)' : 'transparent',
+                    color: active ? '#fff' : 'var(--fg-muted)',
+                    boxShadow: active ? '0 2px 8px rgba(46,124,255,0.30)' : 'none',
+                    transition:'all .15s',
+                  }}>
+                    <span style={{ fontSize: 14 }}>{opt.icon}</span>{opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {/* Idioma */}
           <div style={{ padding: 20, background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 12 }}>
             <h3 style={{ fontFamily:'var(--font-sans)', fontSize: 14.5, fontWeight: 700, color:'var(--fg)', margin:'0 0 4px' }}>{T('settings.language.title')}</h3>
