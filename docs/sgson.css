@@ -616,43 +616,60 @@ img { display: block; max-width: 100%; }
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  transition: background var(--t-fast), transform var(--t-fast), color var(--t-fast);
+  transition: background var(--t-fast), transform var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
   white-space: nowrap;
 }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 
+/* Primario · cobalt Udacity sólido con shadow azul de elevación. */
 .btn-primary {
-  /* Look Apple · botón claro sólido con texto oscuro sobre tema oscuro */
-  background: var(--fg);
-  color: var(--bg-canvas);
+  background: var(--accent);
+  color: var(--fg-on-accent);
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(46,124,255,0.28);
 }
-/* Hover sube a blanco puro (NO a negro · antes #000 dejaba texto oscuro sobre
-   negro = invisible) · ligero lift ya viene de .btn:hover */
-.btn-primary:hover { background: #FFFFFF; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 8px 22px rgba(46,124,255,0.40);
+}
 
+/* Secundario · sutil sobre claro (chip blanco con borde). */
 .btn-secondary {
-  background: rgba(255,255,255,0.10);
+  background: #FFFFFF;
   color: var(--fg);
-  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(13,17,23,0.04);
 }
-.btn-secondary:hover { background: rgba(255,255,255,0.18); }
+.btn-secondary:hover { background: var(--bg-deep); border-color: var(--line-strong); }
 
+/* Accent · alias de primary para callsites legacy. */
 .btn-accent {
   background: var(--accent);
   color: var(--fg-on-accent);
+  box-shadow: 0 4px 12px rgba(46,124,255,0.28);
 }
-.btn-accent:hover { background: var(--accent-hover); }
+.btn-accent:hover { background: var(--accent-hover); box-shadow: 0 8px 22px rgba(46,124,255,0.40); }
 
+/* Ghost · borde sutil, texto cobalt sobre claro · activo se rellena cobalt. */
 .btn-ghost {
   background: transparent;
-  color: var(--fg);
-  border: 1px solid var(--line-strong);
+  color: var(--accent);
+  border: 1px solid var(--line);
 }
-.btn-ghost:hover { background: var(--bg-elevated); }
+.btn-ghost:hover { background: rgba(46,124,255,0.06); border-color: var(--accent); }
 .btn-ghost.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-ghost.is-active:hover { background: var(--accent-hover, var(--accent)); }
+.btn-ghost.is-active:hover { background: var(--accent-hover); }
+
+/* Cream · CTA editorial cálido (para "Premium", "Maestrías", "Featured") · al
+   estilo del banner promo de Udacity con CTA cyan, pero en cream sobre navy. */
+.btn-cream {
+  background: var(--cream);
+  color: #06112E;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(244,209,168,0.35);
+}
+.btn-cream:hover { background: var(--cream-soft); box-shadow: 0 8px 22px rgba(244,209,168,0.45); }
 
 .btn-icon { width: 48px; padding: 0; justify-content: center; }
 
@@ -795,11 +812,13 @@ img { display: block; max-width: 100%; }
 .rail-arrow {
   position: absolute;
   top: 0; bottom: 80px;
-  width: 64px;
-  background: linear-gradient(90deg, var(--scrim, rgba(8,8,11,0.85)), transparent);
+  width: 72px;
+  /* Light theme · funde de canvas claro a transparente · la flecha es un
+     chip cobalt circular flotante (ver .rail-arrow svg/icon below). */
+  background: linear-gradient(90deg, var(--bg-canvas) 10%, rgba(243,244,246,0) 100%);
   display: flex; align-items: center; justify-content: flex-start;
-  padding-left: 18px;
-  color: var(--fg);
+  padding-left: 14px;
+  color: var(--accent);
   opacity: 0;
   transition: opacity var(--t-fast);
   z-index: 4;
@@ -807,10 +826,19 @@ img { display: block; max-width: 100%; }
 }
 .rail-arrow.right {
   left: auto; right: 0;
-  background: linear-gradient(270deg, var(--scrim, rgba(8,8,11,0.85)), transparent);
+  background: linear-gradient(270deg, var(--bg-canvas) 10%, rgba(243,244,246,0) 100%);
   justify-content: flex-end;
   padding-left: 0;
-  padding-right: 18px;
+  padding-right: 14px;
+}
+/* Pintamos el icono dentro como un chip circular blanco con sombra cobalt. */
+.rail-arrow > * {
+  width: 44px; height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(13,17,23,0.10), 0 0 0 1px var(--line);
+  color: var(--accent);
 }
 .rail-arrow.left { left: 0; }
 .row:hover .rail-arrow { opacity: 1; pointer-events: auto; }
@@ -825,7 +853,7 @@ img { display: block; max-width: 100%; }
   aspect-ratio: 16/9;
   position: relative;
   background: var(--bg-surface);
-  border-radius: var(--r-3);
+  border-radius: 12px;
   overflow: hidden;
   scroll-snap-align: start;
   transition: transform var(--t-base) var(--ease-out),
@@ -833,15 +861,21 @@ img { display: block; max-width: 100%; }
               border-color var(--t-base) var(--ease-out);
   cursor: pointer;
   border: 1px solid var(--line);
-  /* Profundidad en reposo · sombra + hairline highlight superior · sin esto
-     las cards se veían planas pegadas al fondo. */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04);
+  /* Light theme · sombra sutil tinta + halo cobalt apenas perceptible para
+     dar volumen sin ensuciar (Udacity cards). */
+  box-shadow:
+    0 1px 2px rgba(13,17,23,0.05),
+    0 6px 18px rgba(13,17,23,0.06);
 }
 
 .card:hover {
-  transform: translateY(-6px) scale(1.045);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07);
-  border-color: var(--line-strong);
+  transform: translateY(-6px) scale(1.025);
+  /* Halo cobalt en hover · refuerza el accent de la plataforma. */
+  box-shadow:
+    0 2px 4px rgba(13,17,23,0.06),
+    0 18px 34px rgba(13,17,23,0.14),
+    0 0 0 1px rgba(46,124,255,0.18);
+  border-color: rgba(46,124,255,0.45);
   z-index: 5;
 }
 
@@ -908,11 +942,13 @@ img { display: block; max-width: 100%; }
   font-size: 9px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
-  background: rgba(110,80,238,0.12);
-  border: 1px solid rgba(110,80,238,0.4);
+  color: #FFFFFF;
+  /* Cobalt chip cremoso · alineado con la paleta plataforma (b119). */
+  background: rgba(46,124,255,0.90);
+  border: 1px solid rgba(46,124,255,1);
   padding: 3px 8px;
   border-radius: var(--r-2);
+  box-shadow: 0 2px 6px rgba(46,124,255,0.30);
 }
 
 .card-body {
@@ -952,17 +988,19 @@ img { display: block; max-width: 100%; }
 .card-meta > * { flex-shrink: 0; }
 .card-meta .sep { color: var(--fg-faint); }
 
-/* Progress bar */
+/* Progress bar · pista translúcida sobre cover (que es oscuro) · fill cobalt
+   con glow sutil que marca progreso "en vivo". */
 .card-progress {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 3px;
-  background: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.15);
   z-index: 3;
 }
 .card-progress .fill {
   height: 100%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent) 0%, #5B95FF 100%);
+  box-shadow: 0 0 8px rgba(46,124,255,0.50);
 }
 
 /* Hover action bar (revealed on hover) */

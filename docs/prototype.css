@@ -344,27 +344,39 @@ body.cinematic-mode { background: #0D1117 !important; }
 
 /* --- Sidebar (panel elevado tipo card) --- */
 .sb {
-  border-right: 1px solid rgba(0, 114, 190, 0.1);
+  border-right: 1px solid rgba(46,124,255,0.18);
   padding: 24px 18px;
   display: flex; flex-direction: column; gap: 26px;
-  background: linear-gradient(180deg, #f5f7fb 0%, #eef2f8 100%);
+  /* Sidebar navy degradado · idéntica familia al topnav / hero (b119) ·
+     da peso a la columna izquierda como Udacity hace con su catálogo. */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(46,124,255,0.22), transparent 50%),
+    linear-gradient(180deg, #06112E 0%, #0A1A40 60%, #0F2D6B 100%);
+  color: #F4F7FB;
   position: sticky; top: 60px; height: calc(100vh - 60px);
   overflow-y: auto;
   box-shadow:
-    inset -1px 0 0 rgba(255,255,255,0.6),
-    4px 0 16px rgba(0, 89, 150, 0.04),
-    1px 0 0 rgba(0, 114, 190, 0.06);
+    inset -1px 0 0 rgba(255,255,255,0.06),
+    4px 0 16px rgba(6,17,46,0.30);
 }
-/* sidebar items con superficie blanca al hover/active para que destaque */
-.sb-item:hover { background: rgba(255,255,255,0.7); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-.sb-item.active { background: var(--ink); color: var(--paper); box-shadow: 0 4px 10px rgba(13,17,23,0.18); }
-.sb-search { background: rgba(255,255,255,0.7); border-color: rgba(0,114,190,0.12); }
-.sb-search:hover { background: #fff; border-color: rgba(0,114,190,0.25); }
-.sb-org { background: rgba(255,255,255,0.7); border: 1px solid rgba(0,114,190,0.08); }
-.sb-path { background: rgba(255,255,255,0.6); border: 1px solid rgba(0,114,190,0.08); }
-.sb-path:hover { background: #fff; border-color: rgba(0,114,190,0.18); box-shadow: 0 2px 8px rgba(0,89,150,0.06); }
-.sb-user { background: rgba(255,255,255,0.7); border: 1px solid rgba(0,114,190,0.08); }
-.sb-user:hover { background: #fff; }
+/* Items: claros translúcidos · activo cobalt sólido · hover cobalt sutil. */
+.sb-item { color: rgba(244,247,251,0.78); }
+.sb-item:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; box-shadow: none; }
+.sb-item.active {
+  background: linear-gradient(135deg, #2E7CFF, #1F5FCC);
+  color: #FFFFFF;
+  box-shadow: 0 6px 18px rgba(46,124,255,0.35);
+}
+.sb-search { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); color: rgba(244,247,251,0.85); }
+.sb-search:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.30); }
+.sb-search input, .sb-search input::placeholder { color: rgba(244,247,251,0.65); }
+.sb-org   { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(244,247,251,0.85); }
+.sb-path  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(244,247,251,0.85); }
+.sb-path:hover { background: rgba(255,255,255,0.10); border-color: rgba(46,124,255,0.55); box-shadow: 0 4px 14px rgba(46,124,255,0.20); }
+.sb-user  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #F4F7FB; }
+.sb-user:hover { background: rgba(255,255,255,0.10); }
+.sb-brand .mark { color: #FFFFFF; }
+.sb-brand .dot { background: var(--cream) !important; box-shadow: 0 0 8px rgba(244,209,168,0.50); }
 .sb-brand {
   display: flex; align-items: center; gap: 10px;
 }
