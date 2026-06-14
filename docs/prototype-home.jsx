@@ -1655,8 +1655,8 @@ function NextStepIA({ setView, openPath, openDetail }) {
     <section style={{
       margin:'-44px var(--row-pad, 60px) 32px',
       padding:'18px 22px',
-      background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.04))',
-      border:'1px solid rgba(236,28,36,0.28)',
+      background:'linear-gradient(135deg, rgba(45,107,246,0.10), rgba(45,107,246,0.04))',
+      border:'1px solid rgba(45,107,246,0.28)',
       borderRadius: 14,
       position:'relative', zIndex: 4,
       display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap',
@@ -1666,7 +1666,7 @@ function NextStepIA({ setView, openPath, openDetail }) {
         width: 38, height: 38, borderRadius:'50%',
         background:'var(--accent)', color:'#fff',
         display:'flex', alignItems:'center', justifyContent:'center',
-        flexShrink: 0, fontSize: 18, boxShadow:'0 0 0 4px rgba(236,28,36,0.18)',
+        flexShrink: 0, fontSize: 18, boxShadow:'0 0 0 4px rgba(45,107,246,0.18)',
       }}>✦</div>
       <div style={{ flex: 1, minWidth: 220 }}>
         <div style={{

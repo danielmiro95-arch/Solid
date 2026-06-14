@@ -13,9 +13,9 @@
   --bg-canvas:      #F1F4F9;                       /* fondo de página · blanco plateado Udacity */
   --bg-surface:     #FFFFFF;                       /* cards/modales · blanco puro */
   --bg-elevated:    #FFFFFF;                       /* dropdowns · con sombra */
-  --bg-glass:       rgba(255, 255, 255, 0.85);
-  --bg-glass-strong:rgba(255, 255, 255, 0.96);
-  --scrim:          rgba(232, 236, 241, 0.85);
+  --bg-glass:       rgba(241, 244, 249, 0.76);
+  --bg-glass-strong:rgba(241, 244, 249, 0.93);
+  --scrim:          241, 244, 249;            /* triple RGB · scrims via rgba(var(--scrim), α) */
 
   /* Zona "cream" · áreas editoriales destacadas (Maestrías, hero CTA). */
   --bg-cream:       #EAF0FB;
@@ -107,9 +107,9 @@ html[data-theme="dark"] {
   --bg-canvas:      #0A1124;                       /* fondo de página · navy carbón */
   --bg-surface:     #121B36;                       /* cards/modales · navy un escalón */
   --bg-elevated:    #1B2747;                       /* hover, dropdowns */
-  --bg-glass:       rgba(10, 20, 40, 0.78);
-  --bg-glass-strong:rgba(10, 20, 40, 0.94);
-  --scrim:          rgba(5, 13, 30, 0.85);
+  --bg-glass:       rgba(10, 17, 36, 0.76);
+  --bg-glass-strong:rgba(10, 17, 36, 0.93);
+  --scrim:          10, 17, 36;                    /* triple RGB · scrims via rgba(var(--scrim), α) */
 
   /* Zona cream en dark · navy templado (no peach plano · da calidez sutil) */
   --bg-cream:       #16203B;
@@ -185,18 +185,8 @@ html[data-theme="dark"] .sb {
   box-shadow: inset -1px 0 0 rgba(45,107,246,0.16), 4px 0 18px rgba(0,0,0,0.35);
 }
 
-/* Fondo del body en dark · navy carbón degradado (las reglas html,body y
-   body[data-cinematic] de más abajo son claras y sin condicionar · aquí las
-   pisamos para el lienzo oscuro). Mismas familias de radiales cobalt/cream. */
-html[data-theme="dark"] body,
-html[data-theme="dark"] body[data-cinematic="true"] {
-  background:
-    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(45,107,246,0.14), transparent 60%),
-    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(17,72,199,0.16), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(174,203,242,0.06), transparent 60%),
-    linear-gradient(180deg, #0A1124 0%, #081021 50%, #060C1A 100%) !important;
-  background-attachment: fixed;
-}
+/* En dark, el body usa --app-bg del §4 (navy degradado editorial Midnight).
+   La regla final con !important lo aplica · este bloque sobra. */
 
 /* ============================================================
    LIGHT THEME · :root YA es claro (todo el SaaS en crema). Mantengo este
@@ -208,17 +198,10 @@ html[data-theme="dark"] body[data-cinematic="true"] {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-/* Body en cinematic (Home/Player/Onboarding) · blanco plateado con radiales
- * sutiles cobalt/cream (b116 · antes era gris oscuro · ahora TODA la app es
- * light Udacity, también las vistas cinematic). */
-body[data-cinematic="true"] {
-  background:
-    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(45,107,246,0.12), transparent 60%),
-    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(17,72,199,0.07), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(174,203,242,0.14), transparent 60%),
-    linear-gradient(180deg, #F0F3F8 0%, #F1F4F9 40%, #EEF1F6 100%);
-  background-attachment: fixed;
-}
+/* Body en cinematic (Home/Player/Onboarding) · usa el --app-bg del §4
+ * (degradado azul→blanco en claro, navy degradado en oscuro). Las radiales
+ * de cobalt/cream antiguas se quitan · el wash editorial las hace redundantes. */
+body[data-cinematic="true"] { background: var(--app-bg); background-attachment: fixed; }
 
 /* Cards · cover oscuro/colorido por design · el texto SIEMPRE va en blanco
  * (legibilidad sobre la miniatura). Aplica a TODOS los temas (claro y oscuro).
@@ -231,7 +214,7 @@ body[data-cinematic="true"] {
 .card .card-match       { color: rgba(255,255,255,0.72); }
 .card .card-action      { color: #FFFFFF; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.30); }
 .card .card-action:hover { background: rgba(255,255,255,0.34); }
-.card .card-action.primary       { background: #FFFFFF; color: #18140F; border-color: transparent; }
+.card .card-action.primary       { background: #FFFFFF; color: #0B1220; border-color: transparent; }
 .card .card-action.primary:hover { background: #FFFFFF; }
 .card-progress         { background: rgba(255,255,255,0.18); }
 
@@ -266,14 +249,10 @@ body[data-cinematic="true"] {
 html, body {
   margin: 0;
   padding: 0;
-  /* Blanco plateado con lavado degradado azul/cream (b118) · evita el
-     "todo plano blanco" · los radiales dan profundidad sin oscurecer. */
-  background:
-    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(45,107,246,0.10), transparent 60%),
-    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(17,72,199,0.06), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(174,203,242,0.14), transparent 60%),
-    linear-gradient(180deg, #F0F3F8 0%, #F1F4F9 40%, #EEF1F6 100%);
-  background-attachment: fixed;
+  /* §4 del handoff Midnight v2 · background lo aplica la regla final con
+     var(--app-bg) (azul→blanco en claro, navy degradado en oscuro). Aquí
+     solo el color base como fallback. */
+  background: var(--bg-canvas);
   color: var(--fg);
   font-family: var(--font-sans);
   font-feature-settings: 'ss01', 'cv11';
@@ -2616,7 +2595,7 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
   .card-match { font-size: 9.5px; }
 
   /* Trending · números más pequeños */
-  .trending-num { font-size: 80px !important; left: -10px !important; }
+  .trending-num { font-size: 72px !important; left: 4px !important; }
 
   /* PageShell vistas extra */
   .ssg-page { padding: 70px 16px 40px !important; }
@@ -2720,9 +2699,9 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
   --bg-canvas:      #F1F4F9;
   --bg-surface:     #FFFFFF;
   --bg-elevated:    #FFFFFF;
-  --bg-glass:       rgba(255, 255, 255, 0.85);
-  --bg-glass-strong:rgba(255, 255, 255, 0.96);
-  --scrim:          rgba(232, 236, 241, 0.85);
+  --bg-glass:       rgba(241, 244, 249, 0.76);
+  --bg-glass-strong:rgba(241, 244, 249, 0.93);
+  --scrim:          241, 244, 249;
   --line-faint:     rgba(11, 18, 38, 0.04);
   --line:           rgba(11, 18, 38, 0.08);
   --line-strong:    rgba(11, 18, 38, 0.16);
@@ -2733,15 +2712,11 @@ html[data-demo-mode="true"] body[data-cinematic="true"] {
   --fg-on-accent:   #FFFFFF;
   --fg-on-cover:    #FFFFFF;
 }
-/* Body en demo · blanco plateado con sutiles radiales cream/cobalt. */
+/* Body en demo · usa --app-bg del §4 (degradado editorial Midnight). */
 html[data-demo-mode="true"] body[data-cinematic="true"],
 html[data-demo-mode="true"] body {
-  background:
-    radial-gradient(ellipse 80% 40% at 70% -5%, rgba(45,107,246,0.12), transparent 60%),
-    radial-gradient(ellipse 60% 35% at 5% 10%, rgba(17,72,199,0.07), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 95% 85%, rgba(174,203,242,0.14), transparent 60%),
-    linear-gradient(180deg, #F0F3F8 0%, #F1F4F9 40%, #EEF1F6 100%) !important;
-  background-attachment: fixed;
+  background: var(--app-bg) !important;
+  background-attachment: fixed !important;
 }
 
 /* Rows · headers en tinta sobre crema (cards mantienen texto blanco en su cover) */
@@ -2873,14 +2848,8 @@ html[data-demo-mode="true"] .card-badge {
 }
 
 /* Trending num (01, 02, 03 gigantes) · stroke rojo Repsol con glow */
-html[data-demo-mode="true"] .trending-num {
-  /* Demo renderiza superficies claras · número fantasma cobalt (no blanco,
-     que era invisible sobre el silver). */
-  color: rgba(45,107,246,0.16);
-  -webkit-text-stroke: 2px rgba(45,107,246,0.45);
-  text-stroke: 2px rgba(45,107,246,0.45);
-  text-shadow: none;
-}
+/* (b127) · demo deja de tener su propio .trending-num · usa el editorial
+   global de §5 (serif italic con background-clip: text azul→cobalt). */
 
 /* Sidebar (si aparece · legacy desktop) */
 html[data-demo-mode="true"] .sidebar { background: var(--bg-surface); border-right: 1px solid var(--line); }
@@ -2916,7 +2885,7 @@ input:focus, select:focus, textarea:focus {
 input::placeholder, textarea::placeholder { color: var(--fg-faint); }
 
 /* Selección de texto · tinte de acento (Repsol) en vez del azul del navegador */
-::selection { background: rgba(236, 28, 36, 0.30); color: #fff; }
+::selection { background: rgba(45,107,246, 0.30); color: #fff; }
 
 /* Scrollbars finos estilo plataforma (WebKit + Firefox) */
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
@@ -2936,3 +2905,31 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 
 /* Transición suave por defecto en chips/pills/acciones que cambian de color */
 .chip, .pill-chip, .tag, .filter-chip { transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast); }
+
+/* ============================================================
+ * §4 · FONDO · degradado azul→blanco (claro) y navy degradado (oscuro)
+ * Handoff Midnight v2 · da un wash sutil al lienzo en vez del plano.
+ * ============================================================ */
+:root            { --app-bg: linear-gradient(180deg, #C7D8F4 0%, #DBE7F8 24%, #EEF3FB 50%, #FFFFFF 100%); }
+html[data-theme="dark"] { --app-bg: linear-gradient(180deg, #173268 0%, #0F2148 30%, #0B1733 58%, #0A1124 100%); }
+html, body { background: var(--app-bg) !important; background-attachment: fixed !important; }
+.app        { background: var(--app-bg); background-attachment: fixed; }
+
+/* ============================================================
+ * §5 · Números editoriales de la fila "Tendencia" · serif italic con
+ * relleno azul→cobalt (background-clip: text). Posicionados a la
+ * izquierda de cada card · markup intacto.
+ * ============================================================ */
+:root                   { --trending-a: #2D6BF6; --trending-b: #123FA8; }
+html[data-theme="dark"] { --trending-a: #6FA0FF; --trending-b: #2D6BF6; }
+.trending-num {
+  left: 4px; top: 50%; bottom: auto; transform: translateY(-50%);
+  width: auto; height: auto; padding: 0; display: block;
+  font-family: var(--font-serif); font-style: italic; font-weight: 400;
+  font-size: 96px; letter-spacing: -0.02em; line-height: 1;
+  border: 0; border-radius: 0; box-shadow: none;
+  background: linear-gradient(160deg, var(--trending-a) 0%, var(--trending-b) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent; -webkit-text-stroke: 0;
+  z-index: 0;
+}
