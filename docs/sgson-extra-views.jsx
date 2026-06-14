@@ -671,7 +671,7 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
       actions={path && setView ? (
         <div style={{ display:'flex', gap: 10 }}>
           {totalProgress >= 70 && (window.AIQuizModal || window.RouteExamModal) && (
-            <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 6px 18px rgba(236,28,36,0.30)' }}>
+            <button onClick={() => setShowExam(true)} style={{ padding:'8px 14px', background:'var(--accent)', color:'#fff', border:'none', borderRadius: 8, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 12.5, boxShadow:'0 6px 18px rgba(45,107,246,0.30)' }}>
               ✦ {T('mypath.exam', 'Examen final')}
             </button>
           )}
@@ -6265,8 +6265,8 @@ function NotesView({ setView, openPlayer }) {
       return (
         <a key={i} href="#" onClick={handleJump} style={{
           display:'inline-block', padding:'1px 6px', margin:'0 2px',
-          background:'rgba(236,28,36,0.14)', color:'var(--accent)',
-          border:'1px solid rgba(236,28,36,0.30)', borderRadius: 4,
+          background:'rgba(45,107,246,0.14)', color:'var(--accent)',
+          border:'1px solid rgba(45,107,246,0.30)', borderRadius: 4,
           fontFamily:'var(--font-mono)', fontSize: 11, textDecoration:'none',
         }}>{piece}</a>
       );
@@ -6292,8 +6292,8 @@ function NotesView({ setView, openPlayer }) {
       {/* Buscador IA */}
       <section style={{
         marginBottom: 28, padding:'16px 18px',
-        background:'linear-gradient(135deg, rgba(236,28,36,0.08), rgba(236,28,36,0.02))',
-        border:'1px solid rgba(236,28,36,0.25)', borderRadius: 12,
+        background:'linear-gradient(135deg, rgba(45,107,246,0.08), rgba(45,107,246,0.02))',
+        border:'1px solid rgba(45,107,246,0.25)', borderRadius: 12,
       }}>
         <div style={{ display:'flex', gap: 10, alignItems:'center', marginBottom: 10, flexWrap:'wrap' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
@@ -6548,7 +6548,7 @@ function AIQuizModal({ routeId, routeLabel, onClose, onPassed }) {
                         <label key={oi} style={{
                           display:'flex', alignItems:'center', gap: 10,
                           padding:'9px 12px',
-                          background: sel ? 'rgba(236,28,36,0.10)' : 'var(--bg-elevated)',
+                          background: sel ? 'rgba(45,107,246,0.10)' : 'var(--bg-elevated)',
                           border: '1px solid ' + (sel ? 'var(--accent)' : 'var(--line-faint)'),
                           borderRadius: 8, cursor:'pointer', transition:'all .15s',
                         }}>
@@ -6777,8 +6777,8 @@ function MyPlanView({ setView, openPath, openDetail }) {
       {!plan && !loading && (
         <div style={{
           padding:'60px 32px', textAlign:'center',
-          background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.03))',
-          border:'1px solid rgba(236,28,36,0.25)', borderRadius: 16,
+          background:'linear-gradient(135deg, rgba(45,107,246,0.10), rgba(45,107,246,0.03))',
+          border:'1px solid rgba(45,107,246,0.25)', borderRadius: 16,
         }}>
           <div style={{ fontSize: 56, marginBottom: 18 }}>✦</div>
           <h2 style={{ margin:'0 0 10px', fontSize: 22, fontWeight: 800, color:'var(--fg)', letterSpacing:'-0.01em' }}>
@@ -6791,7 +6791,7 @@ function MyPlanView({ setView, openPath, openDetail }) {
           <button onClick={generate} style={{
             padding:'14px 26px', background:'var(--accent)', color:'#fff', border:'none',
             borderRadius: 10, cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight: 700, fontSize: 14,
-            boxShadow:'0 8px 24px rgba(236,28,36,0.35)',
+            boxShadow:'0 8px 24px rgba(45,107,246,0.35)',
           }}>Generar mi plan ahora</button>
           <div style={{ marginTop: 18, fontSize: 11.5, color:'var(--fg-dim)' }}>
             Tarda ~10 segundos · el plan queda guardado en tu cuenta.
@@ -7001,8 +7001,8 @@ function LeaderboardView({ setView }) {
           {meRow && myRank > 5 && (
             <div style={{
               padding:'14px 18px', marginBottom: 18,
-              background:'linear-gradient(135deg, rgba(236,28,36,0.10), rgba(236,28,36,0.02))',
-              border:'1px solid rgba(236,28,36,0.30)', borderRadius: 12,
+              background:'linear-gradient(135deg, rgba(45,107,246,0.10), rgba(45,107,246,0.02))',
+              border:'1px solid rgba(45,107,246,0.30)', borderRadius: 12,
               display:'flex', alignItems:'center', gap: 14,
             }}>
               <div style={{ width: 28, textAlign:'center', fontFamily:'var(--font-mono)', fontWeight: 800, color:'var(--accent)', fontSize: 13 }}>#{myRank}</div>
@@ -7034,7 +7034,7 @@ function LeaderboardView({ setView }) {
                     display:'flex', alignItems:'center', gap: 14,
                     padding:'12px 18px',
                     borderTop: i ? '1px solid var(--line-faint)' : 'none',
-                    background: isMe ? 'rgba(236,28,36,0.06)' : 'transparent',
+                    background: isMe ? 'rgba(45,107,246,0.06)' : 'transparent',
                   }}>
                     <div style={{ width: 36, textAlign:'center', fontFamily:'var(--font-mono)', fontWeight: 800, fontSize: medal ? 18 : 13, color: rank <= 3 ? 'var(--accent)' : 'var(--fg-dim)' }}>
                       {medal || '#' + rank}
