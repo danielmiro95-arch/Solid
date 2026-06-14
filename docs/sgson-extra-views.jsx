@@ -3170,22 +3170,28 @@ function _clearThemeTokens() {
 
 // Restaura al arrancar la app si hay una elección persistida. Espera a que
 // document.head exista (este archivo puede compilarse antes de tener head).
+// DESACTIVADO (b125) · este override inyectaba tokens con !important en cada
+// carga y PISABA la paleta global (la nueva paleta Udacity Midnight + el
+// toggle claro/oscuro). Ahora la fuente de verdad es :root / [data-theme] en
+// sgson.css. Limpiamos cualquier override persistido de versiones anteriores
+// y eliminamos el <style> si quedó inyectado · así nadie queda "congelado"
+// en un preview viejo.
 function _restorePersistedTheme() {
   try {
-    const saved = localStorage.getItem(THEME_OVERRIDE_KEY);
-    if (!saved) return;
-    const opt = THEME_PREVIEW_OPTIONS.find(o => o.id === saved);
-    if (!opt) return;
-    if (document.head) {
-      _applyThemeTokens(opt.tokens);
-    } else {
-      document.addEventListener('DOMContentLoaded', () => _applyThemeTokens(opt.tokens), { once: true });
-    }
+    localStorage.removeItem(THEME_OVERRIDE_KEY);
+    const el = document.getElementById(THEME_OVERRIDE_STYLE_ID);
+    if (el) el.remove();
   } catch (e) {}
 }
 _restorePersistedTheme();
 
 function ThemePreviewPanel() {
+  // DESACTIVADO (b125) · este panel inyectaba paletas alternativas con
+  // !important y congelaba el color, pisando la paleta global + el toggle
+  // claro/oscuro. Ahora el color se gestiona en sgson.css (Midnight) y el
+  // tema con el toggle claro/oscuro. El panel se retira para no romper eso.
+  return null;
+  /* eslint-disable no-unreachable */
   const [activeId, setActiveId] = useEV2(() => {
     try { return localStorage.getItem(THEME_OVERRIDE_KEY) || null; } catch (e) { return null; }
   });
