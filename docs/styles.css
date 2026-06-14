@@ -8,14 +8,14 @@
   --paper-3: #EDF0F5;
 
   /* ── Texto ───────────────────────────────────── */
-  --ink:   #0D1117;
+  --ink:   #0B1220;
   --ink-2: #1C2433;
-  --ink-3: #4A5568;
-  --ink-4: #94A3B8;
+  --ink-3: #45506A;
+  --ink-4: #99A5BD;
 
   /* ── Líneas ──────────────────────────────────── */
-  --line:   rgba(13, 17, 23, 0.08);
-  --line-2: rgba(13, 17, 23, 0.04);
+  --line:   rgba(11, 18, 38, 0.08);
+  --line-2: rgba(11, 18, 38, 0.04);
 
   /* ── Marca BeonIt ────────────────────────────── */
   --bn-orange:    #F3A525;
@@ -32,8 +32,8 @@
   --bn-turquoise: #66C7C2;
 
   /* ── Alias semánticos (alineados con paleta Udacity light · b116+) ── */
-  --accent-glow:  #2E7CFF;            /* cobalt blue Udacity-style */
-  --accent-primary: #2E7CFF;          /* acciones principales */
+  --accent-glow:  #2D6BF6;            /* cobalt blue Udacity-style */
+  --accent-primary: #2D6BF6;          /* acciones principales */
   --accent-success: var(--bn-lime);   /* progreso / completado */
 
   /* ── BeonAI brand · accent principal ── */
@@ -46,11 +46,11 @@
   --beonit-lime:    var(--bn-lime);
   --beonit-blue:    var(--bn-blue);
   --beonit-purple:  var(--bn-purple);
-  --accent:         #2E7CFF;          /* cobalt · era var(--bn-blue) #0072BE */
-  --dark:           #0D1117;
+  --accent:         #2D6BF6;          /* cobalt · era var(--bn-blue) #0072BE */
+  --dark:           #0B1220;
   --dark-2:         #1C2433;
   --dark-3:         #2D3748;
-  --cream:          #F4D1A8;          /* peach Udacity (era #F8FAFC casi blanco) */
+  --cream:          #AECBF2;          /* peach Udacity (era #F8FAFC casi blanco) */
   --highlight:      #FFF8E1;
 
   /* ── Sombras ─────────────────────────────────── */
@@ -107,13 +107,13 @@ body {
   height: 60px;
   /* Navy degradado Udacity (b118) · banda oscura sobre el body claro. */
   background:
-    radial-gradient(ellipse at 90% 0%, rgba(46,124,255,0.28), transparent 55%),
-    linear-gradient(90deg, #06112E 0%, #0A1A40 60%, #0F2D6B 100%);
-  border-bottom: 1px solid rgba(46,124,255,0.25);
-  box-shadow: 0 2px 14px rgba(6,17,46,0.25);
+    radial-gradient(ellipse at 90% 0%, rgba(45,107,246,0.28), transparent 55%),
+    linear-gradient(90deg, #070F2A 0%, #0B1834 60%, #143A86 100%);
+  border-bottom: 1px solid rgba(45,107,246,0.25);
+  box-shadow: 0 2px 14px rgba(7,15,42,0.25);
   backdrop-filter: blur(8px);
   transition: background .3s, border-color .3s, box-shadow .3s, color .3s;
-  color: #F4F7FB;
+  color: #F2F6FC;
 }
 /* Hijos del shell-tabs · claros sobre navy (los inline styles usan var(--ink-*)
    que ahora son oscuros · los pisamos). */
@@ -123,9 +123,9 @@ body {
 .shell-tabs .shell-wordmark > div[style*="background:var(--line)"] { background: rgba(255,255,255,0.22) !important; }
 /* Top nav Netflix-style · dark glass al activar .nav-cinematic (en vistas cinematográficas) */
 .shell-tabs.nav-cinematic {
-  background: linear-gradient(180deg, rgba(6,17,46,0.94) 0%, rgba(10,26,64,0.82) 100%);
-  border-bottom-color: rgba(46,124,255,0.20);
-  box-shadow: 0 2px 24px rgba(6,17,46,0.35);
+  background: linear-gradient(180deg, rgba(7,15,42,0.94) 0%, rgba(10,26,64,0.82) 100%);
+  border-bottom-color: rgba(45,107,246,0.20);
+  box-shadow: 0 2px 24px rgba(7,15,42,0.35);
   color: #fff;
 }
 .shell-tabs.nav-cinematic .shell-meta,
@@ -136,7 +136,7 @@ body {
 }
 /* Cuando estamos arriba del scroll en cinematic, el nav es aún más translúcido */
 body.scroll-top .shell-tabs.nav-cinematic {
-  background: linear-gradient(180deg, rgba(13,17,23,0.55) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(11,18,38,0.55) 0%, transparent 100%);
   border-bottom-color: transparent;
   box-shadow: none;
 }
@@ -263,11 +263,11 @@ body.scroll-top .shell-tabs.nav-cinematic {
  * Paleta Udacity-inspired · navy + cobalt + cream (b115+)
  * ============================================================ */
 html[data-theme="dark"] {
-  --paper:   #0A1428;     /* match --bg-canvas de sgson.css (b120) */
-  --paper-2: #111E3C;     /* match --bg-surface */
-  --paper-3: #1A2A52;     /* match --bg-elevated */
+  --paper:   #0A1124;     /* match --bg-canvas de sgson.css (b120) */
+  --paper-2: #121B36;     /* match --bg-surface */
+  --paper-3: #1B2747;     /* match --bg-elevated */
 
-  --ink:   #F4F7FB;
+  --ink:   #F2F6FC;
   --ink-2: #C5D2E8;
   --ink-3: #8C9CBA;
   --ink-4: #6B7B9A;
@@ -275,24 +275,24 @@ html[data-theme="dark"] {
   --line:   rgba(255, 255, 255, 0.09);
   --line-2: rgba(255, 255, 255, 0.04);
 
-  --bn-blue-dark: #5B95FF;
-  --accent-glow:  #2E7CFF;
-  --accent:       #2E7CFF;
-  --cream:        #F4D1A8;
+  --bn-blue-dark: #5A8DFF;
+  --accent-glow:  #2D6BF6;
+  --accent:       #2D6BF6;
+  --cream:        #AECBF2;
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
   --shadow-lg: 0 20px 48px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4);
-  --shadow-blue: 0 8px 32px rgba(46,124,255,0.30), 0 2px 8px rgba(46,124,255,0.18);
+  --shadow-blue: 0 8px 32px rgba(45,107,246,0.30), 0 2px 8px rgba(45,107,246,0.18);
 }
 
 /* Sidebar elevada en dark · navy gradient */
 html[data-theme="dark"] .sb {
-  background: linear-gradient(180deg, #102659 0%, #06112E 100%);
+  background: linear-gradient(180deg, #102659 0%, #070F2A 100%);
   box-shadow:
     inset -1px 0 0 rgba(255,255,255,0.06),
     4px 0 16px rgba(0, 0, 0, 0.4),
-    1px 0 0 rgba(46, 124, 255, 0.10);
+    1px 0 0 rgba(45, 107, 246, 0.10);
 }
 html[data-theme="dark"] .sb-item:hover { background: rgba(255,255,255,0.06); }
 html[data-theme="dark"] .sb-item.active { background: var(--paper-3); color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
@@ -307,9 +307,9 @@ html[data-theme="dark"] .sb-user:hover { background: rgba(255,255,255,0.10); }
 /* Top shell en dark · gradient con touches cobalt + cream */
 html[data-theme="dark"] .shell-tabs {
   background:
-    linear-gradient(90deg, rgba(46,124,255,0.08) 0%, rgba(10,26,64,0) 35%, rgba(10,26,64,0) 65%, rgba(244,209,168,0.06) 100%),
-    linear-gradient(180deg, #102659 0%, #06112E 100%);
-  border-bottom-color: rgba(46,124,255,0.20);
+    linear-gradient(90deg, rgba(45,107,246,0.08) 0%, rgba(10,26,64,0) 35%, rgba(10,26,64,0) 65%, rgba(174,203,242,0.06) 100%),
+    linear-gradient(180deg, #102659 0%, #070F2A 100%);
+  border-bottom-color: rgba(45,107,246,0.20);
   box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 8px rgba(0,0,0,0.3);
 }
 
@@ -318,7 +318,7 @@ html[data-theme="dark"] .card {
   background: var(--paper-2);
   border-color: rgba(255,255,255,0.07);
 }
-html[data-theme="dark"] .card:hover { border-color: rgba(46,124,255,0.40); }
+html[data-theme="dark"] .card:hover { border-color: rgba(45,107,246,0.40); }
 
 /* Inputs, selects, textareas */
 html[data-theme="dark"] input,

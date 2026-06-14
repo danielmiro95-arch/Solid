@@ -269,7 +269,7 @@ const Channels = (function() {
     { id:'teams',    label:'Microsoft Teams',  color:'#5059C9', icon:'🟦',  desc:'Adaptive cards y notificaciones en chat',         authType:'oauth',      available:true },
     { id:'email',    label:'Email',            color:'#EA4335', icon:'✉️',  desc:'Digest diario o semanal con HTML rico',           authType:'oauth',      available:true },
     { id:'slack',    label:'Slack',            color:'#4A154B', icon:'💼',  desc:'Bot notifications + channel posting',             authType:'oauth',      available:false },
-    { id:'push',     label:'Push web/mobile',  color:'#0EA5E9', icon:'🔔',  desc:'Notificaciones nativas del navegador/app',        authType:'permission', available:false },
+    { id:'push',     label:'Push web/mobile',  color:'#2D6BF6', icon:'🔔',  desc:'Notificaciones nativas del navegador/app',        authType:'permission', available:false },
   ];
 
   function _userKey() {
@@ -1950,7 +1950,7 @@ function InviteUsersModal({ onClose }) {
   const csvSample = 'email,name,role,team\nana.garcia@empresa.com,Ana García,Manager,Marketing\njuan.perez@empresa.com,Juan Pérez,Analista,Operaciones';
 
   return (
-    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(640px, 96vw)', maxHeight:'92vh', overflowY:'auto', padding:28, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
           <div>
@@ -3714,20 +3714,20 @@ function _activateSupabaseData() {
       return '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + esc(userName) + '</title>'
         + '<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}'
         + '.frame{border:6px double ' + wsColor + ';padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff;position:relative}'
-        + '.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}'
-        + 'h1{font-size:38px;margin:0 0 20px;color:#0D1117}'
-        + '.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}'
+        + '.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#99A5BD;margin-bottom:8px}'
+        + 'h1{font-size:38px;margin:0 0 20px;color:#0B1220}'
+        + '.lead{font-size:14px;color:#45506A;max-width:560px;margin:0 0 28px;line-height:1.55}'
         + '.name{font-style:italic;font-weight:700;font-size:58px;color:' + wsColor + ';margin:0 0 8px;letter-spacing:-.025em}'
-        + '.role{font-size:16px;color:#0D1117;margin-bottom:28px}'
+        + '.role{font-size:16px;color:#0B1220;margin-bottom:28px}'
         + '.cert-line{height:2px;background:linear-gradient(90deg,' + wsColor + ',#BCD630,#8A3992,' + wsColor + ');margin:24px 0}'
-        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568;gap:24px}'
+        + '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#45506A;gap:24px}'
         + '.foot > div{min-width:0}'
-        + '.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}'
-        + '.cert-num{font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.1em}'
+        + '.sig{font-style:italic;font-size:18px;color:#0B1220;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}'
+        + '.cert-num{font-family:JetBrains Mono,monospace;font-size:10px;color:#99A5BD;letter-spacing:.1em}'
         + '.qr-box{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid ' + wsColor + ';padding:8px;background:#fff}'
         + '.qr-box img{width:120px;height:120px;display:block}'
         + '.qr-cap{font-family:JetBrains Mono,monospace;font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:#475569;font-weight:700;margin-top:4px}'
-        + '.qr-url{font-family:JetBrains Mono,monospace;font-size:7.5px;color:#94A3B8;max-width:130px;text-align:center;word-break:break-all;line-height:1.3}'
+        + '.qr-url{font-family:JetBrains Mono,monospace;font-size:7.5px;color:#99A5BD;max-width:130px;text-align:center;word-break:break-all;line-height:1.3}'
         + '@media print{body{background:#fff}.frame{border-color:' + wsColor + '}}'
         + '</style></head><body>'
         + '<div class="frame">'
@@ -3739,7 +3739,7 @@ function _activateSupabaseData() {
         +   '<div class="cert-line"></div>'
         +   '<div class="foot">'
         +     '<div><strong>Fecha</strong><br/>' + esc(today) + '<div class="cert-num" style="margin-top:8px">' + esc(cert.cert_number || '—') + '</div></div>'
-        +     '<div><div class="sig">' + esc(wsName) + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div>'
+        +     '<div><div class="sig">' + esc(wsName) + '</div><div style="font-family:monospace;font-size:9px;color:#99A5BD;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div>'
         +     qrBlock
         +   '</div>'
         + '</div></body></html>';
@@ -5465,7 +5465,7 @@ function CommandPalette({ open, onClose, onNavigate, openDetail }) {
   const isActiveAt = (offset) => activeIdx === offset;
 
   return (
-    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:'10vh'}}>
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:'10vh'}}>
       <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', width:'min(640px, 92vw)', borderRadius:14, boxShadow:'0 30px 80px rgba(0,0,0,0.25)', overflow:'hidden', border:'1px solid var(--line)'}}>
         <div style={{padding:'14px 18px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', gap:10}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{color:'var(--ink-4)'}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.6-4.6"/></svg>
@@ -6045,7 +6045,7 @@ function InstallBanner() {
 
   return (
     <div style={{position:'fixed', bottom:96, right:22, zIndex:299, maxWidth:280,
-      background:'linear-gradient(135deg, #0D1117 0%, #1a2940 50%, #2a1f4d 100%)',
+      background:'linear-gradient(135deg, #0B1220 0%, #1a2940 50%, #2a1f4d 100%)',
       color:'#fff', padding:'14px 16px', borderRadius:14,
       boxShadow:'0 12px 32px rgba(0,89,150,0.35), 0 0 0 1px rgba(255,255,255,0.08)',
       animation:'toastSlideIn .3s ease'}}>
@@ -6725,12 +6725,12 @@ function LoginScreen() {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:1000, display:'flex',
-      background:'#F3F4F6',
-      overflow:'auto', color:'#0D1117',
+      background:'#F1F4F9',
+      overflow:'auto', color:'#0B1220',
     }}>
       {/* Lado visual izquierdo · hero navy degradado estilo Udacity */}
       <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#FFFFFF', minWidth:0,
-        background:'radial-gradient(circle at 85% 15%, rgba(46,124,255,0.35), transparent 50%), radial-gradient(circle at 10% 90%, rgba(15,60,168,0.45), transparent 55%), linear-gradient(135deg, #06112E 0%, #0A1A40 45%, #0F3CA8 130%)'}}>
+        background:'radial-gradient(circle at 85% 15%, rgba(45,107,246,0.35), transparent 50%), radial-gradient(circle at 10% 90%, rgba(17,72,199,0.45), transparent 55%), linear-gradient(135deg, #070F2A 0%, #0B1834 45%, #0F3CA8 130%)'}}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="BeonIt" style={{height:42, width:'auto', flexShrink:0}}/>
           <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#FFFFFF'}}>
@@ -6740,7 +6740,7 @@ function LoginScreen() {
         <div>
           <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(255,255,255,0.60)', marginBottom:24}}>{T('login.eyebrow')}</div>
           <h1 style={{fontFamily:'var(--font-sans, Inter)', fontSize:'clamp(40px, 5.5vw, 72px)', fontWeight:700, lineHeight:1.02, letterSpacing:'-0.03em', margin:0, color:'#FFFFFF'}}>
-            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#F4D1A8'}}>{T('login.title.expert')}</em>.
+            {T('login.title.l1')}<br/>{T('login.title.l2')}<br/>{T('login.title.l3')} <em style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontWeight:400, color:'#AECBF2'}}>{T('login.title.expert')}</em>.
           </h1>
           <p style={{fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic', fontSize:20, color:'rgba(255,255,255,0.78)', margin:'16px 0 0', maxWidth:520, lineHeight:1.5}}>
             {T('login.subtitle')}
@@ -6769,7 +6769,7 @@ function LoginScreen() {
                     window.dispatchEvent(new Event('settings-changed'));
                   }
                 }}
-                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2E7CFF' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,0.70)', border:'1px solid '+(active ? '#2E7CFF' : 'rgba(255,255,255,0.22)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
+                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2D6BF6' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,0.70)', border:'1px solid '+(active ? '#2D6BF6' : 'rgba(255,255,255,0.22)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
@@ -6787,115 +6787,115 @@ function LoginScreen() {
       <div style={{
         flex:'0 0 480px', maxWidth:'100%',
         background:'rgba(255,255,255,0.90)', backdropFilter:'blur(24px) saturate(140%)', WebkitBackdropFilter:'blur(24px) saturate(140%)',
-        borderLeft:'1px solid rgba(13,17,23,0.08)',
+        borderLeft:'1px solid rgba(11,18,38,0.08)',
         padding:'56px 48px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'auto'
       }}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
-            <div style={{padding:'16px 18px', background:'rgba(46,124,255,0.08)', border:'1px solid rgba(46,124,255,0.3)', borderRadius:10, marginBottom:24}}>
-              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#2E7CFF', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
-              <div style={{fontSize:13.5, color:'#0D1117', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
+            <div style={{padding:'16px 18px', background:'rgba(45,107,246,0.08)', border:'1px solid rgba(45,107,246,0.3)', borderRadius:10, marginBottom:24}}>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#2D6BF6', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
+              <div style={{fontSize:13.5, color:'#0B1220', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
           {/* Tabs login/signup · solo se ven cuando llega un ?invite=token ·
               cuentas nuevas se crean por invitación del admin del workspace,
               no por signup organic desde la landing. */}
           {invitation && (
-            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(13,17,23,0.04)', border:'1px solid rgba(13,17,23,0.08)', borderRadius:10, width:'fit-content'}}>
+            <div style={{display:'flex', gap:4, marginBottom:32, padding:5, background:'rgba(11,18,38,0.04)', border:'1px solid rgba(11,18,38,0.08)', borderRadius:10, width:'fit-content'}}>
               <button onClick={() => { setMode('login'); setError(''); }}
                 style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                  background: mode==='login' ? '#0D1117' : 'transparent', color: mode==='login' ? '#FFFFFF' : 'rgba(13,17,23,0.6)',
+                  background: mode==='login' ? '#0B1220' : 'transparent', color: mode==='login' ? '#FFFFFF' : 'rgba(11,18,38,0.6)',
                   transition:'all .12s'}}>{T('login.mode.login')}</button>
               <button onClick={() => { setMode('signup'); setError(''); }}
                 style={{padding:'8px 20px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:13, fontWeight:600,
-                  background: mode==='signup' ? '#0D1117' : 'transparent', color: mode==='signup' ? '#FFFFFF' : 'rgba(13,17,23,0.6)',
+                  background: mode==='signup' ? '#0B1220' : 'transparent', color: mode==='signup' ? '#FFFFFF' : 'rgba(11,18,38,0.6)',
                   transition:'all .12s'}}>{T('login.mode.signup')}</button>
             </div>
           )}
-          <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#0D1117', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
-          <p style={{fontSize:14, color:'rgba(13,17,23,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
+          <h2 style={{margin:'0 0 10px', fontSize:28, letterSpacing:'-0.02em', color:'#0B1220', fontWeight:700, fontFamily:'var(--font-sans, Inter)'}}>{mode === 'login' ? 'Entrar a tu cuenta' : 'Crear nueva cuenta'}</h2>
+          <p style={{fontSize:14, color:'rgba(11,18,38,0.6)', marginBottom:28, lineHeight:1.5, fontFamily:'var(--font-serif, "Instrument Serif", Georgia)', fontStyle:'italic'}}>{mode === 'login' ? 'Usa el email con el que te registraste.' : 'Te llevará 30 segundos.'}</p>
 
           <form onSubmit={submit}>
             <label style={{display:'block', marginBottom:14}}>
-              <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
+              <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" autoFocus
-                style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117', transition:'border-color .15s'}}
-                onFocus={e => e.target.style.borderColor='#2E7CFF'}
-                onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
+                style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220', transition:'border-color .15s'}}
+                onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
             </label>
             {isSupabase && (
               <label style={{display:'block', marginBottom:14}}>
-                <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
+                <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
-                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117'}}
-                  onFocus={e => e.target.style.borderColor='#2E7CFF'}
-                  onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220'}}
+                  onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                  onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
               </label>
             )}
             {mode === 'signup' && (
               <label style={{display:'block', marginBottom:14}}>
-                <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
+                <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
                 <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre completo"
-                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(13,17,23,0.04)', color:'#0D1117'}}
-                  onFocus={e => e.target.style.borderColor='#2E7CFF'}
-                  onBlur={e => e.target.style.borderColor='rgba(13,17,23,0.12)'}/>
+                  style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220'}}
+                  onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                  onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
               </label>
             )}
             {/* Role y team los asigna el admin del workspace cuando crea/invita
                 al usuario · NO se piden en el signup público · ver InviteUsersModal */}
             {error && (
-              <div style={{padding:'10px 14px', background:'rgba(46,124,255,0.1)', border:'1px solid rgba(46,124,255,0.35)', borderRadius:8, color:'#D93843', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
+              <div style={{padding:'10px 14px', background:'rgba(45,107,246,0.1)', border:'1px solid rgba(45,107,246,0.35)', borderRadius:8, color:'#D93843', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
               </div>
             )}
             <button type="submit" disabled={submitting}
-              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(46,124,255,0.5)' : '#2E7CFF', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
-              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#5B95FF'; }}
-              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#2E7CFF'; }}>
+              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(45,107,246,0.5)' : '#2D6BF6', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
+              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#5A8DFF'; }}
+              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#2D6BF6'; }}>
               {submitting ? T('login.submitting') : (mode === 'login' ? T('login.submit.login') + ' →' : T('login.submit.signup') + ' →')}
             </button>
           </form>
 
           {isSupabase && (
             <>
-              <div style={{display:'flex', alignItems:'center', gap:10, margin:'20px 0', color:'rgba(13,17,23,0.4)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase'}}>
-                <div style={{flex:1, height:1, background:'rgba(13,17,23,0.1)'}}/>
+              <div style={{display:'flex', alignItems:'center', gap:10, margin:'20px 0', color:'rgba(11,18,38,0.4)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase'}}>
+                <div style={{flex:1, height:1, background:'rgba(11,18,38,0.1)'}}/>
                 <span>o</span>
-                <div style={{flex:1, height:1, background:'rgba(13,17,23,0.1)'}}/>
+                <div style={{flex:1, height:1, background:'rgba(11,18,38,0.1)'}}/>
               </div>
               <button type="button" onClick={ssoLogin} disabled={submitting}
-                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 16px', border:'1px solid rgba(13,17,23,0.12)', borderRadius:8, background:'rgba(13,17,23,0.04)', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:600, color:'#0D1117', transition:'all .15s'}}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.08)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.04)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.12)'; }}>
+                style={{width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 16px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, background:'rgba(11,18,38,0.04)', cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:600, color:'#0B1220', transition:'all .15s'}}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(11,18,38,0.08)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(11,18,38,0.04)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.12)'; }}>
                 <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h11v11H0z"/><path fill="#7fba00" d="M12 0h11v11H12z"/><path fill="#00a4ef" d="M0 12h11v11H0z"/><path fill="#ffb900" d="M12 12h11v11H12z"/></svg>
                 {T('login.sso')}
               </button>
-              <div style={{marginTop:8, fontSize:11, color:'rgba(13,17,23,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
+              <div style={{marginTop:8, fontSize:11, color:'rgba(11,18,38,0.4)', textAlign:'center', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.06em'}}>SSO corporativo · cuenta Microsoft de tu empresa</div>
             </>
           )}
 
-          <div style={{marginTop:20, fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(13,17,23,0.5)', display:'flex', alignItems:'center', gap:8}}>
+          <div style={{marginTop:20, fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(11,18,38,0.5)', display:'flex', alignItems:'center', gap:8}}>
             <span style={{width:6, height:6, borderRadius:'50%', background: isSupabase ? '#4ADE80' : '#F4B740', display:'inline-block', boxShadow:`0 0 8px ${isSupabase ? '#4ADE80' : '#F4B740'}`}}/>
             Backend · {isSupabase ? 'Supabase · Conectado' : 'Demo · LocalStorage'}
           </div>
 
           {!isSupabase && users.length > 0 && mode === 'login' && (
-            <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(13,17,23,0.08)'}}>
-              <div style={{fontSize:10, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>{T('login.quickDemo')}</div>
+            <div style={{marginTop:32, paddingTop:24, borderTop:'1px solid rgba(11,18,38,0.08)'}}>
+              <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:12, fontWeight:600}}>{T('login.quickDemo')}</div>
               <div style={{display:'flex', flexDirection:'column', gap:8}}>
                 {users.slice(0, 4).map(u => (
                   <button key={u.id} onClick={() => quickLogin(u.email)} type="button"
-                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(13,17,23,0.08)', borderRadius:8, background:'rgba(13,17,23,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(13,17,23,0.08)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(13,17,23,0.03)'; e.currentTarget.style.borderColor='rgba(13,17,23,0.08)'; }}>
-                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#2E7CFF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(11,18,38,0.08)', borderRadius:8, background:'rgba(11,18,38,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(11,18,38,0.08)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(11,18,38,0.03)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.08)'; }}>
+                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#2D6BF6', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
                       {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:13.5, fontWeight:600, color:'#0D1117', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
-                      <div style={{fontSize:10.5, color:'rgba(13,17,23,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
+                      <div style={{fontSize:13.5, fontWeight:600, color:'#0B1220', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
+                      <div style={{fontSize:10.5, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
                     </div>
-                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#2E7CFF', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
+                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#2D6BF6', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
                   </button>
                 ))}
               </div>
@@ -7045,18 +7045,18 @@ function AdminPanel({ setView }) {
       const initials = u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
       const pct = Math.round((u._completed / Math.max(1, (window.PILLS||[]).length || 41)) * 100);
       return '<tr>' +
-        '<td><div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:50%;background:' + u.avatarColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">' + initials + '</div>' + u.name + (u.isAdmin ? ' <span style="font-family:monospace;font-size:8px;padding:1px 5px;background:#0D1117;color:#fff;border-radius:3px">ADMIN</span>' : '') + '</div><div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u.email + '</div></td>' +
-        '<td>' + u.role + '<div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u.team + '</div></td>' +
-        '<td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#EDF0F5;border-radius:3px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#BCD630,#0072BE)"></div></div><span style="font-family:monospace;font-size:11px;font-weight:700;flex-shrink:0">' + pct + '%</span></div><div style="font-family:monospace;font-size:10px;color:#94A3B8">' + u._completed + ' / ' + ((window.PILLS||[]).length || 41) + ' pills</div></td>' +
+        '<td><div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:50%;background:' + u.avatarColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">' + initials + '</div>' + u.name + (u.isAdmin ? ' <span style="font-family:monospace;font-size:8px;padding:1px 5px;background:#0B1220;color:#fff;border-radius:3px">ADMIN</span>' : '') + '</div><div style="font-family:monospace;font-size:10px;color:#99A5BD">' + u.email + '</div></td>' +
+        '<td>' + u.role + '<div style="font-family:monospace;font-size:10px;color:#99A5BD">' + u.team + '</div></td>' +
+        '<td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#EDF0F5;border-radius:3px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#BCD630,#0072BE)"></div></div><span style="font-family:monospace;font-size:11px;font-weight:700;flex-shrink:0">' + pct + '%</span></div><div style="font-family:monospace;font-size:10px;color:#99A5BD">' + u._completed + ' / ' + ((window.PILLS||[]).length || 41) + ' pills</div></td>' +
         '<td style="font-family:monospace;font-size:11px">' + u._chats + ' chats</td>' +
         '<td style="font-family:monospace;font-size:11px">' + u._bookmarks + ' guardados</td>' +
-        '<td style="font-family:monospace;font-size:10px;color:#94A3B8">' + (u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('es-ES') : '—') + '</td>' +
+        '<td style="font-family:monospace;font-size:10px;color:#99A5BD">' + (u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('es-ES') : '—') + '</td>' +
       '</tr>';
     }).join('');
     const subsByStatus = { pending:0, approved:0, rejected:0 };
     subs.forEach(s => subsByStatus[s.status] = (subsByStatus[s.status] || 0) + 1);
     const html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de cohorte · SolidStream · ' + today + '</title>' +
-'<style>@page{size:A4;margin:18mm}body{font-family:Inter,-apple-system,system-ui,sans-serif;color:#0D1117;margin:0;padding:0;line-height:1.5}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94A3B8;margin-bottom:6px}h1{font-size:32px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid #EDF0F5;padding-bottom:6px}.subtitle{color:#4A5568;margin:0 0 28px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.kpi{padding:14px;border:1px solid #EDF0F5;border-radius:10px}.kpi-label{font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94A3B8;margin-bottom:4px}.kpi-value{font-size:24px;font-weight:800;letter-spacing:-.02em}table{width:100%;border-collapse:collapse;font-size:12px}thead th{text-align:left;padding:8px 10px;background:#F5F7FA;font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#4A5568;border-bottom:1px solid #EDF0F5}tbody td{padding:10px;border-bottom:1px solid #EDF0F5;vertical-align:top}.foot{margin-top:36px;padding-top:18px;border-top:2px solid #0072BE;font-family:JetBrains Mono,monospace;font-size:10px;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}.brand{background:linear-gradient(135deg,#BCD630,#0072BE,#8A3992);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}</style>' +
+'<style>@page{size:A4;margin:18mm}body{font-family:Inter,-apple-system,system-ui,sans-serif;color:#0B1220;margin:0;padding:0;line-height:1.5}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#99A5BD;margin-bottom:6px}h1{font-size:32px;letter-spacing:-.02em;margin:0 0 8px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid #EDF0F5;padding-bottom:6px}.subtitle{color:#45506A;margin:0 0 28px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.kpi{padding:14px;border:1px solid #EDF0F5;border-radius:10px}.kpi-label{font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#99A5BD;margin-bottom:4px}.kpi-value{font-size:24px;font-weight:800;letter-spacing:-.02em}table{width:100%;border-collapse:collapse;font-size:12px}thead th{text-align:left;padding:8px 10px;background:#F5F7FA;font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#45506A;border-bottom:1px solid #EDF0F5}tbody td{padding:10px;border-bottom:1px solid #EDF0F5;vertical-align:top}.foot{margin-top:36px;padding-top:18px;border-top:2px solid #0072BE;font-family:JetBrains Mono,monospace;font-size:10px;color:#99A5BD;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}.brand{background:linear-gradient(135deg,#BCD630,#0072BE,#8A3992);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}</style>' +
 '</head><body>' +
 '<div class="kicker">SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + ' · Reporte de cohorte</div>' +
 '<h1>Cohorte SolidStream · <span class="brand">snapshot</span> ' + today + '</h1>' +
@@ -7069,7 +7069,7 @@ function AdminPanel({ setView }) {
 '<div class="kpi"><div class="kpi-label">Entregas pendientes</div><div class="kpi-value">' + (subsByStatus.pending || 0) + '</div></div>' +
 '</div>' +
 '<h2>Entregas prácticas · estado</h2>' +
-'<p style="font-size:13px;color:#4A5568">Pendientes <strong>' + (subsByStatus.pending || 0) + '</strong> · Aprobadas <strong>' + (subsByStatus.approved || 0) + '</strong> · Rechazadas <strong>' + (subsByStatus.rejected || 0) + '</strong>. Tasa aprobación: <strong>' + (subs.length > 0 ? Math.round((subsByStatus.approved / subs.length) * 100) : 0) + '%</strong>.</p>' +
+'<p style="font-size:13px;color:#45506A">Pendientes <strong>' + (subsByStatus.pending || 0) + '</strong> · Aprobadas <strong>' + (subsByStatus.approved || 0) + '</strong> · Rechazadas <strong>' + (subsByStatus.rejected || 0) + '</strong>. Tasa aprobación: <strong>' + (subs.length > 0 ? Math.round((subsByStatus.approved / subs.length) * 100) : 0) + '%</strong>.</p>' +
 '<h2>Tabla de usuarios · ordenados por progreso</h2>' +
 '<table><thead><tr><th>Usuario</th><th>Rol · Equipo</th><th>Progreso</th><th>Chats</th><th>Guardados</th><th>Última conexión</th></tr></thead><tbody>' + usersHtml + '</tbody></table>' +
 '<div class="foot"><span>SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + '</span><span>Reporte generado · ' + today + '</span></div>' +
@@ -7488,7 +7488,7 @@ function AdminSubmissionsQueue() {
 
       {/* Modal de revisión */}
       {reviewing && (
-        <div onClick={() => setReviewing(null)} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+        <div onClick={() => setReviewing(null)} style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
           <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(540px, 96vw)', padding:28}}>
             <div style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-4)', marginBottom:6}}>Revisar entrega</div>
             <h2 style={{margin:'0 0 4px', fontSize:18}}>{reviewing.pillTitle}</h2>
@@ -7525,7 +7525,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
 
   if (!bank) {
     return (
-      <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+      <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
         <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, padding:32, maxWidth:420}}>
           <h2 style={{margin:'0 0 12px'}}>Examen no disponible</h2>
           <p style={{color:'var(--ink-3)', marginBottom:18}}>Esta ruta aún no tiene examen final configurado.</p>
@@ -7559,14 +7559,14 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
     var u = (window.Auth && window.Auth.currentUser()) || { name: 'Alumno', role: '', team: (window.WORKSPACE_NAME || '') };
     const today = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>Certificado · ' + u.name + '</title>' +
-'<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#94A3B8;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0D1117}.lead{font-size:14px;color:#4A5568;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0D1117;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#4A5568}.sig{font-style:italic;font-size:18px;color:#0D1117;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
+'<style>@page{size:A4 landscape;margin:0}body{font-family:Inter,-apple-system,system-ui,sans-serif;margin:0;padding:60px;min-height:100vh;box-sizing:border-box;background:linear-gradient(135deg,#fafbfc 0%,#f0f4f8 100%);display:flex;flex-direction:column}.frame{border:6px double #005996;padding:50px 60px;flex:1;display:flex;flex-direction:column;background:#fff}.kicker{font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#99A5BD;margin-bottom:8px}h1{font-size:38px;margin:0 0 20px;color:#0B1220}.lead{font-size:14px;color:#45506A;max-width:560px;margin:0 0 28px;line-height:1.55}.name{font-style:italic;font-weight:700;font-size:58px;color:#005996;margin:0 0 8px;letter-spacing:-.025em}.role{font-size:16px;color:#0B1220;margin-bottom:28px}.cert-line{height:2px;background:linear-gradient(90deg,#005996,#BCD630,#8A3992,#005996);margin:24px 0}.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;font-size:11px;color:#45506A}.sig{font-style:italic;font-size:18px;color:#0B1220;border-top:1px solid #ccc;padding-top:6px;margin-top:18px}</style></head><body>' +
 '<div class="frame"><div class="kicker">SolidStream · ' + (window.WORKSPACE_NAME || 'Plataforma') + ' · Certificación oficial</div>' +
 '<h1>Certificado de ruta · ' + (routeLabel || routeId) + '</h1>' +
 '<div class="lead">Por la presente certificamos que la persona reseñada ha completado y aprobado el examen final de esta ruta dentro de la formación oficial del programa.</div>' +
 '<div class="name">' + u.name + '</div>' +
 '<div class="role">' + u.role + ' · ' + u.team + '</div>' +
 '<div class="cert-line"></div>' +
-'<div class="foot"><div><strong>Fecha</strong><br/>' + today + '</div><div><strong>Resultado</strong><br/>Aprobado · ' + (result ? result.score + '/' + result.total : '?') + '</div><div><div class="sig">BeonIt · ' + (window.WORKSPACE_NAME || 'tu workspace') + '</div><div style="font-family:monospace;font-size:9px;color:#94A3B8;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div></div></div></body></html>';
+'<div class="foot"><div><strong>Fecha</strong><br/>' + today + '</div><div><strong>Resultado</strong><br/>Aprobado · ' + (result ? result.score + '/' + result.total : '?') + '</div><div><div class="sig">BeonIt · ' + (window.WORKSPACE_NAME || 'tu workspace') + '</div><div style="font-family:monospace;font-size:9px;color:#99A5BD;letter-spacing:.1em;text-transform:uppercase;margin-top:4px">Equipo de formación</div></div></div></div></body></html>';
     const blob = new Blob([html], { type:'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -7579,7 +7579,7 @@ function RouteExamModal({ routeId, routeLabel, onClose, onPassed }) {
   const allAnswered = bank.questions.every((_, i) => answers[i] !== undefined);
 
   return (
-    <div onClick={!submitted ? onClose : null} style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
+    <div onClick={!submitted ? onClose : null} style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(620px, 96vw)', maxHeight:'90vh', overflowY:'auto', padding:32, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
           <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--bn-blue)', fontWeight:700}}>EXAMEN FINAL</span>
