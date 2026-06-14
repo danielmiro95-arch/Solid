@@ -32,9 +32,9 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
           ssg-hero permite separar la banda del canvas en dark mode. */}
       <header className="ssg-hero" style={{
         background:
-          'radial-gradient(ellipse at 85% 10%, rgba(46,124,255,0.35), transparent 55%), ' +
-          'radial-gradient(ellipse at 8% 95%, rgba(15,60,168,0.40), transparent 55%), ' +
-          'linear-gradient(120deg, #06112E 0%, #0A1A40 50%, #0F2D6B 115%)',
+          'radial-gradient(ellipse at 85% 10%, rgba(45,107,246,0.35), transparent 55%), ' +
+          'radial-gradient(ellipse at 8% 95%, rgba(17,72,199,0.40), transparent 55%), ' +
+          'linear-gradient(120deg, #070F2A 0%, #0B1834 50%, #143A86 115%)',
         padding: '118px 64px 46px',
         marginBottom: 36,
       }}>
@@ -47,7 +47,7 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
                 letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(244,247,251,0.65)',
                 marginBottom: 12,
               }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5B95FF' }}/>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#5A8DFF' }}/>
                 {eyebrow}
               </div>
             )}
@@ -57,7 +57,7 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
             }}>{title}</h1>
             {sub && <p style={{
               fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 18,
-              color: 'rgba(244,209,168,0.95)', marginTop: 8, marginBottom: 0,
+              color: 'rgba(174,203,242,0.95)', marginTop: 8, marginBottom: 0,
             }}>{sub}</p>}
           </div>
           {actions && <div style={{ display: 'flex', gap: 10 }}>{actions}</div>}
@@ -100,7 +100,7 @@ function BrowseView({ openDetail }) {
               color: on ? '#fff' : 'var(--fg-muted)',
               border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line)'),
               borderRadius: 999, cursor: 'pointer', transition: 'all .15s',
-              boxShadow: on ? '0 4px 12px rgba(46,124,255,0.28)' : 'none',
+              boxShadow: on ? '0 4px 12px rgba(45,107,246,0.28)' : 'none',
             }}>{c}</button>
           );
         })}
@@ -293,7 +293,7 @@ function RutasView({ setView, openPath }) {
                 color:      active ? '#fff' : 'var(--fg-muted)',
                 border:'1px solid', borderColor: active ? 'var(--accent)' : 'var(--line)',
                 borderRadius:999, cursor:'pointer', transition:'all .15s',
-                boxShadow: active ? '0 4px 12px rgba(46,124,255,0.28)' : 'none',
+                boxShadow: active ? '0 4px 12px rgba(45,107,246,0.28)' : 'none',
               }}>
                 {b} <span style={{ opacity: 0.55, marginLeft: 4, fontWeight: 500 }}>· {count}</span>
               </button>
@@ -2906,7 +2906,7 @@ function SettingsView({ setView }) {
                     border:'none', cursor:'pointer', fontFamily:'var(--font-sans)', fontSize: 12.5, fontWeight: 600,
                     background: active ? 'var(--accent)' : 'transparent',
                     color: active ? '#fff' : 'var(--fg-muted)',
-                    boxShadow: active ? '0 2px 8px rgba(46,124,255,0.30)' : 'none',
+                    boxShadow: active ? '0 2px 8px rgba(45,107,246,0.30)' : 'none',
                     transition:'all .15s',
                   }}>
                     <span style={{ fontSize: 14 }}>{opt.icon}</span>{opt.label}
@@ -3080,12 +3080,12 @@ const THEME_PREVIEW_OPTIONS = [
     label: 'Navy Udacity (actual)',
     note: 'navy + cobalt + cream · paleta editorial premium',
     tokens: {
-      '--bg-deep':        '#06112E', '--bg-canvas': '#0A1A40', '--bg-surface': '#102659', '--bg-elevated': '#1A3473',
-      '--bg-glass':'rgba(10,26,64,0.78)', '--bg-glass-strong':'rgba(10,26,64,0.94)', '--scrim':'rgba(6,17,46,0.85)',
+      '--bg-deep':        '#070F2A', '--bg-canvas': '#0B1834', '--bg-surface': '#102659', '--bg-elevated': '#1A3473',
+      '--bg-glass':'rgba(10,26,64,0.78)', '--bg-glass-strong':'rgba(10,26,64,0.94)', '--scrim':'rgba(7,15,42,0.85)',
       '--line-faint':'rgba(255,255,255,0.05)', '--line':'rgba(255,255,255,0.10)', '--line-strong':'rgba(255,255,255,0.20)',
-      '--fg':'#F4F7FB', '--fg-muted':'#C5D2E8', '--fg-dim':'#8C9CBA', '--fg-faint':'#6B7B9A',
-      '--accent':'#2E7CFF', '--accent-hover':'#5B95FF', '--accent-deep':'#0F4FCC', '--accent-glow':'rgba(46,124,255,0.35)',
-      '--cream':'#F4D1A8',
+      '--fg':'#F2F6FC', '--fg-muted':'#C5D2E8', '--fg-dim':'#8C9CBA', '--fg-faint':'#6B7B9A',
+      '--accent':'#2D6BF6', '--accent-hover':'#5A8DFF', '--accent-deep':'#1148C7', '--accent-glow':'rgba(45,107,246,0.35)',
+      '--cream':'#AECBF2',
     },
   },
   {
@@ -3698,7 +3698,7 @@ function CertificatesView({ setView }) {
               <div style={{
                 position:'absolute', top:14, right:14,
                 width:48, height:48, borderRadius:'50%',
-                background: isLocked ? 'rgba(13,17,23,0.08)' : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
+                background: isLocked ? 'rgba(11,18,38,0.08)' : 'linear-gradient(135deg, var(--accent), var(--accent-deep))',
                 color: isLocked ? '#64748B' : '#fff',
                 display:'flex', alignItems:'center', justifyContent:'center',
                 fontSize: 22, fontWeight:800,
@@ -3717,10 +3717,10 @@ function CertificatesView({ setView }) {
               </div>
 
               {/* Barra de progreso para mostrar lo que falta */}
-              <div style={{ height:4, background:'rgba(13,17,23,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
+              <div style={{ height:4, background:'rgba(11,18,38,0.08)', borderRadius:2, overflow:'hidden', marginTop:4 }}>
                 <div style={{
                   height:'100%', width: Math.round((p.progress || 0) * 100) + '%',
-                  background: isLocked ? '#94A3B8' : 'var(--accent)', transition:'width .25s',
+                  background: isLocked ? '#99A5BD' : 'var(--accent)', transition:'width .25s',
                 }}/>
               </div>
 
@@ -5687,7 +5687,7 @@ function AssignMembersModal({ path, onClose }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(13,17,23,0.65)',
+      position:'fixed', inset: 0, background:'rgba(11,18,38,0.65)',
       backdropFilter:'blur(4px)', zIndex: 650,
       display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
     }}>

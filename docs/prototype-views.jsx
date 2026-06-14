@@ -10,7 +10,7 @@ const CAT_COLORS = {
 };
 
 const RepsolDetailCover = ({ pill, category, title }) => {
-  const accent = CAT_COLORS[category] || '#0D1117';
+  const accent = CAT_COLORS[category] || '#0B1220';
   return (
     <div style={{position:'absolute', inset:0, background:`linear-gradient(160deg, ${accent} 0%, #080e1a 100%)`, overflow:'hidden'}}>
       <div style={{position:'absolute', top:0, left:0, right:0, height:4, background:'#6E50EE'}}/>
@@ -684,7 +684,7 @@ function AISidekick({ setAIMode, aiMode, view }) {
   const BORDER_2  = 'rgba(15, 23, 42, 0.12)';
   const INK       = '#0F172A';
   const INK_MUTED = '#64748B';
-  const INK_DIM   = '#94A3B8';
+  const INK_DIM   = '#99A5BD';
 
   return (
     <aside className="ai bai-light" style={{
@@ -2553,7 +2553,7 @@ function WidgetPicker({ onAdd, onClose }) {
   const [activeCat, setActiveCat] = useS2('kpi');
   const inCat = WIDGET_LIBRARY.filter(w => w.cat === activeCat);
   return (
-    <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
+    <div style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
       <div style={{background:'var(--paper)', borderRadius:14, width:'min(820px, 96vw)', maxHeight:'88vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}} onClick={e => e.stopPropagation()}>
         <div style={{padding:'22px 28px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0}}>
           <div>
@@ -2610,7 +2610,7 @@ function PromptModal({ title, fields, initial, onSave, onClose, saveLabel }) {
   if (!saveLabel) saveLabel = T('common.save');
   const [vals, setVals] = useS2(() => initial || {});
   return (
-    <div style={{position:'fixed', inset:0, background:'rgba(13,17,23,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
+    <div style={{position:'fixed', inset:0, background:'rgba(11,18,38,0.55)', backdropFilter:'blur(4px)', zIndex:700, display:'flex', alignItems:'center', justifyContent:'center', padding:20}} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{background:'var(--paper)', borderRadius:14, width:'min(480px, 96vw)', padding:26, boxShadow:'0 30px 80px rgba(0,0,0,0.25)'}}>
         <h2 style={{margin:'0 0 18px', fontSize:18, fontFamily:'var(--sans)', fontWeight:700, letterSpacing:'-0.01em'}}>{title}</h2>
         <div style={{display:'flex', flexDirection:'column', gap:12, marginBottom:20}}>
