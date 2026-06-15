@@ -3689,6 +3689,39 @@ function _activateSupabaseData() {
       const origin = (typeof location !== 'undefined') ? location.origin : 'https://solid-stream.vercel.app';
       return origin.replace(/\/$/, '') + '/verify.html?cert=' + encodeURIComponent(cert.id);
     },
+    /* URLs de compartir precomputadas (LinkedIn / WhatsApp / X / email /
+     * copy-link). Devuelve null si el cert no tiene id. El texto base es
+     * accionable: "He completado [curso]" + URL pública de verificación.
+     * Cualquiera que pulse el link aterriza en /verify.html · ve el cert
+     * validado y autenticidad confirmada → branding orgánico beonit. */
+    shareUrls: function(cert) {
+      const vUrl = window.Certificates.verifyUrl(cert);
+      if (!vUrl) return null;
+      const profile = (window.Auth && window.Auth.currentUser()) || {};
+      const userName = profile.name || (profile.email ? profile.email.split('@')[0] : 'Alumno');
+      const wsName = window.WORKSPACE_NAME || 'SolidStream';
+      const courseTitle = cert.route_title || 'un curso';
+      // Texto largo (LinkedIn/email) + corto (WhatsApp/X).
+      const txtLong = '¡Acabo de completar “' + courseTitle + '” en ' + wsName + '! 🎓\n\n' +
+                      'Puedes verificar el certificado aquí: ' + vUrl;
+      const txtShort = '🎓 He completado “' + courseTitle + '” en ' + wsName + ' · ' + vUrl;
+      const enc = encodeURIComponent;
+      return {
+        url: vUrl,
+        userName: userName,
+        courseTitle: courseTitle,
+        // LinkedIn · share article (URL solo · LinkedIn extrae el OG)
+        linkedin: 'https://www.linkedin.com/sharing/share-offsite/?url=' + enc(vUrl),
+        // WhatsApp · texto + URL en uno solo
+        whatsapp: 'https://wa.me/?text=' + enc(txtShort),
+        // X (Twitter)
+        x: 'https://twitter.com/intent/tweet?text=' + enc(txtShort),
+        // Email · mailto con subject + body
+        email: 'mailto:?subject=' + enc('Certificado · ' + courseTitle) + '&body=' + enc(txtLong),
+        // Texto plano para copy-to-clipboard
+        text: txtLong,
+      };
+    },
     /* Genera el HTML del certificado · ABRE como blob en pestaña nueva
      * o fuerza descarga · el user lo imprime a PDF desde el navegador.
      * Incluye QR de verificación pública abajo-derecha. */
