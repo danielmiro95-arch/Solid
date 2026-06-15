@@ -3797,13 +3797,62 @@ function CertificatesView({ setView }) {
                       fontFamily:'var(--font-sans)', fontWeight:600, fontSize:13,
                     }}>SVG</button>
                   </div>
-                  {cert && window.Certificates && window.Certificates.verifyUrl(cert) && (
-                    <a href={window.Certificates.verifyUrl(cert)} target="_blank" rel="noopener" style={{
-                      fontSize:10.5, color:'var(--fg-muted)', textDecoration:'none',
-                      fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.04em',
-                      textAlign:'center', marginTop:2,
-                    }}>🔗 Página pública de verificación</a>
-                  )}
+                  {cert && window.Certificates && window.Certificates.shareUrls && (() => {
+                    const sh = window.Certificates.shareUrls(cert);
+                    if (!sh) return null;
+                    const btn = {
+                      flex:1, padding:'7px 8px',
+                      display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5,
+                      background:'var(--bg-surface)', color:'var(--fg-muted)',
+                      border:'1px solid var(--line)', borderRadius:7,
+                      cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600, fontSize:11.5,
+                      textDecoration:'none', transition:'all .15s',
+                    };
+                    return (
+                      <>
+                        {/* Compartir · LinkedIn · WhatsApp · X · Copiar link */}
+                        <div style={{ display:'flex', gap:5, marginTop:2 }}>
+                          <a href={sh.linkedin} target="_blank" rel="noopener" title="Compartir en LinkedIn" style={btn}
+                             onMouseEnter={e => { e.currentTarget.style.background='#0A66C2'; e.currentTarget.style.color='#fff'; e.currentTarget.style.borderColor='#0A66C2'; }}
+                             onMouseLeave={e => { e.currentTarget.style.background='var(--bg-surface)'; e.currentTarget.style.color='var(--fg-muted)'; e.currentTarget.style.borderColor='var(--line)'; }}>
+                            in
+                          </a>
+                          <a href={sh.whatsapp} target="_blank" rel="noopener" title="Compartir por WhatsApp" style={btn}
+                             onMouseEnter={e => { e.currentTarget.style.background='#25D366'; e.currentTarget.style.color='#fff'; e.currentTarget.style.borderColor='#25D366'; }}
+                             onMouseLeave={e => { e.currentTarget.style.background='var(--bg-surface)'; e.currentTarget.style.color='var(--fg-muted)'; e.currentTarget.style.borderColor='var(--line)'; }}>
+                            ✆
+                          </a>
+                          <a href={sh.x} target="_blank" rel="noopener" title="Compartir en X" style={btn}
+                             onMouseEnter={e => { e.currentTarget.style.background='#0B1220'; e.currentTarget.style.color='#fff'; e.currentTarget.style.borderColor='#0B1220'; }}
+                             onMouseLeave={e => { e.currentTarget.style.background='var(--bg-surface)'; e.currentTarget.style.color='var(--fg-muted)'; e.currentTarget.style.borderColor='var(--line)'; }}>
+                            𝕏
+                          </a>
+                          <button title="Copiar enlace al portapapeles" style={btn} onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(sh.url);
+                              if (window.Toast) window.Toast.success('Enlace copiado al portapapeles', { icon:'🔗' });
+                            } catch(e) {
+                              // Fallback antiguo · select + execCommand
+                              const ta = document.createElement('textarea');
+                              ta.value = sh.url; document.body.appendChild(ta); ta.select();
+                              try { document.execCommand('copy'); if (window.Toast) window.Toast.success('Enlace copiado', { icon:'🔗' }); }
+                              catch(e2) { if (window.Toast) window.Toast.error('No se pudo copiar'); }
+                              document.body.removeChild(ta);
+                            }
+                          }}
+                            onMouseEnter={e => { e.currentTarget.style.background='var(--accent)'; e.currentTarget.style.color='#fff'; e.currentTarget.style.borderColor='var(--accent)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background='var(--bg-surface)'; e.currentTarget.style.color='var(--fg-muted)'; e.currentTarget.style.borderColor='var(--line)'; }}>
+                            🔗
+                          </button>
+                        </div>
+                        <a href={sh.url} target="_blank" rel="noopener" style={{
+                          fontSize:10.5, color:'var(--fg-muted)', textDecoration:'none',
+                          fontFamily:'var(--font-mono, monospace)', letterSpacing:'0.04em',
+                          textAlign:'center', marginTop:2,
+                        }}>Página pública de verificación →</a>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </article>
