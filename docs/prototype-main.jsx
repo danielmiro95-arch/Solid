@@ -269,7 +269,7 @@ const Channels = (function() {
     { id:'teams',    label:'Microsoft Teams',  color:'#5059C9', icon:'🟦',  desc:'Adaptive cards y notificaciones en chat',         authType:'oauth',      available:true },
     { id:'email',    label:'Email',            color:'#EA4335', icon:'✉️',  desc:'Digest diario o semanal con HTML rico',           authType:'oauth',      available:true },
     { id:'slack',    label:'Slack',            color:'#4A154B', icon:'💼',  desc:'Bot notifications + channel posting',             authType:'oauth',      available:false },
-    { id:'push',     label:'Push web/mobile',  color:'#2D6BF6', icon:'🔔',  desc:'Notificaciones nativas del navegador/app',        authType:'permission', available:false },
+    { id:'push',     label:'Push web/mobile',  color:'#006241', icon:'🔔',  desc:'Notificaciones nativas del navegador/app',        authType:'permission', available:false },
   ];
 
   function _userKey() {
@@ -6763,7 +6763,7 @@ function LoginScreen() {
     }}>
       {/* Lado visual izquierdo · hero navy degradado estilo Udacity */}
       <div style={{flex:1, padding:'48px 56px', display:'flex', flexDirection:'column', justifyContent:'space-between', color:'#FFFFFF', minWidth:0,
-        background:'radial-gradient(circle at 85% 15%, rgba(45,107,246,0.35), transparent 50%), radial-gradient(circle at 10% 90%, rgba(17,72,199,0.45), transparent 55%), linear-gradient(135deg, #070F2A 0%, #0B1834 45%, #0F3CA8 130%)'}}>
+        background:'radial-gradient(circle at 85% 15%, rgba(0, 98, 65,0.35), transparent 50%), radial-gradient(circle at 10% 90%, rgba(0, 74, 48,0.45), transparent 55%), linear-gradient(135deg, #000000 0%, #0A0A0A 45%, #0F3CA8 130%)'}}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="BeonIt" style={{height:42, width:'auto', flexShrink:0}}/>
           <span style={{fontFamily:'var(--font-sans, Inter)', fontWeight:700, fontSize:26, letterSpacing:'-0.025em', color:'#FFFFFF'}}>
@@ -6802,7 +6802,7 @@ function LoginScreen() {
                     window.dispatchEvent(new Event('settings-changed'));
                   }
                 }}
-                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#2D6BF6' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,0.70)', border:'1px solid '+(active ? '#2D6BF6' : 'rgba(255,255,255,0.22)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
+                  style={{padding:'4px 10px', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', background: active ? '#006241' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,0.70)', border:'1px solid '+(active ? '#006241' : 'rgba(255,255,255,0.22)'), borderRadius:6, cursor:'pointer'}}>{lng}</button>
               );
             })}
           </div>
@@ -6825,8 +6825,8 @@ function LoginScreen() {
       }}>
         <div style={{maxWidth:380, width:'100%', margin:'auto 0'}}>
           {invitation && (
-            <div style={{padding:'16px 18px', background:'rgba(45,107,246,0.08)', border:'1px solid rgba(45,107,246,0.3)', borderRadius:10, marginBottom:24}}>
-              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#2D6BF6', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
+            <div style={{padding:'16px 18px', background:'rgba(0, 98, 65,0.08)', border:'1px solid rgba(0, 98, 65,0.3)', borderRadius:10, marginBottom:24}}>
+              <div style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#006241', fontWeight:700, marginBottom:5}}>✉ {T('login.invite.title')}</div>
               <div style={{fontSize:13.5, color:'#0B1220', lineHeight:1.5}}>{T('login.invite.body','Te han invitado a SolidStream como {role}.').replace('{team}', invitation.team || 'tu empresa').replace('{role}', invitation.role || '—')}</div>
             </div>
           )}
@@ -6853,7 +6853,7 @@ function LoginScreen() {
               <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.email')}</div>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" autoFocus
                 style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220', transition:'border-color .15s'}}
-                onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                onFocus={e => e.target.style.borderColor='#006241'}
                 onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
             </label>
             {isSupabase && (
@@ -6861,7 +6861,7 @@ function LoginScreen() {
                 <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.password')}</div>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '············'}
                   style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220'}}
-                  onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                  onFocus={e => e.target.style.borderColor='#006241'}
                   onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
               </label>
             )}
@@ -6870,21 +6870,21 @@ function LoginScreen() {
                 <div style={{fontSize:10, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, fontWeight:600}}>{T('login.name')}</div>
                 <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre completo"
                   style={{width:'100%', padding:'12px 14px', border:'1px solid rgba(11,18,38,0.12)', borderRadius:8, fontFamily:'var(--font-sans, Inter)', fontSize:14, outline:'none', boxSizing:'border-box', background:'rgba(11,18,38,0.04)', color:'#0B1220'}}
-                  onFocus={e => e.target.style.borderColor='#2D6BF6'}
+                  onFocus={e => e.target.style.borderColor='#006241'}
                   onBlur={e => e.target.style.borderColor='rgba(11,18,38,0.12)'}/>
               </label>
             )}
             {/* Role y team los asigna el admin del workspace cuando crea/invita
                 al usuario · NO se piden en el signup público · ver InviteUsersModal */}
             {error && (
-              <div style={{padding:'10px 14px', background:'rgba(45,107,246,0.1)', border:'1px solid rgba(45,107,246,0.35)', borderRadius:8, color:'#D93843', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
+              <div style={{padding:'10px 14px', background:'rgba(0, 98, 65,0.1)', border:'1px solid rgba(0, 98, 65,0.35)', borderRadius:8, color:'#D93843', fontSize:13, marginBottom:14, fontFamily:'var(--font-sans, Inter)'}}>
                 {error}
               </div>
             )}
             <button type="submit" disabled={submitting}
-              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(45,107,246,0.5)' : '#2D6BF6', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
-              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#5A8DFF'; }}
-              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#2D6BF6'; }}>
+              style={{width:'100%', justifyContent:'center', marginTop:8, opacity: submitting ? 0.6 : 1, padding:'14px 24px', background: submitting ? 'rgba(0, 98, 65,0.5)' : '#006241', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans, Inter)', fontSize:14, fontWeight:700, transition:'background .15s', display:'flex', alignItems:'center', gap:8}}
+              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#007A52'; }}
+              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#006241'; }}>
               {submitting ? T('login.submitting') : (mode === 'login' ? T('login.submit.login') + ' →' : T('login.submit.signup') + ' →')}
             </button>
           </form>
@@ -6921,14 +6921,14 @@ function LoginScreen() {
                     style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', border:'1px solid rgba(11,18,38,0.08)', borderRadius:8, background:'rgba(11,18,38,0.03)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font-sans, Inter)', transition:'all .15s'}}
                     onMouseEnter={e => { e.currentTarget.style.background='rgba(11,18,38,0.08)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.18)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background='rgba(11,18,38,0.03)'; e.currentTarget.style.borderColor='rgba(11,18,38,0.08)'; }}>
-                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#2D6BF6', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
+                    <div style={{width:32, height:32, borderRadius:'50%', background:u.avatarColor || '#006241', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0}}>
                       {u.name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
                       <div style={{fontSize:13.5, fontWeight:600, color:'#0B1220', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{u.name}</div>
                       <div style={{fontSize:10.5, color:'rgba(11,18,38,0.5)', fontFamily:'var(--font-mono, "JetBrains Mono", monospace)'}}>{u.email}</div>
                     </div>
-                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#2D6BF6', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
+                    {u.isAdmin && <span style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:9, fontWeight:800, padding:'3px 7px', background:'#006241', color:'#fff', borderRadius:4, letterSpacing:'0.08em'}}>ADMIN</span>}
                   </button>
                 ))}
               </div>

@@ -34,14 +34,14 @@ function _svgEscape(s) {
 // de Claude Design §4. Cada poster recibe "a" (top-left, vibrante), "b"
 // (bottom-right, navy profundo) + "ink" (tinte claro frío para chips/deco).
 var _POSTER_PALETTES = [
-  { a:'#2D6BF6', b:'#0A1530', ink:'#AECBF2' },  // cobalt · navy (signature)
+  { a:'#006241', b:'#050E09', ink:'#AECBF2' },  // cobalt · navy (signature)
   { a:'#5BB8FF', b:'#133A86', ink:'#D6E4FA' },  // sky · royal
   { a:'#2FE0B5', b:'#082A2E', ink:'#CFF7EC' },  // aqua · deep
   { a:'#AECBF2', b:'#1B225C', ink:'#E6EFFB' },  // ice · indigo
   { a:'#8E7BF0', b:'#11142E', ink:'#E0DAFB' },  // violet · midnight
   { a:'#1E86F0', b:'#0C1B3A', ink:'#CDE5FB' },  // azure · slate
   { a:'#6FE0C0', b:'#0C2A24', ink:'#DBF7EE' },  // mint · forest
-  { a:'#9DB0F5', b:'#0B1430', ink:'#E3E9FB' },  // peri · navy
+  { a:'#9DB0F5', b:'#050E09', ink:'#E3E9FB' },  // peri · navy
 ];
 function _hashIdx(s, mod) {
   s = String(s || '');
@@ -619,9 +619,9 @@ function TopNav({ view, onView, onSearch, onLogout }) {
                         flex:1, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5,
                         padding:'7px 6px', borderRadius:6, border:'none', cursor:'pointer',
                         fontFamily:'var(--font-sans, Inter)', fontSize:11.5, fontWeight:600,
-                        background: on ? 'var(--accent, #2D6BF6)' : 'transparent',
+                        background: on ? 'var(--accent, #006241)' : 'transparent',
                         color: on ? '#fff' : 'rgba(245,244,241,0.65)',
-                        boxShadow: on ? '0 2px 8px rgba(45,107,246,0.30)' : 'none',
+                        boxShadow: on ? '0 2px 8px rgba(0, 98, 65,0.30)' : 'none',
                         transition:'all .15s',
                       }}>
                         <span style={{ fontSize:13 }}>{opt.icon}</span>{opt.label}
@@ -1655,8 +1655,8 @@ function NextStepIA({ setView, openPath, openDetail }) {
     <section style={{
       margin:'-44px var(--row-pad, 60px) 32px',
       padding:'18px 22px',
-      background:'linear-gradient(135deg, rgba(45,107,246,0.10), rgba(45,107,246,0.04))',
-      border:'1px solid rgba(45,107,246,0.28)',
+      background:'linear-gradient(135deg, rgba(0, 98, 65,0.10), rgba(0, 98, 65,0.04))',
+      border:'1px solid rgba(0, 98, 65,0.28)',
       borderRadius: 14,
       position:'relative', zIndex: 4,
       display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap',
@@ -1666,7 +1666,7 @@ function NextStepIA({ setView, openPath, openDetail }) {
         width: 38, height: 38, borderRadius:'50%',
         background:'var(--accent)', color:'#fff',
         display:'flex', alignItems:'center', justifyContent:'center',
-        flexShrink: 0, fontSize: 18, boxShadow:'0 0 0 4px rgba(45,107,246,0.18)',
+        flexShrink: 0, fontSize: 18, boxShadow:'0 0 0 4px rgba(0, 98, 65,0.18)',
       }}>✦</div>
       <div style={{ flex: 1, minWidth: 220 }}>
         <div style={{

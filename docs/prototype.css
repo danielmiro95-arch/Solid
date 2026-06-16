@@ -344,14 +344,14 @@ body.cinematic-mode { background: #0B1220 !important; }
 
 /* --- Sidebar (panel elevado tipo card) --- */
 .sb {
-  border-right: 1px solid rgba(45,107,246,0.18);
+  border-right: 1px solid rgba(0, 98, 65,0.18);
   padding: 24px 18px;
   display: flex; flex-direction: column; gap: 26px;
   /* Sidebar navy degradado · idéntica familia al topnav / hero (b119) ·
      da peso a la columna izquierda como Udacity hace con su catálogo. */
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(45,107,246,0.22), transparent 50%),
-    linear-gradient(180deg, #070F2A 0%, #0B1834 60%, #143A86 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(0, 98, 65,0.22), transparent 50%),
+    linear-gradient(180deg, #000000 0%, #0A0A0A 60%, #0D2A1E 100%);
   color: #F2F6FC;
   position: sticky; top: 60px; height: calc(100vh - 60px);
   overflow-y: auto;
@@ -363,16 +363,16 @@ body.cinematic-mode { background: #0B1220 !important; }
 .sb-item { color: rgba(244,247,251,0.78); }
 .sb-item:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; box-shadow: none; }
 .sb-item.active {
-  background: linear-gradient(135deg, #2D6BF6, #1F5FCC);
+  background: linear-gradient(135deg, #006241, #1F5FCC);
   color: #FFFFFF;
-  box-shadow: 0 6px 18px rgba(45,107,246,0.35);
+  box-shadow: 0 6px 18px rgba(0, 98, 65,0.35);
 }
 .sb-search { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); color: rgba(244,247,251,0.85); }
 .sb-search:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.30); }
 .sb-search input, .sb-search input::placeholder { color: rgba(244,247,251,0.65); }
 .sb-org   { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(244,247,251,0.85); }
 .sb-path  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(244,247,251,0.85); }
-.sb-path:hover { background: rgba(255,255,255,0.10); border-color: rgba(45,107,246,0.55); box-shadow: 0 4px 14px rgba(45,107,246,0.20); }
+.sb-path:hover { background: rgba(255,255,255,0.10); border-color: rgba(0, 98, 65,0.55); box-shadow: 0 4px 14px rgba(0, 98, 65,0.20); }
 .sb-user  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #F2F6FC; }
 .sb-user:hover { background: rgba(255,255,255,0.10); }
 .sb-brand .mark { color: #FFFFFF; }
@@ -1388,8 +1388,8 @@ body.cinematic-mode { background: #0B1220 !important; }
   border-radius: 16px; overflow: hidden;
   /* Navy degradado Udacity-promo (b118) · banner oscuro sobre body claro. */
   background:
-    radial-gradient(ellipse at 85% 15%, rgba(45,107,246,0.35), transparent 55%),
-    linear-gradient(120deg, #070F2A 0%, #0B1834 55%, #143A86 120%);
+    radial-gradient(ellipse at 85% 15%, rgba(0, 98, 65,0.35), transparent 55%),
+    linear-gradient(120deg, #000000 0%, #0A0A0A 55%, #0D2A1E 120%);
   color: #F2F6FC;
   display: grid; grid-template-columns: 1fr 1fr;
   position: relative; margin-bottom: 0;

@@ -20,7 +20,7 @@
   /* Zona "cream" · áreas editoriales destacadas (Maestrías, hero CTA). */
   --bg-cream:       #EAF0FB;
   /* Cover oscuro · color del area de imagen DENTRO de las cards (poster bg). */
-  --card-cover-bg:  #0B1834;
+  --card-cover-bg:  #0A0A0A;
 
   /* ── Color · Lines & dividers (negro translúcido · sobre fondo claro) ── */
   --line-faint:     rgba(11, 18, 38, 0.04);
@@ -40,14 +40,34 @@
   /* ── Color · Accent (cobalt blue · Udacity links / CTAs / títulos) ──
      Aplica a links, CTAs y a los títulos de pill/curso (en Udacity los
      títulos están en este azul cobalt brillante). */
-  --accent:         #2D6BF6;
-  --accent-hover:   #5A8DFF;
-  --accent-deep:    #1148C7;
-  --accent-glow:    rgba(45, 107, 246, 0.20);
+  --accent:         #006241;
+  --accent-hover:   #007A52;
+  --accent-deep:    #004A30;
+  --accent-glow:    rgba(0, 98, 65, 0.20);
 
   /* ── Color · Cream highlight (peach) · banner promo, badges premium ── */
   --cream:          #AECBF2;
   --cream-soft:     #D6E4FA;
+
+  /* ── Color · BRAND beonit (gradient corporativo de 6 colores) ──
+     Estos hex son la identidad beonit · idénticos en claro y oscuro.
+     --gradient-brand se usa en sitios editoriales destacados (los números
+     gigantes de "Tendencia", banners hero premium, separadores especiales). */
+  --brand-orange:   #F3A525;
+  --brand-red:      #FC220D;
+  --brand-magenta:  #BD2882;
+  --brand-blue:     #0072BE;
+  --brand-green:    #036837;
+  --brand-yellow:   #FCCB00;
+  --gradient-brand: linear-gradient(
+    90deg,
+    var(--brand-orange)  0%,
+    var(--brand-red)     22%,
+    var(--brand-magenta) 42%,
+    var(--brand-blue)    60%,
+    var(--brand-green)   80%,
+    var(--brand-yellow)  100%
+  );
 
   /* ── Color · Category tints (vivos sobre blanco) ── */
   --cat-publish:    #D97A2B;
@@ -59,7 +79,7 @@
   /* ── Color · Status (saturados para light) ── */
   --ok:             #16A34A;
   --warn:           #EA580C;
-  --info:           #2D6BF6;
+  --info:           #1A6EE0;
 
   /* ── Typography ── */
   --font-sans:      'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -104,7 +124,7 @@
 html[data-theme="dark"] {
   /* Superficies · navy profundo (no negro puro · azul carbón Udacity-dark) */
   --bg-deep:        #060B1A;
-  --bg-canvas:      #0A1124;                       /* fondo de página · navy carbón */
+  --bg-canvas:      #050E09;                       /* fondo de página · navy carbón */
   --bg-surface:     #121B36;                       /* cards/modales · navy un escalón */
   --bg-elevated:    #1B2747;                       /* hover, dropdowns */
   --bg-glass:       rgba(10, 17, 36, 0.76);
@@ -114,7 +134,7 @@ html[data-theme="dark"] {
   /* Zona cream en dark · navy templado (no peach plano · da calidez sutil) */
   --bg-cream:       #16203B;
   /* Cover dentro de cards · se mantiene el mismo navy que en claro */
-  --card-cover-bg:  #0B1834;
+  --card-cover-bg:  #0A0A0A;
 
   /* Líneas · blanco translúcido sobre navy */
   --line-faint:     rgba(255, 255, 255, 0.04);
@@ -130,12 +150,32 @@ html[data-theme="dark"] {
   --fg-on-cover:    #FFFFFF;
 
   /* Accent + cream · IDÉNTICOS al tema claro (no cambian con el toggle). */
-  --accent:         #2D6BF6;
-  --accent-hover:   #5A8DFF;
-  --accent-deep:    #1148C7;
-  --accent-glow:    rgba(45, 107, 246, 0.30);
+  --accent:         #006241;
+  --accent-hover:   #007A52;
+  --accent-deep:    #004A30;
+  --accent-glow:    rgba(0, 98, 65, 0.30);
   --cream:          #AECBF2;
   --cream-soft:     #D6E4FA;
+
+  /* ── Color · BRAND beonit (gradient corporativo de 6 colores) ──
+     Estos hex son la identidad beonit · idénticos en claro y oscuro.
+     --gradient-brand se usa en sitios editoriales destacados (los números
+     gigantes de "Tendencia", banners hero premium, separadores especiales). */
+  --brand-orange:   #F3A525;
+  --brand-red:      #FC220D;
+  --brand-magenta:  #BD2882;
+  --brand-blue:     #0072BE;
+  --brand-green:    #036837;
+  --brand-yellow:   #FCCB00;
+  --gradient-brand: linear-gradient(
+    90deg,
+    var(--brand-orange)  0%,
+    var(--brand-red)     22%,
+    var(--brand-magenta) 42%,
+    var(--brand-blue)    60%,
+    var(--brand-green)   80%,
+    var(--brand-yellow)  100%
+  );
 
   /* Category tints · versiones más brillantes para vivir sobre navy. */
   --cat-publish:    #FFB347;
@@ -163,8 +203,8 @@ html[data-theme="dark"] .card:hover {
   box-shadow:
     0 2px 4px rgba(0,0,0,0.40),
     0 22px 40px rgba(0,0,0,0.45),
-    0 0 0 1px rgba(45,107,246,0.35);
-  border-color: rgba(45,107,246,0.55);
+    0 0 0 1px rgba(0, 98, 65,0.35);
+  border-color: rgba(0, 98, 65,0.55);
 }
 /* En dark, los botones secondary/ghost viven sobre navy · ajusta superficies. */
 html[data-theme="dark"] .btn-secondary { background: var(--bg-surface); border-color: var(--line); color: var(--fg); }
@@ -175,14 +215,14 @@ html[data-theme="dark"] .btn-secondary:hover { background: var(--bg-elevated); b
    despeguen y no se fundan en una mancha. En light no hace falta (contraste
    navy-sobre-claro ya es alto). */
 html[data-theme="dark"] .ssg-hero {
-  border-bottom: 1px solid rgba(45,107,246,0.22);
+  border-bottom: 1px solid rgba(0, 98, 65,0.22);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 40px rgba(0,0,0,0.30);
 }
 html[data-theme="dark"] .topnav {
-  box-shadow: 0 1px 0 rgba(45,107,246,0.18), 0 4px 18px rgba(0,0,0,0.35);
+  box-shadow: 0 1px 0 rgba(0, 98, 65,0.18), 0 4px 18px rgba(0,0,0,0.35);
 }
 html[data-theme="dark"] .sb {
-  box-shadow: inset -1px 0 0 rgba(45,107,246,0.16), 4px 0 18px rgba(0,0,0,0.35);
+  box-shadow: inset -1px 0 0 rgba(0, 98, 65,0.16), 4px 0 18px rgba(0,0,0,0.35);
 }
 
 /* En dark, el body usa --app-bg del §4 (navy degradado editorial Midnight).
@@ -343,18 +383,18 @@ img { display: block; max-width: 100%; }
               border-color var(--t-base) var(--ease-out);
   /* Navy degradado Udacity · banda oscura sobre el body claro (b118) */
   background:
-    radial-gradient(ellipse at 90% 0%, rgba(45,107,246,0.30), transparent 55%),
-    linear-gradient(90deg, #070F2A 0%, #0B1834 60%, #143A86 100%);
-  border-bottom: 1px solid rgba(45,107,246,0.25);
+    radial-gradient(ellipse at 90% 0%, rgba(0, 98, 65,0.30), transparent 55%),
+    linear-gradient(90deg, #000000 0%, #0A0A0A 60%, #0D2A1E 100%);
+  border-bottom: 1px solid rgba(0, 98, 65,0.25);
 }
 
 .topnav.scrolled {
   background:
-    radial-gradient(ellipse at 90% 0%, rgba(45,107,246,0.30), transparent 55%),
-    linear-gradient(90deg, #070F2Aee 0%, #0B1834ee 60%, #143A86ee 100%);
+    radial-gradient(ellipse at 90% 0%, rgba(0, 98, 65,0.30), transparent 55%),
+    linear-gradient(90deg, #000000ee 0%, #0A0A0Aee 60%, #0D2A1Eee 100%);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-bottom-color: rgba(45,107,246,0.35);
+  border-bottom-color: rgba(0, 98, 65,0.35);
 }
 
 /* Texto/iconos del topnav SIEMPRE claros · va sobre navy degradado.
@@ -366,11 +406,11 @@ img { display: block; max-width: 100%; }
 .topnav .nav-item { color: rgba(244,247,251,0.72); }
 .topnav .nav-item:hover { color: #FFFFFF; background: rgba(255,255,255,0.08); }
 .topnav .nav-item.active { color: #FFFFFF; }
-.topnav .nav-item.active::after { background: #5A8DFF; height: 2px; }
+.topnav .nav-item.active::after { background: #007A52; height: 2px; }
 .topnav .icon-btn { color: rgba(244,247,251,0.75); }
 .topnav .icon-btn:hover { color: #FFFFFF; background: rgba(255,255,255,0.12); }
 .topnav .topnav-search-kbd { border-color: rgba(255,255,255,0.25); color: rgba(244,247,251,0.6); }
-.topnav .icon-btn.topnav-search:hover .topnav-search-kbd { border-color: #5A8DFF; color: #FFFFFF; }
+.topnav .icon-btn.topnav-search:hover .topnav-search-kbd { border-color: #007A52; color: #FFFFFF; }
 
 .topnav-left {
   display: flex; align-items: center; gap: var(--s-8);
@@ -539,7 +579,7 @@ img { display: block; max-width: 100%; }
   background:
     radial-gradient(ellipse at 70% 40%, rgba(110,80,238,0.25), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(91,141,239,0.18), transparent 55%),
-    linear-gradient(135deg, #1a0c10 0%, #0B1834 60%);
+    linear-gradient(135deg, #1a0c10 0%, #0A0A0A 60%);
   filter: saturate(110%);
 }
 
@@ -547,32 +587,32 @@ img { display: block; max-width: 100%; }
   background:
     radial-gradient(ellipse at 70% 40%, rgba(217,122,43,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.18), transparent 55%),
-    linear-gradient(135deg, #2c1605 0%, #0B1834 60%);
+    linear-gradient(135deg, #2c1605 0%, #0A0A0A 60%);
 }
 .hero-media-placeholder.cover-care {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(45,181,143,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(91,141,239,0.18), transparent 55%),
-    linear-gradient(135deg, #062418 0%, #0B1834 60%);
+    linear-gradient(135deg, #062418 0%, #0A0A0A 60%);
 }
 .hero-media-placeholder.cover-analytics {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(91,141,239,0.30), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.16), transparent 55%),
-    linear-gradient(135deg, #061a32 0%, #0B1834 60%);
+    linear-gradient(135deg, #061a32 0%, #0A0A0A 60%);
 }
 .hero-media-placeholder.cover-content {
   background:
     radial-gradient(ellipse at 70% 40%, rgba(201,105,232,0.28), transparent 60%),
     radial-gradient(ellipse at 20% 80%, rgba(110,80,238,0.16), transparent 55%),
-    linear-gradient(135deg, #1e0c27 0%, #0B1834 60%);
+    linear-gradient(135deg, #1e0c27 0%, #0A0A0A 60%);
 }
 
-.modal-media-inner.cover-publish    { background: radial-gradient(ellipse at 60% 40%, rgba(217,122,43,0.30), transparent 60%), linear-gradient(135deg, #2c1605, #0B1834); }
-.modal-media-inner.cover-care       { background: radial-gradient(ellipse at 60% 40%, rgba(45,181,143,0.30),  transparent 60%), linear-gradient(135deg, #062418, #0B1834); }
-.modal-media-inner.cover-analytics  { background: radial-gradient(ellipse at 60% 40%, rgba(91,141,239,0.30),  transparent 60%), linear-gradient(135deg, #061a32, #0B1834); }
-.modal-media-inner.cover-content    { background: radial-gradient(ellipse at 60% 40%, rgba(201,105,232,0.28), transparent 60%), linear-gradient(135deg, #1e0c27, #0B1834); }
-.modal-media-inner.cover-manage     { background: radial-gradient(ellipse at 60% 40%, rgba(232,196,85,0.28),  transparent 60%), linear-gradient(135deg, #221b08, #0B1834); }
+.modal-media-inner.cover-publish    { background: radial-gradient(ellipse at 60% 40%, rgba(217,122,43,0.30), transparent 60%), linear-gradient(135deg, #2c1605, #0A0A0A); }
+.modal-media-inner.cover-care       { background: radial-gradient(ellipse at 60% 40%, rgba(45,181,143,0.30),  transparent 60%), linear-gradient(135deg, #062418, #0A0A0A); }
+.modal-media-inner.cover-analytics  { background: radial-gradient(ellipse at 60% 40%, rgba(91,141,239,0.30),  transparent 60%), linear-gradient(135deg, #061a32, #0A0A0A); }
+.modal-media-inner.cover-content    { background: radial-gradient(ellipse at 60% 40%, rgba(201,105,232,0.28), transparent 60%), linear-gradient(135deg, #1e0c27, #0A0A0A); }
+.modal-media-inner.cover-manage     { background: radial-gradient(ellipse at 60% 40%, rgba(232,196,85,0.28),  transparent 60%), linear-gradient(135deg, #221b08, #0A0A0A); }
 
 .hero-media-placeholder::after {
   content: '';
@@ -751,11 +791,11 @@ img { display: block; max-width: 100%; }
   background: var(--accent);
   color: var(--fg-on-accent);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(45,107,246,0.28);
+  box-shadow: 0 4px 12px rgba(0, 98, 65,0.28);
 }
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: 0 8px 22px rgba(45,107,246,0.40);
+  box-shadow: 0 8px 22px rgba(0, 98, 65,0.40);
 }
 
 /* Secundario · sutil sobre claro (chip blanco con borde). */
@@ -771,9 +811,9 @@ img { display: block; max-width: 100%; }
 .btn-accent {
   background: var(--accent);
   color: var(--fg-on-accent);
-  box-shadow: 0 4px 12px rgba(45,107,246,0.28);
+  box-shadow: 0 4px 12px rgba(0, 98, 65,0.28);
 }
-.btn-accent:hover { background: var(--accent-hover); box-shadow: 0 8px 22px rgba(45,107,246,0.40); }
+.btn-accent:hover { background: var(--accent-hover); box-shadow: 0 8px 22px rgba(0, 98, 65,0.40); }
 
 /* Ghost · borde sutil, texto cobalt sobre claro · activo se rellena cobalt. */
 .btn-ghost {
@@ -781,7 +821,7 @@ img { display: block; max-width: 100%; }
   color: var(--accent);
   border: 1px solid var(--line);
 }
-.btn-ghost:hover { background: rgba(45,107,246,0.06); border-color: var(--accent); }
+.btn-ghost:hover { background: rgba(0, 98, 65,0.06); border-color: var(--accent); }
 .btn-ghost.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-ghost.is-active:hover { background: var(--accent-hover); }
 
@@ -789,7 +829,7 @@ img { display: block; max-width: 100%; }
    estilo del banner promo de Udacity con CTA cyan, pero en cream sobre navy. */
 .btn-cream {
   background: var(--cream);
-  color: #070F2A;
+  color: #000000;
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(174,203,242,0.35);
 }
@@ -1002,8 +1042,8 @@ img { display: block; max-width: 100%; }
   box-shadow:
     0 2px 4px rgba(11,18,38,0.06),
     0 18px 34px rgba(11,18,38,0.14),
-    0 0 0 1px rgba(45,107,246,0.18);
-  border-color: rgba(45,107,246,0.45);
+    0 0 0 1px rgba(0, 98, 65,0.18);
+  border-color: rgba(0, 98, 65,0.45);
   z-index: 5;
 }
 
@@ -1072,11 +1112,11 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
   color: #FFFFFF;
   /* Cobalt chip cremoso · alineado con la paleta plataforma (b119). */
-  background: rgba(45,107,246,0.90);
-  border: 1px solid rgba(45,107,246,1);
+  background: rgba(0, 98, 65,0.90);
+  border: 1px solid rgba(0, 98, 65,1);
   padding: 3px 8px;
   border-radius: var(--r-2);
-  box-shadow: 0 2px 6px rgba(45,107,246,0.30);
+  box-shadow: 0 2px 6px rgba(0, 98, 65,0.30);
 }
 
 .card-body {
@@ -1127,8 +1167,8 @@ img { display: block; max-width: 100%; }
 }
 .card-progress .fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #5A8DFF 100%);
-  box-shadow: 0 0 8px rgba(45,107,246,0.50);
+  background: linear-gradient(90deg, var(--accent) 0%, #007A52 100%);
+  box-shadow: 0 0 8px rgba(0, 98, 65,0.50);
 }
 
 /* Hover action bar (revealed on hover) */
@@ -1213,9 +1253,9 @@ img { display: block; max-width: 100%; }
   letter-spacing: -0.06em;
   /* Número fantasma cobalt · relleno suave + filo definido · legible tanto
      sobre el silver claro como sobre el navy oscuro (b122). */
-  color: rgba(45,107,246,0.16);
-  -webkit-text-stroke: 2px rgba(45,107,246,0.45);
-  text-stroke: 2px rgba(45,107,246,0.45);
+  color: rgba(0, 98, 65,0.16);
+  -webkit-text-stroke: 2px rgba(0, 98, 65,0.45);
+  text-stroke: 2px rgba(0, 98, 65,0.45);
   user-select: none;
   pointer-events: none;
   z-index: 0;
@@ -1223,9 +1263,9 @@ img { display: block; max-width: 100%; }
 }
 /* En dark, el navy oscuro pide un filo cobalt un poco más brillante. */
 html[data-theme="dark"] .trending-num {
-  color: rgba(90,141,255,0.18);
-  -webkit-text-stroke: 2px rgba(90,141,255,0.55);
-  text-stroke: 2px rgba(90,141,255,0.55);
+  color: rgba(0, 122, 82,0.18);
+  -webkit-text-stroke: 2px rgba(0, 122, 82,0.55);
+  text-stroke: 2px rgba(0, 122, 82,0.55);
 }
 
 .trending-cell .card {
@@ -1316,7 +1356,7 @@ html[data-theme="dark"] .trending-num {
   inset: 0;
   background:
     radial-gradient(ellipse at 60% 40%, rgba(110,80,238,0.22), transparent 60%),
-    linear-gradient(135deg, #1a0c10, #0B1834);
+    linear-gradient(135deg, #1a0c10, #0A0A0A);
 }
 
 .modal-hero-body {
@@ -2157,17 +2197,17 @@ html[data-theme="dark"] .trending-num {
 .hero-media-placeholder.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, var(--bg-deep)); }
 
 /* Modal media · misma paleta */
-.modal-media-inner.cover-fundamentos    { background: radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.30),  transparent 60%), linear-gradient(135deg, #061a2e, #0B1834); }
-.modal-media-inner.cover-estructura     { background: radial-gradient(ellipse at 60% 40%, rgba(30,64,175,0.30),  transparent 60%), linear-gradient(135deg, #04122a, #0B1834); }
-.modal-media-inner.cover-gobernanza     { background: radial-gradient(ellipse at 60% 40%, rgba(99,102,241,0.30), transparent 60%), linear-gradient(135deg, #0c0a27, #0B1834); }
-.modal-media-inner.cover-social-publish { background: radial-gradient(ellipse at 60% 40%, rgba(220,38,38,0.32),  transparent 60%), linear-gradient(135deg, #21070a, #0B1834); }
-.modal-media-inner.cover-activos        { background: radial-gradient(ellipse at 60% 40%, rgba(5,150,105,0.30),  transparent 60%), linear-gradient(135deg, #041810, #0B1834); }
-.modal-media-inner.cover-aprobaciones   { background: radial-gradient(ellipse at 60% 40%, rgba(168,85,247,0.30), transparent 60%), linear-gradient(135deg, #170724, #0B1834); }
-.modal-media-inner.cover-compliance     { background: radial-gradient(ellipse at 60% 40%, rgba(100,116,139,0.30),transparent 60%), linear-gradient(135deg, #0a0d12, #0B1834); }
-.modal-media-inner.cover-calendario     { background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.30), transparent 60%), linear-gradient(135deg, #07182c, #0B1834); }
-.modal-media-inner.cover-analytics-real { background: radial-gradient(ellipse at 60% 40%, rgba(8,145,178,0.30),  transparent 60%), linear-gradient(135deg, #04161e, #0B1834); }
-.modal-media-inner.cover-care-real      { background: radial-gradient(ellipse at 60% 40%, rgba(225,29,72,0.32),  transparent 60%), linear-gradient(135deg, #1c0306, #0B1834); }
-.modal-media-inner.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, #0B1834); }
+.modal-media-inner.cover-fundamentos    { background: radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.30),  transparent 60%), linear-gradient(135deg, #061a2e, #0A0A0A); }
+.modal-media-inner.cover-estructura     { background: radial-gradient(ellipse at 60% 40%, rgba(30,64,175,0.30),  transparent 60%), linear-gradient(135deg, #04122a, #0A0A0A); }
+.modal-media-inner.cover-gobernanza     { background: radial-gradient(ellipse at 60% 40%, rgba(99,102,241,0.30), transparent 60%), linear-gradient(135deg, #0c0a27, #0A0A0A); }
+.modal-media-inner.cover-social-publish { background: radial-gradient(ellipse at 60% 40%, rgba(220,38,38,0.32),  transparent 60%), linear-gradient(135deg, #21070a, #0A0A0A); }
+.modal-media-inner.cover-activos        { background: radial-gradient(ellipse at 60% 40%, rgba(5,150,105,0.30),  transparent 60%), linear-gradient(135deg, #041810, #0A0A0A); }
+.modal-media-inner.cover-aprobaciones   { background: radial-gradient(ellipse at 60% 40%, rgba(168,85,247,0.30), transparent 60%), linear-gradient(135deg, #170724, #0A0A0A); }
+.modal-media-inner.cover-compliance     { background: radial-gradient(ellipse at 60% 40%, rgba(100,116,139,0.30),transparent 60%), linear-gradient(135deg, #0a0d12, #0A0A0A); }
+.modal-media-inner.cover-calendario     { background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.30), transparent 60%), linear-gradient(135deg, #07182c, #0A0A0A); }
+.modal-media-inner.cover-analytics-real { background: radial-gradient(ellipse at 60% 40%, rgba(8,145,178,0.30),  transparent 60%), linear-gradient(135deg, #04161e, #0A0A0A); }
+.modal-media-inner.cover-care-real      { background: radial-gradient(ellipse at 60% 40%, rgba(225,29,72,0.32),  transparent 60%), linear-gradient(135deg, #1c0306, #0A0A0A); }
+.modal-media-inner.cover-integraciones  { background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.30), transparent 60%), linear-gradient(135deg, #110823, #0A0A0A); }
 
 /* Cuando el rediseño está activo, el shell-tabs legacy se oculta */
 body.sgs-redesign nav.shell-tabs { display: none !important; }
@@ -2348,7 +2388,7 @@ body.sgs-redesign .cat-bar button.active {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(45,107,246,0.28);
+  box-shadow: 0 4px 12px rgba(0, 98, 65,0.28);
 }
 
 /* RUTAS · path cards */
@@ -2799,9 +2839,9 @@ html[data-demo-mode="true"] .hero-overlay {
 html[data-demo-mode="true"] .shell-tabs {
   /* Mismo navy degradado que el resto de tenants (b118) · no glass claro. */
   background:
-    radial-gradient(ellipse at 90% 0%, rgba(45,107,246,0.28), transparent 55%),
-    linear-gradient(90deg, #070F2A 0%, #0B1834 60%, #143A86 100%);
-  border-bottom: 1px solid rgba(45,107,246,0.25);
+    radial-gradient(ellipse at 90% 0%, rgba(0, 98, 65,0.28), transparent 55%),
+    linear-gradient(90deg, #000000 0%, #0A0A0A 60%, #0D2A1E 100%);
+  border-bottom: 1px solid rgba(0, 98, 65,0.25);
 }
 html[data-demo-mode="true"] .shell-tabs .shell-wordmark span,
 html[data-demo-mode="true"] #ws-tenant-name {
@@ -2885,7 +2925,7 @@ input:focus, select:focus, textarea:focus {
 input::placeholder, textarea::placeholder { color: var(--fg-faint); }
 
 /* Selección de texto · tinte de acento (Repsol) en vez del azul del navegador */
-::selection { background: rgba(45,107,246, 0.30); color: #fff; }
+::selection { background: rgba(0, 98, 65, 0.30); color: #fff; }
 
 /* Scrollbars finos estilo plataforma (WebKit + Firefox) */
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
@@ -2910,25 +2950,24 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
  * §4 · FONDO · degradado azul→blanco (claro) y navy degradado (oscuro)
  * Handoff Midnight v2 · da un wash sutil al lienzo en vez del plano.
  * ============================================================ */
-:root            { --app-bg: linear-gradient(180deg, #C7D8F4 0%, #DBE7F8 24%, #EEF3FB 50%, #FFFFFF 100%); }
-html[data-theme="dark"] { --app-bg: linear-gradient(180deg, #173268 0%, #0F2148 30%, #0B1733 58%, #0A1124 100%); }
+:root            { --app-bg: linear-gradient(180deg, #E8EFEC 0%, #EFF4F1 24%, #F5F8F6 50%, #FFFFFF 100%); }
+html[data-theme="dark"] { --app-bg: linear-gradient(180deg, #0D2A1E 0%, #0A1F16 30%, #06140E 58%, #050E09 100%); }
 html, body { background: var(--app-bg) !important; background-attachment: fixed !important; }
 .app        { background: var(--app-bg); background-attachment: fixed; }
 
 /* ============================================================
  * §5 · Números editoriales de la fila "Tendencia" · serif italic con
- * relleno azul→cobalt (background-clip: text). Posicionados a la
- * izquierda de cada card · markup intacto.
+ * relleno del GRADIENT BRAND corporativo (los 6 colores beonit
+ * pintando cada número gigante). Posicionados a la izquierda de cada
+ * card · markup intacto.
  * ============================================================ */
-:root                   { --trending-a: #2D6BF6; --trending-b: #123FA8; }
-html[data-theme="dark"] { --trending-a: #6FA0FF; --trending-b: #2D6BF6; }
 .trending-num {
   left: 4px; top: 50%; bottom: auto; transform: translateY(-50%);
   width: auto; height: auto; padding: 0; display: block;
   font-family: var(--font-serif); font-style: italic; font-weight: 400;
   font-size: 96px; letter-spacing: -0.02em; line-height: 1;
   border: 0; border-radius: 0; box-shadow: none;
-  background: linear-gradient(160deg, var(--trending-a) 0%, var(--trending-b) 100%);
+  background: var(--gradient-brand);
   -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; -webkit-text-stroke: 0;
   z-index: 0;
