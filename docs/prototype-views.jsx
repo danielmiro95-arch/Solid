@@ -418,7 +418,7 @@ function Player({ back, item }) {
                 <Icon name="back" size={12}/> Volver al módulo
               </button>
               <div style={{display:'flex', gap:8, pointerEvents:'all'}}>
-                <button className="back" onClick={openNote} title="Tomar nota en este momento" style={{background:'rgba(45,107,246,0.15)', border:'1px solid rgba(45,107,246,0.4)'}}>
+                <button className="back" onClick={openNote} title="Tomar nota en este momento" style={{background:'rgba(0, 98, 65,0.15)', border:'1px solid rgba(0, 98, 65,0.4)'}}>
                   📝 Nota
                 </button>
                 <button className="back" onClick={() => { const setAIMode = window.__setAIMode; if (setAIMode) setAIMode('hero'); else if (window.Toast) window.Toast.info('Abre BeonAI desde el botón inferior', { icon:'✦' }); }} style={{background:'rgba(108,95,252,0.15)', border:'1px solid rgba(108,95,252,0.4)', color:'var(--accent-glow)'}}>
