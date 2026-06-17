@@ -173,8 +173,8 @@ Prototipo Netflix-style con 41 Think Pills mock, MENTOR-IA chat, dashboards, rut
 - `cd /` → `npx create-next-app@latest app-next --typescript --tailwind --app --no-src-dir`
 - Configurar para servir desde subpath `/app-next` o subdominio `next.solid.beonit.com`
 - Pipeline CI: build + lint + type-check
-- Deploy preview en Vercel apart del actual
-- **El actual `/docs` sigue sirviendo en producción**. No hay risk.
+- Deploy preview en Vercel aparte del actual
+- **El actual `/docs` sigue sirviendo en producción**. No hay riesgo.
 
 #### Paso 2.2 · Mover design system (2-3 días)
 - Tokens CSS de `styles.css` → Tailwind config + CSS custom properties
