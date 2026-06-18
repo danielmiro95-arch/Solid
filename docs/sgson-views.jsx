@@ -70,177 +70,141 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
     if (window.Toast) window.Toast[liked ? 'info' : 'success'](liked ? 'Sin valoración' : '👍 Me gusta', { icon: liked ? '○' : '👍' });
   };
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} data-screen-label="Detail modal">
-        <button className="modal-close" onClick={onClose} aria-label="Cerrar"><Ico name="close" size={18}/></button>
+  // Rating actual para mostrar estrellas (sea o no demo · si hay, lo pintamos).
+  const _getRating = () => {
+    const cur = (window.Ratings && window.Ratings.get) ? (window.Ratings.get(pill.id) || 0) : 0;
+    return typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
+  };
+  const _setStars = (n) => {
+    if (window.Ratings && window.Ratings.set) window.Ratings.set(pill.id, n);
+    if (window.Toast) window.Toast.success(`Valorada con ${n} estrella${n === 1 ? '' : 's'}`, { icon:'⭐' });
+  };
+  const _isDemo = !!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
+  const _hideDur = !!(window.DemoMode && window.DemoMode.flag && window.DemoMode.flag('hide_durations') === true);
+  const _poster = pill.poster || (pill.yt ? `https://i.ytimg.com/vi/${pill.yt}/hqdefault.jpg` : '');
+  const _curStars = _getRating();
 
-        <div className="modal-media">
-          <div className={`modal-media-inner cover-${slug}`}/>
-          <div className="hero-overlay"/>
-          <div className="modal-hero-body">
-            <div className="hero-eyebrow" style={{ marginBottom: 14 }}>
-              {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
-                ? <span className="meta">{cat.label}</span>
-                : <>
-                    <span className="pillmark">Think Pill · {pill.pill}</span>
-                    <span className="sep"/>
-                    <span className="meta">{cat.label}</span>
-                  </>}
+  return (
+    <div className="dm-scrim" onClick={onClose}>
+      <div className="dm-modal" onClick={(e) => e.stopPropagation()} data-screen-label="Detail modal" role="dialog" aria-modal="true" aria-labelledby="dm-title">
+        <button className="dm-close" onClick={onClose} aria-label="Cerrar"><Ico name="close" size={18}/></button>
+
+        {/* HERO STRIPE · cover image + overlay degradado · título + meta sobre la imagen */}
+        <div className={`dm-hero cover-${slug}`} style={_poster ? { backgroundImage: `url(${_poster})` } : undefined}>
+          <div className="dm-hero-overlay"/>
+          <div className="dm-hero-content">
+            {_isDemo
+              ? <span className="dm-chip">{cat.label}</span>
+              : <span className="dm-chip"><strong>Think Pill · {pill.pill}</strong> · {cat.label}</span>}
+            <h2 id="dm-title" className="dm-title">{pill.title}</h2>
+            {pill.one && !_isDemo && <p className="dm-quote">"{pill.one}."</p>}
+            <div className="dm-hero-meta">
+              {pill.teacher && <span>{pill.teacher}</span>}
+              {pill.level && <span>· Nivel {pill.level}</span>}
+              {!_hideDur && pill.duration && <span>· {pill.duration}</span>}
+              {pill.rating && !_isDemo && <span>· ★ {pill.rating && pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</span>}
             </div>
-            <h2 className="h">{pill.title}</h2>
-            {pill.one && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && <p className="q">"{pill.one}."</p>}
-            <div className="actions">
-              <button className="btn btn-primary" onClick={goPlay}><Ico name="play" size={16}/> Reproducir</button>
-              <button
-                className={`btn btn-icon btn-ghost${saved ? ' is-active' : ''}`}
-                aria-label={saved ? 'Quitar favorito' : 'Favorito'}
-                title={saved ? 'Quitar favorito' : 'Añadir a favoritos'}
-                onClick={toggleSave}
-                style={saved ? { background:'var(--accent)', color:'#fff', borderColor:'var(--accent)' } : undefined}>
-                <Ico name={saved ? 'check' : 'bookmark'} size={18}/>
-              </button>
-              {!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
-                <button className={`btn btn-icon btn-ghost${liked ? ' is-active' : ''}`} aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'} title={liked ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}><Ico name="thumb" size={16}/></button>
-              )}
-              <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}><Ico name={muted ? 'mute' : 'volume'} size={16}/></button>
-            </div>
-            {/* En demo · selector de puntuación 1-5 estrellas (per spec del cliente) */}
-            {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (() => {
-              const cur = (window.Ratings && window.Ratings.get) ? (window.Ratings.get(pill.id) || 0) : 0;
-              const curStars = typeof cur === 'number' ? cur : (cur && cur.stars) || 0;
-              const setStars = (n) => {
-                if (window.Ratings && window.Ratings.set) window.Ratings.set(pill.id, n);
-                if (window.Toast) window.Toast.success(`Valorada con ${n} estrella${n === 1 ? '' : 's'}`, { icon:'⭐' });
-              };
-              return (
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:14 }}>
-                  <span style={{ fontFamily:'var(--font-mono, monospace)', fontSize:10, color:'rgba(255,255,255,0.6)', letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:700 }}>Puntuar</span>
-                  <div style={{ display:'flex', gap:4 }}>
-                    {[1,2,3,4,5].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setStars(n)}
-                        aria-label={`${n} estrellas`}
-                        title={`${n} estrella${n === 1 ? '' : 's'}`}
-                        style={{
-                          background:'transparent', border:'none', cursor:'pointer',
-                          padding:'4px 2px', fontSize:22, lineHeight:1,
-                          color: n <= curStars ? '#FBBF24' : 'rgba(255,255,255,0.3)',
-                          transition:'transform .12s ease',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.transform='scale(1.18)'}
-                        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}>
-                        ★
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </div>
 
-        <div className="modal-body">
-          <div>
-            <div className="meta-row">
-              {(() => {
-                const dm = window.DemoMode;
-                const demoActive = dm && dm.isActive && dm.isActive();
-                const hideDur = dm && dm.flag && dm.flag('hide_durations') === true;
-                if (demoActive) {
-                  // En demo · sólo nivel; sin match% / año / rating / duration
-                  return <span className="lvl">Nivel {pill.level}</span>;
-                }
-                return <>
-                  <span className="match">{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}{T('detail.affinity')}</span>
-                  <span>2026</span>
-                  <span className="lvl">{pill.level}</span>
-                  {!hideDur && <span>{pill.duration}</span>}
-                  <span>★ {pill.rating && pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</span>
-                </>;
-              })()}
-            </div>
+        {/* BENTO GRID · descripción + detalles + opcional: objectives + instructor/tags */}
+        <div className="dm-body">
+          <section className="dm-card dm-span-2">
+            <h3 className="dm-card-h">Descripción</h3>
             {(() => {
-              const dm = window.DemoMode;
-              const demoActive = dm && dm.isActive && dm.isActive();
-              const pathSingular = dm && dm.label ? dm.label('path_label', 'Ruta') : 'Ruta';
-              const hideDur = dm && dm.flag && dm.flag('hide_durations') === true;
-              const unitWord = demoActive ? pathSingular.toLowerCase() : 'pill';
-              const durTxt = hideDur ? '' : ` de ${pill.duration}`;
-              // Si la pill tiene description en pills.metadata.description
-              // (texto largo subido por el cliente) lo mostramos tal cual
-              // en lugar de la frase plantilla. Soporta \n para párrafos.
               if (pill.description) {
                 const paras = String(pill.description).split(/\n\s*\n/);
-                return (
-                  <div>
-                    {paras.map((para, i) => (
-                      <p key={i} style={{ marginTop: i === 0 ? 0 : 14 }}>{para}</p>
-                    ))}
-                  </div>
-                );
+                return <div>{paras.map((p, i) => <p key={i} className="dm-p" style={{ marginTop: i === 0 ? 0 : 14 }}>{p}</p>)}</div>;
               }
+              const pathSingular = (window.DemoMode && window.DemoMode.label) ? window.DemoMode.label('path_label', 'Ruta') : 'Ruta';
+              const unitWord = _isDemo ? pathSingular.toLowerCase() : 'pill';
+              const durTxt = _hideDur ? '' : ` de ${pill.duration}`;
               return (
-                <p>
+                <p className="dm-p">
                   {pill.one}. En este {unitWord}{durTxt} vas a dominar el flujo completo:
                   desde la configuración inicial hasta el caso real con métricas. Pensado para perfiles {String(pill.level).toLowerCase()},
                   con ejemplos del día a día y plantillas listas para clonar.
                 </p>
               );
             })()}
-            {!pill.description && (
-              <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>
-                Aplica directamente en tu trabajo. Materiales descargables incluidos.
-              </p>
-            )}
-          </div>
-          {/* En demo · aside completo oculto. Spec: "quitar Profesor,
-              Tendencias y Hashtags". */}
-          {!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
-          <aside className="modal-side">
-            <div className="lbl">Profesor / Mentora</div>
-            <div className="val">{pill.teacher}</div>
+          </section>
 
-            <div className="lbl">Etiquetas</div>
-            <div className="val" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {['sprinklr', String(cat.label).toLowerCase(), String(pill.level).toLowerCase(), 'repsol'].map(t => (
-                <span key={t} style={{ fontFamily:'var(--font-mono)', fontSize:10, padding:'3px 8px', border:'1px solid var(--line)', borderRadius: 'var(--r-pill)', color: 'var(--fg-muted)' }}>
-                  #{t}
-                </span>
-              ))}
-            </div>
+          <section className="dm-card">
+            <h3 className="dm-card-h">Detalles</h3>
+            <ul className="dm-kv">
+              {!_isDemo && <li><span>Match</span><strong>{Math.round(78 + ((parseInt(String(pill.id).replace(/\D/g, ''), 10) || 0) * 17) % 22)}{T('detail.affinity')}</strong></li>}
+              <li><span>Nivel</span><strong>{pill.level || '—'}</strong></li>
+              {!_hideDur && pill.duration && <li><span>Duración</span><strong>{pill.duration}</strong></li>}
+              {!_isDemo && pill.rating && <li><span>Valoración</span><strong style={{ color:'var(--accent)' }}>★ {pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</strong></li>}
+              {!_isDemo && pill.enrolled != null && <li><span>Inscritos</span><strong>{(pill.enrolled || 0).toLocaleString('es-ES')}</strong></li>}
+            </ul>
+          </section>
 
-            <div className="lbl">Personas matriculadas</div>
-            <div className="val">{(pill.enrolled || 0).toLocaleString('es-ES')}</div>
+          {/* Aside completo (profesor/tags/ruta) solo fuera de demo. */}
+          {!_isDemo && (
+            <section className="dm-card dm-span-2">
+              <h3 className="dm-card-h">Profesor &amp; etiquetas</h3>
+              <div style={{ display:'flex', gap: 18, flexWrap:'wrap', alignItems:'flex-start' }}>
+                <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+                  <div style={{ width:42, height:42, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 700, fontSize: 14 }}>
+                    {pill.teacher ? pill.teacher.split(/\s+/).slice(0,2).map(p => p[0]).join('') : '?'}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, color:'var(--fg)', fontSize: 14 }}>{pill.teacher || '—'}</div>
+                    <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>{cat.label} · ruta del módulo</div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap: 6, flex: 1, minWidth: 200 }}>
+                  {['sprinklr', String(cat.label).toLowerCase(), String(pill.level).toLowerCase(), 'repsol'].map(t => (
+                    <span key={t} style={{ fontFamily:'var(--font-mono)', fontSize: 10, padding:'4px 10px', border:'1px solid var(--line)', borderRadius: 'var(--r-pill)', color: 'var(--fg-muted)' }}>
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
 
-            <div className="lbl">Ruta sugerida</div>
-            <div className="val">{cat.label} · ruta del módulo</div>
-          </aside>
+          {/* En demo · puntuación 1-5★ inline */}
+          {_isDemo && (
+            <section className="dm-card dm-span-2">
+              <h3 className="dm-card-h">Puntuar este {(window.DemoMode && window.DemoMode.label) ? window.DemoMode.label('path_label', 'curso').toLowerCase() : 'curso'}</h3>
+              <div style={{ display:'flex', gap: 4 }}>
+                {[1,2,3,4,5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => _setStars(n)}
+                    aria-label={`${n} estrellas`}
+                    title={`${n} estrella${n === 1 ? '' : 's'}`}
+                    style={{
+                      background:'transparent', border:'none', cursor:'pointer',
+                      padding:'4px 6px', fontSize: 26, lineHeight: 1,
+                      color: n <= _curStars ? '#FBBF24' : 'var(--fg-faint)',
+                      transition:'transform .12s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform='scale(1.18)'}
+                    onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}>
+                    ★
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
         </div>
 
-        {/* En demo · sección "Más como esto" oculta (es contenido relacionado
-            por categoría · puede leak pills bloqueadas o de otros cursos) */}
-        {related.length > 0 && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
-          <div className="modal-related">
-            <h3>{T('detail.relatedTitle')} {cat.label}</h3>
-            <div className="grid">
+        {/* "Más como esto" · solo fuera de demo (puede leak pills bloqueadas) */}
+        {related.length > 0 && !_isDemo && (
+          <div className="dm-related">
+            <h3 className="dm-card-h">{T('detail.relatedTitle')} {cat.label}</h3>
+            <div className="dm-related-grid">
               {related.map(p => {
                 const ps = catSlugFix(p.category);
                 return (
-                  <article key={p.id} className="mini" style={{ cursor: openPill ? 'pointer' : 'default' }} onClick={(e) => { e.stopPropagation(); if (openPill) openPill(p); }}>
-                    <div className={`thumb cover-${ps}`}/>
-                    <div className="info">
-                      <div className="t">{p.title}</div>
-                      <div className="m">{(() => {
-                        const dm = window.DemoMode;
-                        const demoActive = dm && dm.isActive && dm.isActive();
-                        const hideDur = dm && dm.flag && dm.flag('hide_durations') === true;
-                        if (demoActive) return `Nivel ${p.level}`;
-                        if (hideDur) return `${p.level}`;
-                        return `Pill ${p.pill} · ${p.duration} · ${p.level}`;
-                      })()}</div>
+                  <article key={p.id} className="dm-mini" style={{ cursor: openPill ? 'pointer' : 'default' }} onClick={(e) => { e.stopPropagation(); if (openPill) openPill(p); }}>
+                    <div className={`dm-mini-thumb cover-${ps}`} style={p.poster ? { backgroundImage: `url(${p.poster})` } : undefined}/>
+                    <div className="dm-mini-info">
+                      <div className="dm-mini-t">{p.title}</div>
+                      <div className="dm-mini-m">{_hideDur ? `${p.level}` : `Pill ${p.pill} · ${p.duration} · ${p.level}`}</div>
                     </div>
                   </article>
                 );
@@ -249,14 +213,35 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
           </div>
         )}
 
-        {/* Examen práctico · entrega de vídeo Sprinklr (si el módulo lo pide).
-            En modo demo lo ocultamos · la entrega de video es específica del
-            workflow Care/Publish y no aplica al perfil Learning Manager. */}
-        {window.VideoSubmissionForm && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) && (
-          <div className="modal-submission" style={{ marginTop: 24, padding:'0 32px 28px' }}>
+        {/* Examen práctico · entrega de vídeo Sprinklr · oculto en demo. */}
+        {window.VideoSubmissionForm && !_isDemo && (
+          <div className="dm-submission">
             <window.VideoSubmissionForm pillId={pill.id} pillTitle={pill.title}/>
           </div>
         )}
+
+        {/* STICKY FOOTER · CTA strip */}
+        <div className="dm-footer">
+          <button className="btn btn-primary" onClick={goPlay}>
+            <Ico name="play" size={16}/> Reproducir
+          </button>
+          <button
+            className="btn btn-icon btn-ghost"
+            aria-label={saved ? 'Quitar favorito' : 'Favorito'}
+            title={saved ? 'Quitar favorito' : 'Añadir a favoritos'}
+            onClick={toggleSave}
+            style={saved ? { background:'var(--accent)', color:'#fff', borderColor:'var(--accent)' } : undefined}>
+            <Ico name={saved ? 'check' : 'bookmark'} size={18}/>
+          </button>
+          {!_isDemo && (
+            <button className={`btn btn-icon btn-ghost${liked ? ' is-active' : ''}`} aria-label={liked ? 'Quitar Me gusta' : 'Me gusta'} title={liked ? 'Quitar Me gusta' : 'Me gusta'} onClick={toggleLike}>
+              <Ico name="thumb" size={16}/>
+            </button>
+          )}
+          <button className="btn btn-icon btn-ghost" aria-label={muted ? 'Activar sonido' : 'Silenciar'} title={muted ? 'Activar sonido' : 'Silenciar'} onClick={() => setMuted(m => !m)}>
+            <Ico name={muted ? 'mute' : 'volume'} size={16}/>
+          </button>
+        </div>
       </div>
     </div>
   );
