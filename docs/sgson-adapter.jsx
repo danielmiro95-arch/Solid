@@ -126,6 +126,66 @@
       }
     });
 
+    // (b148) · POSTERS HIJOS DE RIVERA · cliente subió 8 imágenes al bucket
+    // Storage y pidió asignar 4 explícitas a pills concretas + las extras
+    // como fallback para pills sin poster propio. La asignación se hace
+    // por TÍTULO normalizado (lower + sin acentos + trim) usando contains
+    // fuzzy · tolera variaciones de mayúsculas, puntuación, ":" etc.
+    //
+    // Estructura: solo afecta pills SIN poster (no pisa lo que ya hay) ·
+    // las 4 asignaciones fijas tienen prioridad · si no matchean, cae al
+    // pool de 8 imágenes rotativo por hash determinista del id (cada pill
+    // tendrá su misma imagen siempre, no salta entre renders).
+    const _HDR_POSTERS = {
+      // base del bucket público · hijos-de-rivera
+      base: 'https://ymhwsdmbddyudepbjfpk.supabase.co/storage/v1/object/public/hijos-de-rivera/',
+      ia:           'Inteligencia_Artificial_01.jpg',
+      industria:    'Industria_Ingenieria_01.jpg',
+      innovacion:   'Innovacion_01.jpg',
+      ideas:        'close-up-idea-concept.jpg',
+      colaboracion: 'Colaboracion_Digital_01.jpg',
+      talento:      'Talento_Diversidad_01.jpg',
+      hackers:      'team-governmental-hackers-look-green-screen-high-tech-agency-office.jpg',
+      tecnologia:   'Tecnologia_Digital_01.jpg',
+      teletrabajo:  'Teletrabajo_01.jpg',
+    };
+    const _hdrUrl = (k) => _HDR_POSTERS.base + _HDR_POSTERS[k];
+    // Asignaciones fijas · cliente las pidió explícitas por título.
+    const _HDR_FIXED = [
+      { match: 'beyond prompting',         url: _hdrUrl('ia') },
+      { match: 'reuniones eficaces',       url: _hdrUrl('industria') },
+      { match: 'prioridades sin agobio',   url: _hdrUrl('innovacion') },
+      { match: 'feedback 360',             url: _hdrUrl('ideas') },
+    ];
+    // Pool fallback · solo las que NO están en las 4 fijas (evita repetir
+    // ia/industria/innovacion/ideas en pills random · esas ya están
+    // asociadas a su pill específica).
+    const _HDR_POOL = [
+      _hdrUrl('colaboracion'),
+      _hdrUrl('talento'),
+      _hdrUrl('hackers'),
+      _hdrUrl('tecnologia'),
+      _hdrUrl('teletrabajo'),
+    ];
+    const _normTitle = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const _seedFromId = (id) => {
+      const s = String(id || '');
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      return Math.abs(h);
+    };
+    PILLS.forEach(p => {
+      if (p.poster) return; // respetamos lo que ya tenga
+      const norm = _normTitle(p.title);
+      // 1) Asignación fija por título
+      const fixed = _HDR_FIXED.find(f => norm.indexOf(f.match) !== -1);
+      if (fixed) { p.poster = fixed.url; return; }
+      // 2) Fallback pool determinista por hash del id
+      if (_HDR_POOL.length > 0) {
+        p.poster = _HDR_POOL[_seedFromId(p.id) % _HDR_POOL.length];
+      }
+    });
+
     // ── DemoMode · DETECCIÓN BRUTA POR URL ──
     // Sin race conditions, sin helpers, sin esperar a window.DemoMode.
     // Si la URL contiene "demo" en cualquier sitio (path, query, hash),
