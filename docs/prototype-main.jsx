@@ -4633,7 +4633,7 @@ const I18n = (function() {
       'rutas.sub':'Cada ruta es una secuencia curada · al completarla obtienes el certificado oficial de tu workspace',
       'rutas.start':'Empezar ruta →',
       'mypath.eyebrow':'Mi ruta', 'mypath.title':'Tu progreso',
-      'mypath.sub':'{completed} de {total} pills completadas · {percent}% del programa',
+      'mypath.sub':'{total} pills · {percent}% del programa',
       'mypath.exam':'🎓 Hacer examen final', 'mypath.allRoutes':'← Todas las rutas',
       'mypath.cert.title':'Certificación global',
       'mypath.cont':'Continúa aquí', 'mypath.next':'Próximas pills recomendadas',
@@ -4880,7 +4880,7 @@ const I18n = (function() {
       'rutas.sub':'Each path is a curated sequence · completing it earns you the official certificate of your workspace',
       'rutas.start':'Start path →',
       'mypath.eyebrow':'My path', 'mypath.title':'Your progress',
-      'mypath.sub':'{completed} of {total} pills completed · {percent}% of the program',
+      'mypath.sub':'{total} pills · {percent}% of the program',
       'mypath.exam':'🎓 Take final exam', 'mypath.allRoutes':'← All paths',
       'mypath.cert.title':'Overall certification',
       'mypath.cont':'Continue here', 'mypath.next':'Recommended next pills',
@@ -5127,7 +5127,7 @@ const I18n = (function() {
       'rutas.sub':'Cada trilha é uma sequência curada · ao completá-la você obtém o certificado oficial de tu workspace',
       'rutas.start':'Começar trilha →',
       'mypath.eyebrow':'Minha trilha', 'mypath.title':'Seu progresso',
-      'mypath.sub':'{completed} de {total} pills concluídas · {percent}% do programa',
+      'mypath.sub':'{total} pills · {percent}% do programa',
       'mypath.exam':'🎓 Fazer prova final', 'mypath.allRoutes':'← Todas as trilhas',
       'mypath.cert.title':'Certificação global',
       'mypath.cont':'Continue aqui', 'mypath.next':'Próximas pills recomendadas',
@@ -6030,9 +6030,11 @@ function App() {
   const openPlayerFromModal = (it) => { if (it) setDetailItem(it); setView('player'); };
 
   if (!authUser) {
-    // (b156) Landing primero · CTA "Iniciar sesión" → showLogin=true → LoginScreen.
-    // Safety · si window.LandingView no cargó (script falló), caemos al login directo.
-    if (showLogin || !window.LandingView) return <LoginScreen/>;
+    // (b157) Landing DESACTIVADA por petición del cliente · el código vive
+    // todavía en landing-view.jsx para reactivarse más adelante. Mientras
+    // tanto el flow va directo al LoginScreen como antes de b156.
+    // Para reactivar: cambia 'true' por '!window.LandingView' en la condición.
+    if (true || showLogin || !window.LandingView) return <LoginScreen/>;
     return <window.LandingView onEnterLogin={() => setShowLogin(true)}/>;
   }
 

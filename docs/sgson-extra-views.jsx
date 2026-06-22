@@ -80,7 +80,18 @@ function BrowseView({ openDetail }) {
   // catálogo · vive solo como carrusel del hero. Filtramos las pills cuya
   // category contiene "tendencias" antes de pintar el grid Y los chips.
   const _allPills = (D && D.PILLS) || [];
-  const pills = _allPills.filter(p => !/tendencias?/i.test(String(p.category || '')));
+  // (b157) · ORDEN MANUAL · cliente: "el orden de Tendencias debe replicarse
+  // también en el catálogo". Usamos el mismo helper de orden por
+  // position/pill_number ascending (igual que sgson-adapter.jsx trending).
+  const _ord = (a, b) => {
+    const pa = (a.position != null) ? a.position : (a.pill_number != null ? a.pill_number : 9999);
+    const pb = (b.position != null) ? b.position : (b.pill_number != null ? b.pill_number : 9999);
+    return pa - pb;
+  };
+  const pills = _allPills
+    .filter(p => !/tendencias?/i.test(String(p.category || '')))
+    .slice()
+    .sort(_ord);
   const ALL_KEY = T('browse.all');
   const allCats = [ALL_KEY, ...Array.from(new Set(pills.map(p => p.category))).filter(Boolean)];
   const [cat, setCat] = useEV2(ALL_KEY);
@@ -136,8 +147,8 @@ function BrowseView({ openDetail }) {
               <div className="card-body">
                 <h3 className="card-title">{p.title}</h3>
                 <div className="card-meta">
-                  <span>{p.duration}</span>
-                  <span className="sep">·</span>
+                  {/* (b157) Duración quitada · cliente: "eliminar 25 min de
+                      los títulos · solo nivel". */}
                   <span>{p.level}</span>
                 </div>
               </div>
@@ -786,7 +797,8 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">
-                      <span>{p.duration}</span><span className="sep">·</span><span>{p.level}</span>
+                      {/* (b157) duración fuera · solo nivel */}
+                      <span>{p.level}</span>
                     </div>
                   </div>
                   <div className="card-progress"><div className="fill" style={{width: `${Math.round(p.progress*100)}%`}}/></div>
@@ -820,7 +832,7 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">
-                      {!_isDemo && <><span>{p.duration}</span><span className="sep">·</span></>}
+                      {/* (b157) duración fuera de card-meta · solo nivel */}
                       <span>{_isDemo ? `Nivel ${p.level}` : p.level}</span>
                     </div>
                   </div>
@@ -2362,7 +2374,7 @@ function SavedView({ openDetail, openPath }) {
         <div className="card-body">
           <h3 className="card-title">{p.title}</h3>
           <div className="card-meta">
-            {p.duration && <><span>{p.duration}</span><span className="sep">·</span></>}
+            {/* (b157) duración fuera · solo nivel */}
             {p.level && <span>{p.level}</span>}
           </div>
         </div>

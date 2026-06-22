@@ -274,11 +274,23 @@
                         && p.status !== 'deleted'
                         && p.status !== 'draft';
     const _livePills = PILLS.filter(_isLive);
-    const withVideo       = _livePills.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
-    const trending        = _livePills.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);
-    const careIds         = _livePills.filter(p => p.category === 'Care' || p.category === 'Aprobaciones').map(p => p.id).slice(0, 10);
-    const analyticsIds    = _livePills.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').map(p => p.id).slice(0, 10);
-    const newIds          = _livePills.slice(-12).reverse().map(p => p.id);
+    // (b157) Orden MANUAL · por position/pill_number ascending (orden de
+    // creación/subida en BD). Cliente: "Tendencias debe mostrar los 9
+    // cursos del catálogo en el mismo orden en que se han subido · NO
+    // ordenación automática". Helper reutilizable porque se usa también
+    // en el catálogo (BrowseView) para mantener mismo orden.
+    const _manualOrder = (a, b) => {
+      const pa = (a.position != null) ? a.position : (a.pill_number != null ? a.pill_number : 9999);
+      const pb = (b.position != null) ? b.position : (b.pill_number != null ? b.pill_number : 9999);
+      return pa - pb;
+    };
+    const _ordered = _livePills.slice().sort(_manualOrder);
+    window.__pillsManualOrder = _ordered.map(p => p.id);  // expone para BrowseView
+    const withVideo       = _ordered.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
+    const trending        = _ordered.map(p => p.id).slice(0, 9);   // 9 cursos · orden manual
+    const careIds         = _ordered.filter(p => p.category === 'Care' || p.category === 'Aprobaciones').map(p => p.id).slice(0, 10);
+    const analyticsIds    = _ordered.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').map(p => p.id).slice(0, 10);
+    const newIds          = _ordered.slice(-12).reverse().map(p => p.id);
 
     // ── ROWS · orden definido en el spec del producto ──
     // 1. Sigue formándote (cursos en progreso)
@@ -339,15 +351,9 @@
       });
     }
 
-    // 4. DISPONIBLES
-    if (withVideo.length > 0) {
-      ROWS.push({
-        key:'available',
-        title: 'Disponibles',
-        sub: 'reproducir directamente',
-        pillIds: withVideo,
-      });
-    }
+    // 4. DISPONIBLES · (b157) ELIMINADA · cliente pidió retirar "Disponibles
+    //    · reproducir directamente" del home. La row se mantiene en código
+    //    muerto por si se reactiva, pero no se pushea al array.
 
     // 5. PRÓXIMAMENTE
     ROWS.push({

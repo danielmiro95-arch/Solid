@@ -99,7 +99,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
             <h2 id="dm-title" className="dm-title">{pill.title}</h2>
             {pill.one && !_isDemo && <p className="dm-quote">"{pill.one}."</p>}
             <div className="dm-hero-meta">
-              <span>Dirección del curso: Alicia Chavero</span>
+              <span>Dirección del programa: Alicia Chavero</span>
               {pill.level && <span>· Nivel {pill.level}</span>}
               {!_hideDur && pill.duration && <span>· {pill.duration}</span>}
               {pill.rating && !_isDemo && <span>· ★ {pill.rating && pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</span>}
@@ -143,7 +143,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
           {/* Aside completo (profesor/tags/ruta) solo fuera de demo. */}
           {!_isDemo && (
             <section className="dm-card dm-span-2">
-              <h3 className="dm-card-h">Dirección del curso &amp; etiquetas</h3>
+              <h3 className="dm-card-h">Dirección del programa &amp; etiquetas</h3>
               <div style={{ display:'flex', gap: 18, flexWrap:'wrap', alignItems:'flex-start' }}>
                 <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
                   <div style={{ width:42, height:42, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 700, fontSize: 14 }}>
@@ -204,7 +204,7 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
                     <div className={`dm-mini-thumb cover-${ps}`} style={p.poster ? { backgroundImage: `url(${p.poster})` } : undefined}/>
                     <div className="dm-mini-info">
                       <div className="dm-mini-t">{p.title}</div>
-                      <div className="dm-mini-m">{_hideDur ? `${p.level}` : `Pill ${p.pill} · ${p.duration} · ${p.level}`}</div>
+                      <div className="dm-mini-m">{_hideDur ? `${p.level}` : `${p.duration} · ${p.level}`}</div>
                     </div>
                   </article>
                 );
