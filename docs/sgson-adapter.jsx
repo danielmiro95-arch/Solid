@@ -57,22 +57,35 @@
     const _dmMap = window.DemoMode;
     const _dmMapActive = _dmMap && _dmMap.isActive && _dmMap.isActive();
     const _teacherFallback = _dmMapActive ? 'BeonIt × Hijos de Rivera' : 'BeonIt × Repsol';
+    // (b145) · Normalizador de level robusto · cliente reportó "Beyond
+    // Prompting sigue saliendo como Básico en Tendencias". Causa raíz: la
+    // pill tenía level='Básico' literal (escrito a mano desde admin) ·
+    // el mapping anterior solo capturaba 'principiante' lowercase. Ahora
+    // case-insensitive y captura toda variante razonable.
+    const _normLevel = (raw) => {
+      const s = String(raw || '').toLowerCase().trim();
+      if (!s) return 'Intermedio';
+      if (s === 'principiante' || s === 'básico' || s === 'basico' || s === 'beginner') return 'Intermedio';
+      if (s === 'intermedio' || s === 'intermediate' || s === 'medio') return 'Intermedio';
+      if (s === 'intermedio-alto' || s === 'intermedio alto' || s === 'upper-intermediate') return 'Intermedio-alto';
+      if (s === 'avanzado' || s === 'advanced') return 'Avanzado';
+      if (s === 'experto' || s === 'expert') return 'Experto';
+      return raw;
+    };
+    // (b145) · Limpiador de título · strip prefijo "Pil N" / "Pill N" /
+    // "PIL N" / "Pil N -" / "Pil N:" del comienzo del título. El cliente
+    // reportó pills llamadas "Pil 1 de gestión de proyectos" · sale el
+    // texto limpio sin el prefijo placeholder.
+    const _cleanTitle = (raw) => String(raw || '').replace(/^\s*pi+l+\s*\d+(\.\d+)?\s*[-·:.]?\s*(de\s+)?/i, '').trim() || raw;
     const mapPill = (p) => ({
       ...p,
       pill:     String(p.pill != null ? p.pill : 0).padStart(2, '0'),
-      one:      p.one || p.title,
+      title:    _cleanTitle(p.title),
+      one:      p.one || _cleanTitle(p.title),
       teacher:  p.teacher || _teacherFallback,
       duration: p.duration || '4 min',
       category: p.category, // mantenemos el label real (Care, Social Publish, etc.)
-      // (b137) · cliente pidió eliminar el nivel "Básico" · todos los cursos
-      // que en BD tengan `principiante` (o sin level definido) se promueven
-      // a "Intermedio" en la UI. La fila de BD no se toca · es una decisión
-      // de presentación. 'intermedio-alto' se mapea con la capital correcta.
-      level:    p.level === 'principiante'    ? 'Intermedio' :
-                p.level === 'intermedio'      ? 'Intermedio' :
-                p.level === 'intermedio-alto' ? 'Intermedio-alto' :
-                p.level === 'avanzado'        ? 'Avanzado' :
-                (p.level || 'Intermedio'),
+      level:    _normLevel(p.level),
       rating:   p.rating || 4.7,
       enrolled: p.enrolled || 0,
       // Progress · primero busca el del user en window.Progress (Supabase
