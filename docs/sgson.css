@@ -394,6 +394,12 @@ img { display: block; max-width: 100%; }
    TOP NAV
    ============================================================ */
 
+/* (b146) · cliente · "cuando bajas a la parte blanca, todo lo que está
+   en blanco se pierde · vamos a ponerlo todo en azul oscuro". El topnav
+   pasaba de navy oscuro a semi-transparente al scroll · al difuminarse
+   con el body claro, las letras blancas se perdían. Ahora · light theme
+   el topnav es BLANCO sólido con letras NAVY oscuro (ink-1) · siempre
+   legibles · dark theme mantiene navy oscuro con letras claras. */
 .topnav {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -405,36 +411,50 @@ img { display: block; max-width: 100%; }
   transition: background var(--t-base) var(--ease-out),
               backdrop-filter var(--t-base) var(--ease-out),
               border-color var(--t-base) var(--ease-out);
-  /* Navy degradado Udacity · banda oscura sobre el body claro (b118) */
-  background:
-    radial-gradient(ellipse at 90% 0%, rgba(0, 98, 65,0.30), transparent 55%),
-    linear-gradient(90deg, #000000 0%, #0A0A0A 60%, #0D2A1E 100%);
-  border-bottom: 1px solid rgba(0, 98, 65,0.25);
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--line);
 }
 
 .topnav.scrolled {
-  background:
-    radial-gradient(ellipse at 90% 0%, rgba(0, 98, 65,0.30), transparent 55%),
-    linear-gradient(90deg, #000000ee 0%, #0A0A0Aee 60%, #0D2A1Eee 100%);
+  background: rgba(255,255,255,0.96);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-bottom-color: rgba(0, 98, 65,0.35);
+  border-bottom-color: var(--line);
+  box-shadow: 0 2px 12px rgba(11,18,38,0.06);
 }
 
-/* Texto/iconos del topnav SIEMPRE claros · va sobre navy degradado.
-   Los hijos usan var(--fg)/var(--fg-muted) que ahora son tinta oscura ·
-   los pisamos scoped al topnav. */
-.topnav, .topnav .wordmark, .topnav .wordmark.v1 .on { color: #F2F6FC; }
-.topnav .topnav-burger { color: #F2F6FC; }
-.topnav .topnav-burger:hover { background: rgba(255,255,255,0.12); }
-.topnav .nav-item { color: rgba(244,247,251,0.72); }
-.topnav .nav-item:hover { color: #FFFFFF; background: rgba(255,255,255,0.08); }
-.topnav .nav-item.active { color: #FFFFFF; }
-.topnav .nav-item.active::after { background: #007A52; height: 2px; }
-.topnav .icon-btn { color: rgba(244,247,251,0.75); }
-.topnav .icon-btn:hover { color: #FFFFFF; background: rgba(255,255,255,0.12); }
-.topnav .topnav-search-kbd { border-color: rgba(255,255,255,0.25); color: rgba(244,247,251,0.6); }
-.topnav .icon-btn.topnav-search:hover .topnav-search-kbd { border-color: #007A52; color: #FFFFFF; }
+/* Texto/iconos del topnav · NAVY OSCURO en light · cliente pidió
+   azul oscuro para todo lo que esté arriba. */
+.topnav, .topnav .wordmark, .topnav .wordmark.v1 .on { color: var(--ink-1); }
+.topnav .topnav-burger { color: var(--ink-1); }
+.topnav .topnav-burger:hover { background: rgba(11,18,38,0.06); }
+.topnav .nav-item { color: var(--ink-1); opacity: 0.78; font-weight: 600; }
+.topnav .nav-item:hover { color: var(--ink-1); opacity: 1; background: rgba(11,18,38,0.05); }
+.topnav .nav-item.active { color: var(--ink-1); opacity: 1; font-weight: 700; }
+.topnav .nav-item.active::after { background: var(--accent); height: 2px; }
+.topnav .icon-btn { color: var(--ink-1); opacity: 0.78; }
+.topnav .icon-btn:hover { color: var(--ink-1); opacity: 1; background: rgba(11,18,38,0.06); }
+.topnav .topnav-search-kbd { border-color: rgba(11,18,38,0.22); color: rgba(11,18,38,0.6); background: rgba(11,18,38,0.04); }
+.topnav .icon-btn.topnav-search:hover .topnav-search-kbd { border-color: var(--accent); color: var(--ink-1); }
+
+/* Dark theme · mantiene el look navy original con letras claras. */
+html[data-theme="dark"] .topnav {
+  background: linear-gradient(90deg, #000000 0%, #0A0A0A 60%, #0D2A1E 100%);
+  border-bottom: 1px solid rgba(0, 98, 65,0.25);
+}
+html[data-theme="dark"] .topnav.scrolled {
+  background: linear-gradient(90deg, #000000ee 0%, #0A0A0Aee 60%, #0D2A1Eee 100%);
+  border-bottom-color: rgba(0, 98, 65,0.35);
+  box-shadow: none;
+}
+html[data-theme="dark"] .topnav,
+html[data-theme="dark"] .topnav .wordmark,
+html[data-theme="dark"] .topnav .wordmark.v1 .on,
+html[data-theme="dark"] .topnav .topnav-burger,
+html[data-theme="dark"] .topnav .nav-item,
+html[data-theme="dark"] .topnav .icon-btn { color: #F2F6FC; opacity: 1; }
+html[data-theme="dark"] .topnav .nav-item { opacity: 0.78; }
+html[data-theme="dark"] .topnav .nav-item.active { opacity: 1; }
 
 .topnav-left {
   display: flex; align-items: center; gap: var(--s-8);

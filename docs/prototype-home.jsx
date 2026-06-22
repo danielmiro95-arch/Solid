@@ -1571,6 +1571,14 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   const pillById = (id) => (D && D.pillById && D.pillById(id)) || null;
 
   if (row.trending) {
+    // (b146) · cliente 6ª iteración · "siguen sin aparecer los números".
+    // Las 5 iteraciones de CSS no salieron · alguna combinación de cache
+    // del SW + stacking context lo invisibilizaba. Ahora · inline styles
+    // INLINE en el JSX · React los aplica con specificity máxima · no
+    // hay CSS que pueda sobrescribirlos. El número se renderiza como
+    // div flex hermano de la card · imposible que se esconda.
+    const _isDarkTheme = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark');
+    const _numColor = _isDarkTheme ? '#FFFFFF' : '#000000';
     return (
       <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
@@ -1579,13 +1587,23 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
           <button className="row-explore" onClick={() => onSeeAll && onSeeAll(row)}>Ranking completo <Ico name="chev-right" size={12}/></button>
         </header>
         <div className="rail no-scrollbar" ref={railRef}>
-          <div className="rail-track">
+          <div className="rail-track" style={{ display:'flex', alignItems:'stretch', gap:32, paddingTop:16, paddingBottom:16, paddingLeft:24 }}>
             {row.pillIds.map((id, i) => {
               const p = pillById(id);
               if (!p) return null;
               return (
-                <div className="trending-cell" key={id}>
-                  <span className="trending-num">{String(i+1).padStart(2,'0')}</span>
+                <div key={id} style={{
+                  flex:'0 0 auto', display:'flex', flexDirection:'row',
+                  alignItems:'center', gap:16, overflow:'visible',
+                }}>
+                  <span style={{
+                    display:'inline-flex', alignItems:'center', justifyContent:'center',
+                    minWidth:48, flex:'0 0 auto',
+                    fontFamily:'Inter, sans-serif',
+                    fontWeight:800, fontSize:36, lineHeight:1, letterSpacing:'-0.02em',
+                    color:_numColor,
+                    userSelect:'none', whiteSpace:'nowrap',
+                  }}>{String(i+1).padStart(2,'0')}</span>
                   <NxCard pill={p} onOpen={onOpen} forceUnlocked={true}/>
                 </div>
               );
