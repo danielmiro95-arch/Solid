@@ -1412,11 +1412,11 @@ function NxPathCard({ path, onOpen }) {
           {(() => {
             const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
             const director = (ws.settings && ws.settings.program_director) || null;
-            const pills = path.totalCount || path.pills || 0;
             const parts = [];
             if (path.badge) parts.push(path.badge);
             if (level) parts.push('Nivel ' + level);
-            if (pills) parts.push(pills + ' pills');
+            // (b160) cliente: quitar "25 pills" del meta de la card de
+            // Recomendados. Solo competencia + nivel + director.
             if (director) parts.push('Dirige: ' + director);
             return parts.map((part, i) => (
               <React.Fragment key={i}>
@@ -1456,22 +1456,34 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
         const lockedTitles = Array.isArray(row._lockedTitles)
           ? row._lockedTitles.map(t => String(t).toLowerCase())
           : [];
+        // (b160) Match · EXACTO primero, fuzzy contains después. Cliente
+        // reportó que "Desarrollo de Personas" matcheaba con un path real
+        // que se llama "Desarrollo de personas Y EMPODERAR EQUIPO" (otro
+        // path con foto distinta). El exact match prioriza el path real
+        // que se llama EXACTAMENTE como el wanted title.
         const matched = paths.filter(p => {
           const t = String(p.title || '').toLowerCase();
           return wanted.some(w => t.includes(w) || w.includes(t));
         });
         if (matched.length > 0) {
-          // (b137) Para cada título pedido por el cliente · si hay path real
-          // en BD lo usamos · si NO existe (caso típico "Empoderar Equipos"
-          // que el cliente aún no ha creado) sintetizamos un stub bloqueado
-          // con candado · así la fila siempre muestra los 4 que pidió y los
-          // que faltan salen como "próximamente". Title original (con
-          // mayúsculas) recuperado de row._recommendedTitles por índice.
           paths = wanted.map((w, idx) => {
-            const real = matched.find(p => {
-              const t = String(p.title || '').toLowerCase();
-              return t.includes(w) || w.includes(t);
-            });
+            // 1º intento · match EXACTO (título normalizado === wanted)
+            let real = matched.find(p => String(p.title || '').trim().toLowerCase() === w);
+            // 2º intento · path cuyo título EMPIEZA por el wanted (más
+            // estricto que contains · "desarrollo de personas" matchea
+            // "desarrollo de personas" pero NO "desarrollo de personas y
+            // empoderar equipo" si existe la primera versión).
+            if (!real) {
+              real = matched.find(p => String(p.title || '').trim().toLowerCase().startsWith(w + ' ') ||
+                                       String(p.title || '').trim().toLowerCase() === w);
+            }
+            // 3º intento · fuzzy contains (legacy · captura variaciones).
+            if (!real) {
+              real = matched.find(p => {
+                const t = String(p.title || '').toLowerCase();
+                return t.includes(w) || w.includes(t);
+              });
+            }
             if (real) {
               const _wantsLock = lockedTitles.some(lt => lt.includes(w) || w.includes(lt));
               return _wantsLock ? Object.assign({}, real, { forceLocked: true }) : real;
