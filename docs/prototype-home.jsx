@@ -671,6 +671,95 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   );
 }
 
+// (b138) · Logo del workspace editable inline desde el hero. Si el user es
+// admin u owner del workspace activo · al hacer click abre un file picker,
+// sube a Storage vía Workspaces.uploadLogo() y dispara workspace-branding-
+// changed para que todas las cabeceras se refresquen sin recargar.
+// El user no-admin solo ve el logo · sin badge ni cursor pointer.
+function WorkspaceLogoHero({ src, alt }) {
+  const fileRef = React.useRef(null);
+  const [uploading, setUploading] = React.useState(false);
+  const role = (window.Workspaces && window.Workspaces.currentRole && window.Workspaces.currentRole()) || null;
+  const canEdit = role === 'owner' || role === 'admin';
+
+  const onClick = (e) => {
+    if (!canEdit || uploading) return;
+    e.stopPropagation();
+    fileRef.current && fileRef.current.click();
+  };
+
+  const onFile = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      if (window.Toast) window.Toast.error('El logo no puede pesar más de 5MB');
+      return;
+    }
+    const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
+    if (!wsId) {
+      if (window.Toast) window.Toast.error('Selecciona un workspace primero');
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await Promise.resolve(window.Workspaces.uploadLogo(wsId, f));
+      if (url) {
+        window.WORKSPACE_LOGO_URL = url;
+        try { window.dispatchEvent(new Event('workspace-branding-changed')); } catch(_) {}
+        if (window.Toast) window.Toast.success('Logo actualizado · todas las cabeceras refrescadas');
+      }
+    } catch (err) {
+      if (window.Toast) window.Toast.error('No se pudo subir el logo: ' + (err && err.message || ''));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      title={canEdit ? 'Click para cambiar el logo de tu empresa (admin)' : ''}
+      style={{
+        position: 'relative', display: 'inline-block',
+        cursor: canEdit ? 'pointer' : 'default',
+      }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        style={{
+          height: 36, width: 'auto', objectFit: 'contain', maxWidth: 180,
+          filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.45))',
+          opacity: uploading ? 0.4 : 1,
+          transition: 'opacity .2s',
+        }}
+      />
+      {canEdit && (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            onChange={onFile}
+            style={{ display: 'none' }}
+          />
+          <span style={{
+            position: 'absolute', bottom: -6, right: -8,
+            minWidth: 22, height: 22, padding: '0 6px',
+            borderRadius: 999, background: 'rgba(0,0,0,0.82)', color: '#fff',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, lineHeight: 1, fontWeight: 700,
+            border: '1.5px solid #fff',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+            pointerEvents: 'none',
+          }}>{uploading ? '…' : '✎'}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 function HomeHero({ onPlay, onMore }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
@@ -806,24 +895,12 @@ function HomeHero({ onPlay, onMore }) {
           // "Tendencias de la semana / María López". Petición del cliente.
           if (demoActive) {
             // Logo del workspace activo si existe, fallback al de beonit.
-            // Permite que cada workspace muestre su propia marca en el hero
-            // sin tener que tocar código. Settear workspace.logo_url en DB.
+            // (b138) · ahora editable inline · admins y owners hacen click
+            // en el logo del hero y sube el de su empresa sin abrir admin.
             const wsLogo = window.WORKSPACE_LOGO_URL || null;
             const logoSrc = wsLogo || `beonit-logo.png?v=${window.SOLID_VERSION || 'demo'}`;
             const logoAlt = wsLogo ? (window.WORKSPACE_NAME || 'workspace') : 'beonit';
-            return (
-              <img
-                src={logoSrc}
-                alt={logoAlt}
-                style={{
-                  height: 36,
-                  width: 'auto',
-                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.45))',
-                  objectFit: 'contain',
-                  maxWidth: 180,
-                }}
-              />
-            );
+            return <WorkspaceLogoHero src={logoSrc} alt={logoAlt}/>;
           }
           if (demoActive && p.progress > 0 && p.progress < 1) {
             return <>
