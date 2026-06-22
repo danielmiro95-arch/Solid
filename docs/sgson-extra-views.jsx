@@ -2703,44 +2703,10 @@ function ProfileDemoContent({ USER }) {
         </div>
       </div>
 
-      {/* CANALES */}
-      <div style={cardStyle}>
-        <h3 style={sectionTitle}>Canales de notificación</h3>
-        <p style={sectionSub}>Recibe las pildoras del día, recordatorios y novedades por el canal que prefieras.</p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:12 }}>
-          {catalog.map(c => {
-            const state = chState[c.id] || {};
-            const connected = !!state.connected;
-            return (
-              <div key={c.id} style={{
-                padding:14, background: connected ? `${c.color}10` : 'var(--bg-elevated)',
-                border:`1.5px solid ${connected ? c.color : 'var(--line)'}`, borderRadius:12,
-                display:'flex', flexDirection:'column', gap:8,
-              }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{
-                    width:36, height:36, borderRadius:10, background:c.color, color:'#fff',
-                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
-                  }}>{c.icon}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:700 }}>{c.label}</div>
-                    <div style={{ fontSize:11, color:'var(--fg-muted)' }}>{connected ? 'Activado' : 'Inactivo'}</div>
-                  </div>
-                </div>
-                <button onClick={() => {
-                  if (!window.Channels) return;
-                  if (connected) window.Channels.disconnect(c.id);
-                  else window.Channels.connect(c.id);
-                }} style={{
-                  padding:'8px 10px', background: connected ? 'transparent' : c.color,
-                  color: connected ? c.color : '#fff', border:`1px solid ${c.color}`,
-                  borderRadius:8, cursor:'pointer', fontWeight:700, fontSize:12,
-                }}>{connected ? 'Desactivar' : 'Activar'}</button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* CANALES de notificación · ELIMINADO (b133) por petición del cliente.
+          Ya existe el módulo "Channels" accesible desde el menú avatar · esta
+          duplicaba la funcionalidad en el perfil. La lógica del módulo Channels
+          (window.Channels.connect / disconnect) se mantiene intacta. */}
 
       {/* AJUSTES BÁSICOS */}
       <div style={cardStyle}>
