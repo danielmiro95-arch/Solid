@@ -68,6 +68,18 @@
     var(--brand-green)   80%,
     var(--brand-yellow)  100%
   );
+  /* Versión pastel super clarita del gradient brand · arco iris difuminado.
+     Cada color mezclado ~75% con blanco · usado en sitios decorativos donde
+     el gradient saturado distrae (números grandes de Tendencia, watermarks). */
+  --gradient-brand-soft: linear-gradient(
+    90deg,
+    #FCE8C8  0%,   /* orange pastel */
+    #FEC8C3  22%,  /* red pastel */
+    #EEC9E0  42%,  /* magenta pastel */
+    #BFDCEF  60%,  /* blue pastel */
+    #C0D9CD  80%,  /* green pastel */
+    #FEF2BF  100%  /* yellow pastel */
+  );
 
   /* ── Color · Category tints (vivos sobre blanco) ── */
   --cat-publish:    #D97A2B;
@@ -175,6 +187,18 @@ html[data-theme="dark"] {
     var(--brand-blue)    60%,
     var(--brand-green)   80%,
     var(--brand-yellow)  100%
+  );
+  /* Versión pastel super clarita del gradient brand · arco iris difuminado.
+     Cada color mezclado ~75% con blanco · usado en sitios decorativos donde
+     el gradient saturado distrae (números grandes de Tendencia, watermarks). */
+  --gradient-brand-soft: linear-gradient(
+    90deg,
+    #FCE8C8  0%,   /* orange pastel */
+    #FEC8C3  22%,  /* red pastel */
+    #EEC9E0  42%,  /* magenta pastel */
+    #BFDCEF  60%,  /* blue pastel */
+    #C0D9CD  80%,  /* green pastel */
+    #FEF2BF  100%  /* yellow pastel */
   );
 
   /* Category tints · versiones más brillantes para vivir sobre navy. */
@@ -2656,7 +2680,7 @@ body.sgs-redesign .palette-item.selected { background: var(--bg-elevated); borde
   .card-match { font-size: 9.5px; }
 
   /* Trending · números más pequeños */
-  .trending-num { font-size: 72px !important; left: 4px !important; }
+  .trending-num { font-size: 120px !important; left: -6px !important; }
 
   /* PageShell vistas extra */
   .ssg-page { padding: 70px 16px 40px !important; }
@@ -2971,7 +2995,9 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
  * §4 · FONDO · degradado azul→blanco (claro) y navy degradado (oscuro)
  * Handoff Midnight v2 · da un wash sutil al lienzo en vez del plano.
  * ============================================================ */
-:root            { --app-bg: linear-gradient(180deg, #E8EFEC 0%, #EFF4F1 24%, #F5F8F6 50%, #FFFFFF 100%); }
+/* (b132) · fondo gris más oscuro tipo Netflix · da contraste a las cards
+   blancas redondas (estilo Apple TV) y a los números pastel arco iris. */
+:root            { --app-bg: linear-gradient(180deg, #B5BCC7 0%, #C4CAD4 24%, #D2D7E0 50%, #DDE1E7 100%); }
 html[data-theme="dark"] { --app-bg: linear-gradient(180deg, #0D2A1E 0%, #0A1F16 30%, #06140E 58%, #050E09 100%); }
 html, body { background: var(--app-bg) !important; background-attachment: fixed !important; }
 .app        { background: var(--app-bg); background-attachment: fixed; }
@@ -2983,12 +3009,14 @@ html, body { background: var(--app-bg) !important; background-attachment: fixed 
  * card · markup intacto.
  * ============================================================ */
 .trending-num {
-  left: 4px; top: 50%; bottom: auto; transform: translateY(-50%);
+  left: -8px; top: 50%; bottom: auto; transform: translateY(-50%);
   width: auto; height: auto; padding: 0; display: block;
   font-family: var(--font-serif); font-style: italic; font-weight: 400;
-  font-size: 96px; letter-spacing: -0.02em; line-height: 1;
+  /* Más grandes (b132 · 96 → 160px) + relleno con gradient SOFT arco iris
+     pastel · super clarito · efecto marca de agua editorial. */
+  font-size: 160px; letter-spacing: -0.025em; line-height: 1;
   border: 0; border-radius: 0; box-shadow: none;
-  background: var(--gradient-brand);
+  background: var(--gradient-brand-soft);
   -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent; -webkit-text-stroke: 0;
   z-index: 0;
