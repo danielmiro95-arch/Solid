@@ -300,22 +300,10 @@
     // 5. Próximamente
     const ROWS = [];
 
-    // 1. SIGUE FORMÁNDOTE
-    if (inProgress.length > 0) {
-      const userProf = window.UserProfile ? window.UserProfile.get() : null;
-      const firstName = (userProf && userProf.name && userProf.name !== 'Sin sesión')
-        ? String(userProf.name).split(/\s+/)[0]
-        : (window.I18n ? window.I18n.t('home.continue.fallback', 'tú') : 'tú');
-      const T = window.I18n ? window.I18n.t.bind(window.I18n) : (k, f) => f;
-      ROWS.push({
-        key: 'continue',
-        title: _dmActive
-                  ? ('Sigue formándote, ' + firstName)
-                  : T('home.continue.title','Continúa, {name}').replace('{name}', firstName),
-        sub:   _dmActive ? '' : T('home.continue.sub','donde lo dejaste'),
-        pillIds: inProgress, showProgress: true,
-      });
-    }
+    // 1. SIGUE FORMÁNDOTE · (b164) ELIMINADA del home · petición cliente.
+    //    El curso "en progreso" (Beyond Prompting) sigue accesible vía
+    //    el hero del banner y desde Mi Lista → Cursos inscritos. La fila
+    //    de progreso se simplifica fuera del home.
 
     // (b142) Tendencias se MOVIÓ aquí abajo · cliente pidió que vaya
     // DESPUÉS de Recomendados · empuje el push al final de la función.
