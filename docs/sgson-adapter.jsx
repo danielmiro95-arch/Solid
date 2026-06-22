@@ -179,27 +179,46 @@
       for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
       return Math.abs(h);
     };
-    let _hdrAssigned = 0, _hdrFallback = 0, _hdrSkipped = 0;
+    // (b154) · cliente: "sigue sin reflejarse en HdR". Root cause real ·
+    // las pills HdR YA TIENEN p.poster asignado en BD (de seeds antiguos
+    // o admin) · mi código las saltaba con `if (p.poster) return` →
+    // ningún poster nuevo se aplicaba. Las 4 fijas DEBEN PISAR el poster
+    // previo (orden explícita del cliente). Las extras y el pool solo si
+    // no hay poster.
+    let _hdrForcedFixed = 0, _hdrForcedExtra = 0, _hdrFallback = 0, _hdrSkipped = 0;
     const _hdrTitlesUnmatched = [];
+    // Las 4 fijas se distinguen del resto · son las primeras 4 entradas
+    // de _HDR_FIXED. Las extras (5+) NO pisan poster previo.
+    const _HDR_FIXED_HARD = _HDR_FIXED.slice(0, 4);
+    const _HDR_FIXED_SOFT = _HDR_FIXED.slice(4);
     PILLS.forEach(p => {
-      if (p.poster) { _hdrSkipped++; return; } // respetamos lo que ya tenga
       const norm = _normTitle(p.title);
-      // 1) Asignación por keyword
-      const fixed = _HDR_FIXED.find(f => f.keys.some(k => norm.indexOf(k) !== -1));
-      if (fixed) {
-        p.poster = fixed.url;
-        _hdrAssigned++;
+      // 1) Asignación FIJA EXPLÍCITA · pisa cualquier poster previo
+      const hard = _HDR_FIXED_HARD.find(f => f.keys.some(k => norm.indexOf(k) !== -1));
+      if (hard) {
+        p.poster = hard.url; // FORZADO · pisa BD
+        _hdrForcedFixed++;
+        return;
+      }
+      // 2) Resto · respetamos lo que ya tenga
+      if (p.poster) { _hdrSkipped++; return; }
+      // 3) Asignación EXTRA por keyword
+      const soft = _HDR_FIXED_SOFT.find(f => f.keys.some(k => norm.indexOf(k) !== -1));
+      if (soft) {
+        p.poster = soft.url;
+        _hdrForcedExtra++;
         return;
       }
       _hdrTitlesUnmatched.push(p.title);
-      // 2) Fallback pool determinista por hash del id
+      // 4) Fallback pool determinista por hash del id
       p.poster = _HDR_POOL[_seedFromId(p.id) % _HDR_POOL.length];
       _hdrFallback++;
     });
     console.log('[posters-hdr] total pills=' + PILLS.length,
-      '· asignadas por keyword=' + _hdrAssigned,
-      '· fallback pool=' + _hdrFallback,
-      '· con poster previo=' + _hdrSkipped);
+      '· FIJAS (pisaron BD)=' + _hdrForcedFixed,
+      '· extras keyword=' + _hdrForcedExtra,
+      '· pool fallback=' + _hdrFallback,
+      '· respeté poster previo=' + _hdrSkipped);
     if (_hdrTitlesUnmatched.length > 0 && _hdrTitlesUnmatched.length < 30) {
       console.log('[posters-hdr] títulos SIN match keyword (cayeron al pool):', _hdrTitlesUnmatched);
     }
