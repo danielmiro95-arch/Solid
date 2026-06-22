@@ -76,7 +76,11 @@ function PageShell({ eyebrow, title, sub, actions, children, narrow }) {
 function BrowseView({ openDetail }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
-  const pills = (D && D.PILLS) || [];
+  // (b137) · cliente pidió retirar el bloque "Tendencias de la semana" del
+  // catálogo · vive solo como carrusel del hero. Filtramos las pills cuya
+  // category contiene "tendencias" antes de pintar el grid Y los chips.
+  const _allPills = (D && D.PILLS) || [];
+  const pills = _allPills.filter(p => !/tendencias?/i.test(String(p.category || '')));
   const ALL_KEY = T('browse.all');
   const allCats = [ALL_KEY, ...Array.from(new Set(pills.map(p => p.category))).filter(Boolean)];
   const [cat, setCat] = useEV2(ALL_KEY);
@@ -143,7 +147,13 @@ function BrowseView({ openDetail }) {
 function RutasView({ setView, openPath }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
-  const paths = (D && D.LEARNING_PATHS) || [];
+  // (b137) · cliente pidió retirar "Tendencias de la semana" del catálogo ·
+  // si algún path en BD tiene badge o slug "tendencias" lo excluimos. La
+  // sección sigue viva como carrusel del hero del home.
+  const _allPaths = (D && D.LEARNING_PATHS) || [];
+  const paths = _allPaths.filter(p => !/tendencias?/i.test(String(p.badge || ''))
+                                   && !/tendencias?/i.test(String(p.slug || ''))
+                                   && !/tendencias?\s*de\s*la\s*semana/i.test(String(p.title || '')));
   const go = (pathId) => { if (openPath) openPath(pathId); else setView('path'); };
   // Re-render cuando cambien enrollments/bookmarks · para que el badge
   // "INSCRITO" aparezca al instante tras pulsar el CTA.
@@ -391,7 +401,7 @@ function RutasView({ setView, openPath }) {
           const unlockedList = (_dm && _dm.unlocked) ? _dm.unlocked() : [];
           const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(p.id) !== -1;
           const isLocked = lockEnabled && !(p.progress > 0) && !isUnlockedById && idx > 0 && (seed % 3) !== 0;
-          const levelBadges = (_dm && _dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
+          const levelBadges = (_dm && _dm.flag('level_badges')) || ['Intermedio','Intermedio-alto','Experto'];
           const levelTxt = demoActive ? levelBadges[seed % levelBadges.length] : null;
           const pathLabelSingular = demoActive ? _label('path_label', 'Curso').toUpperCase() : 'RUTA';
           const enrolled = window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id);

@@ -64,10 +64,15 @@
       teacher:  p.teacher || _teacherFallback,
       duration: p.duration || '4 min',
       category: p.category, // mantenemos el label real (Care, Social Publish, etc.)
-      level:    p.level === 'principiante' ? 'Básico' :
-                p.level === 'intermedio'   ? 'Intermedio' :
-                p.level === 'avanzado'     ? 'Avanzado' :
-                (p.level || 'Básico'),
+      // (b137) · cliente pidió eliminar el nivel "Básico" · todos los cursos
+      // que en BD tengan `principiante` (o sin level definido) se promueven
+      // a "Intermedio" en la UI. La fila de BD no se toca · es una decisión
+      // de presentación. 'intermedio-alto' se mapea con la capital correcta.
+      level:    p.level === 'principiante'    ? 'Intermedio' :
+                p.level === 'intermedio'      ? 'Intermedio' :
+                p.level === 'intermedio-alto' ? 'Intermedio-alto' :
+                p.level === 'avanzado'        ? 'Avanzado' :
+                (p.level || 'Intermedio'),
       rating:   p.rating || 4.7,
       enrolled: p.enrolled || 0,
       // Progress · primero busca el del user en window.Progress (Supabase
@@ -165,19 +170,21 @@
       });
     }
 
-    // 2. RECOMENDADOS PARA TI · 3 cursos fijos solicitados por el cliente
-    //    (b135) · "Gestión de Proyectos", "Comunicación y Feedback",
-    //    "Desarrollo de Personas". Match por título (case-insensitive,
-    //    fuzzy contains). El consumidor (NxRow con isPaths) ya filtra
-    //    por _recommendedTitles cuando está · si no encuentra ningún
-    //    match cae al orden original de LEARNING_PATHS.
+    // 2. RECOMENDADOS PARA TI · 4 cursos fijos solicitados por el cliente
+    //    (b137) · "Gestión de Proyectos", "Comunicación y Feedback",
+    //    "Desarrollo de Personas", "Empoderar Equipos" (BLOQUEADO).
+    //    Match por título (case-insensitive, fuzzy contains). El consumidor
+    //    (NxRow con isPaths) ya filtra por _recommendedTitles cuando está ·
+    //    si un título no encuentra path en BD, sintetiza un stub bloqueado
+    //    para que aparezca como "próximamente" con candado.
     ROWS.push({
       key:'paths',
       title: _label('paths_recommended_label', 'Recomendados para ti'),
       sub:   _label('paths_recommended_sub', 'tu próxima ruta'),
       isPaths: true,
       _recommended: true,
-      _recommendedTitles: ['Gestión de Proyectos', 'Comunicación y Feedback', 'Desarrollo de Personas'],
+      _recommendedTitles: ['Gestión de Proyectos', 'Comunicación y Feedback', 'Desarrollo de Personas', 'Empoderar Equipos'],
+      _lockedTitles: ['Empoderar Equipos'],
     });
 
     // 3. TOP 10 CURSOS · ELIMINADO (b135) · petición del cliente.
