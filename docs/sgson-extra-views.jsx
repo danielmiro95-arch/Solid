@@ -521,25 +521,32 @@ function RutasView({ setView, openPath }) {
                   color: '#fff', border: 'none', borderRadius: 'var(--r-1)',
                   cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.7 : 1,
                 }}>{startLabel}</button>
-                {/* En demo · botón de favorito en cards de curso (per spec
-                    Mi Cursos agrega favoritos · necesita poder marcarlos) */}
-                {demoActive && !isLocked && (() => {
-                  const saved = window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id);
+                {/* (b167) Botón de favorito en cards de curso · ahora usa
+                    Ratings (like 5★) para alimentar Mi Lista → Cursos
+                    favoritos · cliente: "los cursos a los que les doy like
+                    deben aparecer en Cursos favoritos". Antes usaba
+                    Bookmarks que era otro sistema distinto. */}
+                {!isLocked && (() => {
+                  const id = p.id || p._id;
+                  const r = window.Ratings && window.Ratings.get && window.Ratings.get(id);
+                  const stars = typeof r === 'number' ? r : (r && r.stars) || 0;
+                  const liked = stars === 5;
                   return (
                     <button onClick={(e) => {
                       e.stopPropagation();
-                      if (window.Bookmarks) {
-                        const isNow = window.Bookmarks.toggle(p.id);
-                        if (window.Toast) window.Toast[isNow ? 'success' : 'info'](isNow ? 'Curso añadido a Mi Lista' : 'Curso quitado de Mi Lista', { icon: isNow ? '⭐' : '○' });
+                      if (window.Ratings && window.Ratings.set) {
+                        const next = liked ? 0 : 5;
+                        window.Ratings.set(id, next, { silent: true });
+                        if (window.Toast) window.Toast[next ? 'success' : 'info'](next ? 'Curso añadido a favoritos' : 'Curso quitado de favoritos', { icon: next ? '★' : '○' });
                       }
                     }}
-                    title={saved ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    title={liked ? 'Quitar de favoritos' : 'Añadir a favoritos'}
                     style={{
                       padding:'8px 12px', fontFamily:'var(--font-sans)', fontSize:14, fontWeight:700,
-                      background: saved ? 'var(--accent)' : 'rgba(255,255,255,0.12)', color:'#fff',
-                      border: saved ? 'none' : '1px solid rgba(255,255,255,0.2)', borderRadius:'var(--r-1)',
+                      background: liked ? 'var(--accent)' : 'rgba(255,255,255,0.12)', color:'#fff',
+                      border: liked ? 'none' : '1px solid rgba(255,255,255,0.2)', borderRadius:'var(--r-1)',
                       cursor:'pointer', lineHeight:1,
-                    }}>{saved ? '★' : '☆'}</button>
+                    }}>{liked ? '★' : '☆'}</button>
                   );
                 })()}
                 {p.isCompleted && window.Certificates && !isLocked && (
