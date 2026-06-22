@@ -139,17 +139,26 @@
     const inProgress = (_bp ? [_bp, ..._inProgress] : _inProgress)
       .map(p => p.id)
       .slice(0, 1);
-    // (b141) · cliente reportó "en Tendencias aparecen pills que hemos
-    // borrado" · root cause: el filtro de trending solo ordenaba por
-    // enrolled sin excluir pills archivadas/borradas. Helper común que
-    // verifica varios campos defensivos (BD puede usar archived/
-    // archived_at/deleted_at/status='archived' según versión del schema).
+    // (b141 → b142) · cliente reportó "en Tendencias aparecen pills que
+    // hemos borrado · nombres de Pil antiguos que no servían". Helper
+    // defensivo · excluye:
+    //  · archivado/borrado en BD (varios campos según versión del schema)
+    //  · status draft/archived/deleted
+    //  · TÍTULO placeholder "Pil 1", "Pill 12", "PIL 3"... (regex /^pi+l+\s*\d+$/i)
+    //    pills generadas con nombre default y nunca editadas · ruido visual
+    //  · TÍTULO vacío o solo whitespace · pill sin contenido real
+    const _looksPlaceholder = (t) => {
+      const s = String(t || '').trim();
+      if (!s) return true;
+      return /^pi+l+\s*\d+(\.\d+)?\s*$/i.test(s);
+    };
     const _isLive = (p) => !p.archived
                         && !p.archived_at
                         && !p.deleted_at
                         && p.status !== 'archived'
                         && p.status !== 'deleted'
-                        && p.status !== 'draft';
+                        && p.status !== 'draft'
+                        && !_looksPlaceholder(p.title);
     const _livePills = PILLS.filter(_isLive);
     const withVideo       = _livePills.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
     const trending        = _livePills.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);
@@ -182,20 +191,8 @@
       });
     }
 
-    // (b138) RESTAURADA · Tendencias de la semana con los números grandes
-    //   El cliente la quitó en b135 y la volvió a pedir en b138 · "es
-    //   importante recuperar la sección y los números que teníamos". El
-    //   componente NxRow ya tiene el rendering trending: true intacto · solo
-    //   hace falta volver a pushar la row al array.
-    if (trending.length > 0) {
-      ROWS.push({
-        key: 'trending',
-        title: _label('trending_row_title', 'Tendencias de la semana'),
-        sub:   _label('trending_row_sub', ''),
-        pillIds: trending,
-        trending: true,
-      });
-    }
+    // (b142) Tendencias se MOVIÓ aquí abajo · cliente pidió que vaya
+    // DESPUÉS de Recomendados · empuje el push al final de la función.
 
     // 3. RECOMENDADOS PARA TI · 4 cursos fijos solicitados por el cliente
     //    (b137) · "Gestión de Proyectos", "Comunicación y Feedback",
@@ -214,10 +211,19 @@
       _lockedTitles: ['Empoderar Equipos'],
     });
 
-    // 3. TOP 10 CURSOS · ELIMINADO (b135) · petición del cliente.
-    //    La row trending se retira del home · cards y números enormes ya
-    //    no aparecen. El bloque trending: true del NxRow queda como código
-    //    muerto · se puede limpiar más adelante.
+    // 3. TENDENCIAS DE LA SEMANA · (b142) movida AQUÍ · cliente: "tiene que
+    //    estar por debajo de Recomendados para Ti". Antes iba justo después
+    //    de Sigue formándote. NxRow trending: true renderiza los números al
+    //    lado de cada card.
+    if (trending.length > 0) {
+      ROWS.push({
+        key: 'trending',
+        title: _label('trending_row_title', 'Tendencias de la semana'),
+        sub:   _label('trending_row_sub', ''),
+        pillIds: trending,
+        trending: true,
+      });
+    }
 
     // 4. DISPONIBLES
     if (withVideo.length > 0) {
