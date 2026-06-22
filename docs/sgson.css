@@ -423,14 +423,27 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 2px 12px rgba(11,18,38,0.06);
 }
 
-/* Texto/iconos del topnav · NAVY OSCURO en light · cliente pidió
-   azul oscuro para todo lo que esté arriba. */
-.topnav, .topnav .wordmark, .topnav .wordmark.v1 .on { color: var(--ink-1); }
-.topnav .topnav-burger { color: var(--ink-1); }
+/* (b150) · Texto/iconos del topnav · NAVY OSCURO #0B1226 con !important
+   sobre TODO span/button/a. Cliente reportó "siguen viendo blanco" tras
+   b146 · alguna otra regla (color: inherit del Wordmark, variantes con
+   especificidad mayor) pisaba el var(--ink-1). Esta vez color literal
+   #0B1226 con !important universal · ningún hijo puede salirse de eso. */
+.topnav,
+.topnav span,
+.topnav button,
+.topnav a,
+.topnav .wordmark,
+.topnav .wordmark.v1 .on,
+.topnav .wordmark span,
+.topnav .topnav-burger,
+.topnav .nav-item,
+.topnav .nav-item.active,
+.topnav .icon-btn,
+.topnav .topnav-search-kbd { color: #0B1226 !important; }
 .topnav .topnav-burger:hover { background: rgba(11,18,38,0.06); }
-.topnav .nav-item { color: var(--ink-1); opacity: 0.78; font-weight: 600; }
-.topnav .nav-item:hover { color: var(--ink-1); opacity: 1; background: rgba(11,18,38,0.05); }
-.topnav .nav-item.active { color: var(--ink-1); opacity: 1; font-weight: 700; }
+.topnav .nav-item { opacity: 0.78; font-weight: 600; }
+.topnav .nav-item:hover { opacity: 1; background: rgba(11,18,38,0.05); }
+.topnav .nav-item.active { opacity: 1; font-weight: 700; }
 .topnav .nav-item.active::after { background: var(--accent); height: 2px; }
 .topnav .icon-btn { color: var(--ink-1); opacity: 0.78; }
 .topnav .icon-btn:hover { color: var(--ink-1); opacity: 1; background: rgba(11,18,38,0.06); }
