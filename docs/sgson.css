@@ -1270,48 +1270,51 @@ html[data-theme="dark"] .card:focus-visible {
    TENDENCIA · numbered row (editorial, NOT Netflix Top 10)
    ============================================================ */
 
-/* (b141) · cliente · "chiquitico y en negro, más chiquito y en negro" ·
-   reducimos de 100px → 32px sans · negro sólido #000 · estilo numerito de
-   ranking discreto · ya no es decoración tipográfica fantasma. */
+/* (b142) · cliente · 3ª iteración · "siguen apareciendo grandes y en
+   colores · tienen que ser pequeñitos y en negro". Usamos !important
+   para vencer cualquier cache/override · 22px sans negro · indicador
+   numérico discreto · no decoración tipográfica. */
 .row-trending .rail-track {
-  align-items: flex-end;
-  gap: var(--s-2);
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 24px;
+  align-items: flex-end !important;
+  gap: var(--s-2) !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  padding-left: 18px !important;
 }
 
 .trending-cell {
-  flex: 0 0 auto;
-  position: relative;
-  padding-left: 38px;
-  margin-right: var(--s-2);
-  overflow: visible;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  padding-left: 28px !important;
+  margin-right: var(--s-2) !important;
+  overflow: visible !important;
 }
 
 .trending-num {
-  position: absolute;
-  left: 0;
-  bottom: 12px;
-  font-family: var(--font-sans);
-  font-style: normal;
-  font-weight: 800;
-  font-size: 32px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: #000;
-  -webkit-text-stroke: 0;
-  text-stroke: 0;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: 10px !important;
+  font-family: var(--font-sans) !important;
+  font-style: normal !important;
+  font-weight: 700 !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  letter-spacing: -0.01em !important;
+  color: #000000 !important;
+  -webkit-text-stroke: 0 !important;
+  text-stroke: 0 !important;
+  text-shadow: none !important;
+  background: none !important;
   user-select: none;
   pointer-events: none;
-  z-index: 2;
+  z-index: 2 !important;
   white-space: nowrap;
 }
-/* Dark · #fff porque negro no se ve sobre navy */
+/* Dark · #fff porque negro no contrasta sobre navy */
 html[data-theme="dark"] .trending-num {
-  color: #FFFFFF;
-  -webkit-text-stroke: 0;
-  text-stroke: 0;
+  color: #FFFFFF !important;
+  -webkit-text-stroke: 0 !important;
+  text-stroke: 0 !important;
 }
 
 .trending-cell .card {

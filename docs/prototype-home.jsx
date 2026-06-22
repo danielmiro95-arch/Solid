@@ -794,13 +794,20 @@ function HomeHero({ onPlay, onMore }) {
     const _isDemoURL = /demo/i.test(window.location.href);
     const dm = window.DemoMode;
     if (_isDemoURL || (dm && dm.isActive && dm.isActive())) {
-      // (b141) Filtro live · excluye pills archivadas/borradas/draft que
-      // el cliente eliminó desde el panel admin pero seguían apareciendo
-      // en el carrusel del hero. Defensivo · verifica varios campos del
-      // schema según versión.
+      // (b141 → b142) Filtro live · excluye:
+      //  · pills archivadas/borradas/draft
+      //  · pills con título placeholder "Pil 1", "Pil 2", "Pil 3" · pills
+      //    generadas con nombre default y nunca editadas
+      //  · pills con título vacío
+      const _looksPlaceholder = (t) => {
+        const s = String(t || '').trim();
+        if (!s) return true;
+        return /^pi+l+\s*\d+(\.\d+)?\s*$/i.test(s);
+      };
       const _isLive = (p) => !p.archived && !p.archived_at && !p.deleted_at
                           && p.status !== 'archived' && p.status !== 'deleted'
-                          && p.status !== 'draft';
+                          && p.status !== 'draft'
+                          && !_looksPlaceholder(p.title);
       const tendencias = PILLS
         .filter(_isLive)
         .filter(p => /tendencias?/i.test(String(p.category || ''))
