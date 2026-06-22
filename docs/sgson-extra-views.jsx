@@ -463,12 +463,18 @@ function RutasView({ setView, openPath }) {
               </span>
             )}
             <div className="card-body" style={{ left: 20, right: 20, bottom: 18 }}>
+              {/* (b138) · cliente: "los títulos del catálogo no se ven bien ·
+                  pónlos en blanco". Antes era var(--fg) que en light theme
+                  caía a negro y se confundía con el poster oscuro. Ahora #fff
+                  fijo · siempre legible sobre el card-grad inferior. */}
               <h3 style={{
                 fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400,
-                fontSize: 28, color: 'var(--fg)', margin: 0, marginBottom: 8, lineHeight: 1.1,
+                fontSize: 28, color: '#fff', margin: 0, marginBottom: 8, lineHeight: 1.1,
+                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
               }}>{p.title}</h3>
               {/* Descripción · competencia · nivel · #pills · director del programa */}
-              <p style={{ fontSize: 12.5, color: 'var(--fg-muted)', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', margin: 0, lineHeight: 1.5,
+                  textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
                 {(() => {
                   const ws = (window.Workspaces && window.Workspaces.current && window.Workspaces.current()) || {};
                   const director = (ws.settings && ws.settings.program_director) || null;

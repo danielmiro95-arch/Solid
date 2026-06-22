@@ -170,7 +170,22 @@
       });
     }
 
-    // 2. RECOMENDADOS PARA TI · 4 cursos fijos solicitados por el cliente
+    // (b138) RESTAURADA · Tendencias de la semana con los números grandes
+    //   El cliente la quitó en b135 y la volvió a pedir en b138 · "es
+    //   importante recuperar la sección y los números que teníamos". El
+    //   componente NxRow ya tiene el rendering trending: true intacto · solo
+    //   hace falta volver a pushar la row al array.
+    if (trending.length > 0) {
+      ROWS.push({
+        key: 'trending',
+        title: _label('trending_row_title', 'Tendencias de la semana'),
+        sub:   _label('trending_row_sub', ''),
+        pillIds: trending,
+        trending: true,
+      });
+    }
+
+    // 3. RECOMENDADOS PARA TI · 4 cursos fijos solicitados por el cliente
     //    (b137) · "Gestión de Proyectos", "Comunicación y Feedback",
     //    "Desarrollo de Personas", "Empoderar Equipos" (BLOQUEADO).
     //    Match por título (case-insensitive, fuzzy contains). El consumidor
