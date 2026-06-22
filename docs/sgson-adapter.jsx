@@ -351,9 +351,16 @@
       });
     }
 
-    // 4. DISPONIBLES · (b157) ELIMINADA · cliente pidió retirar "Disponibles
-    //    · reproducir directamente" del home. La row se mantiene en código
-    //    muerto por si se reactiva, pero no se pushea al array.
+    // 4. DISPONIBLES · (b158) cliente aclaró: NO quitar la row entera,
+    //    solo el subtítulo "reproducir directamente". El título se queda.
+    if (withVideo.length > 0) {
+      ROWS.push({
+        key:'available',
+        title: 'Disponibles',
+        sub: '',
+        pillIds: withVideo,
+      });
+    }
 
     // 5. PRÓXIMAMENTE
     ROWS.push({
