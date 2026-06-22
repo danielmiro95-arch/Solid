@@ -1571,10 +1571,13 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
     // INLINE en el JSX · React los aplica con specificity máxima · no
     // hay CSS que pueda sobrescribirlos. El número se renderiza como
     // div flex hermano de la card · imposible que se esconda.
-    const _isDarkTheme = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark');
-    // (b147) · cliente · "un pelín más grandes y en azul oscuro casi negro" ·
-    // 36→44px · #000000 → #0B1226 (navy oscuro casi negro · var(--ink-1)).
-    const _numColor = _isDarkTheme ? '#FFFFFF' : '#0B1226';
+    // (b155) · cliente: "los números están en blanco todavía". Causa:
+    // condicional anterior ponía #FFFFFF en dark theme. Si el cliente
+    // tenía dark activo, salía blanco. Ahora · navy oscuro #0B1226
+    // SIEMPRE, ignorando theme · el cliente lo pidió en negro/navy
+    // de forma absoluta (no quería blanco bajo ninguna condición).
+    const _numColor = '#0B1226';
+    console.log('[trending-num] color=' + _numColor + ' · theme=' + document.documentElement.getAttribute('data-theme'));
     return (
       <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
