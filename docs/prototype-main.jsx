@@ -1266,7 +1266,9 @@ window.isDemoWorkspace = function() {
     new_row_title: 'Próximamente',
     new_row_sub: '',
     channels_action_label: 'Activar',
-    level_badges: ['Básico','Intermedio','Experto'],
+    // (b137) · cliente eliminó "Básico" · todos los cursos se promueven a
+    // Intermedio o superior. Los stubs aleatorios usan este pool.
+    level_badges: ['Intermedio','Intermedio-alto','Experto'],
   };
   window.DemoMode = {
     isActive: _isDemoActive,

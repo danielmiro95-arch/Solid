@@ -870,7 +870,13 @@ function HomeHero({ onPlay, onMore }) {
             <span>{p.duration}</span>
           </>}
           <span className="sep">/</span>
-          <span>{p.teacher}</span>
+          {/* (b137) En demo · el hero muestra siempre "Dirección del curso:
+              Alicia Chavero" en lugar del campo teacher de la pill (que en BD
+              puede salir como "María López" u otro residual). Decisión del
+              cliente · todo el branding del curso lo firma Alicia. */}
+          {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
+            ? <span>Dirección del curso: Alicia Chavero</span>
+            : <span>{p.teacher}</span>}
           {p.rating && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
             ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>)
             : null}
@@ -1196,11 +1202,21 @@ function NxPathCard({ path, onOpen }) {
   const unlockedList = (dm && dm.unlocked) ? dm.unlocked() : [];
   const isUnlockedById = Array.isArray(unlockedList) && unlockedList.indexOf(path.id) !== -1;
   const seed = parseInt(String(path.id || '').replace(/\D/g, ''), 10) || 0;
-  const isLocked = lockEnabled && !(path.progress > 0) && !isUnlockedById && (seed % 3) !== 0;
+  // (b137) · path.forceLocked = true · bloqueado siempre (Empoderar Equipos
+  // viene del adapter como stub con forceLocked para "próximamente").
+  const isLocked = path.forceLocked === true || (lockEnabled && !(path.progress > 0) && !isUnlockedById && (seed % 3) !== 0);
 
-  // Nivel inventado por hash del id (Básico / Intermedio / Experto) en demo
-  const levels = (dm && dm.flag('level_badges')) || ['Básico','Intermedio','Experto'];
-  const level = demoActive ? levels[seed % levels.length] : null;
+  // (b137) · cliente reportó "Beyond Prompting aparece como Básico Y como
+  // Intermedio-alto en sitios distintos" · el bug era que aquí se inventaba
+  // un nivel por hash del id (seed % length) que NO respetaba el level real
+  // del path. Ahora · si path.level existe lo usamos tal cual; solo
+  // inventamos cuando NO hay level definido en BD. Y "Básico" sale del
+  // pool de inventados (todos los cursos · intermedio o superior).
+  const levels = (dm && dm.flag('level_badges')) || ['Intermedio','Intermedio-alto','Experto'];
+  const _realLevel = path.level
+    ? (typeof path.level === 'string' && path.level.length ? path.level.charAt(0).toUpperCase() + path.level.slice(1) : path.level)
+    : null;
+  const level = _realLevel || (demoActive ? levels[seed % levels.length] : null);
 
   // Etiqueta del badge: "CURSO · X pills" o "RUTA · X pills"
   const pathLabel = (dm && dm.label) ? dm.label('path_label', 'Ruta') : 'Ruta';
@@ -1298,18 +1314,41 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
       // Si no hay matches, caemos al scoring por rol de abajo.
       if (Array.isArray(row._recommendedTitles) && row._recommendedTitles.length) {
         const wanted = row._recommendedTitles.map(t => String(t).toLowerCase());
+        const lockedTitles = Array.isArray(row._lockedTitles)
+          ? row._lockedTitles.map(t => String(t).toLowerCase())
+          : [];
         const matched = paths.filter(p => {
           const t = String(p.title || '').toLowerCase();
           return wanted.some(w => t.includes(w) || w.includes(t));
         });
         if (matched.length > 0) {
-          // Ordenamos en el orden exacto del array del cliente.
-          paths = wanted
-            .map(w => matched.find(p => {
+          // (b137) Para cada título pedido por el cliente · si hay path real
+          // en BD lo usamos · si NO existe (caso típico "Empoderar Equipos"
+          // que el cliente aún no ha creado) sintetizamos un stub bloqueado
+          // con candado · así la fila siempre muestra los 4 que pidió y los
+          // que faltan salen como "próximamente". Title original (con
+          // mayúsculas) recuperado de row._recommendedTitles por índice.
+          paths = wanted.map((w, idx) => {
+            const real = matched.find(p => {
               const t = String(p.title || '').toLowerCase();
               return t.includes(w) || w.includes(t);
-            }))
-            .filter(Boolean);
+            });
+            if (real) {
+              const _wantsLock = lockedTitles.some(lt => lt.includes(w) || w.includes(lt));
+              return _wantsLock ? Object.assign({}, real, { forceLocked: true }) : real;
+            }
+            // Stub virtual · no existe en BD · queda bloqueado siempre.
+            const displayTitle = row._recommendedTitles[idx];
+            return {
+              id: 'stub-' + w.replace(/[^a-z0-9]+/g, '-'),
+              title: displayTitle,
+              badge: 'Próximamente',
+              pills: 0,
+              totalCount: 0,
+              progress: 0,
+              forceLocked: true,
+            };
+          });
           // Renderizamos directamente · saltamos el scoring por rol.
           return (
             <section className="row" data-screen-label={`Row · ${row.key}`}>
