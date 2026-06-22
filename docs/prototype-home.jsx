@@ -1578,7 +1578,9 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
     // hay CSS que pueda sobrescribirlos. El número se renderiza como
     // div flex hermano de la card · imposible que se esconda.
     const _isDarkTheme = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark');
-    const _numColor = _isDarkTheme ? '#FFFFFF' : '#000000';
+    // (b147) · cliente · "un pelín más grandes y en azul oscuro casi negro" ·
+    // 36→44px · #000000 → #0B1226 (navy oscuro casi negro · var(--ink-1)).
+    const _numColor = _isDarkTheme ? '#FFFFFF' : '#0B1226';
     return (
       <section className="row row-trending" data-screen-label={`Row · ${row.key}`}>
         <header className="row-header">
@@ -1598,9 +1600,9 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
                 }}>
                   <span style={{
                     display:'inline-flex', alignItems:'center', justifyContent:'center',
-                    minWidth:48, flex:'0 0 auto',
+                    minWidth:56, flex:'0 0 auto',
                     fontFamily:'Inter, sans-serif',
-                    fontWeight:800, fontSize:36, lineHeight:1, letterSpacing:'-0.02em',
+                    fontWeight:800, fontSize:44, lineHeight:1, letterSpacing:'-0.02em',
                     color:_numColor,
                     userSelect:'none', whiteSpace:'nowrap',
                   }}>{String(i+1).padStart(2,'0')}</span>
