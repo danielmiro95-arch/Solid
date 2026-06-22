@@ -169,7 +169,7 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
             <span className="th1ng-text">{one}</span>
           </div>
         )}
-        <div className="card-instructor">Dirección del curso: Alicia Chavero</div>
+        <div className="card-instructor">Dirección del programa: Alicia Chavero</div>
         {rating && (
           <div className="card-rating">
             <span className="card-stars">{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>

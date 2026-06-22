@@ -1001,12 +1001,11 @@ function HomeHero({ onPlay, onMore }) {
             <span>{p.duration}</span>
           </>}
           <span className="sep">/</span>
-          {/* (b137) En demo · el hero muestra siempre "Dirección del curso:
-              Alicia Chavero" en lugar del campo teacher de la pill (que en BD
-              puede salir como "María López" u otro residual). Decisión del
-              cliente · todo el branding del curso lo firma Alicia. */}
+          {/* (b157) En demo · "Dirección del programa: Alicia Chavero" fijo
+              (revert de "del curso" pedido por cliente en b157 · vuelve al
+              naming original del programa). */}
           {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
-            ? <span>Dirección del curso: Alicia Chavero</span>
+            ? <span>Dirección del programa: Alicia Chavero</span>
             : <span>{p.teacher}</span>}
           {p.rating && !(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
             ? (<><span className="sep">/</span><span>★ {Number(p.rating).toFixed(1)} · {(p.enrolled||0).toLocaleString('es-ES')}</span></>)
@@ -1236,10 +1235,8 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
           return raw.replace(/^\s*pi+l+\s*\d+(\.\d+)?\s*[-·:.]?\s*(de\s+)?/i, '').trim() || raw;
         })()}</h3>
         <div className="card-meta">
-          {!demoActive && !(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
-            <span>{pill.duration}</span>
-            <span className="sep">·</span>
-          </>}
+          {/* (b157) Duración eliminada de card-meta · cliente · "quitar 25 min
+              de los títulos · solo nivel". Sigue visible en el modal detalle. */}
           <span>{(() => {
             const raw = String(pill.level || '').toLowerCase().trim();
             const norm = (raw === 'básico' || raw === 'basico' || raw === 'principiante' || raw === 'beginner')
