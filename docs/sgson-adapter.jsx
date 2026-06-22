@@ -470,9 +470,9 @@
     const _isHdRDemo   = _isDemoURL;  // URL contiene "demo" → contexto HdR
     const _wsName = (window.Workspaces && window.Workspaces.current && window.Workspaces.current() || {}).name || '';
     const _isPlatformAdmin = !!((profile && profile.isAdmin) || (sessionUser && (sessionUser.isAdmin || sessionUser.systemRole === 'admin')));
-    // Julio Turbón solo en el demo HdR · no en otros workspaces aunque el
-    // user sea non-admin. El profile real prima fuera del demo HdR.
-    const _demoForceName = _isHdRDemo && !_isPlatformAdmin ? 'Julio Turbón de Cabo' : null;
+    // (b171) Cliente pidió simplificar el nombre del user demo · sin
+    // punto · sin "de Cabo" · ambas palabras en minúscula.
+    const _demoForceName = _isHdRDemo && !_isPlatformAdmin ? 'julio turbon' : null;
     const finalName = _demoForceName || fullName;
     const finalInitials = _demoForceName
       ? finalName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
