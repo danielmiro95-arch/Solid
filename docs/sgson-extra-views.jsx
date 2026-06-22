@@ -1661,7 +1661,7 @@ function ChannelNotificationsMatrix({ chState, catalog }) {
     ? _rawTypes
         .filter(t => ['daily_module','new_workshop','ai_recs'].indexOf(t.id) !== -1)
         .map(t => {
-          if (t.id === 'daily_module') return { ...t, label: 'Píldora del día',     desc: 'Tu pill del día a primera hora' };
+          if (t.id === 'daily_module') return { ...t, label: 'Curso del día',       desc: 'Tu curso del día a primera hora' };
           if (t.id === 'new_workshop') return { ...t, label: 'Nuevos talleres',     desc: 'Aviso cuando se publica un workshop' };
           if (t.id === 'ai_recs')      return { ...t, icon:'⏰', label: 'Recordatorio', desc: 'A la hora que tú elijas · una vez al día' };
           return t;
@@ -5226,6 +5226,7 @@ function PillsPanel() {
         <select value={draft.level || 'principiante'} onChange={e => setDraft({ ...draft, level: e.target.value })} style={{ padding:'7px 10px', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius: 6, fontSize: 13, color:'var(--fg)' }}>
           <option value="principiante">principiante</option>
           <option value="intermedio">intermedio</option>
+          <option value="intermedio-alto">intermedio-alto</option>
           <option value="avanzado">avanzado</option>
         </select>
         <label style={{ fontSize: 10, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--fg-muted)' }}>YouTube ID</label>
@@ -5625,6 +5626,7 @@ function ContentPanel({ kind, label, icon }) {
                   <option value="">—</option>
                   <option value="principiante">Principiante</option>
                   <option value="intermedio">Intermedio</option>
+                  <option value="intermedio-alto">Intermedio-alto</option>
                   <option value="avanzado">Avanzado</option>
                 </select>
               </label>
