@@ -119,7 +119,15 @@ function BrowseView({ openDetail }) {
           return (
             <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
               <div className={`card-cover cat-${slug}`}/>
-              {p.yt && <img src={`https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`} alt="" style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}} onError={e => { e.currentTarget.style.display='none'; }}/>}
+              {/* (b151) · usa pill.poster (Storage HdR · b148+) como primario ·
+                  thumbnail YouTube como fallback si no hay poster · oculta el
+                  img si tampoco hay yt (queda el card-cover gradient). */}
+              {(p.poster || p.yt) && <img
+                src={p.poster || `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`}
+                alt={p.title || ''}
+                style={{position:'absolute', inset:0, width:'100%', height: p.poster ? '100%' : '56.25%', objectFit:'cover'}}
+                onError={e => { e.currentTarget.style.display='none'; }}
+              />}
               <div className="card-grad"/>
               {/* (b141) · cliente: "ya en el catálogo no debe salir el nombre
                   de las PIL" · en demo escondemos el sufijo · {p.pill} que
@@ -767,6 +775,12 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
               return (
                 <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
                   <div className={`card-cover cat-${slug}`}/>
+                  {(p.poster || p.yt) && <img
+                    src={p.poster || `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`}
+                    alt={p.title || ''}
+                    style={{position:'absolute', inset:0, width:'100%', height: p.poster ? '100%' : '56.25%', objectFit:'cover'}}
+                    onError={e => { e.currentTarget.style.display='none'; }}
+                  />}
                   <div className="card-grad"/>
                   <span className="card-pill-num">{String(p.category).toUpperCase()}{!_isDemo ? ` · ${p.pill}` : ''}</span>
                   <div className="card-body">
@@ -795,6 +809,12 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
               return (
                 <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
                   <div className={`card-cover cat-${slug}`}/>
+                  {(p.poster || p.yt) && <img
+                    src={p.poster || `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`}
+                    alt={p.title || ''}
+                    style={{position:'absolute', inset:0, width:'100%', height: p.poster ? '100%' : '56.25%', objectFit:'cover'}}
+                    onError={e => { e.currentTarget.style.display='none'; }}
+                  />}
                   <div className="card-grad"/>
                   <span className="card-pill-num">{String(p.category).toUpperCase()}{!_isDemo ? ` · ${p.pill}` : ''}</span>
                   <div className="card-body">
