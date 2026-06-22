@@ -126,16 +126,12 @@
       }
     });
 
-    // (b148) · POSTERS HIJOS DE RIVERA · cliente subió 8 imágenes al bucket
-    // Storage y pidió asignar 4 explícitas a pills concretas + las extras
-    // como fallback para pills sin poster propio. La asignación se hace
-    // por TÍTULO normalizado (lower + sin acentos + trim) usando contains
-    // fuzzy · tolera variaciones de mayúsculas, puntuación, ":" etc.
-    //
-    // Estructura: solo afecta pills SIN poster (no pisa lo que ya hay) ·
-    // las 4 asignaciones fijas tienen prioridad · si no matchean, cae al
-    // pool de 8 imágenes rotativo por hash determinista del id (cada pill
-    // tendrá su misma imagen siempre, no salta entre renders).
+    // (b149 · 2ª iteración) · cliente reportó "no veo ninguno de los cambios"
+    // tras b148. Probable causa: el match exacto ('beyond prompting',
+    // 'reuniones eficaces', etc.) era muy estricto · si la pill se llama
+    // distinto no matcheaba. Ahora · ARRAY de keywords por imagen ·
+    // basta con que UNA palabra clave esté contenida para que asigne el
+    // poster. Y log en consola con resumen al final.
     const _HDR_POSTERS = {
       // base del bucket público · hijos-de-rivera
       base: 'https://ymhwsdmbddyudepbjfpk.supabase.co/storage/v1/object/public/hijos-de-rivera/',
@@ -150,22 +146,29 @@
       teletrabajo:  'Teletrabajo_01.jpg',
     };
     const _hdrUrl = (k) => _HDR_POSTERS.base + _HDR_POSTERS[k];
-    // Asignaciones fijas · cliente las pidió explícitas por título.
+    // Asignaciones · 4 explícitas + 5 con keywords razonables a criterio
+    // según el contenido de cada imagen. El cliente dijo "el resto donde
+    // tú quieras, a tu criterio".
     const _HDR_FIXED = [
-      { match: 'beyond prompting',         url: _hdrUrl('ia') },
-      { match: 'reuniones eficaces',       url: _hdrUrl('industria') },
-      { match: 'prioridades sin agobio',   url: _hdrUrl('innovacion') },
-      { match: 'feedback 360',             url: _hdrUrl('ideas') },
+      // FIJAS (las 4 que pidió el cliente explícitamente)
+      { keys: ['beyond prompting', 'beyond promting', 'beyond prompt', 'criterio ia', 'criterio para trabajar con ia'], url: _hdrUrl('ia'), label: 'IA' },
+      { keys: ['reuniones eficaces', 'reuniones eficases', 'reunion eficaz', 'reuniones'], url: _hdrUrl('industria'), label: 'Industria/Reuniones' },
+      { keys: ['prioridades sin agobio', 'prioridades', 'agobio', 'gestion del tiempo', 'gestion tiempo'], url: _hdrUrl('innovacion'), label: 'Prioridades' },
+      { keys: ['feedback 360', 'feedback que no escuece', 'feedback 360 que no escuece', 'feedback'], url: _hdrUrl('ideas'), label: 'Feedback' },
+      // EXTRAS (a criterio · keyword match con cursos típicos del catálogo)
+      { keys: ['colaboracion', 'trabajo en equipo', 'equipo', 'cooperacion'], url: _hdrUrl('colaboracion'), label: 'Colaboración' },
+      { keys: ['diversidad', 'inclusion', 'talento', 'personas', 'desarrollo personas', 'desarrollar personas'], url: _hdrUrl('talento'), label: 'Talento/Diversidad' },
+      { keys: ['ciberseguridad', 'seguridad', 'hacker', 'datos seguros', 'proteccion'], url: _hdrUrl('hackers'), label: 'Ciberseguridad' },
+      { keys: ['transformacion digital', 'digitalizacion', 'tecnologia', 'innovacion digital', 'automatizacion'], url: _hdrUrl('tecnologia'), label: 'Tecnología' },
+      { keys: ['teletrabajo', 'trabajo remoto', 'home office', 'remoto', 'hibrido'], url: _hdrUrl('teletrabajo'), label: 'Teletrabajo' },
     ];
-    // Pool fallback · solo las que NO están en las 4 fijas (evita repetir
-    // ia/industria/innovacion/ideas en pills random · esas ya están
-    // asociadas a su pill específica).
+    // Pool fallback completo para pills sin match · rotación determinista
+    // por hash del id. Incluye TODAS las imágenes · si una pill no matchea
+    // ninguna keyword, igual recibe una imagen bonita en vez del SVG.
     const _HDR_POOL = [
-      _hdrUrl('colaboracion'),
-      _hdrUrl('talento'),
-      _hdrUrl('hackers'),
-      _hdrUrl('tecnologia'),
-      _hdrUrl('teletrabajo'),
+      _hdrUrl('colaboracion'), _hdrUrl('talento'), _hdrUrl('hackers'),
+      _hdrUrl('tecnologia'), _hdrUrl('teletrabajo'), _hdrUrl('innovacion'),
+      _hdrUrl('ia'), _hdrUrl('industria'), _hdrUrl('ideas'),
     ];
     const _normTitle = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
     const _seedFromId = (id) => {
@@ -174,17 +177,30 @@
       for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
       return Math.abs(h);
     };
+    let _hdrAssigned = 0, _hdrFallback = 0, _hdrSkipped = 0;
+    const _hdrTitlesUnmatched = [];
     PILLS.forEach(p => {
-      if (p.poster) return; // respetamos lo que ya tenga
+      if (p.poster) { _hdrSkipped++; return; } // respetamos lo que ya tenga
       const norm = _normTitle(p.title);
-      // 1) Asignación fija por título
-      const fixed = _HDR_FIXED.find(f => norm.indexOf(f.match) !== -1);
-      if (fixed) { p.poster = fixed.url; return; }
-      // 2) Fallback pool determinista por hash del id
-      if (_HDR_POOL.length > 0) {
-        p.poster = _HDR_POOL[_seedFromId(p.id) % _HDR_POOL.length];
+      // 1) Asignación por keyword
+      const fixed = _HDR_FIXED.find(f => f.keys.some(k => norm.indexOf(k) !== -1));
+      if (fixed) {
+        p.poster = fixed.url;
+        _hdrAssigned++;
+        return;
       }
+      _hdrTitlesUnmatched.push(p.title);
+      // 2) Fallback pool determinista por hash del id
+      p.poster = _HDR_POOL[_seedFromId(p.id) % _HDR_POOL.length];
+      _hdrFallback++;
     });
+    console.log('[posters-hdr] total pills=' + PILLS.length,
+      '· asignadas por keyword=' + _hdrAssigned,
+      '· fallback pool=' + _hdrFallback,
+      '· con poster previo=' + _hdrSkipped);
+    if (_hdrTitlesUnmatched.length > 0 && _hdrTitlesUnmatched.length < 30) {
+      console.log('[posters-hdr] títulos SIN match keyword (cayeron al pool):', _hdrTitlesUnmatched);
+    }
 
     // ── DemoMode · DETECCIÓN BRUTA POR URL ──
     // Sin race conditions, sin helpers, sin esperar a window.DemoMode.
