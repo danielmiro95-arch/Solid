@@ -3157,64 +3157,87 @@ function _activateSupabaseData() {
     if (window.Toast) window.Toast.info('Workspace eliminado');
   };
   // Sube un logo al bucket workspace-assets bajo path <ws_id>/logo.<ext> con
-  // upsert · cachebust de 30s mediante query string. Actualiza logo_url en
-  // la fila del workspace con la public URL.
+  // upsert. Actualiza logo_url en la fila del workspace con la public URL.
   //
-  // (b140) · Fallback robusto · si Storage o BD fallan (bucket missing,
-  // RLS denied, no network) caemos a dataURL inline + localStorage. El user
-  // ve su logo SIEMPRE · aunque el backend no responda. Cliente reportó
-  // "cuando subo la foto me dice que el backend no responde".
+  // (b143) · Fix "hace como que va a cargar pero no termina" · cliente
+  // reportó que el spinner se quedaba indefinido. Root cause: las llamadas
+  // a sb.storage.upload y Workspaces.update no tenían timeout · si el
+  // bucket falla por red/RLS sin devolver error, la promise nunca resuelve
+  // y el componente queda en uploading: true para siempre.
+  //
+  // Ahora · TODA llamada al backend va envuelta en Promise.race con
+  // timeout de 6s · pasado ese tiempo se asume fallo y se cae al fallback
+  // dataURL + localStorage. El upload TIENE garantía de resolver en
+  // máximo ~7s · jamás se cuelga.
+  const _withTimeout = (promise, ms, label) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error('timeout ' + ms + 'ms · ' + label)), ms
+    )),
+  ]);
+
   Workspaces.uploadLogo = async function(workspaceId, file) {
     if (!workspaceId || !file) return null;
+    console.log('[upload-logo] start · ws=', workspaceId, 'file=', file.name, file.size, 'bytes');
 
-    // 1) DataURL siempre · fallback que NO depende del backend
+    // 1) DataURL síncrono interno · NUNCA falla por red
     const dataUrl = await new Promise((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(String(r.result));
       r.onerror = reject;
       r.readAsDataURL(file);
     });
+    console.log('[upload-logo] dataURL ready ·', dataUrl.length, 'chars');
 
-    // 2) Intento Storage · si falla, usamos dataURL
+    // 2) Intento Storage CON TIMEOUT · si tarda > 6s asumimos colgado
     let publicUrl = null;
     try {
       const ext = (file.name && file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
       const path = workspaceId + '/logo.' + ext;
-      const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
-        upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '60',
-      });
-      if (upErr) throw upErr;
+      const upRes = await _withTimeout(
+        sb.storage.from('workspace-assets').upload(path, file, {
+          upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '60',
+        }),
+        6000,
+        'storage.upload'
+      );
+      if (upRes && upRes.error) throw upRes.error;
       const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
       publicUrl = (pub && pub.publicUrl) + '?v=' + Date.now();
+      console.log('[upload-logo] Storage OK · publicUrl=', publicUrl);
     } catch (err) {
       console.warn('[upload-logo] Storage falló · uso dataURL fallback:', err && (err.message || err));
     }
 
     const finalUrl = publicUrl || dataUrl;
 
-    // 3) Persistencia · solo intentamos update BD si tenemos una URL pública.
-    // Si solo tenemos dataURL (Storage falló) NO la guardamos en BD · puede
-    // romper por tamaño de campo (column text con límite, ~70KB-1MB en
-    // base64). Vamos solo a localStorage · sobrevive a recargas y el
-    // applyWorkspaceBranding lo lee como override.
+    // 3) Persistencia
     if (publicUrl) {
+      // Update BD también con timeout · si BD cuelga, al menos
+      // localStorage tiene la URL pública.
       try {
-        await Workspaces.update(workspaceId, { logo: publicUrl });
+        await _withTimeout(
+          Workspaces.update(workspaceId, { logo: publicUrl }),
+          4000,
+          'ws.update'
+        );
+        console.log('[upload-logo] BD update OK');
       } catch (e2) {
-        console.warn('[upload-logo] update BD falló · persisto en localStorage:', e2 && (e2.message || e2));
+        console.warn('[upload-logo] update BD falló · localStorage backup:', e2 && (e2.message || e2));
         try { localStorage.setItem('solid:ws-logo:' + workspaceId, publicUrl); } catch(_) {}
       }
     } else {
-      // Fallback dataURL · solo localStorage (NUNCA BD por tamaño)
+      // Solo dataURL · localStorage por wsId · applyWorkspaceBranding lo
+      // lee como override en próxima carga.
       try {
         localStorage.setItem('solid:ws-logo:' + workspaceId, dataUrl);
+        console.log('[upload-logo] dataURL guardado en localStorage');
       } catch (lsErr) {
-        // localStorage también puede fallar (quota) · al menos el logo se
-        // ve mientras dure la sesión (window.WORKSPACE_LOGO_URL inline).
         console.warn('[upload-logo] localStorage también falló:', lsErr && lsErr.message);
       }
     }
 
+    console.log('[upload-logo] done · returning URL of', finalUrl.length, 'chars');
     return finalUrl;
   };
   Workspaces.addMember = async function(workspaceId, userId, role) {

@@ -715,21 +715,48 @@ function WorkspaceLogoHero({ src, alt }) {
       return;
     }
     setUploading(true);
+    // (b143) Safety net · libera el spinner en 10s aunque uploadLogo nunca
+    // resuelva (defensa en profundidad · uploadLogo ya tiene timeout 6+4s).
+    const _safetyTimer = setTimeout(() => {
+      console.warn('[hero-logo] safety timeout · libero spinner');
+      setUploading(false);
+    }, 10000);
     try {
-      const url = await Promise.resolve(window.Workspaces.uploadLogo(wsId, f));
+      const url = await Promise.race([
+        Promise.resolve(window.Workspaces.uploadLogo(wsId, f)),
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error('upload total timeout 9s')), 9000
+        )),
+      ]);
       if (url) {
         window.WORKSPACE_LOGO_URL = url;
         try { window.dispatchEvent(new Event('workspace-branding-changed')); } catch(_) {}
         if (window.Toast) window.Toast.success('Logo actualizado');
       } else {
-        // uploadLogo devolvió null · ni Storage ni fallback funcionaron.
-        // Mostramos mensaje específico · ya hay un console.warn detallado.
         if (window.Toast) window.Toast.error('No se pudo guardar el logo · revisa la consola para detalles');
       }
     } catch (err) {
       console.error('[hero-logo] upload exception:', err);
-      if (window.Toast) window.Toast.error('Error al subir el logo: ' + (err && err.message || 'error desconocido'));
+      // Último recurso · convertimos el file a dataURL aquí mismo y lo
+      // guardamos en localStorage · el cliente al menos ve SU logo. Que
+      // es lo que pidió. Si el backend falla · que falle, pero la UI
+      // tiene que mostrar el cambio.
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        try { localStorage.setItem('solid:ws-logo:' + wsId, dataUrl); } catch(_) {}
+        window.WORKSPACE_LOGO_URL = dataUrl;
+        try { window.dispatchEvent(new Event('workspace-branding-changed')); } catch(_) {}
+        if (window.Toast) window.Toast.success('Logo guardado localmente · backend tardó demasiado');
+      } catch (e2) {
+        if (window.Toast) window.Toast.error('Error al subir el logo: ' + (err && err.message || 'error desconocido'));
+      }
     } finally {
+      clearTimeout(_safetyTimer);
       setUploading(false);
     }
   };
