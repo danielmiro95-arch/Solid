@@ -350,12 +350,19 @@
 
     // 4. DISPONIBLES · (b158) cliente aclaró: NO quitar la row entera,
     //    solo el subtítulo "reproducir directamente". El título se queda.
-    if (withVideo.length > 0) {
+    // (b162) cliente: "Disponibles tiene que mostrar las mismas pills que
+    // Tendencias pero en otro orden, con botón Inscribirse". Las que no
+    // están inscritas ya muestran "Inscribirse" automáticamente (NxCard
+    // demoActive && !isAssigned branch). Beyond Prompting tiene progress
+    // > 0 → isAssigned → botón "Reproducir" (correcto, ya está inscrito).
+    // Orden invertido respecto a trending para que se sienta distinto.
+    const availableIds = trending.slice().reverse();
+    if (availableIds.length > 0) {
       ROWS.push({
         key:'available',
         title: 'Disponibles',
         sub: '',
-        pillIds: withVideo,
+        pillIds: availableIds,
       });
     }
 
