@@ -7,7 +7,7 @@
 // Versión bumpeada con cada release que cambia el shell. Si subes la versión
 // borra los caches viejos en el activate().
 
-const VERSION = 'sgson-v1-20260602demo-b151';
+const VERSION = 'sgson-v1-20260602demo-b152';
 const SHELL_CACHE = VERSION + '-shell';
 const CDN_CACHE   = VERSION + '-cdn';
 
@@ -27,8 +27,20 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter(k => !k.startsWith(VERSION)).map(k => caches.delete(k))
-    )).then(() => self.clients.claim())
+      // (b152) · Limpieza AGRESIVA · borra TODOS los caches (no solo los de
+      // prefijo distinto) · cliente reportó "cambios no aparecen" durante
+      // varias iteraciones · cache vieja sobrevivía aunque la versión cambió.
+      keys.map(k => caches.delete(k))
+    )).then(() => self.clients.claim()).then(() => {
+      // Avisa a clientes que hubo update · ellos hacen reload una vez (en
+      // index.html script de control) sin que el user tenga que hacer
+      // Ctrl+Shift+R manual.
+      return self.clients.matchAll({ type: 'window' }).then(wins => {
+        wins.forEach(w => {
+          try { w.postMessage({ type: 'sw-updated', version: VERSION }); } catch(_) {}
+        });
+      });
+    })
   );
 });
 
