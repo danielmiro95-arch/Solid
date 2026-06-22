@@ -1270,18 +1270,13 @@ html[data-theme="dark"] .card:focus-visible {
    TENDENCIA · numbered row (editorial, NOT Netflix Top 10)
    ============================================================ */
 
-/* (b144) · cliente 4ª iteración · "se volvieron a perder · separa más las
-   cartas y mete los números ahí en negro". Las iteraciones anteriores
-   tenían padding-left mínimo y el número absoluto se tapaba con la card
-   siguiente. Ahora:
-   · gap 48px entre cards · separación claramente visible
-   · padding-left 56px en la cell · espacio dedicado al número
-   · número 32px negro centrado verticalmente · sin riesgo de quedar
-     fuera del viewport o tapado por otra card
-   · margin-right 0 (gap del flex lo gestiona) */
+/* (b145) · cliente 5ª iteración · "el número sigue sin salir". Pasamos
+   de position: absolute (donde se perdía detrás de algún stacking
+   context) a FLEX · trending-cell es flex row · número y card lado a
+   lado · imposible que se esconda. */
 .row-trending .rail-track {
-  align-items: center !important;
-  gap: 48px !important;
+  align-items: stretch !important;
+  gap: 32px !important;
   padding-top: 16px !important;
   padding-bottom: 16px !important;
   padding-left: 24px !important;
@@ -1289,24 +1284,29 @@ html[data-theme="dark"] .card:focus-visible {
 
 .trending-cell {
   flex: 0 0 auto !important;
-  position: relative !important;
-  padding-left: 56px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding-left: 0 !important;
   margin-right: 0 !important;
   overflow: visible !important;
+  position: relative !important;
 }
 
 .trending-num {
-  position: absolute !important;
-  left: 4px !important;
-  top: 50% !important;
-  bottom: auto !important;
-  transform: translateY(-50%) !important;
+  position: static !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 48px !important;
   font-family: var(--font-sans) !important;
   font-style: normal !important;
   font-weight: 800 !important;
-  font-size: 32px !important;
+  font-size: 36px !important;
   line-height: 1 !important;
-  letter-spacing: -0.01em !important;
+  letter-spacing: -0.02em !important;
   color: #000000 !important;
   -webkit-text-stroke: 0 !important;
   text-stroke: 0 !important;
@@ -1314,22 +1314,17 @@ html[data-theme="dark"] .card:focus-visible {
   background: none !important;
   user-select: none;
   pointer-events: none;
-  z-index: 5 !important;
   white-space: nowrap;
-  display: block !important;
-  min-width: 44px !important;
 }
 /* Dark · #fff porque negro no contrasta sobre navy */
 html[data-theme="dark"] .trending-num {
   color: #FFFFFF !important;
-  -webkit-text-stroke: 0 !important;
-  text-stroke: 0 !important;
 }
 
 .trending-cell .card {
   width: 260px;
+  flex: 0 0 260px;
   position: relative;
-  z-index: 1;
 }
 
 /* ============================================================

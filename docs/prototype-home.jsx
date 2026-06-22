@@ -1233,14 +1233,25 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
       )}
 
       <div className="card-body">
-        <h3 className="card-title">{pill.title}</h3>
+        {/* (b145) Defensa de render · si alguna pill llega sin pasar por
+            el adapter (cache antigua), limpiamos el prefijo "Pil N" del
+            título y normalizamos "Básico"→"Intermedio" aquí mismo.
+            Idempotente · no hace daño si ya está limpio. */}
+        <h3 className="card-title">{(() => {
+          const raw = String(pill.title || '');
+          return raw.replace(/^\s*pi+l+\s*\d+(\.\d+)?\s*[-·:.]?\s*(de\s+)?/i, '').trim() || raw;
+        })()}</h3>
         <div className="card-meta">
-          {/* En demo · sólo nivel (sin duración · sin "·" separador) */}
           {!demoActive && !(window.DemoMode && window.DemoMode.flag('hide_durations') === true) && <>
             <span>{pill.duration}</span>
             <span className="sep">·</span>
           </>}
-          <span>{demoActive && pill.level ? `Nivel ${pill.level}` : pill.level}</span>
+          <span>{(() => {
+            const raw = String(pill.level || '').toLowerCase().trim();
+            const norm = (raw === 'básico' || raw === 'basico' || raw === 'principiante' || raw === 'beginner')
+              ? 'Intermedio' : pill.level;
+            return demoActive && norm ? `Nivel ${norm}` : norm;
+          })()}</span>
         </div>
       </div>
 
