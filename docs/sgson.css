@@ -1354,11 +1354,23 @@ html[data-theme="dark"] .trending-num {
   color: #FFFFFF !important;
 }
 
+/* (b169) Cliente: cards de Tendencias más grandes · más cuadradas ·
+   sienten como la fila más importante de la pantalla. 260 → 340px
+   ancho · aspect-ratio 5/6 leve vertical (no full square que rompería
+   el ratio del poster). */
 .trending-cell .card {
-  width: 260px;
-  flex: 0 0 260px;
+  width: 340px !important;
+  flex: 0 0 340px !important;
   position: relative;
+  aspect-ratio: 5 / 6;
+  min-height: 408px;
 }
+.trending-cell .card .card-cover,
+.trending-cell .card > img {
+  height: auto !important;
+}
+.trending-cell .card .card-body { padding: 18px 18px 64px; }
+.trending-cell .card .card-title { font-size: 17px; line-height: 1.25; }
 
 /* ============================================================
    FOOTER STRIP

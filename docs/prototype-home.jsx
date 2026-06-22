@@ -1616,9 +1616,9 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
                 }}>
                   <span style={{
                     display:'inline-flex', alignItems:'center', justifyContent:'center',
-                    minWidth:80, flex:'0 0 auto',
+                    minWidth:96, flex:'0 0 auto',
                     fontFamily:'Inter, sans-serif',
-                    fontWeight:900, fontSize:64, lineHeight:1, letterSpacing:'-0.03em',
+                    fontWeight:900, fontSize:80, lineHeight:1, letterSpacing:'-0.04em',
                     color:_numColor,
                     userSelect:'none', whiteSpace:'nowrap',
                   }}>{String(i+1).padStart(2,'0')}</span>
