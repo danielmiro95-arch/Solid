@@ -1270,47 +1270,46 @@ html[data-theme="dark"] .card:focus-visible {
    TENDENCIA · numbered row (editorial, NOT Netflix Top 10)
    ============================================================ */
 
-/* (b140) · cliente pidió "números más chiquitos y en negro" · pasamos
-   de 220px verde fantasma con stroke → 100px negro sólido sin stroke. Como
-   son más pequeños, ya no necesitan tanto padding ni desbordar la card. */
+/* (b141) · cliente · "chiquitico y en negro, más chiquito y en negro" ·
+   reducimos de 100px → 32px sans · negro sólido #000 · estilo numerito de
+   ranking discreto · ya no es decoración tipográfica fantasma. */
 .row-trending .rail-track {
-  align-items: center;
-  gap: 0;
-  padding-top: 14px;
-  padding-bottom: 40px;
-  padding-left: 70px;
+  align-items: flex-end;
+  gap: var(--s-2);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 24px;
 }
 
 .trending-cell {
   flex: 0 0 auto;
   position: relative;
-  padding-left: 60px;
-  margin-right: var(--s-3);
+  padding-left: 38px;
+  margin-right: var(--s-2);
   overflow: visible;
 }
 
 .trending-num {
   position: absolute;
-  left: -12px;
-  bottom: -14px;
-  font-family: var(--font-serif);
+  left: 0;
+  bottom: 12px;
+  font-family: var(--font-sans);
   font-style: normal;
-  font-weight: 700;
-  font-size: 100px;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
-  /* Negro sólido · sin stroke · legible en light. En dark se invierte. */
-  color: rgba(0, 0, 0, 0.88);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #000;
   -webkit-text-stroke: 0;
   text-stroke: 0;
   user-select: none;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
   white-space: nowrap;
 }
-/* Dark · negro no contrasta sobre navy · invertimos a blanco translúcido. */
+/* Dark · #fff porque negro no se ve sobre navy */
 html[data-theme="dark"] .trending-num {
-  color: rgba(255, 255, 255, 0.85);
+  color: #FFFFFF;
   -webkit-text-stroke: 0;
   text-stroke: 0;
 }

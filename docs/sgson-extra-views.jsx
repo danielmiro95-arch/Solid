@@ -121,7 +121,10 @@ function BrowseView({ openDetail }) {
               <div className={`card-cover cat-${slug}`}/>
               {p.yt && <img src={`https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`} alt="" style={{position:'absolute', inset:0, width:'100%', height:'56.25%', objectFit:'cover'}} onError={e => { e.currentTarget.style.display='none'; }}/>}
               <div className="card-grad"/>
-              <span className="card-pill-num">{String(p.category).toUpperCase()} · {p.pill}</span>
+              {/* (b141) · cliente: "ya en el catálogo no debe salir el nombre
+                  de las PIL" · en demo escondemos el sufijo · {p.pill} que
+                  salía como "MARKETING · 12" y el cliente lo leía como PIL 12 */}
+              <span className="card-pill-num">{String(p.category).toUpperCase()}{!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive()) ? ` · ${p.pill}` : ''}</span>
               <div className="card-body">
                 <h3 className="card-title">{p.title}</h3>
                 <div className="card-meta">
@@ -765,7 +768,7 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
                 <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
                   <div className={`card-cover cat-${slug}`}/>
                   <div className="card-grad"/>
-                  <span className="card-pill-num">{String(p.category).toUpperCase()} · {p.pill}</span>
+                  <span className="card-pill-num">{String(p.category).toUpperCase()}{!_isDemo ? ` · ${p.pill}` : ''}</span>
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">

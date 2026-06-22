@@ -684,8 +684,16 @@ function TopNav({ view, onView, onSearch, onLogout }) {
 function WorkspaceLogoHero({ src, alt }) {
   const fileRef = React.useRef(null);
   const [uploading, setUploading] = React.useState(false);
+  // (b141) · cliente reportó "sigue sin poder subir la foto de Hijos de
+  // Rivera" · el check anterior exigía role 'owner'/'admin' del workspace
+  // específico · si el user es platform admin pero NO miembro explícito de
+  // ese ws, fallaba. Ahora · cualquier user con permiso admin.viewPanel
+  // (Auth.can) puede subir el logo · captura el caso platform admin que
+  // gestiona varios tenants sin ser owner formal de cada uno.
   const role = (window.Workspaces && window.Workspaces.currentRole && window.Workspaces.currentRole()) || null;
-  const canEdit = role === 'owner' || role === 'admin';
+  const canByRole = role === 'owner' || role === 'admin';
+  const canByAuth = !!(window.Auth && window.Auth.can && window.Auth.can('admin.viewPanel'));
+  const canEdit = canByRole || canByAuth;
 
   const onClick = (e) => {
     if (!canEdit || uploading) return;
@@ -698,7 +706,7 @@ function WorkspaceLogoHero({ src, alt }) {
     e.target.value = '';
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) {
-      if (window.Toast) window.Toast.error('El logo no puede pesar más de 5MB');
+      if (window.Toast) window.Toast.error('El logo no puede pesar más de 5MB · comprime la imagen');
       return;
     }
     const wsId = window.Workspaces && window.Workspaces.currentId && window.Workspaces.currentId();
@@ -712,10 +720,15 @@ function WorkspaceLogoHero({ src, alt }) {
       if (url) {
         window.WORKSPACE_LOGO_URL = url;
         try { window.dispatchEvent(new Event('workspace-branding-changed')); } catch(_) {}
-        if (window.Toast) window.Toast.success('Logo actualizado · todas las cabeceras refrescadas');
+        if (window.Toast) window.Toast.success('Logo actualizado');
+      } else {
+        // uploadLogo devolvió null · ni Storage ni fallback funcionaron.
+        // Mostramos mensaje específico · ya hay un console.warn detallado.
+        if (window.Toast) window.Toast.error('No se pudo guardar el logo · revisa la consola para detalles');
       }
     } catch (err) {
-      if (window.Toast) window.Toast.error('No se pudo subir el logo: ' + (err && err.message || ''));
+      console.error('[hero-logo] upload exception:', err);
+      if (window.Toast) window.Toast.error('Error al subir el logo: ' + (err && err.message || 'error desconocido'));
     } finally {
       setUploading(false);
     }
@@ -781,7 +794,15 @@ function HomeHero({ onPlay, onMore }) {
     const _isDemoURL = /demo/i.test(window.location.href);
     const dm = window.DemoMode;
     if (_isDemoURL || (dm && dm.isActive && dm.isActive())) {
+      // (b141) Filtro live · excluye pills archivadas/borradas/draft que
+      // el cliente eliminó desde el panel admin pero seguían apareciendo
+      // en el carrusel del hero. Defensivo · verifica varios campos del
+      // schema según versión.
+      const _isLive = (p) => !p.archived && !p.archived_at && !p.deleted_at
+                          && p.status !== 'archived' && p.status !== 'deleted'
+                          && p.status !== 'draft';
       const tendencias = PILLS
+        .filter(_isLive)
         .filter(p => /tendencias?/i.test(String(p.category || ''))
                   || /^tendencia-/i.test(String(p.id || p.slug || '')))
         .sort((a, b) => (a.position || a.pill_number || 0) - (b.position || b.pill_number || 0));

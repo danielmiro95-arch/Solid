@@ -139,11 +139,23 @@
     const inProgress = (_bp ? [_bp, ..._inProgress] : _inProgress)
       .map(p => p.id)
       .slice(0, 1);
-    const withVideo       = PILLS.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
-    const trending        = PILLS.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);
-    const careIds         = PILLS.filter(p => p.category === 'Care' || p.category === 'Aprobaciones').map(p => p.id).slice(0, 10);
-    const analyticsIds    = PILLS.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').map(p => p.id).slice(0, 10);
-    const newIds          = PILLS.slice(-12).reverse().map(p => p.id);
+    // (b141) · cliente reportó "en Tendencias aparecen pills que hemos
+    // borrado" · root cause: el filtro de trending solo ordenaba por
+    // enrolled sin excluir pills archivadas/borradas. Helper común que
+    // verifica varios campos defensivos (BD puede usar archived/
+    // archived_at/deleted_at/status='archived' según versión del schema).
+    const _isLive = (p) => !p.archived
+                        && !p.archived_at
+                        && !p.deleted_at
+                        && p.status !== 'archived'
+                        && p.status !== 'deleted'
+                        && p.status !== 'draft';
+    const _livePills = PILLS.filter(_isLive);
+    const withVideo       = _livePills.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
+    const trending        = _livePills.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);
+    const careIds         = _livePills.filter(p => p.category === 'Care' || p.category === 'Aprobaciones').map(p => p.id).slice(0, 10);
+    const analyticsIds    = _livePills.filter(p => p.category === 'Analytics' || p.category === 'Integraciones').map(p => p.id).slice(0, 10);
+    const newIds          = _livePills.slice(-12).reverse().map(p => p.id);
 
     // ── ROWS · orden definido en el spec del producto ──
     // 1. Sigue formándote (cursos en progreso)
