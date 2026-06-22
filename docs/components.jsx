@@ -2,7 +2,7 @@
 
 const { useState: _useStateC, useRef: _useRefC, useEffect: _useEffectC } = React;
 
-const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
+const LEVEL_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', 'intermedio-alto': 'Intermedio-alto', avanzado: 'Avanzado' };
 
 const CATEGORY_COLORS = {
   'Fundamentos':    '#0072BE',
@@ -169,7 +169,7 @@ const Card = ({ tone = 'noir', pill, title, one, teacher, duration, progress = 0
             <span className="th1ng-text">{one}</span>
           </div>
         )}
-        <div className="card-instructor">{teacher}</div>
+        <div className="card-instructor">Dirección del programa: Alicia Chavero</div>
         {rating && (
           <div className="card-rating">
             <span className="card-stars">{'★'.repeat(Math.round(rating))}{'☆'.repeat(5-Math.round(rating))}</span>

@@ -817,7 +817,7 @@ function HomeHero({ onPlay, onMore }) {
           if (demoActive && p.progress > 0 && p.progress < 1) {
             return <>
               <span className="label">Seguir viendo</span>
-              <span className="value">{Math.round(p.progress * 100)}% · {p.teacher}</span>
+              <span className="value">{Math.round(p.progress * 100)}% · Alicia Chavero</span>
               <span className="stroke"/>
             </>;
           }
@@ -838,7 +838,7 @@ function HomeHero({ onPlay, onMore }) {
             return demoActive
               ? <span className="meta">{cat.label}</span>
               : <>
-                  <span className="pillmark">Think Pill · {p.pill}</span>
+                  <span className="pillmark">Curso · {p.pill}</span>
                   <span className="sep"/>
                   <span className="meta">{cat.label}</span>
                 </>;
@@ -1777,7 +1777,7 @@ function Home({ openDetail, openPlayer, setView, openPath }) {
         <div style={{fontSize:14}}>
           {(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive())
             ? 'Preparando tus cursos…'
-            : 'Preparando Think Pills…'}
+            : 'Preparando cursos…'}
         </div>
       </div>
     );

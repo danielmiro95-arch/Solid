@@ -95,11 +95,11 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
           <div className="dm-hero-content">
             {_isDemo
               ? <span className="dm-chip">{cat.label}</span>
-              : <span className="dm-chip"><strong>Think Pill · {pill.pill}</strong> · {cat.label}</span>}
+              : <span className="dm-chip"><strong>Curso · {pill.pill}</strong> · {cat.label}</span>}
             <h2 id="dm-title" className="dm-title">{pill.title}</h2>
             {pill.one && !_isDemo && <p className="dm-quote">"{pill.one}."</p>}
             <div className="dm-hero-meta">
-              {pill.teacher && <span>{pill.teacher}</span>}
+              <span>Dirección del programa: Alicia Chavero</span>
               {pill.level && <span>· Nivel {pill.level}</span>}
               {!_hideDur && pill.duration && <span>· {pill.duration}</span>}
               {pill.rating && !_isDemo && <span>· ★ {pill.rating && pill.rating.toFixed ? pill.rating.toFixed(1) : pill.rating}</span>}
@@ -143,14 +143,14 @@ function DetailModal({ pill, onClose, openPlayer, openPill }) {
           {/* Aside completo (profesor/tags/ruta) solo fuera de demo. */}
           {!_isDemo && (
             <section className="dm-card dm-span-2">
-              <h3 className="dm-card-h">Profesor &amp; etiquetas</h3>
+              <h3 className="dm-card-h">Dirección del programa &amp; etiquetas</h3>
               <div style={{ display:'flex', gap: 18, flexWrap:'wrap', alignItems:'flex-start' }}>
                 <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
                   <div style={{ width:42, height:42, borderRadius:'50%', background:'var(--accent)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 700, fontSize: 14 }}>
-                    {pill.teacher ? pill.teacher.split(/\s+/).slice(0,2).map(p => p[0]).join('') : '?'}
+                    AC
                   </div>
                   <div>
-                    <div style={{ fontWeight: 600, color:'var(--fg)', fontSize: 14 }}>{pill.teacher || '—'}</div>
+                    <div style={{ fontWeight: 600, color:'var(--fg)', fontSize: 14 }}>Alicia Chavero</div>
                     <div style={{ fontSize: 12, color:'var(--fg-muted)' }}>{cat.label} · ruta del módulo</div>
                   </div>
                 </div>

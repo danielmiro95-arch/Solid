@@ -5569,7 +5569,7 @@ const ACTIVITY_LABELS = {
   signup:           { icon: '🎉', verb: 'se registró',          color: 'var(--bn-lime-dark)' },
   login:            { icon: '🔑', verb: 'inició sesión',        color: 'var(--bn-blue)' },
   logout:           { icon: '🚪', verb: 'cerró sesión',         color: 'var(--ink-4)' },
-  complete_pill:    { icon: '✓',  verb: 'completó la pill',     color: 'var(--bn-lime-dark)' },
+  complete_pill:    { icon: '✓',  verb: 'completó el curso',    color: 'var(--bn-lime-dark)' },
   submit_video:     { icon: '🎬', verb: 'envió entrega de',     color: 'var(--bn-purple)' },
   review_submission:{ icon: '👀', verb: 'revisó entrega de',    color: 'var(--bn-blue)' },
   send_invite:      { icon: '✉',  verb: 'invitó a',             color: 'var(--bn-orange)' },
@@ -6447,7 +6447,7 @@ const ROUTE_EXAM_BANK = {
     title: 'Examen final · Fundamentals',
     questions: [
       { q: '¿Cuál es el rol que aprueba contenido antes de publicar en redes corporativas?', options: ['Publish Agent', 'Content Lead', 'Care Agent', 'Analytics Lead'], answer: 1 },
-      { q: '¿Cuántas Think Pills cubre el bloque 1+2 (Fundamentos)?', options: ['3 pills', '6 pills', '10 pills', '12 pills'], answer: 1 },
+      { q: '¿Cuántos cursos cubre el bloque 1+2 (Fundamentos)?', options: ['3 cursos', '6 cursos', '10 cursos', '12 cursos'], answer: 1 },
       { q: '¿Qué módulo de Sprinklr se usa para gestionar activos digitales reutilizables?', options: ['Social Publish', 'DAM (Digital Asset Management)', 'Care', 'Reporting'], answer: 1 },
     ],
   },

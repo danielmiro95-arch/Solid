@@ -123,7 +123,15 @@
     const _dmActive = _isDemoURL || (_dm && _dm.isActive && _dm.isActive());
 
     // ── ROWS · estructura de filas Home del rediseño ──
-    const inProgress      = PILLS.filter(p => p.progress > 0 && p.progress < 1).map(p => p.id).slice(0, 8);
+    // "Sigue formándote" · solo el último curso en progreso (no varios)
+    // Petición del cliente: "no puedes estar viendo 4-5 a la vez, solo 1".
+    // Ordenado por última actualización si existe lastUpdated · si no, por
+    // mayor progreso (probablemente el más reciente que se ha visto).
+    const inProgress      = PILLS
+      .filter(p => p.progress > 0 && p.progress < 1)
+      .sort((a, b) => (b.lastUpdated || b.progress || 0) - (a.lastUpdated || a.progress || 0))
+      .map(p => p.id)
+      .slice(0, 1);
     const withVideo       = PILLS.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
     const trending        = PILLS.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);
     const careIds         = PILLS.filter(p => p.category === 'Care' || p.category === 'Aprobaciones').map(p => p.id).slice(0, 10);
