@@ -385,6 +385,25 @@ function Player({ back, item }) {
   return (
     <div className="player-root">
       <div className="player-stage" ref={playerStageRef}>
+        {/* Workspace logo overlay (b135) · arriba-derecha del vídeo. Usa
+            el logo subido en el panel admin del workspace · fallback al
+            beonit si el workspace no tiene logo configurado. El admin
+            puede agregar/modificar/eliminar el logo desde el panel
+            Workspaces (WorkspacesPanel). */}
+        {(() => {
+          const wsLogo = window.WORKSPACE_LOGO_URL || null;
+          const logoSrc = wsLogo || ('beonit-logo.png?v=' + (window.SOLID_VERSION || 'init'));
+          const logoAlt = wsLogo ? (window.WORKSPACE_NAME || 'workspace') : 'beonit';
+          return (
+            <img src={logoSrc} alt={logoAlt} className="player-ws-logo"
+              style={{
+                position: 'absolute', top: 18, right: 18, zIndex: 4,
+                height: 36, width: 'auto', maxWidth: 160, objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.55))',
+                pointerEvents: 'none', userSelect: 'none',
+              }}/>
+          );
+        })()}
         <button onClick={toggleFullscreen} className="player-fullscreen-btn" title="Pantalla completa" aria-label="Pantalla completa">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/>

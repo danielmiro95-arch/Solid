@@ -426,7 +426,7 @@ function RutasView({ setView, openPath }) {
               onError={e => { e.currentTarget.style.display='none'; }}/>
             <div className="card-grad"/>
             <span className="card-pill-num" style={{ top: 16, left: 16 }}>
-              {pathLabelSingular} · {p.completedCount || 0}/{p.totalCount || p.pills} pills{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
+              {pathLabelSingular} · {p.totalCount || p.pills} cursos{!(_dm && _dm.flag('hide_durations') === true) ? ` · ${p.hours}` : ''}
             </span>
             {p.isCompleted && !isLocked && (
               <span style={{ position:'absolute', top:16, right:16, padding:'4px 10px', background:'var(--ok, #1E9E5A)', color:'#fff',
@@ -666,8 +666,8 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
       sub={_isDemo
         ? '' /* en demo · sin "X/N pills · N% del programa" (eliminado en reunión) */
         : (path
-          ? `${pDesc} · ${completed.length}/${PILLS.length} pills · ${totalProgress}%`
-          : `${completed.length} de ${PILLS.length} pills completadas · ${totalProgress}% del programa`)}
+          ? `${pDesc} · ${PILLS.length} cursos`
+          : `${PILLS.length} cursos disponibles`)}
       actions={path && setView ? (
         <div style={{ display:'flex', gap: 10 }}>
           {totalProgress >= 70 && (window.AIQuizModal || window.RouteExamModal) && (
@@ -2268,46 +2268,107 @@ function InboxView({ openDetail }) {
 /* ============================================================
    SavedView · bookmarks grid
    ============================================================ */
-function SavedView({ openDetail }) {
+function SavedView({ openDetail, openPath }) {
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
   const D = window.SGS_DATA;
   const PILLS = (D && D.PILLS) || [];
+  const PATHS = (D && D.LEARNING_PATHS) || [];
+
+  // Bookmarks (compartido pills + cursos) y Enrollments (cursos inscritos).
+  // Reactivos a sus eventos respectivos para que el contador suba al vuelo.
   const [bmIds, setBmIds] = useEV2(() => (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
+  const [, setEnrTick] = useEV2(0);
   useEE2(() => {
-    const onChange = () => setBmIds((window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
-    window.addEventListener('bookmarks-changed', onChange);
-    return () => window.removeEventListener('bookmarks-changed', onChange);
+    const onBm = () => setBmIds((window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
+    const onEn = () => setEnrTick(t => t + 1);
+    window.addEventListener('bookmarks-changed', onBm);
+    window.addEventListener('enrollments-changed', onEn);
+    return () => {
+      window.removeEventListener('bookmarks-changed', onBm);
+      window.removeEventListener('enrollments-changed', onEn);
+    };
   }, []);
-  const saved = PILLS.filter(p => bmIds.includes(p.id));
+
+  // Filtros · Bookmarks guarda ids tanto de pill como de path · separamos por
+  // colección. Enrollments solo tiene paths (cursos inscritos).
+  const savedPills   = PILLS.filter(p => bmIds.includes(p.id));
+  const savedCourses = PATHS.filter(p => bmIds.includes(p.id || p._id));
+  const enrolled     = PATHS.filter(p => {
+    if (!window.Enrollments || !window.Enrollments.has) return false;
+    return window.Enrollments.has(p.id || p._id);
+  });
+
+  // Tab activo · default Pills favoritas si tiene · si no, primer no-vacío.
+  const tabs = [
+    { id: 'pills',    label: 'Pills favoritas',  items: savedPills,   kind: 'pill'   },
+    { id: 'courses',  label: 'Cursos favoritos', items: savedCourses, kind: 'course' },
+    { id: 'enrolled', label: 'Cursos inscritos', items: enrolled,     kind: 'course' },
+  ];
+  const _initialTab = tabs.find(t => t.items.length > 0) || tabs[0];
+  const [activeTab, setActiveTab] = useEV2(_initialTab.id);
+  const current = tabs.find(t => t.id === activeTab) || tabs[0];
+
+  const renderCard = (p) => {
+    const slug = _slug(p.category || p.badge || '');
+    const onClick = () => {
+      if (current.kind === 'course' && openPath) openPath(p.id || p._id);
+      else if (openDetail) openDetail(p);
+    };
+    const poster = p.poster || p.posterUrl || (p.yt ? `https://i.ytimg.com/vi/${p.yt}/hqdefault.jpg` : '');
+    return (
+      <article key={p.id || p._id} className="card" onClick={onClick} style={{ cursor: 'pointer' }}>
+        <div className={`card-cover cat-${slug}`} style={poster ? { backgroundImage: `url(${poster})` } : undefined}/>
+        <div className="card-grad"/>
+        <span className="card-pill-num">{String(p.category || p.badge || '').toUpperCase()}{p.pill != null ? ` · ${p.pill}` : ''}</span>
+        <div className="card-body">
+          <h3 className="card-title">{p.title}</h3>
+          <div className="card-meta">
+            {p.duration && <><span>{p.duration}</span><span className="sep">·</span></>}
+            {p.level && <span>{p.level}</span>}
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <PageShell
       eyebrow={T('saved.eyebrow')}
-      title={<>{T('saved.title')}</>}
-      sub={`${saved.length} ${T('saved.count')}`}>
+      title={<>Mi lista</>}
+      sub="favoritos e inscripciones">
 
-      {saved.length === 0 ? (
-        <div style={{ padding: 80, textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-2)' }}>
+      {/* Tabs · píldoras corporativas verde · igual estilo que filtros del catálogo */}
+      <div style={{ display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+        {tabs.map(t => {
+          const on = t.id === activeTab;
+          return (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              padding:'9px 18px', fontFamily:'var(--font-sans)', fontSize: 13, fontWeight: 600,
+              background: on ? 'var(--accent)' : 'var(--bg-surface)',
+              color: on ? '#fff' : 'var(--fg-muted)',
+              border:'1px solid ' + (on ? 'var(--accent)' : 'var(--line)'),
+              borderRadius: 999, cursor: 'pointer', transition: 'all .15s',
+              boxShadow: on ? '0 4px 12px rgba(0,98,65,0.28)' : 'none',
+            }}>
+              {t.label} <span style={{ opacity: 0.6, marginLeft: 6, fontWeight: 500 }}>· {t.items.length}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {current.items.length === 0 ? (
+        <div style={{ padding: 80, textAlign:'center', background:'var(--bg-surface)', border:'1px solid var(--line)', borderRadius:'var(--r-2)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>🔖</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg)', marginBottom: 6 }}>{T('saved.empty')}</div>
-          <div style={{ fontSize: 13.5, color: 'var(--fg-muted)' }}>{T('saved.emptyDesc')}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color:'var(--fg)', marginBottom: 6 }}>Aún no tienes nada en {current.label.toLowerCase()}</div>
+          <div style={{ fontSize: 13.5, color:'var(--fg-muted)' }}>
+            {current.id === 'enrolled'
+              ? 'Inscríbete en un curso desde el catálogo y aparecerá aquí.'
+              : 'Marca como favorito desde cualquier ' + (current.id === 'pills' ? 'pill' : 'curso') + ' del catálogo.'}
+          </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-          {saved.map(p => {
-            const slug = _slug(p.category);
-            return (
-              <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
-                <div className={`card-cover cat-${slug}`}/>
-                <div className="card-grad"/>
-                <span className="card-pill-num">{String(p.category).toUpperCase()} · {p.pill}</span>
-                <div className="card-body">
-                  <h3 className="card-title">{p.title}</h3>
-                  <div className="card-meta"><span>{p.duration}</span><span className="sep">·</span><span>{p.level}</span></div>
-                </div>
-              </article>
-            );
-          })}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+          {current.items.map(renderCard)}
         </div>
       )}
     </PageShell>
@@ -3685,7 +3746,7 @@ function CertificatesView({ setView }) {
                 {p.title}
               </h3>
               <div style={{ fontSize:12, color:'var(--fg-muted)' }}>
-                {p.completedCount || 0} de {p.totalCount || p.pills} pills completadas
+                {p.totalCount || p.pills} cursos
               </div>
 
               {/* Barra de progreso para mostrar lo que falta */}
