@@ -692,16 +692,29 @@ function HomeHero({ onPlay, onMore }) {
                   || /^tendencia-/i.test(String(p.id || p.slug || '')))
         .sort((a, b) => (a.position || a.pill_number || 0) - (b.position || b.pill_number || 0));
       if (tendencias.length > 0) return tendencias;
-      // Fallback si aún no hay pills de tendencias en DB
+      // Fallback si aún no hay pills de tendencias en DB · prioridad:
+      // 1) Beyond Prompting (b136 · cliente lo pidió como destacado)
+      // 2) En progreso del user · 3) featured · 4) primera
+      const beyond = PILLS.find(p => /beyond\s*prompt/i.test(String(p.title || '')));
       const inProgress = PILLS.find(p => p.progress > 0 && p.progress < 1);
-      const f = inProgress || PILLS.find(p => p.featured) || PILLS[0];
+      const f = beyond || inProgress || PILLS.find(p => p.featured) || PILLS[0];
       return f ? [f] : [];
     }
     // Pills con flag `featured: true` van primero (decisión del admin sobre
     // cuál destacar en el hero). El resto se rellena con pills con vídeo y,
     // si no hay suficientes, las más populares por `enrolled`.
+    //
+    // (b136) Promoción explícita del curso "Beyond Prompting" pedida por el
+    // cliente · si existe una pill cuyo título contenga "beyond prompting",
+    // va PRIMERA en el hero sin importar el flag featured. Heurística
+    // simple para que aparezca destacada sin tocar BD.
+    const _isBeyondPrompting = (p) => /beyond\s*prompt/i.test(String(p.title || ''));
     const withVid = PILLS.filter(p => p.yt || p.mp4)
-      .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      .sort((a, b) => {
+        if (_isBeyondPrompting(a) && !_isBeyondPrompting(b)) return -1;
+        if (_isBeyondPrompting(b) && !_isBeyondPrompting(a)) return 1;
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      });
     if (withVid.length >= 4) return withVid.slice(0, 4);
     const fill = PILLS.slice().sort((a,b) => (b.enrolled||0)-(a.enrolled||0));
     const ids = new Set(withVid.map(p => p.id));
