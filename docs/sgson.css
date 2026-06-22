@@ -974,7 +974,9 @@ img { display: block; max-width: 100%; }
 .rail-track {
   display: flex;
   gap: var(--row-gap);
-  padding: 8px var(--row-pad) 80px;
+  /* Apple TV (b131) · padding-top subido a 22px para acomodar el scale 1.08
+     en hover sin que la card se recorte con la fila superior. */
+  padding: 22px var(--row-pad) 80px;
 }
 
 .rail-arrow {
@@ -1018,33 +1020,52 @@ img { display: block; max-width: 100%; }
 .card {
   flex: 0 0 var(--card-w);
   width: var(--card-w);
-  aspect-ratio: 16/9;
+  /* Apple TV style (b131) · más cuadradas (3:2 en vez de 16:9) ·
+     bordes más redondeados (18px) · sombra suave multicapa en reposo. */
+  aspect-ratio: 3 / 2;
   position: relative;
   background: var(--bg-surface);
-  border-radius: 12px;
+  border-radius: 18px;
   overflow: hidden;
   scroll-snap-align: start;
-  transition: transform var(--t-base) var(--ease-out),
-              box-shadow var(--t-base) var(--ease-out),
-              border-color var(--t-base) var(--ease-out);
+  transition: transform 260ms cubic-bezier(.2,.7,.2,1),
+              box-shadow 260ms cubic-bezier(.2,.7,.2,1),
+              border-color 200ms ease-out;
   cursor: pointer;
   border: 1px solid var(--line);
-  /* Light theme · sombra sutil tinta + halo cobalt apenas perceptible para
-     dar volumen sin ensuciar (Udacity cards). */
+  /* Sombra base · doble capa sutil (apple-like, no pesada) */
   box-shadow:
-    0 1px 2px rgba(11,18,38,0.05),
-    0 6px 18px rgba(11,18,38,0.06);
+    0 1px 2px rgba(11, 18, 38, 0.06),
+    0 8px 22px rgba(11, 18, 38, 0.08);
 }
 
-.card:hover {
-  transform: translateY(-6px) scale(1.025);
-  /* Halo cobalt en hover · refuerza el accent de la plataforma. */
+.card:hover,
+.card:focus-visible {
+  /* Apple TV focus · scale más fuerte (1.08), lift y sombra dramática.
+     z-index alto para que no quede tapada por adyacentes. */
+  transform: translateY(-8px) scale(1.08);
   box-shadow:
-    0 2px 4px rgba(11,18,38,0.06),
-    0 18px 34px rgba(11,18,38,0.14),
-    0 0 0 1px rgba(0, 98, 65,0.18);
-  border-color: rgba(0, 98, 65,0.45);
-  z-index: 5;
+    0 4px 8px rgba(11, 18, 38, 0.10),
+    0 24px 48px rgba(11, 18, 38, 0.22),
+    0 0 0 1px rgba(0, 98, 65, 0.28);
+  border-color: rgba(0, 98, 65, 0.55);
+  z-index: 10;
+  outline: none;
+}
+
+/* En dark, las sombras son más profundas (rgba negro puro para que se vean
+   sobre los navys oscuros). */
+html[data-theme="dark"] .card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 10px 26px rgba(0, 0, 0, 0.40);
+}
+html[data-theme="dark"] .card:hover,
+html[data-theme="dark"] .card:focus-visible {
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.40),
+    0 28px 52px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 98, 65, 0.45);
 }
 
 .card-cover {
