@@ -774,11 +774,15 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
         </div>
       )}
 
-      {/* En progreso · pills (sección 1/3 en demo: "Pills · continuar viendo") */}
-      {inProgress.length > 0 && (
+      {/* (b165) Sección "Sigue formándote" ELIMINADA de Mi Lista por
+          petición del cliente. Vive solo en el home como primera row.
+          En non-demo (vista de ruta concreta) tampoco se renderiza · si
+          se necesita reactivar fuera de demo, gatear este bloque con
+          !_isDemo. */}
+      {!_isDemo && inProgress.length > 0 && (
         <section style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Sigue formándote' : T('mypath.cont')}
+            {T('mypath.cont')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {inProgress.map(p => {
@@ -793,11 +797,10 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
                     onError={e => { e.currentTarget.style.display='none'; }}
                   />}
                   <div className="card-grad"/>
-                  <span className="card-pill-num">{String(p.category).toUpperCase()}{!_isDemo ? ` · ${p.pill}` : ''}</span>
+                  <span className="card-pill-num">{String(p.category).toUpperCase()} · {p.pill}</span>
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">
-                      {/* (b157) duración fuera · solo nivel */}
                       <span>{p.level}</span>
                     </div>
                   </div>
