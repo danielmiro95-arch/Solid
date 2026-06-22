@@ -320,21 +320,18 @@
     // (b142) Tendencias se MOVIÓ aquí abajo · cliente pidió que vaya
     // DESPUÉS de Recomendados · empuje el push al final de la función.
 
-    // 3. RECOMENDADOS PARA TI · 4 cursos fijos solicitados por el cliente
-    //    (b137) · "Gestión de Proyectos", "Comunicación y Feedback",
-    //    "Desarrollo de Personas", "Empoderar Equipos" (BLOQUEADO).
-    //    Match por título (case-insensitive, fuzzy contains). El consumidor
-    //    (NxRow con isPaths) ya filtra por _recommendedTitles cuando está ·
-    //    si un título no encuentra path en BD, sintetiza un stub bloqueado
-    //    para que aparezca como "próximamente" con candado.
+    // 3. RECOMENDADOS PARA TI · 3 cursos fijos solicitados por el cliente
+    //    (b160) · cliente quitó "Empoderar Equipos" (stub bloqueado) ·
+    //    quedan los 3 originales. "Desarrollo de Personas" debe matchear
+    //    el path REAL del catálogo (no el "Desarrollo de personas y
+    //    empoderar equipo" que es otro path con foto distinta).
     ROWS.push({
       key:'paths',
       title: _label('paths_recommended_label', 'Recomendados para ti'),
       sub:   _label('paths_recommended_sub', 'tu próxima ruta'),
       isPaths: true,
       _recommended: true,
-      _recommendedTitles: ['Gestión de Proyectos', 'Comunicación y Feedback', 'Desarrollo de Personas', 'Empoderar Equipos'],
-      _lockedTitles: ['Empoderar Equipos'],
+      _recommendedTitles: ['Gestión de Proyectos', 'Comunicación y Feedback', 'Desarrollo de Personas'],
     });
 
     // 3. TENDENCIAS DE LA SEMANA · (b142) movida AQUÍ · cliente: "tiene que
