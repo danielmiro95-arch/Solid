@@ -363,6 +363,7 @@
         title: 'Disponibles',
         sub: '',
         pillIds: availableIds,
+        forceEnroll: true,   // (b163) NxCard fuerza botón Inscribirse aquí
       });
     }
 
