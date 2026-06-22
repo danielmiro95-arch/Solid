@@ -3192,18 +3192,27 @@ function _activateSupabaseData() {
 
     const finalUrl = publicUrl || dataUrl;
 
-    // 3) Intento persistir en BD · si falla, localStorage por wsId
-    try {
-      await Workspaces.update(workspaceId, { logo: finalUrl });
-    } catch (e2) {
-      console.warn('[upload-logo] update BD falló · persisto en localStorage:', e2 && (e2.message || e2));
-      try { localStorage.setItem('solid:ws-logo:' + workspaceId, finalUrl); } catch(_) {}
-    }
-
-    // Si no pudimos subir a Storage · localStorage como red de seguridad
-    // (sobrevive a recarga aunque update BD haya ido OK por si revierte).
-    if (!publicUrl) {
-      try { localStorage.setItem('solid:ws-logo:' + workspaceId, finalUrl); } catch(_) {}
+    // 3) Persistencia · solo intentamos update BD si tenemos una URL pública.
+    // Si solo tenemos dataURL (Storage falló) NO la guardamos en BD · puede
+    // romper por tamaño de campo (column text con límite, ~70KB-1MB en
+    // base64). Vamos solo a localStorage · sobrevive a recargas y el
+    // applyWorkspaceBranding lo lee como override.
+    if (publicUrl) {
+      try {
+        await Workspaces.update(workspaceId, { logo: publicUrl });
+      } catch (e2) {
+        console.warn('[upload-logo] update BD falló · persisto en localStorage:', e2 && (e2.message || e2));
+        try { localStorage.setItem('solid:ws-logo:' + workspaceId, publicUrl); } catch(_) {}
+      }
+    } else {
+      // Fallback dataURL · solo localStorage (NUNCA BD por tamaño)
+      try {
+        localStorage.setItem('solid:ws-logo:' + workspaceId, dataUrl);
+      } catch (lsErr) {
+        // localStorage también puede fallar (quota) · al menos el logo se
+        // ve mientras dure la sesión (window.WORKSPACE_LOGO_URL inline).
+        console.warn('[upload-logo] localStorage también falló:', lsErr && lsErr.message);
+      }
     }
 
     return finalUrl;
