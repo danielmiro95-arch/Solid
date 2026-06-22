@@ -1110,7 +1110,7 @@ function _isPillLockedDemo(pill, forceUnlocked) {
   return idxGlobal >= 3;
 }
 
-function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
+function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked, forceEnroll }) {
   const D = window.SGS_DATA;
   const cat = (D && D.CATS && (D.CATS[pill.category] || D.CATS[_catSlugFix(pill.category)])) || { label: pill.category || 'Módulo' };
   const slug = _catSlugFix(pill.category);
@@ -1267,15 +1267,19 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
               <Ico name="info" size={12}/>
             </button>
           </>
-        ) : isAssigned || !demoActive ? (
+        ) : isAssigned ? (
+          /* Ya inscrito (progress > 0) · siempre Reproducir · vale para
+             Beyond Prompting que está en Sigue formándote. */
           <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
             <Ico name="play" size={12}/>
           </button>
-        ) : (
+        ) : (forceEnroll || demoActive) ? (
+          /* (b163) forceEnroll desde row Disponibles · O demo activo ·
+             muestra Inscribirse para cualquier pill no asignada. Antes
+             requería demoActive · ahora también si la row lo pide
+             explícitamente. */
           <button className="card-action primary" aria-label="Inscribirse" title="Inscribirse" onClick={(e) => {
             e.stopPropagation();
-            // Inscripción REAL · registra en Enrollments (antes solo toasteaba
-            // "te has inscrito" sin guardar nada → no aparecía en Mi Lista).
             const id = pill.pathId || pill.id;
             let added = false;
             if (window.Enrollments && window.Enrollments.add) added = window.Enrollments.add(id);
@@ -1283,6 +1287,12 @@ function NxCard({ pill, onOpen, showProgress, newBadge, forceUnlocked }) {
             onOpen(pill);
           }}>
             <Ico name="plus" size={12}/>
+          </button>
+        ) : (
+          /* Fuera de demo y sin forceEnroll · Reproducir (comportamiento
+             estándar de la app interna). */
+          <button className="card-action primary" aria-label="Reproducir" title="Reproducir" onClick={(e) => { e.stopPropagation(); onOpen(pill); }}>
+            <Ico name="play" size={12}/>
           </button>
         )}
         {/* Favorito · disponible incluso si bloqueada (per spec: "el botón
@@ -1636,7 +1646,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
           {row.pillIds.map(id => {
             const p = pillById(id);
             if (!p) return null;
-            return <NxCard key={id} pill={p} onOpen={onOpen} showProgress={row.showProgress} newBadge={row.newRow}/>;
+            return <NxCard key={id} pill={p} onOpen={onOpen} showProgress={row.showProgress} newBadge={row.newRow} forceEnroll={row.forceEnroll}/>;
           })}
         </div>
       </div>
