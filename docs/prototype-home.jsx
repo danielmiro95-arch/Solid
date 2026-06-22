@@ -478,7 +478,12 @@ function TopNav({ view, onView, onSearch, onLogout }) {
     { k:'settings',    label:T('nav.settings'), icon:'gear' },
   ];
   if (!isSimplified && canManager) menuItems.push({ k:'manager', label: T('nav.manager','Mi equipo'), icon:'users' });
-  if (!isSimplified && canAdmin)   menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });
+  // (b139) · cliente: "los ajustes de admin no salen en demo · añádelos
+  // para la visión solo de los admins". El item Admin se muestra siempre
+  // que el user tenga permiso · INDEPENDIENTE de simplified_avatar_menu.
+  // Sin esta línea · un admin entrando en URL demo perdía acceso al panel
+  // (workspaces, pills, users, settings · todo lo que hace cambios).
+  if (canAdmin)                    menuItems.push({ k:'admin',   label: T('nav.admin'),               icon:'shield' });
 
   return (
     <nav className={`topnav ${scrolled ? 'scrolled' : ''}`}>
