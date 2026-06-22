@@ -1378,7 +1378,18 @@ function applyWorkspaceBranding() {
       // cream del :root). El primaryColor del workspace ya NO se aplica
       // ni siquiera al "dot" del topnav · el dot usa var(--accent) global.
       // Solo el logo y el nombre del workspace varían por tenant.
-      window.WORKSPACE_LOGO_URL = b.logoUrl || null;
+      //
+      // (b140) · Fallback localStorage · si el upload del logo no pudo
+      // persistirse en Storage/BD (bucket missing, RLS, sin red) el cliente
+      // de uploadLogo lo guarda en localStorage solid:ws-logo:<wsId>. Lo
+      // leemos aquí como override · así el logo SOBREVIVE a recargas
+      // aunque el backend siga roto.
+      let _logoUrl = b.logoUrl || null;
+      try {
+        const _localLogo = localStorage.getItem('solid:ws-logo:' + b.id);
+        if (_localLogo) _logoUrl = _localLogo;
+      } catch(_) {}
+      window.WORKSPACE_LOGO_URL = _logoUrl;
       window.WORKSPACE_NAME = b.name;
       window.WORKSPACE_DOT_COLOR = null;
     } else {
@@ -3148,18 +3159,54 @@ function _activateSupabaseData() {
   // Sube un logo al bucket workspace-assets bajo path <ws_id>/logo.<ext> con
   // upsert · cachebust de 30s mediante query string. Actualiza logo_url en
   // la fila del workspace con la public URL.
+  //
+  // (b140) · Fallback robusto · si Storage o BD fallan (bucket missing,
+  // RLS denied, no network) caemos a dataURL inline + localStorage. El user
+  // ve su logo SIEMPRE · aunque el backend no responda. Cliente reportó
+  // "cuando subo la foto me dice que el backend no responde".
   Workspaces.uploadLogo = async function(workspaceId, file) {
     if (!workspaceId || !file) return null;
-    const ext = (file.name && file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
-    const path = workspaceId + '/logo.' + ext;
-    const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
-      upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '60',
+
+    // 1) DataURL siempre · fallback que NO depende del backend
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = reject;
+      r.readAsDataURL(file);
     });
-    if (upErr) { console.warn('[supa] upload logo', upErr.message); if (window.Toast) window.Toast.error('No se pudo subir el logo: ' + upErr.message); return null; }
-    const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
-    const url = (pub && pub.publicUrl) + '?v=' + Date.now();
-    await Workspaces.update(workspaceId, { logo: url });
-    return url;
+
+    // 2) Intento Storage · si falla, usamos dataURL
+    let publicUrl = null;
+    try {
+      const ext = (file.name && file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+      const path = workspaceId + '/logo.' + ext;
+      const { error: upErr } = await sb.storage.from('workspace-assets').upload(path, file, {
+        upsert: true, contentType: file.type || 'image/' + ext, cacheControl: '60',
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('workspace-assets').getPublicUrl(path);
+      publicUrl = (pub && pub.publicUrl) + '?v=' + Date.now();
+    } catch (err) {
+      console.warn('[upload-logo] Storage falló · uso dataURL fallback:', err && (err.message || err));
+    }
+
+    const finalUrl = publicUrl || dataUrl;
+
+    // 3) Intento persistir en BD · si falla, localStorage por wsId
+    try {
+      await Workspaces.update(workspaceId, { logo: finalUrl });
+    } catch (e2) {
+      console.warn('[upload-logo] update BD falló · persisto en localStorage:', e2 && (e2.message || e2));
+      try { localStorage.setItem('solid:ws-logo:' + workspaceId, finalUrl); } catch(_) {}
+    }
+
+    // Si no pudimos subir a Storage · localStorage como red de seguridad
+    // (sobrevive a recarga aunque update BD haya ido OK por si revierte).
+    if (!publicUrl) {
+      try { localStorage.setItem('solid:ws-logo:' + workspaceId, finalUrl); } catch(_) {}
+    }
+
+    return finalUrl;
   };
   Workspaces.addMember = async function(workspaceId, userId, role) {
     if (Workspaces.ROLES.indexOf(role) < 0) role = 'member';
