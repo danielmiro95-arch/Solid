@@ -163,31 +163,25 @@
       });
     }
 
-    // 2. RECOMENDADOS PARA TI (según rol)
-    // El orden se calcula con un score simple per path:
-    //   +3 · badge/desc match con el rol del user (lower-case)
-    //   +2 · path en progreso (continuidad)
-    //   +1 · path con bookmark (interés explícito)
-    // El recomendador real (embeddings, colaborativo) vive a futuro · esto es
-    // suficiente para una demo creíble: el rol de Marketing ve Marketing 1º,
-    // el de Tech ve Tech 1º, etc. Sin rol declarado → orden original.
+    // 2. RECOMENDADOS PARA TI · 3 cursos fijos solicitados por el cliente
+    //    (b135) · "Gestión de Proyectos", "Comunicación y Feedback",
+    //    "Desarrollo de Personas". Match por título (case-insensitive,
+    //    fuzzy contains). El consumidor (NxRow con isPaths) ya filtra
+    //    por _recommendedTitles cuando está · si no encuentra ningún
+    //    match cae al orden original de LEARNING_PATHS.
     ROWS.push({
       key:'paths',
       title: _label('paths_recommended_label', 'Recomendados para ti'),
-      sub:   _label('paths_recommended_sub', 'según tu rol'),
+      sub:   _label('paths_recommended_sub', 'tu próxima ruta'),
       isPaths: true,
       _recommended: true,
+      _recommendedTitles: ['Gestión de Proyectos', 'Comunicación y Feedback', 'Desarrollo de Personas'],
     });
 
-    // 3. TOP 10 CURSOS · [Nombre marca] · trending limitado a 10
-    const _brandName = (window.WORKSPACE_NAME || '').trim() || 'tu marca';
-    ROWS.push({
-      key:'trending',
-      title: 'Top 10 cursos · ' + _brandName,
-      sub: 'lo más visto esta semana',
-      pillIds: trending.slice(0, 10),
-      trending: true,
-    });
+    // 3. TOP 10 CURSOS · ELIMINADO (b135) · petición del cliente.
+    //    La row trending se retira del home · cards y números enormes ya
+    //    no aparecen. El bloque trending: true del NxRow queda como código
+    //    muerto · se puede limpiar más adelante.
 
     // 4. DISPONIBLES
     if (withVideo.length > 0) {

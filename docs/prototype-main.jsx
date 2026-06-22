@@ -5981,7 +5981,7 @@ function App() {
         {view === 'path' && <MyPathView_New openDetail={openDetail} setView={setView} pathId={activePathId} openPath={openPath}/>}
         {view === 'profile' && <ProfileView_New setView={setView}/>}
         {view === 'wa' && <ChannelsView_New/>}
-        {view === 'saved' && <SavedView_New openDetail={openDetail}/>}
+        {view === 'saved' && <SavedView_New openDetail={openDetail} openPath={openPath}/>}
         {view === 'resources' && <ResourcesView_New/>}
         {view === 'admin' && (Auth.can && Auth.can('admin.viewPanel')
           ? <AdminView_New setView={setView} openLegacyAdmin={() => setView('admin-legacy')}/>
@@ -5996,7 +5996,9 @@ function App() {
         {view === 'certificates' && window.CertificatesView && <window.CertificatesView setView={setView}/>}
         {view === 'notes' && window.NotesView && <window.NotesView setView={setView} openPlayer={openPlayer}/>}
         {view === 'plan' && window.MyPlanView && <window.MyPlanView setView={setView} openPath={openPath} openDetail={openDetail}/>}
-        {view === 'leaderboard' && window.LeaderboardView && <window.LeaderboardView setView={setView}/>}
+        {/* leaderboard · eliminado del producto (b135 · petición del cliente).
+            window.LeaderboardView queda registrada pero ya no enruta · si
+            alguien hace deep-link a /leaderboard cae a fallback. */}
         {view === 'onboarding' && <Onboarding done={() => setView('home')}/>}
       </main>
       {view !== 'onboarding' && aiMode !== 'collapsed' && window.AISidekick && !(window.DemoMode && window.DemoMode.flag('hide_beonai') === true) && (

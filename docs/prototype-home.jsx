@@ -468,12 +468,10 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   const isSimplified = window.DemoMode && window.DemoMode.flag('simplified_avatar_menu') === true;
   const menuItems = isSimplified ? [
     { k:'profile',      label: T('nav.profile'),               icon:'user' },
-    { k:'leaderboard',  label: 'Ranking del equipo',           icon:'award' },
     { k:'wa',           label: T('nav.wa', 'Channels'),        icon:'broadcast' },
     { k:'certificates', label: 'Certificados',                 icon:'award' },
   ] : [
     { k:'profile',     label:T('nav.profile'),  icon:'user' },
-    { k:'leaderboard', label:'Ranking',         icon:'award' },
     { k:'saved',       label:T('nav.saved'),    icon:'bookmark' },
     { k:'wa',          label:T('nav.wa'),       icon:'broadcast' },
     { k:'inbox',       label:T('nav.inbox'),    icon:'inbox', badge: inboxCount },
@@ -1281,6 +1279,44 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
     // ("_recommended": true en el adapter) reordenamos. Sino preservamos
     // el orden de inserción del backend.
     if (row._recommended) {
+      // (b135) Si el adapter pidió títulos específicos (cliente fijó 3
+      // recomendados: Gestión de Proyectos, Comunicación y Feedback,
+      // Desarrollo de Personas), filtramos por match fuzzy de título.
+      // Si no hay matches, caemos al scoring por rol de abajo.
+      if (Array.isArray(row._recommendedTitles) && row._recommendedTitles.length) {
+        const wanted = row._recommendedTitles.map(t => String(t).toLowerCase());
+        const matched = paths.filter(p => {
+          const t = String(p.title || '').toLowerCase();
+          return wanted.some(w => t.includes(w) || w.includes(t));
+        });
+        if (matched.length > 0) {
+          // Ordenamos en el orden exacto del array del cliente.
+          paths = wanted
+            .map(w => matched.find(p => {
+              const t = String(p.title || '').toLowerCase();
+              return t.includes(w) || w.includes(t);
+            }))
+            .filter(Boolean);
+          // Renderizamos directamente · saltamos el scoring por rol.
+          return (
+            <section className="row" data-screen-label={`Row · ${row.key}`}>
+              <header className="row-header">
+                <h2 className="row-title">{row.title}</h2>
+                {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
+                <button className="row-explore" onClick={() => onOpenPath && onOpenPath()}>Explorar todas <Ico name="chev-right" size={12}/></button>
+              </header>
+              <div className="rail no-scrollbar" ref={railRef}>
+                <div className="rail-track">
+                  {paths.map(p => <NxPathCard key={p.id} path={p} onOpen={() => onOpenPath && onOpenPath(p)}/>)}
+                </div>
+              </div>
+              <button className="rail-arrow left" onClick={() => scroll(-1)}><Ico name="chev-left" size={28}/></button>
+              <button className="rail-arrow right" onClick={() => scroll(1)}><Ico name="chev-right" size={28}/></button>
+            </section>
+          );
+        }
+        // Si no hubo ningún match con los 3 títulos · fallback al scoring por rol.
+      }
       const user = (D && D.USER) || {};
       const role = String(user.role || '').toLowerCase();
       const team = String(user.team || '').toLowerCase();
