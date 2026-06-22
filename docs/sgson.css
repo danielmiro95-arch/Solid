@@ -1354,23 +1354,32 @@ html[data-theme="dark"] .trending-num {
   color: #FFFFFF !important;
 }
 
-/* (b169) Cliente: cards de Tendencias más grandes · más cuadradas ·
-   sienten como la fila más importante de la pantalla. 260 → 340px
-   ancho · aspect-ratio 5/6 leve vertical (no full square que rompería
-   el ratio del poster). */
+/* (b170) Cards de Tendencias y Sigue formándote · grandes y cuadradas ·
+   coronan el home como las dos filas más importantes. */
 .trending-cell .card {
-  width: 340px !important;
-  flex: 0 0 340px !important;
+  width: 380px !important;
+  flex: 0 0 380px !important;
   position: relative;
   aspect-ratio: 5 / 6;
-  min-height: 408px;
+  min-height: 456px;
 }
 .trending-cell .card .card-cover,
 .trending-cell .card > img {
   height: auto !important;
 }
-.trending-cell .card .card-body { padding: 18px 18px 64px; }
-.trending-cell .card .card-title { font-size: 17px; line-height: 1.25; }
+.trending-cell .card .card-body { padding: 20px 20px 70px; }
+.trending-cell .card .card-title { font-size: 18px; line-height: 1.25; }
+
+/* Sigue formándote · 1 sola card (Beyond Prompting en demo) · misma
+   escala visual que Tendencias para que coronen el home. */
+.row-continue .rail-track .card {
+  width: 380px !important;
+  flex: 0 0 380px !important;
+  aspect-ratio: 5 / 6;
+  min-height: 456px;
+}
+.row-continue .rail-track .card .card-body { padding: 20px 20px 70px; }
+.row-continue .rail-track .card .card-title { font-size: 18px; line-height: 1.25; }
 
 /* ============================================================
    FOOTER STRIP

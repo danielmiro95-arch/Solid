@@ -1616,9 +1616,9 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
                 }}>
                   <span style={{
                     display:'inline-flex', alignItems:'center', justifyContent:'center',
-                    minWidth:96, flex:'0 0 auto',
+                    minWidth:120, flex:'0 0 auto',
                     fontFamily:'Inter, sans-serif',
-                    fontWeight:900, fontSize:80, lineHeight:1, letterSpacing:'-0.04em',
+                    fontWeight:900, fontSize:100, lineHeight:1, letterSpacing:'-0.05em',
                     color:_numColor,
                     userSelect:'none', whiteSpace:'nowrap',
                   }}>{String(i+1).padStart(2,'0')}</span>
@@ -1635,7 +1635,7 @@ function NxRow({ row, onOpen, onOpenPath, onSeeAll }) {
   }
 
   return (
-    <section className="row" data-screen-label={`Row · ${row.key}`}>
+    <section className={`row row-${row.key}`} data-screen-label={`Row · ${row.key}`}>
       <header className="row-header">
         <h2 className="row-title">{row.title}</h2>
         {row.sub ? <span className="row-sub">— {row.sub}</span> : null}
