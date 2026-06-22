@@ -627,12 +627,14 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
     window.addEventListener('sgs-data-ready', r);
     window.addEventListener('bookmarks-changed', r);
     window.addEventListener('enrollments-changed', r);
+    window.addEventListener('ratings-changed', r);   // (b168) likes → favoritos
     window.addEventListener('pills-changed', r);
     window.addEventListener('paths-changed', r);
     return () => {
       window.removeEventListener('sgs-data-ready', r);
       window.removeEventListener('bookmarks-changed', r);
       window.removeEventListener('enrollments-changed', r);
+      window.removeEventListener('ratings-changed', r);
       window.removeEventListener('pills-changed', r);
       window.removeEventListener('paths-changed', r);
     };
@@ -819,11 +821,105 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
         </section>
       )}
 
-      {/* Próximas pills sugeridas · en demo se renombra a "Pills inscritos" (sección 2/3) */}
-      {next.length > 0 && (
+      {/* (b168) Mi Lista demo · 3 secciones reactivas:
+           1) Pills favoritas (likes · Ratings 5★)
+           2) Cursos favoritos (likes · Ratings 5★)
+           3) Cursos inscritos (Enrollments.has)
+          Cada sección con su empty state. Se refrescan al instante
+          gracias al listener ratings-changed añadido más arriba. */}
+      {_isDemo && !path && (() => {
+        const _isLiked = (id) => {
+          if (!window.Ratings || !window.Ratings.get) return false;
+          const r = window.Ratings.get(id);
+          const stars = typeof r === 'number' ? r : (r && r.stars) || 0;
+          return stars === 5;
+        };
+        const likedPills    = ALL_PILLS.filter(p => _isLiked(p.id));
+        const likedCourses  = PATHS.filter(p => _isLiked(p.id || p._id));
+        const enrolledOnly  = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id || p._id));
+        const _emptyBox = (msg) => (
+          <div style={{ padding:32, textAlign:'center', background:'var(--bg-surface)', border:'1px dashed var(--line)', borderRadius:14 }}>
+            <div style={{ fontSize:24, marginBottom:6, opacity:0.5 }}>🔖</div>
+            <div style={{ fontSize:13, color:'var(--fg-muted)' }}>{msg}</div>
+          </div>
+        );
+        const _renderPillCard = (p) => {
+          const slug = _slug(p.category);
+          return (
+            <article key={p.id} className="card" onClick={() => openDetail(p)} style={{ cursor: 'pointer' }}>
+              <div className={`card-cover cat-${slug}`}/>
+              {(p.poster || p.yt) && <img
+                src={p.poster || `https://img.youtube.com/vi/${p.yt}/hqdefault.jpg`}
+                alt={p.title || ''}
+                style={{position:'absolute', inset:0, width:'100%', height: p.poster ? '100%' : '56.25%', objectFit:'cover'}}
+                onError={e => { e.currentTarget.style.display='none'; }}
+              />}
+              <div className="card-grad"/>
+              <span className="card-pill-num">{String(p.category).toUpperCase()}</span>
+              <div className="card-body">
+                <h3 className="card-title">{p.title}</h3>
+                <div className="card-meta"><span>Nivel {p.level}</span></div>
+              </div>
+            </article>
+          );
+        };
+        const _renderCourseCard = (p) => {
+          const slug = _slug(p.category || p.badge || '');
+          const poster = p.poster || p.posterUrl || (p.yt ? `https://i.ytimg.com/vi/${p.yt}/hqdefault.jpg` : '');
+          return (
+            <article key={p.id || p._id} className="card" onClick={() => openPath ? openPath(p.id || p._id) : openDetail(p)} style={{ cursor: 'pointer' }}>
+              <div className={`card-cover cat-${slug}`} style={poster ? { backgroundImage: `url(${poster})` } : undefined}/>
+              <div className="card-grad"/>
+              <span className="card-pill-num">{String(p.badge || p.category || 'CURSO').toUpperCase()}</span>
+              <div className="card-body">
+                <h3 className="card-title">{p.title}</h3>
+                <div className="card-meta">{p.level && <span>{p.level}</span>}</div>
+              </div>
+            </article>
+          );
+        };
+        return (
+          <>
+            <section style={{ marginBottom: 40 }}>
+              <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+                Pills favoritas <span style={{ fontSize:14, color:'var(--fg-muted)', fontWeight:500, marginLeft:8 }}>· {likedPills.length}</span>
+              </h2>
+              {likedPills.length === 0
+                ? _emptyBox('Haz click en 👍 desde cualquier pill del Catálogo o del Inicio para añadirla aquí.')
+                : (<div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
+                    {likedPills.map(_renderPillCard)}
+                  </div>)}
+            </section>
+            <section style={{ marginBottom: 40 }}>
+              <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+                Cursos favoritos <span style={{ fontSize:14, color:'var(--fg-muted)', fontWeight:500, marginLeft:8 }}>· {likedCourses.length}</span>
+              </h2>
+              {likedCourses.length === 0
+                ? _emptyBox('Marca ★ en cualquier curso del Catálogo para añadirlo aquí.')
+                : (<div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+                    {likedCourses.map(_renderCourseCard)}
+                  </div>)}
+            </section>
+            <section style={{ marginBottom: 40 }}>
+              <h2 style={{ fontFamily:'var(--font-sans)', fontSize:22, fontWeight:700, color:'var(--fg)', marginBottom:16 }}>
+                Cursos inscritos <span style={{ fontSize:14, color:'var(--fg-muted)', fontWeight:500, marginLeft:8 }}>· {enrolledOnly.length}</span>
+              </h2>
+              {enrolledOnly.length === 0
+                ? _emptyBox('Inscríbete en un curso desde el Catálogo y aparecerá aquí.')
+                : (<div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14 }}>
+                    {enrolledOnly.map(_renderCourseCard)}
+                  </div>)}
+            </section>
+          </>
+        );
+      })()}
+
+      {/* Próximas pills sugeridas · solo fuera de demo · en demo Mi Lista
+           ya muestra las 3 secciones explícitas (b168). */}
+      {!_isDemo && next.length > 0 && (
         <section style={{ marginBottom: _isDemo ? 40 : 0 }}>
           <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg)', marginBottom: 16 }}>
-            {_isDemo ? 'Pills inscritas' : T('mypath.next')}
+            {T('mypath.next')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {next.map(p => {
@@ -856,7 +952,9 @@ function MyPathView({ openDetail, setView, pathId, openPath }) {
       {/* Cursos a los que estás inscrito · enrolled + en progreso + bookmarked.
           Se muestra a TODOS los usuarios (antes gateado por _isDemo → los users
           reales nunca veían sus cursos inscritos pese a persistir en Supabase). */}
-      {!path && (() => {
+      {/* (b168) Legacy "Cursos a los que estás inscrito" · solo fuera de
+           demo · en demo ya renderizan las 3 secciones explícitas arriba. */}
+      {!_isDemo && !path && (() => {
         const coursesInProgress = PATHS.filter(p => p.progress > 0 && p.progress < 1);
         const coursesEnrolled   = PATHS.filter(p => window.Enrollments && window.Enrollments.has && window.Enrollments.has(p.id));
         const coursesBookmarked = PATHS.filter(p => window.Bookmarks && window.Bookmarks.has && window.Bookmarks.has(p.id));
