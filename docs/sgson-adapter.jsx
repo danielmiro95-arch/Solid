@@ -155,12 +155,14 @@
       { keys: ['reuniones eficaces', 'reuniones eficases', 'reunion eficaz', 'reuniones'], url: _hdrUrl('industria'), label: 'Industria/Reuniones' },
       { keys: ['prioridades sin agobio', 'prioridades', 'agobio', 'gestion del tiempo', 'gestion tiempo'], url: _hdrUrl('innovacion'), label: 'Prioridades' },
       { keys: ['feedback 360', 'feedback que no escuece', 'feedback 360 que no escuece', 'feedback'], url: _hdrUrl('ideas'), label: 'Feedback' },
-      // EXTRAS (a criterio · keyword match con cursos típicos del catálogo)
-      { keys: ['colaboracion', 'trabajo en equipo', 'equipo', 'cooperacion'], url: _hdrUrl('colaboracion'), label: 'Colaboración' },
-      { keys: ['diversidad', 'inclusion', 'talento', 'personas', 'desarrollo personas', 'desarrollar personas'], url: _hdrUrl('talento'), label: 'Talento/Diversidad' },
+      // EXTRAS (a criterio · keywords ampliadas para cursos típicos del
+      // catálogo HdR · "gestion de proyectos", "gestion de cambios",
+      // "liderazgo", "comunicacion", etc.)
+      { keys: ['colaboracion', 'trabajo en equipo', 'equipo', 'cooperacion', 'comunicacion'], url: _hdrUrl('colaboracion'), label: 'Colaboración' },
+      { keys: ['diversidad', 'inclusion', 'talento', 'personas', 'desarrollo personas', 'desarrollar personas', 'liderazgo'], url: _hdrUrl('talento'), label: 'Talento/Diversidad' },
       { keys: ['ciberseguridad', 'seguridad', 'hacker', 'datos seguros', 'proteccion'], url: _hdrUrl('hackers'), label: 'Ciberseguridad' },
-      { keys: ['transformacion digital', 'digitalizacion', 'tecnologia', 'innovacion digital', 'automatizacion'], url: _hdrUrl('tecnologia'), label: 'Tecnología' },
-      { keys: ['teletrabajo', 'trabajo remoto', 'home office', 'remoto', 'hibrido'], url: _hdrUrl('teletrabajo'), label: 'Teletrabajo' },
+      { keys: ['transformacion digital', 'digitalizacion', 'tecnologia', 'innovacion digital', 'automatizacion', 'gestion de cambios', 'gestion del cambio'], url: _hdrUrl('tecnologia'), label: 'Tecnología' },
+      { keys: ['teletrabajo', 'trabajo remoto', 'home office', 'remoto', 'hibrido', 'gestion de proyectos', 'proyecto'], url: _hdrUrl('teletrabajo'), label: 'Teletrabajo' },
     ];
     // Pool fallback completo para pills sin match · rotación determinista
     // por hash del id. Incluye TODAS las imágenes · si una pill no matchea
@@ -233,21 +235,25 @@
     // defensivo · excluye:
     //  · archivado/borrado en BD (varios campos según versión del schema)
     //  · status draft/archived/deleted
-    //  · TÍTULO placeholder "Pil 1", "Pill 12", "PIL 3"... (regex /^pi+l+\s*\d+$/i)
-    //    pills generadas con nombre default y nunca editadas · ruido visual
-    //  · TÍTULO vacío o solo whitespace · pill sin contenido real
-    const _looksPlaceholder = (t) => {
-      const s = String(t || '').trim();
-      if (!s) return true;
-      return /^pi+l+\s*\d+(\.\d+)?\s*$/i.test(s);
-    };
+    // (b153) · cliente: "estás haciendo los cambios solo en RevSol · tienen
+    // que ser en los 3 workspaces". Root cause: el filtro placeholder
+    // _looksPlaceholder excluía las pills cuyo título empezaba por "Pil N"
+    // → HdR tiene casi todas sus pills con ese patrón ("Pil 1 de gestión
+    // de proyectos") → tras strip cleanTitle quedaban como "gestion de
+    // proyectos" pero la pill misma se excluía del array trending/withVideo/etc.
+    // → en HdR no se veían los cambios. Repsol no tiene pills placeholder ·
+    // por eso sus cambios SÍ se veían.
+    // Fix · QUITAR _looksPlaceholder del filtro. Las pills aparecen todas ·
+    // cleanTitle ya limpia el prefijo "Pil N" del título visible. Las pills
+    // con título solo "Pil 1" (sin contenido) tendrán título vacío tras
+    // clean · usamos el raw para no perderlas (fallback a "Pil N" como
+    // título visible si no hay nada más).
     const _isLive = (p) => !p.archived
                         && !p.archived_at
                         && !p.deleted_at
                         && p.status !== 'archived'
                         && p.status !== 'deleted'
-                        && p.status !== 'draft'
-                        && !_looksPlaceholder(p.title);
+                        && p.status !== 'draft';
     const _livePills = PILLS.filter(_isLive);
     const withVideo       = _livePills.filter(p => p.yt || p.mp4).map(p => p.id).slice(0, 10);
     const trending        = _livePills.slice().sort((a,b) => (b.enrolled||0) - (a.enrolled||0)).map(p => p.id).slice(0, 10);

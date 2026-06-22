@@ -821,20 +821,14 @@ function HomeHero({ onPlay, onMore }) {
     const _isDemoURL = /demo/i.test(window.location.href);
     const dm = window.DemoMode;
     if (_isDemoURL || (dm && dm.isActive && dm.isActive())) {
-      // (b141 → b142) Filtro live · excluye:
-      //  · pills archivadas/borradas/draft
-      //  · pills con título placeholder "Pil 1", "Pil 2", "Pil 3" · pills
-      //    generadas con nombre default y nunca editadas
-      //  · pills con título vacío
-      const _looksPlaceholder = (t) => {
-        const s = String(t || '').trim();
-        if (!s) return true;
-        return /^pi+l+\s*\d+(\.\d+)?\s*$/i.test(s);
-      };
+      // (b153) Filtro live · solo excluye pills archivadas/borradas/draft.
+      // Antes excluía también pills con título "Pil N" (placeholder) ·
+      // eso eliminaba la mayoría del catálogo de HdR donde casi todas las
+      // pills empiezan así. cleanTitle ya limpia el prefijo del título
+      // visible · pero la pill se mantiene en el array para renderizar.
       const _isLive = (p) => !p.archived && !p.archived_at && !p.deleted_at
                           && p.status !== 'archived' && p.status !== 'deleted'
-                          && p.status !== 'draft'
-                          && !_looksPlaceholder(p.title);
+                          && p.status !== 'draft';
       const tendencias = PILLS
         .filter(_isLive)
         .filter(p => /tendencias?/i.test(String(p.category || ''))
