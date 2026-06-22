@@ -4732,12 +4732,12 @@ const I18n = (function() {
       'palette.noResults':'Sin resultados para',
       'palette.goTo':'IR A',
       // Login
-      'login.eyebrow':'★ Plataforma de formación cinematográfica · 2026',
+      'login.eyebrow':'★ Plataforma de microlearning push and pull · 2026',
       'login.title.l1':'Forma', 'login.title.l2':'a tu equipo', 'login.title.l3':'a tu',
       'login.title.expert':'ritmo',
-      'login.subtitle':'Microlearning en vídeo · BeonAI integrado · seguimiento de progreso en tiempo real.',
-      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Talleres en directo',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
+      'login.subtitle':'Seguimiento de progreso en tiempo real.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'',
+      'login.chip.beonai':'', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Iniciar sesión', 'login.mode.signup':'Crear cuenta',
       'login.invite.title':'Invitación recibida',
@@ -4979,12 +4979,12 @@ const I18n = (function() {
       'palette.noResults':'No results for',
       'palette.goTo':'GO TO',
       // Login
-      'login.eyebrow':'★ Cinematic learning platform · 2026',
+      'login.eyebrow':'★ Push and pull microlearning platform · 2026',
       'login.title.l1':'Train', 'login.title.l2':'your team', 'login.title.l3':'at your',
       'login.title.expert':'pace',
-      'login.subtitle':'Video microlearning · Integrated AI assistant · Real-time progress tracking.',
-      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Live workshops',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Official Certificate',
+      'login.subtitle':'Real-time progress tracking.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'',
+      'login.chip.beonai':'', 'login.chip.cert':'Official Certificate',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Sign in', 'login.mode.signup':'Create account',
       'login.invite.title':'Invitation received',
@@ -5226,12 +5226,12 @@ const I18n = (function() {
       'palette.noResults':'Sem resultados para',
       'palette.goTo':'IR PARA',
       // Login
-      'login.eyebrow':'★ Plataforma de formação cinematográfica · 2026',
+      'login.eyebrow':'★ Plataforma de microlearning push and pull · 2026',
       'login.title.l1':'Forme', 'login.title.l2':'a sua equipa', 'login.title.l3':'no seu',
       'login.title.expert':'ritmo',
-      'login.subtitle':'Microlearning em vídeo · BeonAI integrado · acompanhamento de progresso em tempo real.',
-      'login.chip.pills':'Microlearning', 'login.chip.workshops':'Workshops ao vivo',
-      'login.chip.beonai':'BeonAI · Claude 4.5', 'login.chip.cert':'Certificado oficial',
+      'login.subtitle':'Acompanhamento de progresso em tempo real.',
+      'login.chip.pills':'Microlearning', 'login.chip.workshops':'',
+      'login.chip.beonai':'', 'login.chip.cert':'Certificado oficial',
       'login.poweredBy':'Powered by Claude',
       'login.mode.login':'Entrar', 'login.mode.signup':'Criar conta',
       'login.invite.title':'Convite recebido',
@@ -6872,7 +6872,9 @@ function LoginScreen() {
             {T('login.subtitle')}
           </p>
           <div style={{marginTop:36, display:'flex', gap:8, flexWrap:'wrap'}}>
-            {[T('login.chip.pills'), T('login.chip.workshops'), T('login.chip.beonai'), T('login.chip.cert')].map(t => (
+            {/* (b159) Filtra chips vacíos · cliente eliminó workshops y
+                beonai · si la traducción es '' no renderizamos el chip. */}
+            {[T('login.chip.pills'), T('login.chip.workshops'), T('login.chip.beonai'), T('login.chip.cert')].filter(t => t && t.trim()).map(t => (
               <span key={t} style={{fontFamily:'var(--font-mono, "JetBrains Mono", monospace)', fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase', padding:'6px 13px', border:'1px solid rgba(255,255,255,0.22)', borderRadius:999, color:'rgba(255,255,255,0.85)', background:'rgba(255,255,255,0.08)'}}>{t}</span>
             ))}
           </div>
