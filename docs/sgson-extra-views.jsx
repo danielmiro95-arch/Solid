@@ -2328,25 +2328,40 @@ function SavedView({ openDetail, openPath }) {
   const PILLS = (D && D.PILLS) || [];
   const PATHS = (D && D.LEARNING_PATHS) || [];
 
-  // Bookmarks (compartido pills + cursos) y Enrollments (cursos inscritos).
-  // Reactivos a sus eventos respectivos para que el contador suba al vuelo.
+  // (b166) Cliente: Pills favoritas y Cursos favoritos son los que se
+  // marcan con LIKE (★5 vía Ratings), no los Bookmarks. Cursos inscritos
+  // sigue siendo Enrollments. Reactivo a ratings-changed + bookmarks-
+  // changed + enrollments-changed para refrescar el grid al instante.
   const [bmIds, setBmIds] = useEV2(() => (window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
   const [, setEnrTick] = useEV2(0);
+  const [, setRatTick] = useEV2(0);
   useEE2(() => {
     const onBm = () => setBmIds((window.Bookmarks && window.Bookmarks.get && window.Bookmarks.get()) || []);
     const onEn = () => setEnrTick(t => t + 1);
+    const onRt = () => setRatTick(t => t + 1);
     window.addEventListener('bookmarks-changed', onBm);
     window.addEventListener('enrollments-changed', onEn);
+    window.addEventListener('ratings-changed', onRt);
     return () => {
       window.removeEventListener('bookmarks-changed', onBm);
       window.removeEventListener('enrollments-changed', onEn);
+      window.removeEventListener('ratings-changed', onRt);
     };
   }, []);
 
-  // Filtros · Bookmarks guarda ids tanto de pill como de path · separamos por
-  // colección. Enrollments solo tiene paths (cursos inscritos).
-  const savedPills   = PILLS.filter(p => bmIds.includes(p.id));
-  const savedCourses = PATHS.filter(p => bmIds.includes(p.id || p._id));
+  // (b166) Filtros:
+  // · Pills favoritas y Cursos favoritos · LIKE = Ratings.get(id) === 5
+  //   (lo que el user marca con el botón pulgar arriba). El cliente
+  //   aclaró que NO son los bookmarks · son los likes.
+  // · Cursos inscritos · Enrollments.has() (botón Inscribirse).
+  const _isLiked = (id) => {
+    if (!window.Ratings || !window.Ratings.get) return false;
+    const r = window.Ratings.get(id);
+    const stars = typeof r === 'number' ? r : (r && r.stars) || 0;
+    return stars === 5;
+  };
+  const savedPills   = PILLS.filter(p => _isLiked(p.id));
+  const savedCourses = PATHS.filter(p => _isLiked(p.id || p._id));
   const enrolled     = PATHS.filter(p => {
     if (!window.Enrollments || !window.Enrollments.has) return false;
     return window.Enrollments.has(p.id || p._id);
