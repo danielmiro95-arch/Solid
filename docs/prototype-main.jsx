@@ -5759,6 +5759,9 @@ window.ActivityFeed = ActivityFeed;
 function App() {
   const saved = JSON.parse(localStorage.getItem('solid-proto') || '{}');
   const [view, _setView] = useSM(saved.view || 'home');
+  // (b156) · Landing pre-login · si no hay sesión muestra LandingView ·
+  // el CTA "Iniciar sesión" setea showLogin=true y pasa al LoginScreen.
+  const [showLogin, setShowLogin] = useSM(false);
   // Stack de vistas previas · para botón "back" del Player
   const [prevView, setPrevView] = useSM(saved.prevView || 'home');
   const setView = (v) => { _setView(prev => { if (prev !== v) setPrevView(prev); return v; }); };
@@ -6026,7 +6029,12 @@ function App() {
   const closeDetailModal = () => { setDetailItem(null); };
   const openPlayerFromModal = (it) => { if (it) setDetailItem(it); setView('player'); };
 
-  if (!authUser) return <LoginScreen/>;
+  if (!authUser) {
+    // (b156) Landing primero · CTA "Iniciar sesión" → showLogin=true → LoginScreen.
+    // Safety · si window.LandingView no cargó (script falló), caemos al login directo.
+    if (showLogin || !window.LandingView) return <LoginScreen/>;
+    return <window.LandingView onEnterLogin={() => setShowLogin(true)}/>;
+  }
 
   return (
     <div className={rootClass} style={rootStyle} data-screen-label={`Prototype · ${view}`}>
