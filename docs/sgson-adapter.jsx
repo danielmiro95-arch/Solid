@@ -433,8 +433,19 @@
       // El cliente puede activar/desactivar estos flags desde Supabase sin
       // tocar código · usado para cursos 5 y 6 de COX (Tu día a día y
       // Construye tu futuro con nosotros).
-      const _locked      = !!meta.locked;
-      const _comingSoon  = !!meta.coming_soon;
+      let _locked      = !!meta.locked;
+      let _comingSoon  = !!meta.coming_soon;
+      // (b174) · HARDCODE backup · si el cliente aún no ha ejecutado el
+      // SQL de metadata, forzamos lock+coming_soon para cox-5 y cox-6
+      // por slug. Cuando el SQL se ejecute, meta.locked ya será true y
+      // el OR no cambia nada. Sin esto · cursos 5/6 salían sin candado
+      // hasta que el SQL se aplicase manualmente.
+      const _slug = String(p.id || p.slug || '');
+      if (_slug.indexOf('cox-5') === 0 || _slug.indexOf('cox-6') === 0
+          || _slug === 'cox-5-dia-a-dia' || _slug === 'cox-6-futuro') {
+        _locked = true;
+        _comingSoon = true;
+      }
       return {
         id:        p.id,
         _id:       p._id,            // uuid expuesto para routeProgress() externo
