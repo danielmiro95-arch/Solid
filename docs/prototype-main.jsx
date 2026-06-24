@@ -1195,6 +1195,10 @@ window.isDemoWorkspace = function() {
     if (!w) return false;
     const slug = String(w.slug || '').toLowerCase();
     const name = String(w.name || '').toLowerCase();
+    // (b175) cliente: "COX debe ser parecido al de Hijos de Rivera · solo
+    // Inicio, Catálogo y Mi Lista". Forzamos demo por slug · sin depender
+    // de que el cliente ejecute el SQL que setea settings.demo_mode.
+    if (slug === 'cox') return true;
     return slug.indexOf('demo') !== -1 || name.indexOf('demo') !== -1;
   }
   // Detección por URL (?ws=*demo*) · cubre el caso en que window.Workspaces
