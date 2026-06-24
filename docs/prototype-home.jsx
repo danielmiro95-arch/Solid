@@ -431,14 +431,15 @@ function TopNav({ view, onView, onSearch, onLogout }) {
   // Re-render cuando cambia el idioma
   const { t: T } = (window.useI18n ? window.useI18n() : { t: (k) => k });
 
-  // En demo (URL contiene "demo") · TopNav reducido a 3 items.
-  // Esto es DISTINTO del SIDEBAR_LINKS del adapter (que va al popup
-  // del avatar) · el TopNav center es lo que el user ve como navegación
-  // principal arriba. Antes era hardcoded e ignoraba demo · CAUSA RAÍZ
-  // de que el user siguiera viendo Catálogo/Cursos/Mi ruta/Recursos/
-  // Analytics/BeonAI a pesar de tener demo activo.
+  // En demo · TopNav reducido a 3 items.
+  // (b176) Antes solo miraba URL.includes('demo') · COX (slug='cox')
+  // se quedaba con el TopNav completo aunque DemoMode estuviera activo.
+  // Ahora usa window.DemoMode.isActive() · respeta URL + slug + settings
+  // + hardcode COX (de b175).
   const _isDemoURL = /demo/i.test(window.location.href);
-  const items = _isDemoURL ? [
+  const _isDemoActive = !!(window.DemoMode && window.DemoMode.isActive && window.DemoMode.isActive());
+  const _demo = _isDemoURL || _isDemoActive;
+  const items = _demo ? [
     { k:'home',  label:'Inicio' },
     { k:'rutas', label:'Catálogo' },
     { k:'path',  label:'Mi Lista' },
