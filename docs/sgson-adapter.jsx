@@ -416,6 +416,14 @@
       // del certificado), accent (color hex del manual beonit).
       const meta = p._meta || {};
       const accentHex = meta.accent || null;
+      // (b172) · flags de lock/coming-soon vienen de metadata del workspace_content:
+      //   meta.locked      → path.forceLocked (NxPathCard pinta candado)
+      //   meta.coming_soon → path.badge = 'Próximamente' (override del badge)
+      // El cliente puede activar/desactivar estos flags desde Supabase sin
+      // tocar código · usado para cursos 5 y 6 de COX (Tu día a día y
+      // Construye tu futuro con nosotros).
+      const _locked      = !!meta.locked;
+      const _comingSoon  = !!meta.coming_soon;
       return {
         id:        p.id,
         _id:       p._id,            // uuid expuesto para routeProgress() externo
@@ -423,7 +431,8 @@
         title:     p.label || p.title || 'Ruta',
         label:     p.label || p.title || 'Ruta',
         desc:      p.desc || p.roleTag || '',
-        badge:     p.badge || '',
+        badge:     _comingSoon ? 'Próximamente' : (p.badge || ''),
+        forceLocked: _locked,
         // Brand (sub-catálogo) · workspace_content.metadata.brand. Permite
         // agrupar paths por marca dentro de un workspace (HdR: 1906,
         // Estrella Galicia, Anchois Cuca…). Si no hay brand, queda null y
