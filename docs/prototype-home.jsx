@@ -491,7 +491,7 @@ function TopNav({ view, onView, onSearch, onLogout }) {
       <div className="topnav-left">
         {window.Wordmark
           ? <Wordmark variant="v1"/>
-          : <span style={{display:'inline-flex', alignItems:'center', gap:8}}><img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="" style={{height:32}}/><span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:18, letterSpacing:'-0.02em'}}>SolidStream</span></span>
+          : <span style={{display:'inline-flex', alignItems:'center', gap:8}}><img src={`beonit-logo.png?v=${window.SOLID_VERSION || 'init'}`} alt="" style={{height:32}}/><span style={{fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:18, letterSpacing:'-0.02em'}}>Solid <em style={{fontFamily:'Instrument Serif, Georgia, serif', fontStyle:'italic', fontWeight:400}}>Growth</em></span></span>
         }
         {/* Workspace switcher · chip al lado del logo si hay workspaces */}
         <WorkspaceSwitcher/>

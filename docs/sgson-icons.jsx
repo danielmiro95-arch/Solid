@@ -106,18 +106,33 @@ const Wordmark = ({ variant='v1', size, withLogo = true }) => {
     return () => window.removeEventListener('workspace-branding-changed', onChange);
   }, []);
   const wsLogo = (typeof window !== 'undefined' && window.WORKSPACE_LOGO_URL) || null;
-  const fallback = `beonit-logo.png?v=${(typeof window !== 'undefined' && window.SOLID_VERSION) || 'init'}`;
-  const logoSrc = wsLogo || fallback;
+  const beonitLogo = `beonit-logo.png?v=${(typeof window !== 'undefined' && window.SOLID_VERSION) || 'init'}`;
+  const _h = size ? size * 1.15 : 30;
+  // (b177) Branding nuevo · "Solid Growth By beonit". Si el workspace
+  // tiene su logo · mostramos AMBOS · logo del cliente + logo beonit
+  // pequeño al lado. Si no hay logo del cliente · solo beonit.
   return (
     <span className={`wordmark ${variant}`} style={Object.assign({display:'inline-flex', alignItems:'center', gap:10}, size ? {fontSize:size} : {})}>
-      {withLogo && (
-        <img src={logoSrc}
-             alt=""
-             onError={e => { if (wsLogo && e.currentTarget.src !== fallback) e.currentTarget.src = fallback; }}
-             style={{height: size ? size * 1.15 : 30, width:'auto', flexShrink:0}}/>
+      {withLogo && wsLogo && (
+        <>
+          <img src={wsLogo}
+               alt=""
+               onError={e => { e.currentTarget.style.display = 'none'; }}
+               style={{height: _h, width:'auto', flexShrink:0}}/>
+          <span style={{width:1, height:_h*0.65, background:'rgba(11,18,38,0.18)', flexShrink:0}}/>
+          <img src={beonitLogo}
+               alt="beonit"
+               style={{height: _h * 0.78, width:'auto', flexShrink:0, opacity:0.85}}/>
+        </>
       )}
-      <span style={{fontFamily:'Inter, sans-serif', fontWeight:700, letterSpacing:'-0.025em', color:'inherit'}}>
-        Solid<span style={{fontFamily:'Instrument Serif, Georgia, serif', fontStyle:'italic', fontWeight:400, letterSpacing:'0.02em'}}>Stream</span>
+      {withLogo && !wsLogo && (
+        <img src={beonitLogo}
+             alt="beonit"
+             style={{height: _h, width:'auto', flexShrink:0}}/>
+      )}
+      <span style={{fontFamily:'Inter, sans-serif', fontWeight:700, letterSpacing:'-0.025em', color:'inherit', display:'inline-flex', alignItems:'baseline', gap:6}}>
+        <span>Solid <span style={{fontFamily:'Instrument Serif, Georgia, serif', fontStyle:'italic', fontWeight:400, letterSpacing:'0.02em'}}>Growth</span></span>
+        <span style={{fontFamily:'Inter, sans-serif', fontWeight:400, fontSize:'0.6em', letterSpacing:'0.01em', opacity:0.6}}>By beonit</span>
       </span>
     </span>
   );
