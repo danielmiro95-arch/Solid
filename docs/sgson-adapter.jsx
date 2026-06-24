@@ -118,9 +118,11 @@
       }
     });
     PILLS.forEach(p => {
-      if (!p.poster && p.pathId && _pathPosterByUuid[p.pathId]) {
-        p.poster = _pathPosterByUuid[p.pathId];
-      }
+      // (b173) · YA NO heredamos poster del path padre · causaba que las
+      // 5 pills del mismo curso compartieran la misma imagen (cliente:
+      // "se duplican muchas"). Cada pill se asigna después una imagen
+      // distinta del pool HDR/COX (rotativo determinista por hash id).
+      // El accentHex sí se hereda · es color del path, no imagen.
       if (!p.accentHex && p.pathId && _pathAccentByUuid[p.pathId]) {
         p.accentHex = _pathAccentByUuid[p.pathId];
       }
@@ -165,12 +167,21 @@
       { keys: ['teletrabajo', 'trabajo remoto', 'home office', 'remoto', 'hibrido', 'gestion de proyectos', 'proyecto'], url: _hdrUrl('teletrabajo'), label: 'Teletrabajo' },
     ];
     // Pool fallback completo para pills sin match · rotación determinista
-    // por hash del id. Incluye TODAS las imágenes · si una pill no matchea
-    // ninguna keyword, igual recibe una imagen bonita en vez del SVG.
+    // por hash del id. (b173) · ampliado con las 6 imágenes COX para
+    // tener 15 imágenes en total · más variedad · menos repetición.
+    // El cliente pidió "utiliza también fotos del proyecto de Hijos de
+    // Rivera porque se duplican muchas" · pool mezclado COX + HdR.
+    const _COX_BASE = 'https://ymhwsdmbddyudepbjfpk.supabase.co/storage/v1/object/public/COX/';
     const _HDR_POOL = [
       _hdrUrl('colaboracion'), _hdrUrl('talento'), _hdrUrl('hackers'),
       _hdrUrl('tecnologia'), _hdrUrl('teletrabajo'), _hdrUrl('innovacion'),
       _hdrUrl('ia'), _hdrUrl('industria'), _hdrUrl('ideas'),
+      _COX_BASE + '555be7a7-64df-41ef-b92f-83f2cf4725b1_alta-libre-aspect-ratio_default_0.jpg',
+      _COX_BASE + 'businesswoman-showing-photovoltaics-plant-assets-shareholders-pitch.jpg',
+      _COX_BASE + 'low-angle-view-modern-buildings.jpg',
+      _COX_BASE + 'management-executives-talk-about-factory-automation-strategies.jpg',
+      _COX_BASE + 'renewable-energy-environment-psd-solar-panel-remixed-media.jpg',
+      _COX_BASE + 'specialist-technician-professional-engineer-with-laptop-tablet-maintenance-checking-installing-solar-roof-panel-factory-rooftop-sunlight-engineers-team-survey-check-solar-panel-roof.jpg',
     ];
     const _normTitle = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
     const _seedFromId = (id) => {
