@@ -52,6 +52,23 @@ BEGIN
      WHERE id = v_user_id;
   END IF;
 
+  -- 1b. auth.identities · OBLIGATORIO para que /token (login) no
+  -- devuelva "Database error querying schema". Supabase Auth requiere
+  -- una identity por provider · sin ella el lookup del email falla.
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id,
+    created_at, last_sign_in_at, updated_at
+  )
+  SELECT
+    gen_random_uuid(), v_user_id,
+    jsonb_build_object('sub', v_user_id::text, 'email', v_email,
+                       'email_verified', true, 'phone_verified', false),
+    'email', v_user_id::text,
+    now(), now(), now()
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.identities WHERE user_id = v_user_id AND provider = 'email'
+  );
+
   -- 2. public.profiles
   INSERT INTO public.profiles (id, email, name, role, system_role, team, current_workspace_id)
   VALUES (v_user_id, v_email, v_name, 'Learning Manager', 'user', 'COX', v_ws_id)
